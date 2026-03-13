@@ -1,4 +1,23 @@
-// --- GALAXINKO (v3.9.0 - Tikfinity Connected & Name Rendering) ---
+// --- TIKFINITY LIVE CONNECTION ---
+let socket = new WebSocket("ws://localhost:21213/");
+
+socket.onopen = function(e) {
+  console.log("[Tikfinity] Spojení navázáno");
+};
+
+socket.onmessage = function(event) {
+  let data = JSON.parse(event.data);
+  
+  // Pokud někdo pošle LIKE, vystřel kuličku
+  if (data.event === "like") {
+    let name = data.data.nickname || data.data.uniqueId || "USER";
+    spawnBall(name.toUpperCase().substring(0, 12));
+  }
+};
+
+socket.onerror = function(error) {
+  console.log(`[Tikfinity] Chyba: ${error.message}`);
+};// --- GALAXINKO (v3.9.0 - Tikfinity Connected & Name Rendering) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -134,7 +153,7 @@ function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
   
-  checkUrlParams(); 
+
 
   updateJukebox(); 
 
