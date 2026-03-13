@@ -1,26 +1,41 @@
-// --- TIKFINITY LIVE CONNECTION ---
-let socket = new WebSocket("ws://localhost:21213/");
+// --- GALAXINKO (v3.9.5 - Tikfinity Event API Connected) ---
 
-socket.onopen = function(e) {
-  console.log("[Tikfinity] Spojení navázáno");
-};
+// 1. PROPOJENÍ S TIKFINITY (EVENT API)
+let socket;
+const TIKFINITY_URL = "ws://localhost:21213/";
 
-socket.onmessage = function(event) {
-  let data = JSON.parse(event.data);
-  
-  // Pokud někdo pošle LIKE, vystřel kuličku
-  if (data.event === "like") {
-    let name = data.data.nickname || data.data.uniqueId || "USER";
-    spawnBall(name.toUpperCase().substring(0, 12));
-  }
-};
+function connectTikfinity() {
+  socket = new WebSocket(TIKFINITY_URL);
 
-socket.onerror = function(error) {
-  console.log(`[Tikfinity] Chyba: ${error.message}`);
-};// --- GALAXINKO (v3.9.0 - Tikfinity Connected & Name Rendering) ---
+  socket.onopen = function() {
+    console.log("[Tikfinity] Spojení navázáno - Hra naslouchá eventům");
+  };
 
+  socket.onmessage = function(event) {
+    let data = JSON.parse(event.data);
+    
+    // REAKCE NA LIKE
+    if (data.event === "like") {
+      let name = data.data.nickname || data.data.uniqueId || "USER";
+      spawnBall(name.toUpperCase().substring(0, 12));
+    }
+    
+    // VOLITELNÉ: REAKCE NA FOLLOW (pokud chceš, smaž dvě lomítka níže)
+    // if (data.event === "follow") { spawnBall("NEW FOLLOW!"); }
+  };
+
+  socket.onerror = function(error) {
+    console.log("[Tikfinity] Chyba spojení. Ujisti se, že máš zapnutou aplikaci Tikfinity.");
+  };
+
+  socket.onclose = function() {
+    console.log("[Tikfinity] Spojení ztraceno, zkouším se znovu připojit za 5s...");
+    setTimeout(connectTikfinity, 5000);
+  };
+}
+
+// 2. KONFIGURACE HRY
 const GAME_TITLE = "GALAXINKO"; 
-
 let engine, world;
 let balls = [];
 let pegs = [];
@@ -42,7 +57,6 @@ let shakeAmount = 0;
 let currentDestination = "";
 let currentGravity = 0.6;
 
-// --- GALAXY ELEMENTS ---
 let stars = [];
 let dust = []; 
 let massivePlanets = []; 
@@ -51,11 +65,9 @@ let currentComet = null;
 let planetSize = 0;
 let currentTravelSpeed = 1.0; 
 
-// --- THE HOLE (SINGULARITY) ---
 let blackHole = null; 
 let bhSpawnTimes = [];
 
-// --- PROCEDURAL JUKEBOX ---
 let chords = [[55, 65.41, 82.41], [48.99, 61.74, 73.42], [65.41, 77.78, 98.00], [43.65, 51.91, 65.41]];
 let currentChord = 0;
 let synthVoices = [];
@@ -65,6 +77,7 @@ const W = 900;
 const H = 950; 
 const ZONE_H = 100; 
 
+// POMOCNÉ FUNKCE
 function getURLParams() {
   let params = {};
   let query = window.location.search.substring(1);
@@ -74,24 +87,6 @@ function getURLParams() {
     if (pair[0]) params[pair[0]] = decodeURIComponent(pair[1]);
   }
   return params;
-}
-
-// POSLUCHAČ PRO PŘÍMÉ ZPRÁVY
-window.addEventListener("message", (event) => {
-  if (event.data.type === "TIKTOK_DROP") {
-    let name = event.data.user || "GUEST";
-    spawnBall(name.toUpperCase().substring(0, 12));
-  }
-});
-
-// KONTROLA URL PARAMETRŮ (Pro Tikfinity Webhook)
-function checkUrlParams() {
-  let params = getURLParams();
-  if (params.user) {
-    spawnBall(params.user.toUpperCase().substring(0, 12));
-    // Vyčistí URL, aby se kulička nespawnovala pořád dokola při refreshu
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
 }
 
 const RARE_POOL = [
@@ -147,13 +142,14 @@ function setup() {
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
   prepareSingularityEvents();
+
+  // INICIALIZACE SPOJENÍ S TIKFINITY
+  connectTikfinity();
 }
 
 function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
-  
-
 
   updateJukebox(); 
 
@@ -246,8 +242,7 @@ function drawBalls() {
     strokeWeight(1); 
     rect(-5, -5, 10, 10); 
     
-    // RENDERING JMÉNA NAD KULIČKOU
-    rotate(-b.body.angle); // Vyrovnání rotace pro text
+    rotate(-b.body.angle); 
     fill(255);
     noStroke();
     textAlign(CENTER);
@@ -280,8 +275,6 @@ function drawBalls() {
     }
   }
 }
-
-// ... Zbytek pomocných funkcí zůstává stejný pro stabilitu ...
 
 function spawnRareLegend() {
   let legend = random(RARE_POOL);
@@ -775,4 +768,3 @@ function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); 
 function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.04, 0, 0.3); }
-
