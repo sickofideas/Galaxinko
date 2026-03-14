@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.4 - MEGA LOGO FIX) ---
+// --- GALAXINKO (v4.8.4 - MEGA LOGO & CLEAN UI) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -69,7 +69,7 @@ let blackHole = null;
 let bhSpawnTimes = [];
 
 // --- PROCEDURAL RELAX JUKEBOX ---
-let scaleArr = [52, 55, 59, 60, 64, 67, 71]; 
+let scale = [52, 55, 59, 60, 64, 67, 71]; 
 let nextNoteTime = 0;
 let bhOsc; 
 
@@ -650,33 +650,28 @@ function drawUI() {
   strokeWeight(2); 
   line(0, 83, W, 83);
 
-  // --- MEGA BRANDED LOGO (OPRAVENO) ---
-  push();
-  translate(15, 42); // Posunuto mírně od kraje
+  // --- MEGA BRANDED LOGO (TOP LEFT) ---
+  let logoX = 20;
+  let logoY = 40;
   textAlign(LEFT, CENTER);
   
-  // Outer Glow / Stroke Effect
-  stroke(0, 255, 255, 80);
-  strokeWeight(12); // Masivní záře
-  fill(0);
-  textSize(58);
-  text(GAME_TITLE, 0, 0);
+  // Glowing Shadow Layer
+  fill(0, 255, 255, 30);
+  textSize(64); // Mnohem větší!
+  text(GAME_TITLE, logoX + 4, logoY + 4); 
   
-  // Main Fill
-  noStroke();
+  // Main Text
   fill(255);
-  textSize(58);
-  text(GAME_TITLE, 0, 0);
+  textSize(64); 
+  text(GAME_TITLE, logoX, logoY);
   
-  // Slogan (přímo pod tím)
   fill(0, 255, 255);
-  textSize(9);
-  text("TIKTOK INTERACTIVE SPACE GAME", 2, 36);
-  pop();
-
+  textSize(10);
+  text("TIKTOK INTERACTIVE SPACE GAME", logoX + 2, logoY + 34);
+  
   // --- CENTERED DROP ZONE ---
   let dropZoneW = 380;
-  let dropZoneX = W/2 - 145; // Přizpůsobeno většímu logu
+  let dropZoneX = W/2 - 155; // Posunuto pro vycentrování mezi logo a pravé info
   let pulse = sin(frameCount * 0.12) * 4;
   
   fill(255, 0, 100, 15 + pulse * 2);
@@ -704,45 +699,68 @@ function drawUI() {
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); pop();
   
-  // --- RECORDS & STATUS BOXES (Zbytek UI beze změny) ---
+  // --- LEFT: RECORDS BOX ---
   push(); translate(0, 100); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
+  
   fill(255, 215, 0); textAlign(CENTER); textSize(9); 
   text("GALAXINKO RECORDS", 130, 20); 
+  
   textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { 
     let tSize = 8;
-    if(i === 0) tSize = 12; else if(i === 1) tSize = 10; else if(i === 2) tSize = 9;
+    if(i === 0) tSize = 12;
+    else if(i === 1) tSize = 10;
+    else if(i === 2) tSize = 9;
+    
     textSize(tSize);
     fill(rec.color[0], rec.color[1], rec.color[2]); 
     text(`${i+1}. ${rec.name}`, 22, 48 + i * 22); 
-    textAlign(RIGHT); fill(255, 180); text(rec.score, 248, 48 + i * 22); textAlign(LEFT);
+    textAlign(RIGHT);
+    fill(255, 180);
+    text(rec.score, 248, 48 + i * 22);
+    textAlign(LEFT);
   });
+  
+  // --- LEFT: STATUS BOX ---
   translate(0, 235);
   fill(192); rect(10, 0, 250, 60); 
   fill(0, 0, 40, 245); rect(12, 2, 246, 56);
+  
   textSize(8);
   if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); 
+    textAlign(LEFT, CENTER); 
+    fill(timer < 10 ? color(255,0,0) : color(0,255,255)); 
     text("WARP-DRIVE: " + timer + "s", 22, 18); 
-    fill(0, 255, 0); text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
+    fill(0, 255, 0); 
+    text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
   } else if (gameState === "WAITING") {
     let waitCol = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 150, 0);
-    textAlign(LEFT, CENTER); fill(waitCol); text("CLEANUP PHASE...", 22, 18);
+    textAlign(LEFT, CENTER); fill(waitCol);
+    text("CLEANUP PHASE...", 22, 18);
     fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
   }
   pop();
   
+  // --- RIGHT: ELITE DROPPERS ---
   push(); translate(W - 260, 100);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
   fill(192); rect(0, 0, 250, 285); 
   fill(0, 0, 30, 230); rect(2, 2, 246, 281); 
-  fill(255, 255, 0); textAlign(CENTER); textSize(10); 
-  text("ELITE DROPPERS", 125, 20); textAlign(LEFT); textSize(8);
+  fill(255, 255, 0); 
+  textAlign(CENTER); 
+  textSize(10); 
+  text("ELITE DROPPERS", 125, 20); 
+  textAlign(LEFT);
+  textSize(8);
   sorted.forEach((e, i) => { 
-    fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
-    textAlign(RIGHT); fill(255); text(e[1].score, 235, 50 + i * 19); textAlign(LEFT);
+    fill(e[1].color); 
+    text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
+    textAlign(RIGHT);
+    fill(255);
+    text(e[1].score, 235, 50 + i * 19); 
+    textAlign(LEFT);
   }); 
   pop();
 }
@@ -754,6 +772,7 @@ function mouseClicked() {
     shakeAmount = 5; 
     return;
   }
+  
   if (mouseY > 0 && mouseY < 85) {
     let randomBot = random(TEST_BOTS);
     spawnBall(randomBot);
@@ -819,7 +838,7 @@ function generateDeepSpaceElements() {
 function updateJukebox() {
   if (!audioStarted) return;
   if (millis() > nextNoteTime) {
-    let note = random(scaleArr); 
+    let note = random(scale); 
     let freq = midiToFreq(note);
     synth.play(freq, 0.08, 0, 4); 
     nextNoteTime = millis() + random(1500, 4000); 
@@ -839,3 +858,4 @@ function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02,
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
+
