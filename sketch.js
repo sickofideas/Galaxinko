@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.4.3 - Competitive Records Update) ---
+// --- GALAXINKO (v4.4.3 - Competitive Records Update - STABILITY FIX) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;               
+let roundCount = 1;                
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -102,7 +102,6 @@ const RARE_POOL = [
 let synth, fxSynth, backgroundOsc;
 let audioStarted = false;
 
-// Rozšířeno na 8 míst
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
 function preload() {
@@ -160,7 +159,13 @@ function draw() {
   drawGravityDust(); 
   drawGalacticBackground(); 
   
-  Matter.Engine.update(engine, 1000 / 60);
+  // FIX: Bezpečný update engine
+  try {
+    Matter.Engine.update(engine, 1000 / 60);
+  } catch (e) {
+    console.error("Matter.js Engine Error - Auto-recovering...");
+  }
+  
   handleBlackHole();
 
   if (millis() - lastTick > 1000) {
@@ -236,6 +241,13 @@ function spawnBall(userName) {
 function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i], pos = b.body.position; 
+    
+    // Safety check proti smazaným tělům
+    if (!b.body || isNaN(pos.x)) {
+       balls.splice(i, 1);
+       continue;
+    }
+
     push(); 
     translate(pos.x, pos.y); 
     rotate(b.body.angle); 
@@ -545,10 +557,11 @@ function handleBlackHole() {
     for(let i=5; i>0; i--) { fill(10 + i*10, 0, 40 + i*20, 25); let s = jitterSize + i * (blackHole.size * 0.1) + (n * 15); ellipse(0, 0, s); }
     fill(0); ellipse(0, 0, jitterSize); pop();
 
+    // FIX: Bezpečnější mazání kolíků
     for (let i = pegs.length - 1; i >= 0; i--) {
       let p = pegs[i];
       if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jitterSize * 0.6) {
-        Matter.World.remove(world, p); 
+        Matter.Composite.remove(world, p); 
         createExplosion(p.position.x, p.position.y);
         playExplosionSound(); 
         pegs.splice(i, 1);
@@ -558,8 +571,11 @@ function handleBlackHole() {
     for (let b of balls) {
       let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
       if (d < blackHole.size * 1.5) {
+        // FIX: Ochrana proti dělení nulou a NaN hodnotám
+        let safeDist = Math.max(d, 10);
         let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
-        Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(forceDir, 0.00008));
+        let magnitude = 0.00008 * (blackHole.size / safeDist);
+        Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(forceDir, magnitude));
       }
     }
     if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
@@ -638,7 +654,6 @@ function drawPegs() {
   } 
 }
 
-// --- SEKCE UI S UPRAVENÝM TEXTEM ---
 function drawUI() {
   push(); 
   fill(0, 0, 40, 255); 
@@ -656,7 +671,6 @@ function drawUI() {
   textSize(24); 
   text(GAME_TITLE, 25, 35);
   
-  // --- NOVÝ MOTIVAČNÍ TEXT ---
   let flashSize = 19 + sin(frameCount * 0.15) * 2; 
   let msgIndex = floor(frameCount / 60) % 2;
   let messages = ["❤ LIKES = DROPS", "❤ LIKE TO PLAY"];
@@ -666,14 +680,12 @@ function drawUI() {
   fill(flashCol); 
   textSize(flashSize); 
   text(messages[msgIndex], W/2, 35);
-  // ---------------------------
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
-  // RECORDS TABLE
   push(); translate(0, 85); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
@@ -697,7 +709,6 @@ function drawUI() {
     textAlign(LEFT);
   });
   
-  // STATUS BOX
   translate(0, 235);
   fill(192); rect(10, 0, 250, 60); 
   fill(0, 0, 40, 245); rect(12, 2, 246, 56);
@@ -717,7 +728,6 @@ function drawUI() {
   }
   pop();
   
-  // ELITE DROPPERS
   push(); translate(0, 85);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
   fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
@@ -780,7 +790,11 @@ function updateWinnerColor() {
     winnerColor = s.length > 0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0,0,128); 
 }
 
-function removeBall(b) { Matter.World.remove(world, b.body); let i = balls.indexOf(b); if (i !== -1) balls.splice(i, 1); }
+function removeBall(b) { 
+  if (b.body) Matter.World.remove(world, b.body); 
+  let i = balls.indexOf(b); 
+  if (i !== -1) balls.splice(i, 1); 
+}
 
 function updateScore(n, p, c) { if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c }; leaderboard[n].score += p; }
 
