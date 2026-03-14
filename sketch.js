@@ -1,6 +1,7 @@
 // --- GALAXINKO (v3.9.5 - Tikfinity Event API Connected) ---
 
 // 1. PROPOJENÍ S TIKFINITY (EVENT API)
+// DŮLEŽITÉ: Pro funkčnost na GitHubu (HTTPS) musíš v prohlížeči povolit "Nezabezpečený obsah"
 let socket;
 const TIKFINITY_URL = "ws://localhost:21213/";
 
@@ -20,12 +21,22 @@ function connectTikfinity() {
       spawnBall(name.toUpperCase().substring(0, 12));
     }
     
-    // VOLITELNÉ: REAKCE NA FOLLOW (pokud chceš, smaž dvě lomítka níže)
-    // if (data.event === "follow") { spawnBall("NEW FOLLOW!"); }
+    // REAKCE NA FOLLOW
+    if (data.event === "follow") {
+       spawnBall("NEW FOLLOW!");
+    }
+
+    // REAKCE NA GIFT (Dárek)
+    if (data.event === "gift") {
+       // Pro každý dárek spawneme 5 kuliček
+       for(let i=0; i<5; i++) {
+         setTimeout(() => spawnBall(data.data.nickname.toUpperCase()), i * 200);
+       }
+    }
   };
 
   socket.onerror = function(error) {
-    console.log("[Tikfinity] Chyba spojení. Ujisti se, že máš zapnutou aplikaci Tikfinity.");
+    console.log("[Tikfinity] Chyba spojení. Ujisti se, že máš zapnutou aplikaci Tikfinity a povolený 'Insecure content' v prohlížeči.");
   };
 
   socket.onclose = function() {
