@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.1 - TikTok Interaction Fix) ---
+// --- GALAXINKO (v4.8.2 - ONLY LIKES VERSION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;                      
+let roundCount = 1;                         
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -41,18 +41,13 @@ function connectTikfinity() {
     let data = JSON.parse(event.data);
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
-    // POUZE LIKE SPAWNUJE KULIČKY
+    // POUZE LIKE SPAWNUJE KULIČKY - VŠE OSTATNÍ ODSTRANĚNO
     if (data.event === "like") {
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
         setTimeout(() => spawnBall(name), i * 120);
       }
     }
-
-    // Ostatní eventy jsou vypnuté (nic nedělají)
-    if (data.event === "chat") { /* Vypnuto */ }
-    if (data.event === "gift") { /* Vypnuto */ }
-    if (data.event === "follow") { /* Vypnuto */ }
   };
 
   socket.onclose = () => {
@@ -655,42 +650,38 @@ function drawUI() {
   strokeWeight(2); 
   line(0, 83, W, 83);
 
-  // --- BRANDED LOGO (TOP LEFT) ---
+  // --- BIG BRANDED LOGO (TOP LEFT) ---
   let logoX = 25;
   let logoY = 40;
   
-  // Neon Glow Effect for Logo
-  noStroke();
   textAlign(LEFT, CENTER);
   
-  if (frameCount % 60 < 5) {
-      fill(255, 0, 100, 150);
-      text(GAME_TITLE, logoX + 3, logoY + 2);
-  }
+  // Outer Glow
+  fill(0, 255, 255, 40);
+  textSize(42); 
+  text(GAME_TITLE, logoX + 3, logoY + 3); 
   
-  fill(0, 255, 255, 50);
-  textSize(28); 
-  text(GAME_TITLE, logoX + 2, logoY + 2); 
+  // Main Text
   fill(255);
-  textSize(28); 
+  textSize(42); 
   text(GAME_TITLE, logoX, logoY);
   
   fill(0, 255, 255);
-  textSize(8);
-  text("TIKTOK INTERACTIVE BATTLE", logoX, logoY + 25);
+  textSize(10);
+  text("TIKTOK INTERACTIVE SPACE GAME", logoX, logoY + 32);
   
   // --- ZVÝRAZNĚNÝ NÁVOD (CENTER DROP ZONE) ---
-  let dropZoneW = 460;
-  let dropZoneX = W/2 - dropZoneW/2;
+  let dropZoneW = 440;
+  let dropZoneX = W/2 - 40; // Posunuto mírně doprava kvůli velkému logu
   let pulse = sin(frameCount * 0.15) * 5;
   
   // Velká záře kolem boxu
-  fill(255, 255, 0, 20 + pulse * 2);
+  fill(255, 0, 100, 15 + pulse * 2);
   rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
   
   // Hlavní box s návodem
-  fill(20, 20, 50, 240);
-  stroke(255, 255, 0, 180 + pulse * 10);
+  fill(10, 10, 30, 240);
+  stroke(255, 0, 100, 180 + pulse * 10);
   strokeWeight(3);
   rect(dropZoneX, 10, dropZoneW, 64, 12);
   
@@ -698,22 +689,20 @@ function drawUI() {
   noStroke();
   textAlign(CENTER, CENTER);
   
-  let ctaColor = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 255, 255);
+  let ctaColor = (frameCount % 30 < 15) ? color(255, 0, 100) : color(255, 255, 255);
   fill(ctaColor);
-  textSize(15);
-  text("SPAWN UNITS WITH LIKES!", W/2, 30);
+  textSize(18);
+  text("TAP LIKE TO SPAWN!", dropZoneX + dropZoneW/2, 32);
   
   fill(200);
-  textSize(10);
-  // Jasná zpráva, že ostatní věci nic nedělají
-  let msg = "PRESS LIKE = SPAWN UNIT | (CHAT & FOLLOW OFF)";
-  text(msg, W/2, 56);
+  textSize(9);
+  text("1 LIKE = 1 UNIT | OTHERS DISABLED", dropZoneX + dropZoneW/2, 58);
 
   // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
-  text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 25);
+  text(`${currentDestination}`, W - 25, 25);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 45); pop();
+  fill(200); textSize(8); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); pop();
   
   // --- LEFT: RECORDS BOX ---
   push(); translate(0, 100); 
@@ -775,7 +764,7 @@ function drawUI() {
     text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
     textAlign(RIGHT);
     fill(255);
-    text(e[1].score, 235, 50 + i * 19);
+    text(e[1].score, 235, 50 + i * 19); 
     textAlign(LEFT);
   }); 
   pop();
@@ -872,5 +861,6 @@ function startSpaceAudio() {
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
