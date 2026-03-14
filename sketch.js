@@ -631,4 +631,3 @@ function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); 
 function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.04, 0, 0.3); }
-
