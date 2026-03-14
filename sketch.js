@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;             
+let roundCount = 1;               
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -306,7 +306,6 @@ function drawZones() {
       let blinkCol = (frameCount % 30 < 15) ? color(255, 215, 0) : color(255, 255, 255);
       fill(blinkCol);
       textSize(13);
-      // Odebrány hvězdičky
       text(z.score, 0, 0);
     } else {
       fill(255);
@@ -639,6 +638,7 @@ function drawPegs() {
   } 
 }
 
+// --- SEKCE UI S UPRAVENÝM TEXTEM ---
 function drawUI() {
   push(); 
   fill(0, 0, 40, 255); 
@@ -655,18 +655,25 @@ function drawUI() {
   fill(0, 255, 255);
   textSize(24); 
   text(GAME_TITLE, 25, 35);
-  let flashSize = 18 + sin(frameCount * 0.1) * 3; 
-  let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
+  
+  // --- NOVÝ MOTIVAČNÍ TEXT ---
+  let flashSize = 19 + sin(frameCount * 0.15) * 2; 
+  let msgIndex = floor(frameCount / 60) % 2;
+  let messages = ["❤ LIKES = DROPS", "❤ LIKE TO PLAY"];
+  let flashCol = (frameCount % 20 < 10) ? color(255, 50, 50) : color(255, 255, 255); 
+  
   textAlign(CENTER, CENTER); 
   fill(flashCol); 
   textSize(flashSize); 
-  text("❤ LIKES = DROPS", W/2, 35);
+  text(messages[msgIndex], W/2, 35);
+  // ---------------------------
+
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
-  // --- RECORDS TABLE (8 PLACES, DIFFERENT SIZES) ---
+  // RECORDS TABLE
   push(); translate(0, 85); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
@@ -677,9 +684,9 @@ function drawUI() {
   textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { 
     let tSize = 8;
-    if(i === 0) tSize = 12; // 1. místo největší
-    else if(i === 1) tSize = 10; // 2. místo střední
-    else if(i === 2) tSize = 9; // 3. místo lehce menší
+    if(i === 0) tSize = 12;
+    else if(i === 1) tSize = 10;
+    else if(i === 2) tSize = 9;
     
     textSize(tSize);
     fill(rec.color[0], rec.color[1], rec.color[2]); 
@@ -690,7 +697,7 @@ function drawUI() {
     textAlign(LEFT);
   });
   
-  // --- COMPACT STATUS BOX (RESIZED & MOVED) ---
+  // STATUS BOX
   translate(0, 235);
   fill(192); rect(10, 0, 250, 60); 
   fill(0, 0, 40, 245); rect(12, 2, 246, 56);
@@ -805,4 +812,3 @@ function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02,
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
-
