@@ -971,37 +971,28 @@ function generateDeepSpaceElements() {
 
 function updateJukebox() {
   if (!audioStarted) return;
-  // PROCEDURALNI MELODIE VYPNUTA
-  /*
-  if (millis() > nextNoteTime) {
-    let note = random(musicScale); 
-    synth.play(midiToFreq(note), 0.04, 0, 5); 
-    nextNoteTime = millis() + random(2000, 6000); 
-  }
-  */
-  
-  // MODULACE POZADI VYPNUTA
-  /*
-  let mod = noise(frameCount * 0.005);
-  backgroundOsc.freq(55 + mod * 2);
-  backgroundOsc2.freq(55.5 - mod * 2);
-  */
 } 
 
 function startSpaceAudio() { 
     if (!audioStarted) { 
         userStartAudio(); 
-        // OSCILATORY POZADI NESTARTUJEME (JSOU VYPNUTE)
-        // backgroundOsc.start();
-        // backgroundOsc2.start();
-        
-        // Zvuk cerne diry a efektovy synth nechavame aktivni
         bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); 
         audioStarted = true; 
     } 
 }
 
-function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.01, 0, 0.5); }
+// UPRAVENÁ FUNKCE PRO RANDOM SPAWN ZVUK
+function playSpawnSound() { 
+  if (audioStarted) {
+    // Náhodný tón z relaxační stupnice (pentatonika)
+    let baseNote = random(musicScale);
+    // Přidání drobného rozladění (+- 10 centů) aby to znělo přirozeněji
+    let freq = midiToFreq(baseNote) + random(-2, 2);
+    // Krátký, jemný tón (decay 0.4s)
+    fxSynth.play(freq, 0.01, 0, 0.4); 
+  } 
+}
+
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
