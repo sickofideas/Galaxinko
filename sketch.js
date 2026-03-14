@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.0.0 - PROCEDURAL GEOMETRY EDITION) ---
+// --- GALAXINKO (v5.1.0 - PROCEDURAL BOUNCE EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -22,6 +22,7 @@ let flashEffect = 0;
 let shakeAmount = 0; 
 let currentDestination = "";
 let currentGravity = 0.6; 
+let currentBounce = 50; // Nová proměnná pro odrazivost
 
 // --- NEW ANTI-BOT VARIABLES ---
 let camOffset = { x: 0, y: 0, z: 1.0 };
@@ -127,6 +128,7 @@ function setup() {
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
   currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100)); // Prvotní bounce
   timer = floor(random(40, 301));
   
   currentDestination = generatePlanetName();
@@ -269,8 +271,12 @@ function spawnBall(userName) {
   
   playSpawnSound(); 
   totalBallsFired++; 
+  
+  // Převod 1-99 bounce na fyzikální hodnotu (asi 0.3 až 1.5 pro kuličku)
+  let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
+
   let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
-    restitution: 0.6, 
+    restitution: ballRestitution, 
     friction: 0.2, 
     frictionAir: 0.04, 
     density: 0.001 
@@ -656,6 +662,7 @@ function handleBlackHole() {
 
 function resetGame() {
   currentGravity = random(0.05, 1.95); 
+  currentBounce = floor(random(1, 100)); // Reset odrazivosti na novou hodnotu
   timer = floor(random(40, 301)); 
   leaderboard = {}; 
   totalBallsFired = 0; 
@@ -687,10 +694,13 @@ function initGame() {
   // Vybrat náhodný typ patternu kolíků
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND"];
   const mode = random(patterns);
-  console.log("Generating Pattern: " + mode);
+  console.log("Generating Pattern: " + mode + " | Bounce: " + currentBounce);
 
   let numPegs = floor(random(250, 450));
   
+  // Převod 1-99 bounce na fyzikální restitution (cca 0.1 až 1.8 pro extrémní odrazy)
+  let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
+
   for (let i = 0; i < numPegs; i++) {
     let px, py;
     let valid = false;
@@ -735,23 +745,24 @@ function initGame() {
           break;
       }
 
-      // Základní omezení aby kolíky nebyly v HUDu nebo v zónách
       if (py > 110 && py < H - 180 && px > 40 && px < W - 40) {
-        // Kontrola minimální vzdálenosti od ostatních kolíků
         let tooClose = false;
         for(let other of pegs) {
           if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
         }
         if(!tooClose) valid = true;
       } else if (mode === "CHAOS" || mode === "GALAXY") {
-          // u těhle módů zkusíme znova
       } else {
-          valid = true; // fixní patterny prostě vykreslíme
+          valid = true; 
       }
     }
 
     if (valid) {
-      let peg = Matter.Bodies.circle(px, py, 2.5, { isStatic: true, restitution: 0.9 });
+      // POUŽITÍ DYNAMICKÉ ODRAZIVOSTI:
+      let peg = Matter.Bodies.circle(px, py, 2.5, { 
+          isStatic: true, 
+          restitution: pegRestitution 
+      });
       pegs.push(peg);
       Matter.World.add(world, peg);
     }
@@ -811,7 +822,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.0.0", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.1.0", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -834,8 +845,16 @@ function drawUI() {
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination}`, W - 25, 25);
+  
+  // ZOBRAZENÍ G-FORCE A BOUNCE-X POD SEBOU
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(200); textSize(8); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); pop();
+  fill(200); textSize(8); 
+  text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); 
+  
+  // Nový ukazatel Bounce pod G-Force
+  fill(255, 150, 0); 
+  text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
+  pop();
   
   push(); translate(0, 100); 
   fill(100, 100, 150, 100); rect(10, 0, 250, 225); 
