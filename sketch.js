@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.3 - FIXED BLACK HOLE & UI) ---
+// --- GALAXINKO (v4.8.4 - MEGA LOGO & CLEAN UI) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -556,14 +556,11 @@ function handleBlackHole() {
 
     for (let b of balls) {
       let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
-      if (d < blackHole.size * 2.5) { // Širší rádius vlivu
-        let safeDist = Math.max(d, 20); // BUG FIX: Minimální vzdálenost, aby síla nevybuchla (Infinity)
+      if (d < blackHole.size * 2.5) { 
+        let safeDist = Math.max(d, 20); 
         let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
-        
-        // Stabilizovaný výpočet síly
         let strength = (blackHole.size * 0.00015) / (safeDist / 100);
         let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
-        
         Matter.Body.applyForce(b.body, b.body.position, force);
       }
     }
@@ -653,30 +650,29 @@ function drawUI() {
   strokeWeight(2); 
   line(0, 83, W, 83);
 
-  // --- BIG BRANDED LOGO (TOP LEFT) ---
-  let logoX = 25;
+  // --- MEGA BRANDED LOGO (TOP LEFT) ---
+  let logoX = 20;
   let logoY = 40;
-  
   textAlign(LEFT, CENTER);
   
-  // Outer Glow
-  fill(0, 255, 255, 40);
-  textSize(50); // Zvětšeno pro galaxinko
-  text(GAME_TITLE, logoX + 3, logoY + 3); 
+  // Glowing Shadow Layer
+  fill(0, 255, 255, 30);
+  textSize(64); // Mnohem větší!
+  text(GAME_TITLE, logoX + 4, logoY + 4); 
   
   // Main Text
   fill(255);
-  textSize(50); 
+  textSize(64); 
   text(GAME_TITLE, logoX, logoY);
   
   fill(0, 255, 255);
   textSize(10);
-  text("TIKTOK INTERACTIVE SPACE GAME", logoX, logoY + 32);
+  text("TIKTOK INTERACTIVE SPACE GAME", logoX + 2, logoY + 34);
   
-  // --- CENTER DROP ZONE (ALIGNED) ---
-  let dropZoneW = 400;
-  let dropZoneX = W/2 - 200; // Doprostřed
-  let pulse = sin(frameCount * 0.1) * 5;
+  // --- CENTERED DROP ZONE ---
+  let dropZoneW = 380;
+  let dropZoneX = W/2 - 155; // Posunuto pro vycentrování mezi logo a pravé info
+  let pulse = sin(frameCount * 0.12) * 4;
   
   fill(255, 0, 100, 15 + pulse * 2);
   rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
@@ -694,8 +690,8 @@ function drawUI() {
   text("TAP LIKE TO SPAWN!", dropZoneX + dropZoneW/2, 32);
   
   fill(200);
-  textSize(9);
-  text("1 LIKE = 1 UNIT | OTHERS DISABLED", dropZoneX + dropZoneW/2, 58);
+  textSize(10);
+  text("1 LIKE = 1 UNIT | BOOST THE FLEET!", dropZoneX + dropZoneW/2, 58);
 
   // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
