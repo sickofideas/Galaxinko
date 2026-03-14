@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.2.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.2.1 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -36,11 +36,8 @@ function connectTikfinity() {
 
   socket.onmessage = (event) => {
     let data = JSON.parse(event.data);
-    
-    // Získání jména uživatele
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
-    // REAKCE NA EVENTY
     if (data.event === "like") {
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
@@ -197,6 +194,8 @@ function draw() {
       gameState = "RESULTS"; 
       resultsTimer = 12; 
     }
+    // VRÁCENÝ CLEANING UP NÁPIS
+    drawCleaningUp();
   }
 
   drawZones(); 
@@ -211,6 +210,18 @@ function draw() {
     if (flashEffect % 2 === 0) filter(INVERT); 
     flashEffect--; 
   }
+  pop();
+}
+
+function drawCleaningUp() {
+  push();
+  textAlign(CENTER, CENTER);
+  let pulse = sin(frameCount * 0.1) * 50 + 200;
+  fill(255, pulse);
+  textSize(30);
+  text("CLEANING UP...", W/2, H/2);
+  textSize(12);
+  text("WAITING FOR REMAINING UNITS", W/2, H/2 + 40);
   pop();
 }
 
@@ -256,7 +267,7 @@ function drawBalls() {
     fill(255);
     noStroke();
     textAlign(CENTER);
-    textSize(10); // Zvětšený text u kuliček
+    textSize(10);
     text(b.name, 0, -15); 
     pop();
     
@@ -276,6 +287,8 @@ function drawBalls() {
             playJackpotSound(); 
         } 
         checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
+        // Okamžité vyčištění po skórování
+        setTimeout(() => removeBall(b), 400);
       }
     }
     
@@ -557,24 +570,58 @@ function drawZones() {
     if (z.flash > 0) z.flash -= 10; 
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
     push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER); 
-    textSize(z.w < 35 ? 9 : 13); // Zvětšené body v zónách
+    textSize(z.w < 35 ? 9 : 13); 
     fill(255); text(z.score, 0, 0); pop(); 
   } 
 }
 
 function drawWalls() { fill(0, 255, 255, 100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); fill(0, 255, 255); rect(0, H - 4, W, 4); }
 
+// NOVÁ LEPŠÍ VÝSLEDKOVÁ TABULKA
 function drawResultsOverlay() { 
-    fill(0, 245); rect(0, 0, W, H); 
-    stroke(255, 215, 0); strokeWeight(4); noFill(); rect(50, 50, W-100, H-100); noStroke();
-    fill(255, 215, 0); textAlign(CENTER); textSize(32); text("MISSION COMPLETE", W/2, H/2 - 200); 
+    fill(0, 240); rect(0, 0, W, H); 
+    
+    // Hlavní neonový rám
+    stroke(0, 255, 255, pulseAlpha()); strokeWeight(4); noFill(); 
+    rect(100, 100, W-200, H-200, 10);
+    
+    // Záhlaví
+    noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(35); 
+    text("MISSION COMPLETE", W/2, 180); 
+    fill(0, 255, 255); textSize(12);
+    text(`SECTOR: ${currentDestination}`, W/2, 215);
+
+    // Tabulka vítězů
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5); 
+    
     sorted.forEach((e, i) => { 
+      let yPos = 320 + i * 85;
+      // Pozadí pro každého hráče
+      fill(20, 20, 60, 180);
+      rect(150, yPos - 45, W-300, 70, 5);
+      
+      // Jméno a rank
+      textAlign(LEFT);
+      fill(255); textSize(20);
+      text(`${i+1}. ${e[0]}`, 180, yPos);
+      
+      // Skóre
+      textAlign(RIGHT);
       fill(e[1].color); textSize(24); 
-      text(`${i+1}. ${e[0]} » ${e[1].score}`, W/2, H/2 - 80 + i * 65); 
+      text(e[1].score, W - 180, yPos);
+      
+      // Oddělovací linka
+      stroke(e[1].color); strokeWeight(2);
+      line(180, yPos + 15, W - 180, yPos + 15);
+      noStroke();
     }); 
-    fill(255); textSize(14); text("PREPARING NEXT JUMP: " + resultsTimer + "s", W/2, H/2 + 280); 
+
+    // Spodní info
+    fill(255, pulseAlpha()); textAlign(CENTER); textSize(14); 
+    text("PREPARING FOR HYPERJUMP: " + resultsTimer + "s", W/2, H - 150); 
 }
+
+function pulseAlpha() { return sin(frameCount * 0.1) * 55 + 200; }
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 
