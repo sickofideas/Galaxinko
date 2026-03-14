@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.9.0 - ANTI-BOT VOYAGER EDITION) ---
+// --- GALAXINKO (v5.0.0 - PROCEDURAL GEOMETRY EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -621,7 +621,6 @@ function handleBlackHole() {
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
-    // OPRAVA: Pouze 23% šance na smazání kolíku při kontaktu
     if (d < jitterSize * 0.55 && random() < 0.23) {
       Matter.Composite.remove(world, p); 
       createExplosion(p.position.x, p.position.y);
@@ -677,20 +676,88 @@ function generatePlanetName() {
   return random(names) + " " + random(types);
 }
 
+// --- NEW PROCEDURAL PEG GENERATOR ---
 function initGame() {
   if(!engine) { 
     engine = Matter.Engine.create(); 
     world = engine.world; 
   }
   world.gravity.y = currentGravity;
-  let rows = 32, spX = 26, spY = 23.5; 
-  for (let r = 0; r < rows; r++) {
-    let y = 110 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
-    for (let c = 0; c < dots; c++) { 
-        let peg = Matter.Bodies.circle(sX + c * spX, y, 2, { isStatic: true, restitution: 0.85 }); 
-        pegs.push(peg); Matter.World.add(world, peg); 
+
+  // Vybrat náhodný typ patternu kolíků
+  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND"];
+  const mode = random(patterns);
+  console.log("Generating Pattern: " + mode);
+
+  let numPegs = floor(random(250, 450));
+  
+  for (let i = 0; i < numPegs; i++) {
+    let px, py;
+    let valid = false;
+    let attempts = 0;
+
+    while (!valid && attempts < 50) {
+      attempts++;
+      switch(mode) {
+        case "SPIRAL":
+          let angle = i * 0.15;
+          let r = 15 + i * 1.5;
+          px = W/2 + cos(angle) * r;
+          py = 150 + i * 1.8;
+          break;
+        case "WAVES":
+          px = map(i % 20, 0, 20, 50, W-50);
+          py = 150 + floor(i/20) * 40 + sin(i * 0.5) * 30;
+          break;
+        case "HOURGLASS":
+          let row = floor(i / 15);
+          let col = i % 15;
+          let shrink = abs(row - 15) * 12;
+          px = map(col, 0, 15, 100 + shrink, W - 100 - shrink);
+          py = 150 + row * 25;
+          break;
+        case "GALAXY":
+          let a = random(TWO_PI);
+          let rad = pow(random(), 0.5) * 350;
+          px = W/2 + cos(a) * rad;
+          py = 450 + sin(a) * rad * 0.8;
+          break;
+        case "DIAMOND":
+          let dRow = floor(i/18);
+          let dCol = i % 18;
+          let dOffset = abs(dRow - 15) * 15;
+          px = map(dCol, 0, 18, 50 + dOffset, W - 50 - dOffset);
+          py = 150 + dRow * 25;
+          break;
+        default: // CHAOS / FIELDS
+          px = random(60, W - 60);
+          py = random(120, H - 250);
+          break;
+      }
+
+      // Základní omezení aby kolíky nebyly v HUDu nebo v zónách
+      if (py > 110 && py < H - 180 && px > 40 && px < W - 40) {
+        // Kontrola minimální vzdálenosti od ostatních kolíků
+        let tooClose = false;
+        for(let other of pegs) {
+          if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
+        }
+        if(!tooClose) valid = true;
+      } else if (mode === "CHAOS" || mode === "GALAXY") {
+          // u těhle módů zkusíme znova
+      } else {
+          valid = true; // fixní patterny prostě vykreslíme
+      }
+    }
+
+    if (valid) {
+      let peg = Matter.Bodies.circle(px, py, 2.5, { isStatic: true, restitution: 0.9 });
+      pegs.push(peg);
+      Matter.World.add(world, peg);
     }
   }
+
+  // Generování zón (spodek)
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0;
   zones = [];
@@ -744,7 +811,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v4.9.0", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.0.0", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -763,7 +830,7 @@ function drawUI() {
   text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
   fill(0, 255, 255);
   textSize(10);
-  text("COSMIC DATA STABLE | NO COLLISION DETECTED", dropZoneX + dropZoneW/2, 55);
+  text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 55);
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination}`, W - 25, 25);
