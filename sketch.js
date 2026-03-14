@@ -130,7 +130,9 @@ function setup() {
   
   currentGravity = random(0.05, 1.95);
   currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 301));
+  
+  // NASTAVENÍ NÁHODNÉ DÉLKY (40s - 180s)
+  timer = floor(random(40, 181));
   
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
@@ -578,7 +580,8 @@ function drawGravityDust() {
 
 function prepareSingularityEvents() {
   bhSpawnTimes = [];
-  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer - 5)));
+  // Upraveno, aby se černé díry spouštěly dříve v kratších kolech
+  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
 }
 
 function checkSingularitySpawn() {
@@ -663,7 +666,10 @@ function handleBlackHole() {
 function resetGame() {
   currentGravity = random(0.05, 1.95); 
   currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 301)); 
+  
+  // RESET S NÁHODNOU DÉLKOU (40s - 180s)
+  timer = floor(random(40, 181)); 
+  
   leaderboard = {}; 
   totalBallsFired = 0; 
   roundCount++; 
