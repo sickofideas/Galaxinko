@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.6.0 - Elite Droppers Update) ---
+// --- GALAXINKO (v4.7.0 - Intuitive UI Update) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;                  
+let roundCount = 1;                    
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -655,39 +655,57 @@ function drawPegs() {
 
 function drawUI() {
   push(); 
+  // --- VRCHNÍ LIŠTA ---
   fill(0, 0, 40, 255); 
   noStroke(); 
-  rect(0, 0, W, 70); 
+  rect(0, 0, W, 80); 
   stroke(0, 255, 255, 150); 
   strokeWeight(2); 
-  line(0, 68, W, 68);
+  line(0, 78, W, 78);
+
+  // --- LOGO ---
   noStroke();
   textAlign(LEFT, CENTER);
   fill(0, 255, 255, 50);
   textSize(26); 
-  text(GAME_TITLE, 27, 37); 
+  text(GAME_TITLE, 27, 40); 
   fill(0, 255, 255);
   textSize(24); 
-  text(GAME_TITLE, 25, 35);
+  text(GAME_TITLE, 25, 38);
   
-  // --- CENTER FLASHING MESSAGE ---
-  let flashSize = 32 + sin(frameCount * 0.1) * 3; 
-  let msgIndex = floor(frameCount / 60) % 2;
-  let messages = ["❤ LIKES = DROPS", "❤ LIKE TO PLAY"];
-  let flashCol = (frameCount % 20 < 10) ? color(255, 50, 50) : color(255, 255, 255); 
+  // --- NOVÁ VELKÁ "DROP ZÓNA" PRO KLIKÁNÍ ---
+  let dropZoneW = 400;
+  let dropZoneX = W/2 - dropZoneW/2;
+  let pulse = sin(frameCount * 0.1) * 5;
   
-  textAlign(CENTER, CENTER); 
-  fill(flashCol); 
-  textSize(flashSize); 
-  text(messages[msgIndex], W/2, 35); 
+  // Podklad Drop Zóny
+  fill(red(winnerColor), green(winnerColor), blue(winnerColor), 40);
+  rect(dropZoneX, 10, dropZoneW, 60, 10);
+  
+  // Rámeček Drop Zóny (pulzující)
+  stroke(winnerColor);
+  strokeWeight(2 + pulse/2);
+  noFill();
+  rect(dropZoneX - pulse/2, 10 - pulse/2, dropZoneW + pulse, 60 + pulse, 10);
+  
+  // Text v Drop Zóně
+  noStroke();
+  textAlign(CENTER, CENTER);
+  fill(255);
+  textSize(18);
+  text("CLICK HERE TO DROP", W/2, 33);
+  textSize(10);
+  fill(200);
+  text("LIKE = AUTOMATIC DROP", W/2, 55);
 
+  // Destinace a G-Force
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
-  text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
+  text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 25);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
+  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 45); pop();
   
   // --- LEFT: RECORDS BOX ---
-  push(); translate(0, 85); 
+  push(); translate(0, 95); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
   
@@ -730,22 +748,15 @@ function drawUI() {
   }
   pop();
   
-  // --- RIGHT: ELITE DROPPERS (SIMULATION CLICKABLE BOX) ---
-  push(); translate(W - 260, 85);
-  // Změněno na 12 hráčů
+  // --- RIGHT: ELITE DROPPERS ---
+  push(); translate(W - 260, 95);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
-  
-  // Box Border & BG (Upravena výška pro 12 hráčů)
   fill(192); rect(0, 0, 250, 285); 
   fill(0, 0, 30, 230); rect(2, 2, 246, 281); 
-  
-  // Centered Title
   fill(255, 255, 0); 
   textAlign(CENTER); 
   textSize(10); 
   text("ELITE DROPPERS", 125, 20); 
-  
-  // List
   textAlign(LEFT);
   textSize(8);
   sorted.forEach((e, i) => { 
@@ -761,15 +772,15 @@ function drawUI() {
 
 function mouseClicked() {
   // Reset Records Click (Left Box Top)
-  if (mouseX > 10 && mouseX < 260 && mouseY > 85 && mouseY < 115) {
+  if (mouseX > 10 && mouseX < 260 && mouseY > 95 && mouseY < 125) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
     shakeAmount = 5; 
+    return;
   }
   
-  // SIMULACE LIKU (Klik na text ELITE DROPPERS)
-  // Detekce kliknutí v oblasti horního nadpisu pravého boxu
-  if (mouseX > W - 260 && mouseX < W - 10 && mouseY > 85 && mouseY < 120) {
+  // --- NOVÉ KLIKÁNÍ V DROP ZÓNĚ ---
+  if (mouseY > 0 && mouseY < 80) {
     let randomBot = random(TEST_BOTS);
     spawnBall(randomBot);
     shakeAmount = 2;
@@ -852,5 +863,6 @@ function startSpaceAudio() {
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
