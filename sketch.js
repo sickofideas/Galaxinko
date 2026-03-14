@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.4.1 - Jackpot Visual Upgrade) ---
+// --- GALAXINKO (v4.4.2 - Jackpot Visual Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;          
+let roundCount = 1;           
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -289,6 +289,8 @@ function drawBalls() {
 function drawZones() { 
   for (let z of zones) { 
     let isJackpot = (z.score >= 5000);
+    
+    // Pozadí zóny
     if (z.flash > 0) {
       fill(z.flashColor);
       z.flash -= 10;
@@ -296,13 +298,7 @@ function drawZones() {
       fill(isJackpot ? color(40, 30, 0, 200) : color(10, 10, 40, 180));
     }
     
-    if (isJackpot) {
-      stroke(255, 215, 0, 150 + sin(frameCount * 0.1) * 100);
-      strokeWeight(3);
-    } else {
-      noStroke();
-    }
-    
+    noStroke(); // Čáry zón jsou teď definovány pouze přes drawWalls()
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
     
     push(); 
@@ -311,7 +307,9 @@ function drawZones() {
     textAlign(LEFT, CENTER); 
     
     if (isJackpot) {
-      fill(255, 215, 0);
+      // Blikající efekt POUZE pro text čísla 5000
+      let blinkCol = (frameCount % 30 < 15) ? color(255, 215, 0) : color(255, 255, 255);
+      fill(blinkCol);
       textSize(13);
       text("★" + z.score + "★", 0, 0);
     } else {
@@ -707,9 +705,7 @@ function drawUI() {
   pop();
 }
 
-// --- RESET RECORDS LOGIC ---
 function mouseClicked() {
-  // Kontrola kliknutí na text "GALAXINKO RECORDS" (oblast x:10-250, y:85-115)
   if (mouseX > 10 && mouseX < 250 && mouseY > 85 && mouseY < 115) {
     allTimeRecords = [
       { name: "NONE", score: 0, color: [255, 215, 0] },
@@ -717,13 +713,17 @@ function mouseClicked() {
       { name: "NONE", score: 0, color: [205, 127, 50] }
     ];
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
-    shakeAmount = 5; // Malý vizuální feedback, že se něco stalo
+    shakeAmount = 5; 
   }
 }
 
 function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYING") spawnBall("PLAYER"); }
 
-function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); }
+function drawWalls() { 
+  stroke(100); 
+  strokeWeight(2);
+  for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); 
+}
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 
