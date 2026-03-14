@@ -123,7 +123,6 @@ function setup() {
   fxSynth = new p5.PolySynth(); 
   backgroundOsc = new p5.Oscillator('sine');
   backgroundOsc2 = new p5.Oscillator('sine');
-  // UPRAVENO: Změněno na 'triangle' pro jemnější zvuk, co tolik nedráždí algoritmus
   bhOsc = new p5.Oscillator('triangle');
   
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
@@ -592,7 +591,7 @@ function checkSingularitySpawn() {
       startY: 0,
       targetX: fromLeft ? W + 250 : -250,
       speed: random(0.8, 1.5),
-      size: random(60, 110),
+      size: random(20, 36), // UPRAVENO: 33% původní velikosti (původně 60-110)
       noiseOffset: random(1000),
       noiseSpeed: random(0.01, 0.02),
       wobbleAmp: random(40, 90)
@@ -613,11 +612,9 @@ function handleBlackHole() {
   
   if (audioStarted) {
     let centerDist = abs(W/2 - blackHole.x);
-    // UPRAVENO: Nižší hlasitost a dynamické "zachvění" (tremolo), aby zvuk nepůsobil problematicky
     let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
     let vol = map(centerDist, W, 0, 0, 0.08) * tremolo; 
     bhOsc.amp(vol, 0.1);
-    // Snížená frekvence na hlubší, méně agresivní "ambient" hučení
     bhOsc.freq(32 + n * 12);
   }
 
