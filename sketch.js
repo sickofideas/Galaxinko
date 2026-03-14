@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;         
+let roundCount = 1;          
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -203,7 +203,6 @@ function draw() {
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
 
-  // --- FLASH EFFECT (INVERT) ---
   if (flashEffect > 0) { 
     if (flashEffect % 2 === 0) filter(INVERT); 
     flashEffect--; 
@@ -271,9 +270,8 @@ function drawBalls() {
           cz.flash = 255; 
           cz.flashColor = b.color; 
           
-          // --- JACKPOT EFFECT TRIGGER ---
           if(cz.score >= 5000) { 
-              flashEffect = 20; // Delší záblesk pro 5000
+              flashEffect = 20;
               shakeAmount = 15;
               playJackpotSound(); 
           } 
@@ -291,8 +289,6 @@ function drawBalls() {
 function drawZones() { 
   for (let z of zones) { 
     let isJackpot = (z.score >= 5000);
-    
-    // Podklad zóny
     if (z.flash > 0) {
       fill(z.flashColor);
       z.flash -= 10;
@@ -300,17 +296,15 @@ function drawZones() {
       fill(isJackpot ? color(40, 30, 0, 200) : color(10, 10, 40, 180));
     }
     
-    // Zvýraznění Jackpotu (Zlatý rámeček a pulzování)
     if (isJackpot) {
-      strokeWeight(3);
       stroke(255, 215, 0, 150 + sin(frameCount * 0.1) * 100);
+      strokeWeight(3);
     } else {
       noStroke();
     }
     
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
     
-    // Text skóre
     push(); 
     translate(z.x + z.w/2, H - 15); 
     rotate(-HALF_PI); 
@@ -547,12 +541,11 @@ function handleBlackHole() {
     blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
     let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
     
-    // Update Black Hole Sound
     if (audioStarted) {
       let centerDist = abs(W/2 - blackHole.x);
       let vol = map(centerDist, W, 0, 0, 0.15);
       bhOsc.amp(vol, 0.1);
-      bhOsc.freq(30 + n * 20); // Low growl
+      bhOsc.freq(30 + n * 20);
     }
 
     push(); translate(blackHole.x, blackHole.y); noStroke();
@@ -564,7 +557,7 @@ function handleBlackHole() {
       if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jitterSize * 0.6) {
         Matter.World.remove(world, p); 
         createExplosion(p.position.x, p.position.y);
-        playExplosionSound(); // Collision sound
+        playExplosionSound(); 
         pegs.splice(i, 1);
       }
     }
@@ -678,11 +671,21 @@ function drawUI() {
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
-  push(); translate(0, 85); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
+  
+  // --- RECORDS TABLE ---
+  push(); translate(0, 85); 
+  fill(192); rect(10, 0, 240, 110); 
+  fill(0, 0, 20, 230); rect(12, 2, 236, 106); 
+  
+  fill(255, 215, 0); textAlign(LEFT); textSize(8); 
+  text("GALAXINKO RECORDS", 22, 20); 
+  
   allTimeRecords.forEach((rec, i) => { 
     fill(rec.color[0], rec.color[1], rec.color[2]); 
     text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
   });
+  
+  // STATUS BOX
   fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
   if (gameState === "PLAYING") { 
     textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
@@ -693,6 +696,8 @@ function drawUI() {
     text("CLEANUP PHASE...", 22, 145);
     fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172);
   }
+  
+  // ELITE DROPPERS
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
   fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
   sorted.forEach((e, i) => { 
@@ -700,6 +705,20 @@ function drawUI() {
     text(`${i+1}. ${e[0]}: ${e[1].score}`, W - 238, 50 + i * 18); 
   }); 
   pop();
+}
+
+// --- RESET RECORDS LOGIC ---
+function mouseClicked() {
+  // Kontrola kliknutí na text "GALAXINKO RECORDS" (oblast x:10-250, y:85-115)
+  if (mouseX > 10 && mouseX < 250 && mouseY > 85 && mouseY < 115) {
+    allTimeRecords = [
+      { name: "NONE", score: 0, color: [255, 215, 0] },
+      { name: "NONE", score: 0, color: [192, 192, 192] },
+      { name: "NONE", score: 0, color: [205, 127, 50] }
+    ];
+    localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
+    shakeAmount = 5; // Malý vizuální feedback, že se něco stalo
+  }
 }
 
 function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYING") spawnBall("PLAYER"); }
@@ -750,8 +769,6 @@ function generateDeepSpaceElements() {
     massivePlanets = []; for(let i=0; i<3; i++) massivePlanets.push({ x: random(W), y: random(H), size: random(20, 50), color: color(random(30, 80), 100), hasRing: random() < 0.8, ringColor: color(random(80, 150), 80), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01) }); 
     spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) }); 
 }
-
-// --- AUDIO LOGIC ---
 
 function updateJukebox() {
   if (!audioStarted) return;
