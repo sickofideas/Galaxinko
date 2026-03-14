@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.4.4 - TikTok Interaction Fix) ---
+// --- GALAXINKO (v4.5.0 - Elite Simulation & UI Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -22,6 +22,9 @@ let flashEffect = 0;
 let shakeAmount = 0; 
 let currentDestination = "";
 let currentGravity = 0.6; 
+
+// --- SIMULATION DATA ---
+const TEST_BOTS = ["ALFA_PRO", "CYBER_PUNK", "GALAXY_KID", "NEBULA", "STAR_LORD", "COMET_99", "VOID_WALKER", "ORBITAL", "Z-AXIS", "QUASAR", "METEOR", "SOLARIS", "NOVA", "ECLIPSE", "ZENITH", "COSMOS"];
 
 // --- TIKFINITY WEBSOCKET ---
 let socket;
@@ -667,7 +670,7 @@ function drawUI() {
   textSize(24); 
   text(GAME_TITLE, 25, 35);
   
-  // --- ZVĚTŠENÝ BLIKAJÍCÍ TEXT ---
+  // --- CENTER FLASHING MESSAGE ---
   let flashSize = 32 + sin(frameCount * 0.1) * 3; 
   let msgIndex = floor(frameCount / 60) % 2;
   let messages = ["❤ LIKES = DROPS", "❤ LIKE TO PLAY"];
@@ -677,13 +680,13 @@ function drawUI() {
   fill(flashCol); 
   textSize(flashSize); 
   text(messages[msgIndex], W/2, 35); 
-  // -------------------------------
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
+  // --- LEFT: RECORDS BOX ---
   push(); translate(0, 85); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
@@ -707,6 +710,7 @@ function drawUI() {
     textAlign(LEFT);
   });
   
+  // --- LEFT: STATUS BOX ---
   translate(0, 235);
   fill(192); rect(10, 0, 250, 60); 
   fill(0, 0, 40, 245); rect(12, 2, 246, 56);
@@ -726,25 +730,55 @@ function drawUI() {
   }
   pop();
   
-  push(); translate(0, 85);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
-  fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
+  // --- RIGHT: ELITE DROPPERS (SIMULATION CLICKABLE BOX) ---
+  push(); translate(W - 260, 85);
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 16); 
+  
+  // Box Border & BG
+  fill(192); rect(0, 0, 250, 360); 
+  fill(0, 0, 30, 230); rect(2, 2, 246, 356); 
+  
+  // Centered Title
+  fill(255, 255, 0); 
+  textAlign(CENTER); 
+  textSize(10); 
+  text("ELITE DROPPERS", 125, 20); 
+  
+  // List
+  textAlign(LEFT);
+  textSize(8);
   sorted.forEach((e, i) => { 
     fill(e[1].color); 
-    text(`${i+1}. ${e[0]}: ${e[1].score}`, W - 238, 50 + i * 18); 
+    text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
+    textAlign(RIGHT);
+    fill(255);
+    text(e[1].score, 235, 50 + i * 19);
+    textAlign(LEFT);
   }); 
+  
+  // Test simulation hint at the bottom
+  textAlign(CENTER);
+  fill(100);
+  textSize(7);
+  text("(CLICK HERE TO SIMULATE LIKE)", 125, 345);
   pop();
 }
 
 function mouseClicked() {
+  // Reset Records Click (Left Box Top)
   if (mouseX > 10 && mouseX < 260 && mouseY > 85 && mouseY < 115) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
     shakeAmount = 5; 
   }
+  
+  // SIMULACE LIKU (Klik do Elite Droppers boxu)
+  if (mouseX > W - 260 && mouseX < W - 10 && mouseY > 85 && mouseY < 445) {
+    let randomBot = random(TEST_BOTS);
+    spawnBall(randomBot);
+    shakeAmount = 2;
+  }
 }
-
-// ODSTRANĚNA FUNKCE keyPressed, ABY NEDOCHÁZELO K DUPLICITNÍMU SPAWNOVÁNÍ PŘI LIKU
 
 function drawWalls() { 
   stroke(100); 
@@ -822,6 +856,5 @@ function startSpaceAudio() {
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
