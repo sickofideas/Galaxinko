@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.1.3 - UI Status & Pile-up Fix) ---
+// --- GALAXINKO (v4.2.0 - Gravity-Reactive Pegs) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -193,7 +193,6 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    // Přechod na výsledky pokud jsou kuličky pryč nebo uplynulo 10s
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 12; 
@@ -529,12 +528,28 @@ function initGame() {
   Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H + 48, W, 100, {isStatic:true, friction: 1})]);
 }
 
+// --- UPRAVENÁ FUNKCE: Hřebíky mění barvu podle gravitace ---
 function drawPegs() { 
   noStroke(); 
+  
+  // Vytvoření barevného spektra na základě gravitace
+  // Nízká gravitace (0.05) -> Ledově modrá
+  // Střední gravitace (1.0) -> Azurová/Zelená
+  // Vysoká gravitace (1.95) -> Ohnivě oranžová/Červená
+  let pegR = map(currentGravity, 0.05, 1.95, 0, 255);
+  let pegG = map(currentGravity, 0.05, 1.95, 255, 100);
+  let pegB = map(currentGravity, 0.05, 1.95, 255, 0);
+  let pegBaseCol = color(pegR, pegG, pegB);
+
   for (let p of pegs) { 
     p.glow = p.glow || 0; 
-    if (p.glow > 0) { fill(0, 255, 255, p.glow); rect(p.position.x - 4, p.position.y - 4, 8, 8); p.glow -= 20; } 
-    fill(0, 255, 255); rect(p.position.x - 2, p.position.y - 2, 4, 4); 
+    if (p.glow > 0) { 
+      fill(pegR, pegG + 50, pegB + 50, p.glow); // Záře je o něco jasnější verze základní barvy
+      rect(p.position.x - 4, p.position.y - 4, 8, 8); 
+      p.glow -= 20; 
+    } 
+    fill(pegBaseCol); 
+    rect(p.position.x - 2, p.position.y - 2, 4, 4); 
   } 
 }
 
@@ -576,13 +591,11 @@ function drawUI() {
     text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
   });
   
-  // --- OPRAVA: ZOBRAZENÍ STAVU PO DOJETÍ ČASOVAČE ---
   fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
   if (gameState === "PLAYING") { 
     textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
     fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172); 
   } else if (gameState === "WAITING") {
-    // Blikající nápis značící čekání na poslední kuličky
     let waitCol = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 150, 0);
     textAlign(LEFT, CENTER); fill(waitCol); textSize(8);
     text("CLEANUP PHASE...", 22, 145);
