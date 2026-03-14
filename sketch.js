@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.7 - STABLE SINGULARITY VERSION) ---
+// --- GALAXINKO (v4.9.0 - ANTI-BOT VOYAGER EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -22,6 +22,11 @@ let flashEffect = 0;
 let shakeAmount = 0; 
 let currentDestination = "";
 let currentGravity = 0.6; 
+
+// --- NEW ANTI-BOT VARIABLES ---
+let camOffset = { x: 0, y: 0, z: 1.0 };
+let glitchTimer = 0;
+let targetFPS = 60;
 
 // --- SIMULATION DATA ---
 const TEST_BOTS = ["ALFA_PRO", "CYBER_PUNK", "GALAXY_KID", "NEBULA", "STAR_LORD", "COMET_99", "VOID_WALKER", "ORBITAL", "Z-AXIS", "QUASAR", "METEOR", "SOLARIS", "NOVA", "ECLIPSE", "ZENITH", "COSMOS"];
@@ -69,7 +74,8 @@ let blackHole = null;
 let bhSpawnTimes = [];
 
 // --- PROCEDURAL RELAX JUKEBOX ---
-let scale = [52, 55, 59, 60, 64, 67, 71]; 
+// OPRAVA: Přejmenováno ze 'scale' na 'musicScale' kvůli kolizi s p5.js funkcí
+let musicScale = [52, 55, 59, 60, 64, 67, 71]; 
 let nextNoteTime = 0;
 let bhOsc; 
 
@@ -133,14 +139,33 @@ function setup() {
 function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
+
+  if (frameCount % 60 === 0) targetFPS = random(57, 60);
+  frameRate(targetFPS);
   
   updateJukebox(); 
 
+  // --- 2. DYNAMICKÝ ZOOM A PAN (Kamera) ---
   push();
+  let camSpeed = 0.005;
+  camOffset.x = (noise(frameCount * camSpeed) - 0.5) * 40;
+  camOffset.y = (noise(frameCount * camSpeed + 100) - 0.5) * 40;
+  camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.05;
+
+  translate(W/2, H/2);
+  // Explicitní volání p5 funkce scale pro zamezení chybám
+  if (typeof scale === "function") {
+    scale(camOffset.z);
+  } else {
+    p5.prototype.scale(camOffset.z);
+  }
+  translate(-W/2 + camOffset.x, -H/2 + camOffset.y);
+
   if (shakeAmount > 0) { 
     translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount)); 
     shakeAmount *= 0.92; 
   }
+
   updateWinnerColor();
   updateTravelSpeed(); 
   
@@ -193,9 +218,50 @@ function draw() {
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
 
+  drawProceduralHUD();
+  drawAntiBotOverlay();
+
   if (flashEffect > 0) { 
     if (flashEffect % 2 === 0) filter(INVERT); 
     flashEffect--; 
+  }
+  pop();
+}
+
+function drawProceduralHUD() {
+  push();
+  stroke(255, 10);
+  strokeWeight(1);
+  for(let i=0; i<H; i+=4) {
+    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
+  }
+  fill(0, 255, 0, 150);
+  textSize(8);
+  textAlign(LEFT);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
+  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
+  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
+  
+  textAlign(RIGHT);
+  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
+  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
+  pop();
+}
+
+function drawAntiBotOverlay() {
+  push();
+  if (random() < 0.1) {
+    fill(255, 150);
+    noStroke();
+    circle(random(W), random(H), random(1, 3));
+  }
+  if (random() < 0.02) {
+    fill(0, 255, 255, 100);
+    rect(0, random(H), W, random(1, 10));
+  }
+  if (random() < 0.05) {
+    fill(255, 0, 0, 50);
+    rect(random(W), random(H), 20, 20);
   }
   pop();
 }
@@ -547,7 +613,6 @@ function handleBlackHole() {
     bhOsc.freq(35 + n * 15);
   }
 
-  // Draw BH
   push(); translate(blackHole.x, blackHole.y); noStroke();
   for(let i=5; i>0; i--) { 
     fill(10 + i*10, 0, 40 + i*20, 25); 
@@ -556,7 +621,6 @@ function handleBlackHole() {
   }
   fill(0); ellipse(0, 0, jitterSize); pop();
 
-  // STABLE CLEANUP: Pegs
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
@@ -568,7 +632,6 @@ function handleBlackHole() {
     }
   }
 
-  // STABLE CLEANUP: Balls
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
     if (!b.body) continue;
@@ -588,7 +651,6 @@ function handleBlackHole() {
     }
   }
 
-  // Check if BH is gone
   if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
       blackHole = null;
       if (audioStarted) bhOsc.amp(0, 0.5);
@@ -666,7 +728,6 @@ function drawPegs() {
 
 function drawUI() {
   push(); 
-  // --- TOP BAR BACKGROUND ---
   fill(0, 0, 30, 255); 
   noStroke(); 
   rect(0, 0, W, 85); 
@@ -674,7 +735,6 @@ function drawUI() {
   strokeWeight(2); 
   line(0, 83, W, 83);
 
-  // --- MEGA BRANDED LOGO ---
   let logoX = 20;
   let logoY = 40;
   textAlign(LEFT, CENTER);
@@ -686,9 +746,8 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v4.8.7", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v4.9.0", logoX + 2, logoY + 34);
   
-  // --- CENTERED STATUS ZONE ---
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
@@ -708,13 +767,11 @@ function drawUI() {
   textSize(10);
   text("COSMIC DATA STABLE | NO COLLISION DETECTED", dropZoneX + dropZoneW/2, 55);
 
-  // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination}`, W - 25, 25);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); pop();
   
-  // --- LEFT: RECORDS BOX ---
   push(); translate(0, 100); 
   fill(100, 100, 150, 100); rect(10, 0, 250, 225); 
   fill(0, 0, 20, 245); rect(12, 2, 246, 221); 
@@ -732,7 +789,6 @@ function drawUI() {
     textAlign(LEFT);
   });
   
-  // --- LEFT: STATUS BOX ---
   translate(0, 235);
   fill(100, 100, 150, 100); rect(10, 0, 250, 60); 
   fill(0, 0, 30, 245); rect(12, 2, 246, 56);
@@ -750,7 +806,6 @@ function drawUI() {
   }
   pop();
   
-  // --- RIGHT: ELITE DROPPERS ---
   push(); translate(W - 260, 100);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
   fill(100, 100, 150, 100); rect(0, 0, 250, 285); 
@@ -841,7 +896,7 @@ function generateDeepSpaceElements() {
 function updateJukebox() {
   if (!audioStarted) return;
   if (millis() > nextNoteTime) {
-    let note = random(scale); 
+    let note = random(musicScale); 
     synth.play(midiToFreq(note), 0.08, 0, 4); 
     nextNoteTime = millis() + random(1500, 4000); 
   }
