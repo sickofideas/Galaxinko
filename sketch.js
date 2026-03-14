@@ -459,12 +459,24 @@ function handleBlackHole() {
 }
 
 function resetGame() {
-  currentGravity = random(0.1, 2.0); 
-  leaderboard = {}; totalBallsFired = 0; roundCount++; gameState = "PLAYING";
-  timer = 40; resultsTimer = 12;
+  // Gravitace: 0.1 je v UI jako "1", 2.0 je v UI jako "99"
+  // Pro rozsah 1-99 používáme random mezi 0.02 a 1.98 (přepočet mapováním)
+  currentGravity = random(0.02, 1.98); 
+  
+  leaderboard = {}; 
+  totalBallsFired = 0; 
+  roundCount++; 
+  gameState = "PLAYING";
+  
+  // Náhodný časovač: 40s až 300s (5 minut)
+  timer = floor(random(40, 301)); 
+  
+  resultsTimer = 12;
   currentDestination = generatePlanetName(); 
+  
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null;
+  
   initGame(); 
   generateDeepSpaceElements(); 
   prepareSingularityEvents();
@@ -477,7 +489,12 @@ function generatePlanetName() {
 }
 
 function initGame() {
-  if(!engine) { engine = Matter.Engine.create(); world = engine.world; }
+  if(!engine) { 
+    engine = Matter.Engine.create(); 
+    world = engine.world; 
+  }
+  
+  // Aplikace aktuální náhodné gravitace do fyzikálního enginu
   world.gravity.y = currentGravity;
   
   let rows = 32, spX = 26, spY = 23.5; 
