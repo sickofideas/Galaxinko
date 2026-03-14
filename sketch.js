@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.3.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.1.0 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -36,12 +36,16 @@ function connectTikfinity() {
 
   socket.onmessage = (event) => {
     let data = JSON.parse(event.data);
+    
+    // Získání jména uživatele
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
+    // REAKCE NA EVENTY
     if (data.event === "like") {
+      // Pokud přijde víc liků najednou (simulate 15 likes), vypustí se smyčkou
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
-        setTimeout(() => spawnBall(name), i * 120);
+        setTimeout(() => spawnBall(name), i * 120); // Rozestup 120ms, aby se nesekly o sebe
       }
     }
 
@@ -50,6 +54,7 @@ function connectTikfinity() {
     }
 
     if (data.event === "gift") {
+      // Dáreček vypustí 5 kuliček
       for(let i=0; i<5; i++) {
         setTimeout(() => spawnBall(name), i * 150);
       }
@@ -87,7 +92,7 @@ let nextChordTime = 0;
 
 const W = 900; 
 const H = 950; 
-const ZONE_H = 110; 
+const ZONE_H = 100; 
 
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28},
@@ -194,7 +199,6 @@ function draw() {
       gameState = "RESULTS"; 
       resultsTimer = 12; 
     }
-    drawCleaningUp();
   }
 
   drawZones(); 
@@ -212,27 +216,15 @@ function draw() {
   pop();
 }
 
-function drawCleaningUp() {
-  push();
-  textAlign(CENTER, CENTER);
-  let pulse = sin(frameCount * 0.1) * 50 + 200;
-  fill(0, 255, 255, pulse);
-  textSize(35);
-  text("STABILIZING...", W/2, H/2 - 20);
-  fill(255, pulse);
-  textSize(12);
-  text("WAITING FOR REMAINING UNITS", W/2, H/2 + 30);
-  pop();
-}
-
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
   
+  // Pokus o spuštění audia při prvním spawnu (řeší focus prohlížeče)
   if (!audioStarted) startSpaceAudio();
   
   playSpawnSound(); 
   totalBallsFired++; 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 80, 12, 12, { 
+  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 80, 10, 10, { 
     restitution: 0.6, 
     friction: 0.01, 
     frictionAir: 0.04, 
@@ -261,14 +253,14 @@ function drawBalls() {
     fill(b.color); 
     stroke(255); 
     strokeWeight(1); 
-    rect(-6, -6, 12, 12); 
+    rect(-5, -5, 10, 10); 
     
     rotate(-b.body.angle); 
     fill(255);
     noStroke();
     textAlign(CENTER);
-    textSize(10);
-    text(b.name, 0, -15); 
+    textSize(8);
+    text(b.name, 0, -12); 
     pop();
     
     for(let p of pegs) {
@@ -287,7 +279,6 @@ function drawBalls() {
             playJackpotSound(); 
         } 
         checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
-        setTimeout(() => removeBall(b), 400);
       }
     }
     
@@ -523,40 +514,32 @@ function drawPegs() {
 }
 
 function drawUI() {
-  push(); fill(0, 0, 40, 255); noStroke(); rect(0, 0, W, 65); stroke(0, 255, 255, 200); strokeWeight(3); line(0, 63, W, 63);
-  noStroke(); textAlign(LEFT, CENTER); fill(0, 255, 255); textSize(24); text(GAME_TITLE, 30, 32);
+  push(); fill(0, 0, 40, 255); noStroke(); rect(0, 0, W, 60); stroke(0, 255, 255, 150); strokeWeight(2); line(0, 58, W, 58);
+  noStroke(); textAlign(LEFT, CENTER); fill(0, 255, 255); textSize(18); text(GAME_TITLE, 25, 30);
   
   let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
-  textAlign(CENTER, CENTER); fill(flashCol); textSize(18); text("❤ 1 LIKE = 1 DROP", W/2, 32);
+  textAlign(CENTER, CENTER); fill(flashCol); textSize(14); text("❤ 1 LIKE = 1 DROP", W/2, 30);
 
-  fill(0, 255, 255); textAlign(RIGHT); textSize(10); text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
-  let gDisp = floor(map(currentGravity, 0.1, 2.0, 1, 99)); fill(200); textSize(9); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
+  fill(0, 255, 255); textAlign(RIGHT); textSize(9); text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
+  let gDisp = floor(map(currentGravity, 0.1, 2.0, 1, 99)); fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 38); pop();
   
-  // RECORDS BOX
-  push(); translate(0, 75); fill(0, 255, 255); rect(10, 0, 300, 130); fill(0, 0, 20, 250); rect(13, 3, 294, 124); 
-  fill(255, 215, 0); textAlign(LEFT); textSize(11); text("GALAXINKO RECORDS", 25, 25); 
+  push(); translate(0, 75); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
   allTimeRecords.forEach((rec, i) => { 
     fill(rec.color[0], rec.color[1], rec.color[2]); 
-    textSize(11);
-    text(`${i+1}. ${rec.name}: ${rec.score}`, 25, 55 + i * 25); 
+    text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
   });
   
-  // WARP BOX
-  fill(0, 255, 255); rect(10, 140, 300, 80); fill(0, 0, 30, 250); rect(13, 143, 294, 74);
+  fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
   if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); fill(timer < 7 ? color(255,0,0) : color(0,255,255)); 
-    textSize(14); text("WARP: " + timer + "s", 25, 170); 
-    fill(0, 255, 0); textSize(10); text(`UNITS: ${totalBallsFired}`, 25, 195); 
+    textAlign(LEFT, CENTER); fill(timer < 7 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
+    fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172); 
   }
   
-  // ELITE DROPPERS BOX
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
-  fill(255, 255, 0); rect(W - 310, 0, 300, 240); fill(0, 0, 30, 250); rect(W - 307, 3, 294, 234); 
-  fill(255, 255, 0); textAlign(LEFT); textSize(11); text("ELITE DROPPERS", W - 290, 25); 
+  fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
   sorted.forEach((e, i) => { 
     fill(e[1].color); 
-    textSize(11);
-    text(`${i+1}. ${e[0]}: ${e[1].score}`, W - 290, 60 + i * 22); 
+    text(`${i+1}. ${e[0]}: ${e[1].score}`, W - 238, 50 + i * 18); 
   }); 
   pop();
 }
@@ -565,76 +548,22 @@ function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYI
 
 function drawZones() { 
   for (let z of zones) { 
-    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 200)); 
+    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 180)); 
     if (z.flash > 0) z.flash -= 10; 
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
-    push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER); 
-    textSize(z.w < 35 ? 9 : 13); 
-    fill(255); text(z.score, 0, 0); pop(); 
+    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(z.w < 30 ? 7 : 10); fill(255); text(z.score, 0, 0); pop(); 
   } 
 }
 
-function drawWalls() { fill(0, 255, 255, 100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); fill(0, 255, 255); rect(0, H - 4, W, 4); }
+function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); rect(0, H - 4, W, 4); }
 
-// --- VYLEPŠENÁ VÝSLEDKOVÁ TABULKA ---
 function drawResultsOverlay() { 
-    fill(0, 230); rect(0, 0, W, H); 
-    
-    // Hlavní neonový rám s pulzováním
-    let pAlpha = pulseAlpha();
-    stroke(0, 255, 255, pAlpha); strokeWeight(4); noFill(); 
-    rect(100, 100, W-200, H-200, 15);
-    
-    // Záhlaví
-    noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(38); 
-    text("MISSION COMPLETE", W/2, 185); 
-    
-    fill(0, 255, 255); textSize(14);
-    text(`SECTOR: ${currentDestination} RECONNAISSANCE`, W/2, 225);
-
-    // Výpočet a zobrazení TOP 5 hráčů
+    fill(0, 235); rect(0, 0, W, H); 
+    fill(255, 215, 0); textAlign(CENTER); textSize(24); text("MISSION COMPLETE", W/2, H/2 - 160); 
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5); 
-    
-    if (sorted.length === 0) {
-        fill(255, 150); textAlign(CENTER); textSize(16);
-        text("NO DATA COLLECTED THIS ROUND", W/2, H/2);
-    }
-
-    sorted.forEach((e, i) => { 
-      let yPos = 330 + i * 90;
-      
-      // Skleněný efekt pozadí
-      fill(20, 20, 80, 180);
-      noStroke();
-      rect(150, yPos - 45, W-300, 75, 8);
-      
-      // Rank a Jméno
-      textAlign(LEFT);
-      fill(255); textSize(22);
-      let rankText = i === 0 ? "★ " : `${i+1}. `;
-      text(`${rankText}${e[0]}`, 180, yPos);
-      
-      // Skóre s barevným zvýrazněním
-      textAlign(RIGHT);
-      fill(e[1].color); textSize(26); 
-      text(e[1].score.toLocaleString(), W - 180, yPos);
-      
-      // Dekorační linka
-      stroke(e[1].color); strokeWeight(2);
-      line(180, yPos + 20, W - 180, yPos + 20);
-      noStroke();
-    }); 
-
-    // Spodní info s odpočtem
-    fill(255, pAlpha); textAlign(CENTER); textSize(14); 
-    text("INITIATING HYPERJUMP IN: " + resultsTimer + "s", W/2, H - 150); 
-    
-    // Verze hry v rohu
-    fill(100); textSize(10); textAlign(RIGHT);
-    text("GALAXINKO v4.3.0", W - 120, H - 120);
+    sorted.forEach((e, i) => { fill(e[1].color); textSize(20); text(`${i+1}. ${e[0]}: ${e[1].score}`, W/2, H/2 - 60 + i * 55); }); 
+    fill(255); textSize(12); text("NEXT JUMP IN: " + resultsTimer + "s", W/2, H/2 + 195); 
 }
-
-function pulseAlpha() { return sin(frameCount * 0.1) * 55 + 200; }
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 
@@ -642,7 +571,7 @@ function createExplosion(x, y) { for (let i = 0; i < 15; i++) explosions.push({ 
 
 function drawExplosions() { 
     for (let i = explosions.length - 1; i >= 0; i--) { 
-        let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 4, 4); e.x += e.vx; e.y += e.vy; e.life -= 5; 
+        let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 3, 3); e.x += e.vx; e.y += e.vy; e.life -= 5; 
         if (e.life <= 0) explosions.splice(i, 1); 
     } 
 }
@@ -702,3 +631,4 @@ function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); 
 function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.04, 0, 0.3); }
+
