@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.2.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.3.0 - Jackpot Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -191,7 +191,6 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    // Automatický přechod do results, pokud jsou kuličky pryč nebo uplynulo moc času
     if (balls.length === 0 || timeSinceWait > 9) { 
       gameState = "RESULTS"; 
       resultsTimer = 12; 
@@ -244,21 +243,15 @@ function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i], pos = b.body.position; 
     
-    // --- STABILIZAČNÍ LOGIKA (Wait period) ---
     if (gameState === "WAITING") {
       let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
       if (cz) {
-        // Vypneme rotaci a rychlost, aby se kulička nevracela nahoru nebo se neklepala
         Matter.Body.setVelocity(b.body, { x: 0, y: 0 });
         Matter.Body.setAngularVelocity(b.body, 0);
-        
-        // Plynulý přesun na střed buňky
         let targetX = cz.x + cz.w / 2;
         let targetY = H - (ZONE_H / 2);
-        
         let newX = lerp(pos.x, targetX, 0.15);
         let newY = lerp(pos.y, targetY, 0.15);
-        
         Matter.Body.setPosition(b.body, { x: newX, y: newY });
       }
     }
@@ -564,10 +557,44 @@ function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYI
 
 function drawZones() { 
   for (let z of zones) { 
-    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 180)); 
-    if (z.flash > 0) z.flash -= 10; 
+    let isJackpot = (z.score >= 5000);
+    
+    // Pozadí chlívku
+    if (z.flash > 0) {
+      fill(z.flashColor);
+      z.flash -= 10;
+    } else {
+      fill(10, 10, 40, 180);
+    }
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
-    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(z.w < 30 ? 7 : 10); fill(255); text(z.score, 0, 0); pop(); 
+    
+    // Speciální vizuál pro 5000 Jackpot
+    if (isJackpot) {
+      let pulse = sin(frameCount * 0.1) * 40;
+      strokeWeight(2);
+      stroke(255, 255, 0, 150 + pulse);
+      noFill();
+      rect(z.x + 2, H - ZONE_H + 2, z.w - 4, ZONE_H - 4);
+      noStroke();
+    }
+
+    push(); 
+    translate(z.x + z.w/2, H - 15); 
+    rotate(-HALF_PI); 
+    textAlign(LEFT, CENTER); 
+    
+    if (isJackpot) {
+      fill(255, 255, 0); // Žlutý text
+      textSize(z.w < 30 ? 8 : 12);
+      textStyle(BOLD);
+    } else {
+      fill(255);
+      textSize(z.w < 30 ? 7 : 10);
+      textStyle(NORMAL);
+    }
+    
+    text(z.score, 0, 0); 
+    pop(); 
   } 
 }
 
