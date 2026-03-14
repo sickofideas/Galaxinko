@@ -74,7 +74,6 @@ let blackHole = null;
 let bhSpawnTimes = [];
 
 // --- PROCEDURAL RELAX JUKEBOX ---
-// OPRAVA: Přejmenováno ze 'scale' na 'musicScale' kvůli kolizi s p5.js funkcí
 let musicScale = [52, 55, 59, 60, 64, 67, 71]; 
 let nextNoteTime = 0;
 let bhOsc; 
@@ -145,7 +144,6 @@ function draw() {
   
   updateJukebox(); 
 
-  // --- 2. DYNAMICKÝ ZOOM A PAN (Kamera) ---
   push();
   let camSpeed = 0.005;
   camOffset.x = (noise(frameCount * camSpeed) - 0.5) * 40;
@@ -153,7 +151,6 @@ function draw() {
   camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.05;
 
   translate(W/2, H/2);
-  // Explicitní volání p5 funkce scale pro zamezení chybám
   if (typeof scale === "function") {
     scale(camOffset.z);
   } else {
@@ -624,7 +621,8 @@ function handleBlackHole() {
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
-    if (d < jitterSize * 0.55) {
+    // OPRAVA: Pouze 23% šance na smazání kolíku při kontaktu
+    if (d < jitterSize * 0.55 && random() < 0.23) {
       Matter.Composite.remove(world, p); 
       createExplosion(p.position.x, p.position.y);
       playExplosionSound(); 
