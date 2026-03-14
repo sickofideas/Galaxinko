@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.0.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.1.0 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -29,24 +29,44 @@ const TIKFINITY_URL = "ws://localhost:21213/";
 
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
-  socket.onopen = () => console.log("[Tikfinity] Spojení navázáno - Hra naslouchá");
+  
+  socket.onopen = () => {
+    console.log("[Tikfinity] Spojení navázáno - Hra naslouchá");
+  };
+
   socket.onmessage = (event) => {
     let data = JSON.parse(event.data);
+    
+    // Získání jména uživatele
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
     // REAKCE NA EVENTY
-    if (data.event === "like" || data.event === "chat") {
+    if (data.event === "like") {
+      // Pokud přijde víc liků najednou (simulate 15 likes), vypustí se smyčkou
+      let count = data.data.likeCount || 1;
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => spawnBall(name), i * 120); // Rozestup 120ms, aby se nesekly o sebe
+      }
+    }
+
+    if (data.event === "chat") {
       spawnBall(name);
     }
+
     if (data.event === "gift") {
-      for(let i=0; i<5; i++) setTimeout(() => spawnBall(name), i * 150);
+      // Dáreček vypustí 5 kuliček
+      for(let i=0; i<5; i++) {
+        setTimeout(() => spawnBall(name), i * 150);
+      }
     }
+
     if (data.event === "follow") {
       spawnBall("NEW FOLLOW!");
     }
   };
+
   socket.onclose = () => {
-    console.log("[Tikfinity] Odpojeno, zkouším se znovu připojit...");
+    console.log("[Tikfinity] Odpojeno, zkouším se znovu připojit za 5s...");
     setTimeout(connectTikfinity, 5000);
   };
 }
@@ -198,7 +218,10 @@ function draw() {
 
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
-  startSpaceAudio(); 
+  
+  // Pokus o spuštění audia při prvním spawnu (řeší focus prohlížeče)
+  if (!audioStarted) startSpaceAudio();
+  
   playSpawnSound(); 
   totalBallsFired++; 
   let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 80, 10, 10, { 
