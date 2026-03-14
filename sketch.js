@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.1.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.2.0 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -37,15 +37,12 @@ function connectTikfinity() {
   socket.onmessage = (event) => {
     let data = JSON.parse(event.data);
     
-    // Získání jména uživatele
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
-    // REAKCE NA EVENTY
     if (data.event === "like") {
-      // Pokud přijde víc liků najednou (simulate 15 likes), vypustí se smyčkou
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
-        setTimeout(() => spawnBall(name), i * 120); // Rozestup 120ms, aby se nesekly o sebe
+        setTimeout(() => spawnBall(name), i * 120);
       }
     }
 
@@ -54,7 +51,6 @@ function connectTikfinity() {
     }
 
     if (data.event === "gift") {
-      // Dáreček vypustí 5 kuliček
       for(let i=0; i<5; i++) {
         setTimeout(() => spawnBall(name), i * 150);
       }
@@ -195,6 +191,7 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
+    // Automatický přechod do results, pokud jsou kuličky pryč nebo uplynulo moc času
     if (balls.length === 0 || timeSinceWait > 9) { 
       gameState = "RESULTS"; 
       resultsTimer = 12; 
@@ -219,7 +216,6 @@ function draw() {
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
   
-  // Pokus o spuštění audia při prvním spawnu (řeší focus prohlížeče)
   if (!audioStarted) startSpaceAudio();
   
   playSpawnSound(); 
@@ -247,6 +243,26 @@ function spawnBall(userName) {
 function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i], pos = b.body.position; 
+    
+    // --- STABILIZAČNÍ LOGIKA (Wait period) ---
+    if (gameState === "WAITING") {
+      let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
+      if (cz) {
+        // Vypneme rotaci a rychlost, aby se kulička nevracela nahoru nebo se neklepala
+        Matter.Body.setVelocity(b.body, { x: 0, y: 0 });
+        Matter.Body.setAngularVelocity(b.body, 0);
+        
+        // Plynulý přesun na střed buňky
+        let targetX = cz.x + cz.w / 2;
+        let targetY = H - (ZONE_H / 2);
+        
+        let newX = lerp(pos.x, targetX, 0.15);
+        let newY = lerp(pos.y, targetY, 0.15);
+        
+        Matter.Body.setPosition(b.body, { x: newX, y: newY });
+      }
+    }
+
     push(); 
     translate(pos.x, pos.y); 
     rotate(b.body.angle); 
