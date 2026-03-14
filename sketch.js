@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.1.0 - PROCEDURAL BOUNCE EDITION) ---
+// --- GALAXINKO (v5.1.0 - NO AUDIO EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -24,7 +24,7 @@ let currentDestination = "";
 let currentGravity = 0.6; 
 let currentBounce = 50; 
 
-// --- NEW ANTI-BOT VARIABLES ---
+// --- ANTI-BOT VARIABLES ---
 let camOffset = { x: 0, y: 0, z: 1.0 };
 let glitchTimer = 0;
 let targetFPS = 60;
@@ -74,11 +74,6 @@ let currentTravelSpeed = 1.0;
 let blackHole = null; 
 let bhSpawnTimes = [];
 
-// --- PROCEDURAL RELAX JUKEBOX ---
-let musicScale = [48, 52, 55, 57, 60, 64, 67, 72]; // Pentatonika pro relax
-let nextNoteTime = 0;
-let bhOsc; 
-
 const W = 900; 
 const H = 950; 
 const ZONE_H = 100; 
@@ -93,9 +88,6 @@ const RARE_POOL = [
   {id: "OUMUAMUA", name: "OUMUAMUA", col: [60, 40, 30], size: 45},
   {id: "SHUTTLE", name: "NASA SHUTTLE", col: [255, 255, 255], size: 35}
 ];
-
-let synth, fxSynth, backgroundOsc, backgroundOsc2;
-let audioStarted = false;
 
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
@@ -119,19 +111,11 @@ function setup() {
   textFont('Press Start 2P');
   winnerColor = color(0, 0, 128);
   
-  synth = new p5.PolySynth(); 
-  fxSynth = new p5.PolySynth(); 
-  backgroundOsc = new p5.Oscillator('sine');
-  backgroundOsc2 = new p5.Oscillator('sine');
-  bhOsc = new p5.Oscillator('sawtooth');
-  
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
   currentGravity = random(0.05, 1.95);
   currentBounce = floor(random(1, 100));
-  
-  // NASTAVENÍ NÁHODNÉ DÉLKY (40s - 180s)
   timer = floor(random(40, 181));
   
   currentDestination = generatePlanetName();
@@ -146,8 +130,6 @@ function draw() {
 
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
-  
-  updateJukebox(); 
 
   push();
   let camSpeed = 0.005;
@@ -156,11 +138,7 @@ function draw() {
   camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.05;
 
   translate(W/2, H/2);
-  if (typeof scale === "function") {
-    scale(camOffset.z);
-  } else {
-    p5.prototype.scale(camOffset.z);
-  }
+  scale(camOffset.z);
   translate(-W/2 + camOffset.x, -H/2 + camOffset.y);
 
   if (shakeAmount > 0) { 
@@ -193,7 +171,6 @@ function draw() {
         gameState = "WAITING"; 
         waitStartTime = millis(); 
         shakeAmount = 2; 
-        playCleanupSound(); 
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -270,11 +247,8 @@ function drawAntiBotOverlay() {
 
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
-  if (!audioStarted) startSpaceAudio();
   
-  playSpawnSound(); 
   totalBallsFired++; 
-  
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
 
   let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
@@ -346,7 +320,6 @@ function drawBalls() {
           if(cz.score >= 5000) { 
               flashEffect = 20;
               shakeAmount = 15;
-              playJackpotSound(); 
           } 
           checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
         }
@@ -517,7 +490,6 @@ function drawGalacticBackground() {
       let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
       if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
         createExplosion(d.x, d.y);
-        playExplosionSound();
         shakeAmount = 10;
         spaceDebris.splice(i, 1);
         currentComet = null;
@@ -580,7 +552,6 @@ function drawGravityDust() {
 
 function prepareSingularityEvents() {
   bhSpawnTimes = [];
-  // Upraveno, aby se černé díry spouštěly dříve v kratších kolech
   if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
 }
 
@@ -612,13 +583,6 @@ function handleBlackHole() {
   blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
   let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
   
-  if (audioStarted) {
-    let centerDist = abs(W/2 - blackHole.x);
-    let vol = map(centerDist, W, 0, 0, 0.12);
-    bhOsc.amp(vol, 0.1);
-    bhOsc.freq(35 + n * 15);
-  }
-
   push(); translate(blackHole.x, blackHole.y); noStroke();
   for(let i=5; i>0; i--) { 
     fill(10 + i*10, 0, 40 + i*20, 25); 
@@ -633,7 +597,6 @@ function handleBlackHole() {
     if (d < jitterSize * 0.55 && random() < 0.23) {
       Matter.Composite.remove(world, p); 
       createExplosion(p.position.x, p.position.y);
-      playExplosionSound(); 
       pegs.splice(i, 1);
     }
   }
@@ -659,17 +622,13 @@ function handleBlackHole() {
 
   if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
       blackHole = null;
-      if (audioStarted) bhOsc.amp(0, 0.5);
   }
 }
 
 function resetGame() {
   currentGravity = random(0.05, 1.95); 
   currentBounce = floor(random(1, 100));
-  
-  // RESET S NÁHODNOU DÉLKOU (40s - 180s)
   timer = floor(random(40, 181)); 
-  
   leaderboard = {}; 
   totalBallsFired = 0; 
   roundCount++; 
@@ -698,7 +657,6 @@ function initGame() {
 
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND"];
   const mode = random(patterns);
-  console.log("Generating Pattern: " + mode + " | Bounce: " + currentBounce);
 
   let numPegs = floor(random(250, 450));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
@@ -753,7 +711,6 @@ function initGame() {
           if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
         }
         if(!tooClose) valid = true;
-      } else if (mode === "CHAOS" || mode === "GALAXY") {
       } else {
           valid = true; 
       }
@@ -974,34 +931,3 @@ function generateDeepSpaceElements() {
     massivePlanets = []; for(let i=0; i<3; i++) massivePlanets.push({ x: random(W), y: random(H), size: random(20, 50), color: color(random(30, 80), 100), hasRing: random() < 0.8, ringColor: color(random(80, 150), 80), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01) }); 
     spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) }); 
 }
-
-function updateJukebox() {
-  if (!audioStarted) return;
-  // Procedurální melodie - náhodné tóny z relaxační stupnice
-  if (millis() > nextNoteTime) {
-    let note = random(musicScale); 
-    // Velmi jemný tón s dlouhým dozvukem
-    synth.play(midiToFreq(note), 0.04, 0, 5); 
-    nextNoteTime = millis() + random(2000, 6000); 
-  }
-  
-  // Mírná modulace pozadí pro pocit pohybu vesmírem
-  let mod = noise(frameCount * 0.005);
-  backgroundOsc.freq(55 + mod * 2);
-  backgroundOsc2.freq(55.5 - mod * 2); // Interference tvoří jemné vlnění
-} 
-
-function startSpaceAudio() { 
-    if (!audioStarted) { 
-        userStartAudio(); 
-        backgroundOsc.freq(55); backgroundOsc.amp(0.015, 4); backgroundOsc.start();
-        backgroundOsc2.freq(55.5); backgroundOsc2.amp(0.015, 4); backgroundOsc2.start();
-        bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); 
-        audioStarted = true; 
-    } 
-}
-
-function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.01, 0, 0.5); }
-function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
-function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
