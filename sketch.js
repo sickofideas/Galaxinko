@@ -539,11 +539,14 @@ function drawUI() {
   textSize(24); 
   text(GAME_TITLE, 25, 35);
   
+  // --- OPRAVENÉ A ZVĚTŠENÉ "LIKES = DROPS" ---
+  let flashSize = 18 + sin(frameCount * 0.1) * 3; // Pulzující velikost
   let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
+  
   textAlign(CENTER, CENTER); 
   fill(flashCol); 
-  textSize(14); 
-  text("❤ 1 LIKE = 1 DROP", W/2, 35);
+  textSize(flashSize); 
+  text("❤ LIKES = DROPS", W/2, 35);
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
