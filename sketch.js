@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.4 - MEGA LOGO & CLEAN UI) ---
+// --- GALAXINKO (v4.8.5 - MEGA LOGO & CENTERED UI) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -657,7 +657,7 @@ function drawUI() {
   
   // Glowing Shadow Layer
   fill(0, 255, 255, 30);
-  textSize(64); // Mnohem větší!
+  textSize(64); 
   text(GAME_TITLE, logoX + 4, logoY + 4); 
   
   // Main Text
@@ -669,9 +669,9 @@ function drawUI() {
   textSize(10);
   text("TIKTOK INTERACTIVE SPACE GAME", logoX + 2, logoY + 34);
   
-  // --- CENTERED DROP ZONE ---
+  // --- CENTERED DROP ZONE (OPRAVENO) ---
   let dropZoneW = 380;
-  let dropZoneX = W/2 - 155; // Posunuto pro vycentrování mezi logo a pravé info
+  let dropZoneX = W/2 - (dropZoneW / 2); // Absolutní střed plátna
   let pulse = sin(frameCount * 0.12) * 4;
   
   fill(255, 0, 100, 15 + pulse * 2);
@@ -858,4 +858,3 @@ function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02,
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
-
