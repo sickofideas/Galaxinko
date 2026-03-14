@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.2 - ONLY LIKES VERSION) ---
+// --- GALAXINKO (v4.8.3 - FIXED BLACK HOLE & UI) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -41,7 +41,6 @@ function connectTikfinity() {
     let data = JSON.parse(event.data);
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
-    // POUZE LIKE SPAWNUJE KULIČKY - VŠE OSTATNÍ ODSTRANĚNO
     if (data.event === "like") {
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
@@ -557,11 +556,15 @@ function handleBlackHole() {
 
     for (let b of balls) {
       let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
-      if (d < blackHole.size * 1.5) {
-        let safeDist = Math.max(d, 10);
+      if (d < blackHole.size * 2.5) { // Širší rádius vlivu
+        let safeDist = Math.max(d, 20); // BUG FIX: Minimální vzdálenost, aby síla nevybuchla (Infinity)
         let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
-        let magnitude = 0.00008 * (blackHole.size / safeDist);
-        Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(forceDir, magnitude));
+        
+        // Stabilizovaný výpočet síly
+        let strength = (blackHole.size * 0.00015) / (safeDist / 100);
+        let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
+        
+        Matter.Body.applyForce(b.body, b.body.position, force);
       }
     }
     if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
@@ -658,37 +661,33 @@ function drawUI() {
   
   // Outer Glow
   fill(0, 255, 255, 40);
-  textSize(42); 
+  textSize(50); // Zvětšeno pro galaxinko
   text(GAME_TITLE, logoX + 3, logoY + 3); 
   
   // Main Text
   fill(255);
-  textSize(42); 
+  textSize(50); 
   text(GAME_TITLE, logoX, logoY);
   
   fill(0, 255, 255);
   textSize(10);
   text("TIKTOK INTERACTIVE SPACE GAME", logoX, logoY + 32);
   
-  // --- ZVÝRAZNĚNÝ NÁVOD (CENTER DROP ZONE) ---
-  let dropZoneW = 440;
-  let dropZoneX = W/2 - 40; // Posunuto mírně doprava kvůli velkému logu
-  let pulse = sin(frameCount * 0.15) * 5;
+  // --- CENTER DROP ZONE (ALIGNED) ---
+  let dropZoneW = 400;
+  let dropZoneX = W/2 - 200; // Doprostřed
+  let pulse = sin(frameCount * 0.1) * 5;
   
-  // Velká záře kolem boxu
   fill(255, 0, 100, 15 + pulse * 2);
   rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
   
-  // Hlavní box s návodem
   fill(10, 10, 30, 240);
   stroke(255, 0, 100, 180 + pulse * 10);
   strokeWeight(3);
   rect(dropZoneX, 10, dropZoneW, 64, 12);
   
-  // Blikající instrukce
   noStroke();
   textAlign(CENTER, CENTER);
-  
   let ctaColor = (frameCount % 30 < 15) ? color(255, 0, 100) : color(255, 255, 255);
   fill(ctaColor);
   textSize(18);
@@ -861,6 +860,5 @@ function startSpaceAudio() {
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
