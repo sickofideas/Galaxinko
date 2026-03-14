@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;               
+let roundCount = 1;             
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -213,7 +213,7 @@ function spawnBall(userName) {
   
   playSpawnSound(); 
   totalBallsFired++; 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 110, 10, 10, { 
+  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
     restitution: 0.6, 
     friction: 0.2, 
     frictionAir: 0.04, 
@@ -306,6 +306,7 @@ function drawZones() {
       let blinkCol = (frameCount % 30 < 15) ? color(255, 215, 0) : color(255, 255, 255);
       fill(blinkCol);
       textSize(13);
+      // Odebrány hvězdičky
       text(z.score, 0, 0);
     } else {
       fill(255);
@@ -599,7 +600,7 @@ function initGame() {
   world.gravity.y = currentGravity;
   let rows = 32, spX = 26, spY = 23.5; 
   for (let r = 0; r < rows; r++) {
-    let y = 140 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
+    let y = 110 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
     for (let c = 0; c < dots; c++) { 
         let peg = Matter.Bodies.circle(sX + c * spX, y, 2, { isStatic: true, restitution: 0.85 }); 
         pegs.push(peg); Matter.World.add(world, peg); 
@@ -640,70 +641,33 @@ function drawPegs() {
 
 function drawUI() {
   push(); 
-  // --- BACKGROUND OF THE HEADER ---
-  fill(0, 0, 30, 255); 
+  fill(0, 0, 40, 255); 
   noStroke(); 
-  rect(0, 0, W, 90); 
-  
-  // Dynamic glow line
-  let glowAlpha = 150 + sin(frameCount * 0.1) * 50;
-  stroke(0, 255, 255, glowAlpha); 
-  strokeWeight(4); 
-  line(0, 88, W, 88);
-
-  // --- 1. GAME TITLE (LEFT) ---
+  rect(0, 0, W, 70); 
+  stroke(0, 255, 255, 150); 
+  strokeWeight(2); 
+  line(0, 68, W, 68);
   noStroke();
   textAlign(LEFT, CENTER);
-  // Outer glow
-  fill(0, 255, 255, 40);
-  textSize(34); 
-  text(GAME_TITLE, 28, 48); 
-  // Main text
+  fill(0, 255, 255, 50);
+  textSize(26); 
+  text(GAME_TITLE, 27, 37); 
   fill(0, 255, 255);
-  textSize(32); 
-  text(GAME_TITLE, 25, 45);
-
-  // --- 2. MAIN CALL-TO-ACTION (CENTER) ---
-  let pulseSize = 22 + sin(frameCount * 0.15) * 2;
-  let bgPulse = 40 + sin(frameCount * 0.1) * 20;
-  
-  // Central Button Background
-  fill(255, 255, 0, bgPulse);
-  rect(W/2 - 180, 15, 360, 60, 10);
-  stroke(255, 255, 255, 100);
-  strokeWeight(2);
-  noFill();
-  rect(W/2 - 185, 10, 370, 70, 12);
-  
-  // Text inside
-  noStroke();
+  textSize(24); 
+  text(GAME_TITLE, 25, 35);
+  let flashSize = 18 + sin(frameCount * 0.1) * 3; 
+  let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
   textAlign(CENTER, CENTER); 
-  fill(255, 255, 255); 
-  textSize(pulseSize); 
-  text("❤ LIKES = DROPS", W/2, 45);
-
-  // --- 3. PLANET & GRAVITY INFO (RIGHT) ---
-  textAlign(RIGHT, CENTER);
-  
-  // Planet Box
-  fill(255, 255, 255, 20);
-  rect(W - 240, 15, 220, 30, 5);
-  fill(255, 215, 0); 
-  textSize(10);
-  text(`[R-${nf(roundCount, 2)}] ${currentDestination}`, W - 30, 30);
-  
-  // Gravity Box
-  fill(255, 255, 255, 20);
-  rect(W - 240, 50, 220, 30, 5);
+  fill(flashCol); 
+  textSize(flashSize); 
+  text("❤ LIKES = DROPS", W/2, 35);
+  fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
+  text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(0, 255, 150); 
-  textSize(10); 
-  text(`G-FORCE: ${gDisp}%`, W - 30, 65);
-  
-  pop();
+  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
   // --- RECORDS TABLE (8 PLACES, DIFFERENT SIZES) ---
-  push(); translate(0, 105); 
+  push(); translate(0, 85); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
   
@@ -726,7 +690,7 @@ function drawUI() {
     textAlign(LEFT);
   });
   
-  // --- COMPACT STATUS BOX ---
+  // --- COMPACT STATUS BOX (RESIZED & MOVED) ---
   translate(0, 235);
   fill(192); rect(10, 0, 250, 60); 
   fill(0, 0, 40, 245); rect(12, 2, 246, 56);
@@ -747,7 +711,7 @@ function drawUI() {
   pop();
   
   // ELITE DROPPERS
-  push(); translate(0, 105);
+  push(); translate(0, 85);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
   fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
   sorted.forEach((e, i) => { 
@@ -758,7 +722,7 @@ function drawUI() {
 }
 
 function mouseClicked() {
-  if (mouseX > 10 && mouseX < 260 && mouseY > 105 && mouseY < 135) {
+  if (mouseX > 10 && mouseX < 260 && mouseY > 85 && mouseY < 115) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
     shakeAmount = 5; 
@@ -841,3 +805,4 @@ function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02,
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
+
