@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.4.0 - Relax Audio & Collision FX Update) ---
+// --- GALAXINKO (v4.4.1 - Jackpot Visual Upgrade) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -80,9 +80,9 @@ let blackHole = null;
 let bhSpawnTimes = [];
 
 // --- PROCEDURAL RELAX JUKEBOX ---
-let scale = [52, 55, 59, 60, 64, 67, 71]; // Cmaj7/Pentatonic frequencies (MIDI)
+let scale = [52, 55, 59, 60, 64, 67, 71]; 
 let nextNoteTime = 0;
-let bhOsc; // Special oscillator for Black Hole
+let bhOsc; 
 
 const W = 900; 
 const H = 950; 
@@ -203,6 +203,7 @@ function draw() {
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
 
+  // --- FLASH EFFECT (INVERT) ---
   if (flashEffect > 0) { 
     if (flashEffect % 2 === 0) filter(INVERT); 
     flashEffect--; 
@@ -269,8 +270,11 @@ function drawBalls() {
           updateScore(b.name, cz.score, b.color); 
           cz.flash = 255; 
           cz.flashColor = b.color; 
+          
+          // --- JACKPOT EFFECT TRIGGER ---
           if(cz.score >= 5000) { 
-              flashEffect = 14; 
+              flashEffect = 20; // Delší záblesk pro 5000
+              shakeAmount = 15;
               playJackpotSound(); 
           } 
           checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
@@ -282,6 +286,47 @@ function drawBalls() {
         removeBall(b);
     }
   }
+}
+
+function drawZones() { 
+  for (let z of zones) { 
+    let isJackpot = (z.score >= 5000);
+    
+    // Podklad zóny
+    if (z.flash > 0) {
+      fill(z.flashColor);
+      z.flash -= 10;
+    } else {
+      fill(isJackpot ? color(40, 30, 0, 200) : color(10, 10, 40, 180));
+    }
+    
+    // Zvýraznění Jackpotu (Zlatý rámeček a pulzování)
+    if (isJackpot) {
+      strokeWeight(3);
+      stroke(255, 215, 0, 150 + sin(frameCount * 0.1) * 100);
+    } else {
+      noStroke();
+    }
+    
+    rect(z.x, H - ZONE_H, z.w, ZONE_H); 
+    
+    // Text skóre
+    push(); 
+    translate(z.x + z.w/2, H - 15); 
+    rotate(-HALF_PI); 
+    textAlign(LEFT, CENTER); 
+    
+    if (isJackpot) {
+      fill(255, 215, 0);
+      textSize(13);
+      text("★" + z.score + "★", 0, 0);
+    } else {
+      fill(255);
+      textSize(z.w < 30 ? 7 : 10); 
+      text(z.score, 0, 0); 
+    }
+    pop(); 
+  } 
 }
 
 function drawWaitingMessage() {
@@ -659,15 +704,6 @@ function drawUI() {
 
 function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYING") spawnBall("PLAYER"); }
 
-function drawZones() { 
-  for (let z of zones) { 
-    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 180)); 
-    if (z.flash > 0) z.flash -= 10; 
-    rect(z.x, H - ZONE_H, z.w, ZONE_H); 
-    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(z.w < 30 ? 7 : 10); fill(255); text(z.score, 0, 0); pop(); 
-  } 
-}
-
 function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); }
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
@@ -715,15 +751,15 @@ function generateDeepSpaceElements() {
     spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) }); 
 }
 
-// --- NEW AUDIO LOGIC ---
+// --- AUDIO LOGIC ---
 
 function updateJukebox() {
   if (!audioStarted) return;
   if (millis() > nextNoteTime) {
-    let note = random(scale); // Random note from the pentatonics
+    let note = random(scale); 
     let freq = midiToFreq(note);
-    synth.play(freq, 0.08, 0, 4); // Soft attack, long decay
-    nextNoteTime = millis() + random(1500, 4000); // Randomized timing for extra relax
+    synth.play(freq, 0.08, 0, 4); 
+    nextNoteTime = millis() + random(1500, 4000); 
   }
 } 
 
@@ -731,7 +767,7 @@ function startSpaceAudio() {
     if (!audioStarted) { 
         userStartAudio(); 
         backgroundOsc.freq(55); backgroundOsc.amp(0.02, 4); backgroundOsc.start();
-        bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); // Prepare BH sound
+        bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); 
         audioStarted = true; 
     } 
 }
