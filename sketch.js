@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.2.0 - INFINITE GEOMETRY EDITION) ---
+// --- GALAXINKO (v5.2.1 - SMOOTH NEBULA EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -187,7 +187,7 @@ function draw() {
       if (timer <= 0) { 
         gameState = "WAITING"; 
         waitStartTime = millis(); 
-        shakeAmount = 5; 
+        shakeAmount = 12; 
         playCleanupSound(); 
         playTimerEndSequence();
       }
@@ -200,7 +200,6 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    if (random() < 0.1) flashEffect = 2;
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 10; 
@@ -220,8 +219,11 @@ function draw() {
   drawProceduralHUD();
   drawAntiBotOverlay();
 
+  // OPRAVENO: Místo Invertu jemné rozostření a záblesk mlhoviny
   if (flashEffect > 0) { 
-    if (flashEffect % 2 === 0) filter(INVERT); 
+    fill(255, 255, 255, map(flashEffect, 0, 15, 0, 50));
+    rect(0, 0, W, H);
+    if (flashEffect > 10) filter(BLUR, 1);
     flashEffect--; 
   }
   pop();
@@ -230,17 +232,20 @@ function draw() {
 // --- NOVÁ FUNKCE PRO NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
 function playTimerEndSequence() {
   if (!audioStarted) return;
-  let totalGlitches = 12;
+  let totalGlitches = 8;
   for(let i=0; i < totalGlitches; i++) {
     setTimeout(() => {
       if (gameState === "WAITING") {
-        let randomFreq = random(100, 1000);
-        let duration = random(0.05, 0.2);
-        fxSynth.play(randomFreq, 0.05, 0, duration);
-        shakeAmount = random(2, 8);
-        if(random() < 0.3) flashEffect = 3;
+        // Pokaždé jiný zvuk - náhodná nota i délka
+        let randomFreq = random(150, 800);
+        let duration = random(0.1, 0.5);
+        let volume = random(0.02, 0.06);
+        fxSynth.play(randomFreq, volume, 0, duration);
+        
+        shakeAmount = random(3, 10);
+        flashEffect = 15; // Krátký vizuální pulse
       }
-    }, i * 250);
+    }, i * 350);
   }
 }
 
@@ -274,10 +279,6 @@ function drawAntiBotOverlay() {
   if (random() < 0.02) {
     fill(0, 255, 255, 100);
     rect(0, random(H), W, random(1, 10));
-  }
-  if (random() < 0.05) {
-    fill(255, 0, 0, 50);
-    rect(random(W), random(H), 20, 20);
   }
   pop();
 }
@@ -358,7 +359,7 @@ function drawBalls() {
           cz.flashColor = b.color; 
           
           if(cz.score >= 5000) { 
-              flashEffect = 20;
+              flashEffect = 10;
               shakeAmount = 15;
               playJackpotSound(); 
           } 
@@ -407,18 +408,18 @@ function drawZones() {
 }
 
 function drawWaitingMessage() {
-  let alpha = map(sin(frameCount * 0.15), -1, 1, 100, 255);
+  let alpha = map(sin(frameCount * 0.1), -1, 1, 150, 255);
   push();
-  fill(255, 50, 50, alpha);
+  fill(0, 255, 255, alpha);
   textAlign(CENTER, CENTER);
-  textSize(30);
+  textSize(24);
   stroke(0);
-  strokeWeight(4);
-  text("WARNING: CLEANUP", W/2, H/2 - 50);
-  textSize(14);
+  strokeWeight(3);
+  text("WARP DRIVE COOLING", W/2, H/2 - 50);
+  textSize(12);
   noStroke();
   fill(255, 200, 0, alpha);
-  text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2);
+  text("COLLECTING FINAL DATA UNITS...", W/2, H/2);
   pop();
 }
 
@@ -707,14 +708,12 @@ function initGame() {
   }
   world.gravity.y = currentGravity;
 
-  // --- NEKONEČNÝ VÝBĚR OBRAZCŮ (INFINITE PATTERNS) ---
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "FRACTAL_TREE", "HEXAGON_GRID"];
   const mode = random(patterns);
 
   let numPegs = floor(random(300, 500));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
 
-  // Horní usměrňovač
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
   pegs.push(blocker);
   Matter.World.add(world, blocker);
@@ -808,7 +807,6 @@ function initGame() {
     }
   }
 
-  // Zóny
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0;
   zones = [];
@@ -862,7 +860,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.2.0", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.2.1", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -923,7 +921,7 @@ function drawUI() {
     text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
   } else if (gameState === "WAITING") {
     textAlign(LEFT, CENTER); fill(255, 200, 0);
-    text("CLEANUP PHASE...", 22, 18);
+    text("COOLING DOWN...", 22, 18);
     fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
   }
   pop();
@@ -1035,8 +1033,6 @@ function playSpawnSound() {
   } 
 }
 
-function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
-function play開Sound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
-function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
-
+function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
+function playJackpotSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.05, 0, 0.8); }
+function playExplosionSound() { if (audioStarted) fxSynth.play(random(50, 100), 0.02, 0, 0.3); }
