@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.1.1 - Collision Fix) ---
+// --- GALAXINKO (v4.1.2 - Pile-up & Collision Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,14 +14,14 @@ let resultsTimer = 12;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;       
+let roundCount = 1;        
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
 let flashEffect = 0;
 let shakeAmount = 0; 
 let currentDestination = "";
-let currentGravity = 0.6; // Výchozí hodnota
+let currentGravity = 0.6; 
 
 // --- TIKFINITY WEBSOCKET ---
 let socket;
@@ -222,7 +222,7 @@ function spawnBall(userName) {
   totalBallsFired++; 
   let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
     restitution: 0.6, 
-    friction: 0.01, 
+    friction: 0.2, 
     frictionAir: 0.04, 
     density: 0.001 
   }); 
@@ -263,22 +263,29 @@ function drawBalls() {
       if(abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
     }
 
-    if (!b.scored && pos.y > H - ZONE_H) {
-      let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
-      if (cz) { 
-        b.scored = true; 
-        updateScore(b.name, cz.score, b.color); 
-        cz.flash = 255; 
-        cz.flashColor = b.color; 
-        if(cz.score >= 5000) { 
-            flashEffect = 14; 
-            playJackpotSound(); 
-        } 
-        checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
+    // --- OPRAVA: Kuličky zůstávají v zónách a hromadí se ---
+    if (pos.y > H - ZONE_H - 10) {
+      // Zvýšení tření v zóně, aby kuličky neutíkaly a kupily se
+      Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
+      
+      if (!b.scored) {
+        let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
+        if (cz) { 
+          b.scored = true; 
+          updateScore(b.name, cz.score, b.color); 
+          cz.flash = 255; 
+          cz.flashColor = b.color; 
+          if(cz.score >= 5000) { 
+              flashEffect = 14; 
+              playJackpotSound(); 
+          } 
+          checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
+        }
       }
     }
     
-    if (pos.y > H + 50 || pos.x < -50 || pos.x > W + 50) {
+    // Smazání pouze pokud kulička vyletí úplně mimo obrazovku (do stran)
+    if (pos.y > H + 150 || pos.x < -100 || pos.x > W + 100) {
         removeBall(b);
     }
   }
@@ -345,7 +352,6 @@ function drawGalacticBackground() {
     }
     pop();
 
-    // --- KOLIZE S KOMETOU (NEW) ---
     if (currentComet) {
       let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
       let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
@@ -517,12 +523,14 @@ function initGame() {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
     zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255) });
     if (i > 0) { 
-        let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 4, ZONE_H, { isStatic: true }); 
+        // Zesílené stěny zón s vysokým třením
+        let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); 
         walls.push(wall); Matter.World.add(world, wall); 
     }
     curX += zw;
   }
-  Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H-2, W, 4, {isStatic:true})]);
+  // EXTRÉMNĚ SILNÉ DNO, aby kuličky nepropadly při lagu (tloušťka 100px)
+  Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H + 48, W, 100, {isStatic:true, friction: 1})]);
 }
 
 function drawPegs() { 
@@ -598,7 +606,7 @@ function drawZones() {
   } 
 }
 
-function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); rect(0, H - 4, W, 4); }
+function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); }
 
 function drawResultsOverlay() { 
     fill(0, 235); rect(0, 0, W, H); 
