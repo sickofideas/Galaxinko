@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.5.0 - Elite Simulation & UI Fix) ---
+// --- GALAXINKO (v4.6.0 - Elite Droppers Update) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;                 
+let roundCount = 1;                  
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -732,11 +732,12 @@ function drawUI() {
   
   // --- RIGHT: ELITE DROPPERS (SIMULATION CLICKABLE BOX) ---
   push(); translate(W - 260, 85);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 16); 
+  // Změněno na 12 hráčů
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
   
-  // Box Border & BG
-  fill(192); rect(0, 0, 250, 360); 
-  fill(0, 0, 30, 230); rect(2, 2, 246, 356); 
+  // Box Border & BG (Upravena výška pro 12 hráčů)
+  fill(192); rect(0, 0, 250, 285); 
+  fill(0, 0, 30, 230); rect(2, 2, 246, 281); 
   
   // Centered Title
   fill(255, 255, 0); 
@@ -755,12 +756,6 @@ function drawUI() {
     text(e[1].score, 235, 50 + i * 19);
     textAlign(LEFT);
   }); 
-  
-  // Test simulation hint at the bottom
-  textAlign(CENTER);
-  fill(100);
-  textSize(7);
-  text("(CLICK HERE TO SIMULATE LIKE)", 125, 345);
   pop();
 }
 
@@ -772,8 +767,9 @@ function mouseClicked() {
     shakeAmount = 5; 
   }
   
-  // SIMULACE LIKU (Klik do Elite Droppers boxu)
-  if (mouseX > W - 260 && mouseX < W - 10 && mouseY > 85 && mouseY < 445) {
+  // SIMULACE LIKU (Klik na text ELITE DROPPERS)
+  // Detekce kliknutí v oblasti horního nadpisu pravého boxu
+  if (mouseX > W - 260 && mouseX < W - 10 && mouseY > 85 && mouseY < 120) {
     let randomBot = random(TEST_BOTS);
     spawnBall(randomBot);
     shakeAmount = 2;
