@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.1.2 - Pile-up & Collision Fix) ---
+// --- GALAXINKO (v4.1.3 - UI Status & Pile-up Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 12;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;        
+let roundCount = 1;         
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -193,7 +193,8 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    if (balls.length === 0 || timeSinceWait > 9) { 
+    // Přechod na výsledky pokud jsou kuličky pryč nebo uplynulo 10s
+    if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 12; 
     }
@@ -263,9 +264,7 @@ function drawBalls() {
       if(abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
     }
 
-    // --- OPRAVA: Kuličky zůstávají v zónách a hromadí se ---
     if (pos.y > H - ZONE_H - 10) {
-      // Zvýšení tření v zóně, aby kuličky neutíkaly a kupily se
       Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
       
       if (!b.scored) {
@@ -284,7 +283,6 @@ function drawBalls() {
       }
     }
     
-    // Smazání pouze pokud kulička vyletí úplně mimo obrazovku (do stran)
     if (pos.y > H + 150 || pos.x < -100 || pos.x > W + 100) {
         removeBall(b);
     }
@@ -523,13 +521,11 @@ function initGame() {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
     zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255) });
     if (i > 0) { 
-        // Zesílené stěny zón s vysokým třením
         let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); 
         walls.push(wall); Matter.World.add(world, wall); 
     }
     curX += zw;
   }
-  // EXTRÉMNĚ SILNÉ DNO, aby kuličky nepropadly při lagu (tloušťka 100px)
   Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H + 48, W, 100, {isStatic:true, friction: 1})]);
 }
 
@@ -580,10 +576,17 @@ function drawUI() {
     text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
   });
   
+  // --- OPRAVA: ZOBRAZENÍ STAVU PO DOJETÍ ČASOVAČE ---
   fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
   if (gameState === "PLAYING") { 
     textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
     fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172); 
+  } else if (gameState === "WAITING") {
+    // Blikající nápis značící čekání na poslední kuličky
+    let waitCol = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 150, 0);
+    textAlign(LEFT, CENTER); fill(waitCol); textSize(8);
+    text("CLEANUP PHASE...", 22, 145);
+    fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172);
   }
   
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
@@ -609,7 +612,7 @@ function drawZones() {
 function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); }
 
 function drawResultsOverlay() { 
-    fill(0, 235); rect(0, 0, W, H); 
+    fill(0, 245); rect(0, 0, W, H); 
     fill(255, 215, 0); textAlign(CENTER); textSize(24); text("MISSION COMPLETE", W/2, H/2 - 160); 
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5); 
     sorted.forEach((e, i) => { fill(e[1].color); textSize(20); text(`${i+1}. ${e[0]}: ${e[1].score}`, W/2, H/2 - 60 + i * 55); }); 
