@@ -21,7 +21,7 @@ let winnerColor;
 let flashEffect = 0;
 let shakeAmount = 0; 
 let currentDestination = "";
-let currentGravity = 0.6;
+let currentGravity = 0.6; // Výchozí hodnota
 
 // --- TIKFINITY WEBSOCKET ---
 let socket;
@@ -36,16 +36,12 @@ function connectTikfinity() {
 
   socket.onmessage = (event) => {
     let data = JSON.parse(event.data);
-    
-    // Získání jména uživatele
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
-    // REAKCE NA EVENTY
     if (data.event === "like") {
-      // Pokud přijde víc liků najednou (simulate 15 likes), vypustí se smyčkou
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
-        setTimeout(() => spawnBall(name), i * 120); // Rozestup 120ms, aby se nesekly o sebe
+        setTimeout(() => spawnBall(name), i * 120);
       }
     }
 
@@ -54,7 +50,6 @@ function connectTikfinity() {
     }
 
     if (data.event === "gift") {
-      // Dáreček vypustí 5 kuliček
       for(let i=0; i<5; i++) {
         setTimeout(() => spawnBall(name), i * 150);
       }
@@ -147,6 +142,10 @@ function setup() {
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
+  // První inicializace času a gravitace
+  currentGravity = random(0.05, 1.95);
+  timer = floor(random(40, 301));
+  
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -218,8 +217,6 @@ function draw() {
 
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
-  
-  // Pokus o spuštění audia při prvním spawnu (řeší focus prohlížeče)
   if (!audioStarted) startSpaceAudio();
   
   playSpawnSound(); 
@@ -382,9 +379,9 @@ function drawLegendShape(d) {
 }
 
 function drawGravityDust() {
-  let r = map(currentGravity, 0.1, 2.0, 100, 255);
-  let g = map(currentGravity, 0.1, 2.0, 200, 100);
-  let b = map(currentGravity, 0.1, 2.0, 255, 50);
+  let r = map(currentGravity, 0.05, 1.95, 100, 255);
+  let g = map(currentGravity, 0.05, 1.95, 200, 100);
+  let b = map(currentGravity, 0.05, 1.95, 255, 50);
   fill(r, g, b, 150);
   noStroke();
   let dustSpeed = currentGravity * 3 * currentTravelSpeed;
@@ -459,18 +456,14 @@ function handleBlackHole() {
 }
 
 function resetGame() {
-  // Gravitace: 0.1 je v UI jako "1", 2.0 je v UI jako "99"
-  // Pro rozsah 1-99 používáme random mezi 0.02 a 1.98 (přepočet mapováním)
-  currentGravity = random(0.02, 1.98); 
+  // Generování nových náhodných hodnot
+  currentGravity = random(0.05, 1.95); 
+  timer = floor(random(40, 301)); 
   
   leaderboard = {}; 
   totalBallsFired = 0; 
   roundCount++; 
   gameState = "PLAYING";
-  
-  // Náhodný časovač: 40s až 300s (5 minut)
-  timer = floor(random(40, 301)); 
-  
   resultsTimer = 12;
   currentDestination = generatePlanetName(); 
   
@@ -494,7 +487,7 @@ function initGame() {
     world = engine.world; 
   }
   
-  // Aplikace aktuální náhodné gravitace do fyzikálního enginu
+  // KLÍČOVÁ OPRAVA: Nastavení gravitace přímo do fyzikálního světa
   world.gravity.y = currentGravity;
   
   let rows = 32, spX = 26, spY = 23.5; 
@@ -538,7 +531,10 @@ function drawUI() {
   textAlign(CENTER, CENTER); fill(flashCol); textSize(14); text("❤ 1 LIKE = 1 DROP", W/2, 30);
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
-  let gDisp = floor(map(currentGravity, 0.1, 2.0, 1, 99)); fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 38); pop();
+  
+  // Zobrazení G-FORCE v rozsahu 1-99
+  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
+  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 38); pop();
   
   push(); translate(0, 75); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
   allTimeRecords.forEach((rec, i) => { 
@@ -548,7 +544,7 @@ function drawUI() {
   
   fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
   if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); fill(timer < 7 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
+    textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
     fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172); 
   }
   
@@ -648,4 +644,3 @@ function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); 
 function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.04, 0, 0.3); }
-
