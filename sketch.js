@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;           
+let roundCount = 1;            
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -248,7 +248,8 @@ function drawBalls() {
     rect(-5, -5, 10, 10); 
     
     rotate(-b.body.angle); 
-    fill(255);
+    // OPRAVA: Jméno má nyní stejnou barvu jako kulička
+    fill(b.color);
     noStroke();
     textAlign(CENTER);
     textSize(8);
