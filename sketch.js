@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.1.0 - PROCEDURAL BOUNCE EDITION) ---
+// --- GALAXINKO (v5.1.5 - BALANCED SINGULARITY EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -81,7 +81,7 @@ let bhOsc;
 
 const W = 900; 
 const H = 950; 
-const ZONE_H = 100; 
+const ZONE_H = 80; // SNÍŽENO pro lepší prostor
 
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28},
@@ -276,7 +276,6 @@ function spawnBall(userName) {
   
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
 
-  // Mírný rozptyl spawnu, aby nepadaly úplně stejně
   let spawnX = W/2 + random(-12, 12);
   let ballBody = Matter.Bodies.rectangle(spawnX, 90, 10, 10, { 
     restitution: ballRestitution, 
@@ -568,7 +567,7 @@ function drawGravityDust() {
   for (let d of dust) {
     if (blackHole) {
       let distToBH = dist(d.x, d.y, blackHole.x, blackHole.y);
-      if (distToBH < 120) {
+      if (distToBH < 80) { // SNÍŽEN DOSAH o 33%
         let angle = atan2(blackHole.y - d.y, blackHole.x - d.x);
         d.x += cos(angle) * 4; d.y += sin(angle) * 4;
       }
@@ -589,11 +588,11 @@ function checkSingularitySpawn() {
     let fromLeft = random() < 0.5;
     blackHole = {
       x: fromLeft ? -150 : W + 150,
-      y: random(200, H - 350),
+      y: random(200, H - 450), // UPRAVENO aby nebyly nízko
       startY: 0,
       targetX: fromLeft ? W + 250 : -250,
       speed: random(0.8, 1.5),
-      size: random(20, 36), 
+      size: random(12, 18), // POLOVIČNÍ VELIKOST
       noiseOffset: random(1000),
       noiseSpeed: random(0.01, 0.02),
       wobbleAmp: random(40, 90)
@@ -631,7 +630,7 @@ function handleBlackHole() {
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
-    if (d < jitterSize * 0.55 && random() < 0.23) {
+    if (d < jitterSize * 0.55 && random() < 0.23) { // 23% ŠANCE vytáhnout hřebík
       Matter.Composite.remove(world, p); 
       createExplosion(p.position.x, p.position.y);
       playExplosionSound(); 
@@ -649,7 +648,7 @@ function handleBlackHole() {
       continue;
     }
     
-    if (d < blackHole.size * 2.8) { 
+    if (d < blackHole.size * 1.87) { // DOSAH SNÍŽEN O 33%
       let safeDist = Math.max(d, 30); 
       let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
       let strength = (blackHole.size * 0.00018) / (safeDist / 80);
@@ -700,8 +699,6 @@ function initGame() {
   let numPegs = floor(random(250, 450));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
 
-  // --- KRITICKÁ OPRAVA: HLAVNÍ BLOKUJÍCÍ HŘEBÍK ---
-  // Vytvoříme hřebík přesně pod bodem spawnu kuliček
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
   pegs.push(blocker);
   Matter.World.add(world, blocker);
@@ -718,7 +715,7 @@ function initGame() {
           let angle = i * 0.15;
           let r = 15 + i * 1.5;
           px = W/2 + cos(angle) * r;
-          py = 180 + i * 1.8; // Posunuto níž, aby nekolidovalo se spawnem
+          py = 180 + i * 1.8;
           break;
         case "WAVES":
           px = map(i % 20, 0, 20, 50, W-50);
@@ -746,21 +743,20 @@ function initGame() {
           break;
         default: 
           px = random(60, W - 60);
-          py = random(140, H - 250);
+          py = random(140, H - 300);
           break;
       }
 
-      // Kontrola limitů a kolizí mezi hřebíky
-      if (py > 115 && py < H - 180 && px > 40 && px < W - 40) {
+      // --- LIMIT HŘEBÍKŮ: NESMÍ BÝT NÍŽ NEŽ ZAČÍNAJÍ CHLÍVKY ---
+      if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
         let tooClose = false;
         for(let other of pegs) {
           if(dist(px, py, other.position.x, other.position.y) < 24) { tooClose = true; break; }
         }
         if(!tooClose) valid = true;
-      } else if (mode === "CHAOS" || mode === "GALAXY") {
-          // U chaosu povolíme volnější pravidla
-      } else {
-          valid = true; 
+      } else if (attempts > 45) {
+          // Pokud se nedaří najít místo, prostě tento hřebík přeskočíme
+          break; 
       }
     }
 
@@ -827,7 +823,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.1.0", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.1.5", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -1001,6 +997,5 @@ function playSpawnSound() {
 }
 
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
