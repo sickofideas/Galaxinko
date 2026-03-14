@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.0 - TikTok Battle UI Update) ---
+// --- GALAXINKO (v4.8.1 - TikTok Interaction Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;                     
+let roundCount = 1;                      
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -41,6 +41,7 @@ function connectTikfinity() {
     let data = JSON.parse(event.data);
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
+    // POUZE LIKE SPAWNUJE KULIČKY
     if (data.event === "like") {
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
@@ -48,19 +49,10 @@ function connectTikfinity() {
       }
     }
 
-    if (data.event === "chat") {
-      spawnBall(name);
-    }
-
-    if (data.event === "gift") {
-      for(let i=0; i<5; i++) {
-        setTimeout(() => spawnBall(name), i * 150);
-      }
-    }
-
-    if (data.event === "follow") {
-      spawnBall("NEW FOLLOW!");
-    }
+    // Ostatní eventy jsou vypnuté (nic nedělají)
+    if (data.event === "chat") { /* Vypnuto */ }
+    if (data.event === "gift") { /* Vypnuto */ }
+    if (data.event === "follow") { /* Vypnuto */ }
   };
 
   socket.onclose = () => {
@@ -671,7 +663,6 @@ function drawUI() {
   noStroke();
   textAlign(LEFT, CENTER);
   
-  // Glitch effect shadow
   if (frameCount % 60 < 5) {
       fill(255, 0, 100, 150);
       text(GAME_TITLE, logoX + 3, logoY + 2);
@@ -684,39 +675,39 @@ function drawUI() {
   textSize(28); 
   text(GAME_TITLE, logoX, logoY);
   
-  // Subtitle
   fill(0, 255, 255);
   textSize(8);
   text("TIKTOK INTERACTIVE BATTLE", logoX, logoY + 25);
   
-  // --- INTERACTIVE INSTRUCTIONS (CENTER DROP ZONE) ---
-  let dropZoneW = 420;
+  // --- ZVÝRAZNĚNÝ NÁVOD (CENTER DROP ZONE) ---
+  let dropZoneW = 460;
   let dropZoneX = W/2 - dropZoneW/2;
-  let pulse = sin(frameCount * 0.1) * 3;
+  let pulse = sin(frameCount * 0.15) * 5;
   
-  // Outer Glow
-  fill(red(winnerColor), green(winnerColor), blue(winnerColor), 30);
-  rect(dropZoneX - 5, 8, dropZoneW + 10, 68, 12);
+  // Velká záře kolem boxu
+  fill(255, 255, 0, 20 + pulse * 2);
+  rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
   
-  // Main Box
-  fill(10, 10, 30, 220);
-  stroke(255, 255, 255, 100 + pulse * 20);
-  strokeWeight(2);
-  rect(dropZoneX, 12, dropZoneW, 60, 10);
+  // Hlavní box s návodem
+  fill(20, 20, 50, 240);
+  stroke(255, 255, 0, 180 + pulse * 10);
+  strokeWeight(3);
+  rect(dropZoneX, 10, dropZoneW, 64, 12);
   
-  // Dynamic Call to Action
+  // Blikající instrukce
   noStroke();
   textAlign(CENTER, CENTER);
   
-  let ctaColor = (frameCount % 40 < 20) ? color(255, 255, 0) : color(255, 255, 255);
+  let ctaColor = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 255, 255);
   fill(ctaColor);
-  textSize(12);
-  text("HOW TO PLAY & COMPETE:", W/2, 28);
+  textSize(15);
+  text("SPAWN UNITS WITH LIKES!", W/2, 30);
   
   fill(200);
-  textSize(9);
-  let msg = "CHAT = 1 UNIT | LIKE = AUTO-SPAWN | GIFT = MEGA DROP";
-  text(msg, W/2, 52);
+  textSize(10);
+  // Jasná zpráva, že ostatní věci nic nedělají
+  let msg = "PRESS LIKE = SPAWN UNIT | (CHAT & FOLLOW OFF)";
+  text(msg, W/2, 56);
 
   // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
@@ -791,7 +782,6 @@ function drawUI() {
 }
 
 function mouseClicked() {
-  // Reset Records Click (Left Box Top)
   if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
@@ -799,7 +789,6 @@ function mouseClicked() {
     return;
   }
   
-  // --- SIMULATE DROP ON CLICK (FOR TESTING) ---
   if (mouseY > 0 && mouseY < 85) {
     let randomBot = random(TEST_BOTS);
     spawnBall(randomBot);
