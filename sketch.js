@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.3.0 - Final Phase & Results Update) ---
+// --- GALAXINKO (v4.4.0 - Relax Audio & Collision FX Update) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -79,11 +79,10 @@ let currentTravelSpeed = 1.0;
 let blackHole = null; 
 let bhSpawnTimes = [];
 
-// --- PROCEDURAL JUKEBOX ---
-let chords = [[55, 65.41, 82.41], [48.99, 61.74, 73.42], [65.41, 77.78, 98.00], [43.65, 51.91, 65.41]];
-let currentChord = 0;
-let synthVoices = [];
-let nextChordTime = 0;
+// --- PROCEDURAL RELAX JUKEBOX ---
+let scale = [52, 55, 59, 60, 64, 67, 71]; // Cmaj7/Pentatonic frequencies (MIDI)
+let nextNoteTime = 0;
+let bhOsc; // Special oscillator for Black Hole
 
 const W = 900; 
 const H = 950; 
@@ -129,15 +128,10 @@ function setup() {
   textFont('Press Start 2P');
   winnerColor = color(0, 0, 128);
   
-  synth = new p5.MonoSynth(); 
+  synth = new p5.PolySynth(); 
   fxSynth = new p5.PolySynth(); 
   backgroundOsc = new p5.Oscillator('sine');
-  
-  for(let i=0; i<3; i++) {
-    let osc = new p5.Oscillator('triangle');
-    osc.amp(0);
-    synthVoices.push(osc);
-  }
+  bhOsc = new p5.Oscillator('sawtooth');
   
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
@@ -193,7 +187,6 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    // Transition if no balls left or 10s timeout reached
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 10; 
@@ -308,7 +301,6 @@ function drawWaitingMessage() {
 }
 
 function drawResultsOverlay() { 
-    // Backdrop
     fill(0, 0, 20, 230); 
     rect(50, 50, W - 100, H - 100, 20);
     stroke(0, 255, 255, 150);
@@ -316,7 +308,6 @@ function drawResultsOverlay() {
     noFill();
     rect(60, 60, W - 120, H - 120, 15);
 
-    // Header
     noStroke();
     fill(0, 255, 255);
     textAlign(CENTER);
@@ -327,36 +318,27 @@ function drawResultsOverlay() {
     textSize(16);
     text(`DESTINATION: ${currentDestination}`, W/2, 180);
 
-    // Leaderboard Table
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 7); 
     
     for (let i = 0; i < sorted.length; i++) {
         let entry = sorted[i];
         let yPos = 260 + i * 65;
-        
-        // Row background
         fill(255, 255, 255, 20);
         rect(100, yPos - 35, W - 200, 55, 5);
-        
-        // Rank and Name
         textAlign(LEFT);
         fill(entry[1].color);
         textSize(22);
         text(`${i + 1}. ${entry[0]}`, 130, yPos);
-        
-        // Score
         textAlign(RIGHT);
         fill(255);
         text(entry[1].score.toLocaleString(), W - 130, yPos);
     }
 
-    // Next Round Timer
     textAlign(CENTER);
     fill(255, 50, 50);
     textSize(14);
     let barWidth = map(resultsTimer, 0, 10, 0, 300);
     rect(W/2 - 150, H - 150, barWidth, 10);
-    
     fill(255);
     text(`NEXT JUMP IN: ${resultsTimer}s`, W/2, H - 110);
 }
@@ -520,6 +502,14 @@ function handleBlackHole() {
     blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
     let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
     
+    // Update Black Hole Sound
+    if (audioStarted) {
+      let centerDist = abs(W/2 - blackHole.x);
+      let vol = map(centerDist, W, 0, 0, 0.15);
+      bhOsc.amp(vol, 0.1);
+      bhOsc.freq(30 + n * 20); // Low growl
+    }
+
     push(); translate(blackHole.x, blackHole.y); noStroke();
     for(let i=5; i>0; i--) { fill(10 + i*10, 0, 40 + i*20, 25); let s = jitterSize + i * (blackHole.size * 0.1) + (n * 15); ellipse(0, 0, s); }
     fill(0); ellipse(0, 0, jitterSize); pop();
@@ -529,6 +519,7 @@ function handleBlackHole() {
       if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jitterSize * 0.6) {
         Matter.World.remove(world, p); 
         createExplosion(p.position.x, p.position.y);
+        playExplosionSound(); // Collision sound
         pegs.splice(i, 1);
       }
     }
@@ -540,24 +531,24 @@ function handleBlackHole() {
         Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(forceDir, 0.00008));
       }
     }
-    if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) blackHole = null;
+    if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+       blackHole = null;
+       bhOsc.amp(0, 0.5);
+    }
   }
 }
 
 function resetGame() {
   currentGravity = random(0.05, 1.95); 
   timer = floor(random(40, 301)); 
-  
   leaderboard = {}; 
   totalBallsFired = 0; 
   roundCount++; 
   gameState = "PLAYING";
   resultsTimer = 10;
   currentDestination = generatePlanetName(); 
-  
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null;
-  
   initGame(); 
   generateDeepSpaceElements(); 
   prepareSingularityEvents();
@@ -574,9 +565,7 @@ function initGame() {
     engine = Matter.Engine.create(); 
     world = engine.world; 
   }
-  
   world.gravity.y = currentGravity;
-  
   let rows = 32, spX = 26, spY = 23.5; 
   for (let r = 0; r < rows; r++) {
     let y = 110 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
@@ -585,7 +574,6 @@ function initGame() {
         pegs.push(peg); Matter.World.add(world, peg); 
     }
   }
-  
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0;
   zones = [];
@@ -607,7 +595,6 @@ function drawPegs() {
   let pegG = map(currentGravity, 0.05, 1.95, 255, 100);
   let pegB = map(currentGravity, 0.05, 1.95, 255, 0);
   let pegBaseCol = color(pegR, pegG, pegB);
-
   for (let p of pegs) { 
     p.glow = p.glow || 0; 
     if (p.glow > 0) { 
@@ -628,7 +615,6 @@ function drawUI() {
   stroke(0, 255, 255, 150); 
   strokeWeight(2); 
   line(0, 68, W, 68);
-
   noStroke();
   textAlign(LEFT, CENTER);
   fill(0, 255, 255, 50);
@@ -637,27 +623,21 @@ function drawUI() {
   fill(0, 255, 255);
   textSize(24); 
   text(GAME_TITLE, 25, 35);
-  
   let flashSize = 18 + sin(frameCount * 0.1) * 3; 
   let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
-  
   textAlign(CENTER, CENTER); 
   fill(flashCol); 
   textSize(flashSize); 
   text("❤ LIKES = DROPS", W/2, 35);
-
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
-  
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
-  
   push(); translate(0, 85); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
   allTimeRecords.forEach((rec, i) => { 
     fill(rec.color[0], rec.color[1], rec.color[2]); 
     text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
   });
-  
   fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
   if (gameState === "PLAYING") { 
     textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
@@ -668,7 +648,6 @@ function drawUI() {
     text("CLEANUP PHASE...", 22, 145);
     fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172);
   }
-  
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
   fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
   sorted.forEach((e, i) => { 
@@ -736,24 +715,28 @@ function generateDeepSpaceElements() {
     spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) }); 
 }
 
+// --- NEW AUDIO LOGIC ---
+
 function updateJukebox() {
   if (!audioStarted) return;
-  if (millis() > nextChordTime) {
-    currentChord = (currentChord + 1) % chords.length;
-    let chordFreqs = chords[currentChord];
-    for (let i = 0; i < synthVoices.length; i++) { synthVoices[i].freq(chordFreqs[i], 2.5); synthVoices[i].amp(0.12, 2.0); }
-    nextChordTime = millis() + 6000;
+  if (millis() > nextNoteTime) {
+    let note = random(scale); // Random note from the pentatonics
+    let freq = midiToFreq(note);
+    synth.play(freq, 0.08, 0, 4); // Soft attack, long decay
+    nextNoteTime = millis() + random(1500, 4000); // Randomized timing for extra relax
   }
 } 
 
 function startSpaceAudio() { 
     if (!audioStarted) { 
-        userStartAudio(); backgroundOsc.freq(55); backgroundOsc.amp(0.04, 4); backgroundOsc.start();
-        for(let osc of synthVoices) osc.start(); audioStarted = true; 
+        userStartAudio(); 
+        backgroundOsc.freq(55); backgroundOsc.amp(0.02, 4); backgroundOsc.start();
+        bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); // Prepare BH sound
+        audioStarted = true; 
     } 
 }
 
-function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); }
-function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
-function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.1, 0, 0.4); }
+function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
+function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
+function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
