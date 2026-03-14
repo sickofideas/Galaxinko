@@ -190,11 +190,11 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
+    // Pokud už nejsou kuličky, nebo uplynulo 9 sekund, ukaž výsledky
     if (balls.length === 0 || timeSinceWait > 9) { 
       gameState = "RESULTS"; 
       resultsTimer = 12; 
     }
-    // VRÁCENÝ CLEANING UP NÁPIS
     drawCleaningUp();
   }
 
@@ -287,7 +287,6 @@ function drawBalls() {
             playJackpotSound(); 
         } 
         checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color); 
-        // Okamžité vyčištění po skórování
         setTimeout(() => removeBall(b), 400);
       }
     }
@@ -596,8 +595,9 @@ function drawResultsOverlay() {
     
     sorted.forEach((e, i) => { 
       let yPos = 320 + i * 85;
-      // Pozadí pro každého hráče
+      // Pozadí pro každého hráče (pruh)
       fill(20, 20, 60, 180);
+      noStroke();
       rect(150, yPos - 45, W-300, 70, 5);
       
       // Jméno a rank
@@ -610,13 +610,13 @@ function drawResultsOverlay() {
       fill(e[1].color); textSize(24); 
       text(e[1].score, W - 180, yPos);
       
-      // Oddělovací linka
+      // Oddělovací linka pod jménem
       stroke(e[1].color); strokeWeight(2);
       line(180, yPos + 15, W - 180, yPos + 15);
       noStroke();
     }); 
 
-    // Spodní info
+    // Spodní info o dalším kole
     fill(255, pulseAlpha()); textAlign(CENTER); textSize(14); 
     text("PREPARING FOR HYPERJUMP: " + resultsTimer + "s", W/2, H - 150); 
 }
