@@ -81,7 +81,7 @@ let bhOsc;
 
 const W = 900; 
 const H = 950; 
-const ZONE_H = 80; // SNÍŽENO pro lepší prostor
+const ZONE_H = 80; 
 
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28},
@@ -191,8 +191,9 @@ function draw() {
       if (timer <= 0) { 
         gameState = "WAITING"; 
         waitStartTime = millis(); 
-        shakeAmount = 2; 
+        shakeAmount = 5; 
         playCleanupSound(); 
+        playTimerEndSequence(); // <-- NOVÝ EFEKT
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -203,6 +204,9 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
+    // Glitch efekt při čekání
+    if (random() < 0.1) flashEffect = 2;
+    
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 10; 
@@ -227,6 +231,24 @@ function draw() {
     flashEffect--; 
   }
   pop();
+}
+
+// --- NOVÁ FUNKCE PRO NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
+function playTimerEndSequence() {
+  if (!audioStarted) return;
+  
+  let totalGlitches = 12;
+  for(let i=0; i < totalGlitches; i++) {
+    setTimeout(() => {
+      if (gameState === "WAITING") {
+        let randomFreq = random(100, 1000);
+        let duration = random(0.05, 0.2);
+        fxSynth.play(randomFreq, 0.05, 0, duration);
+        shakeAmount = random(2, 8);
+        if(random() < 0.3) flashEffect = 3;
+      }
+    }, i * 250);
+  }
 }
 
 function drawProceduralHUD() {
@@ -567,7 +589,7 @@ function drawGravityDust() {
   for (let d of dust) {
     if (blackHole) {
       let distToBH = dist(d.x, d.y, blackHole.x, blackHole.y);
-      if (distToBH < 80) { // SNÍŽEN DOSAH o 33%
+      if (distToBH < 80) { 
         let angle = atan2(blackHole.y - d.y, blackHole.x - d.x);
         d.x += cos(angle) * 4; d.y += sin(angle) * 4;
       }
@@ -588,11 +610,11 @@ function checkSingularitySpawn() {
     let fromLeft = random() < 0.5;
     blackHole = {
       x: fromLeft ? -150 : W + 150,
-      y: random(200, H - 450), // UPRAVENO aby nebyly nízko
+      y: random(200, H - 450), 
       startY: 0,
       targetX: fromLeft ? W + 250 : -250,
       speed: random(0.8, 1.5),
-      size: random(12, 18), // POLOVIČNÍ VELIKOST
+      size: random(12, 18), 
       noiseOffset: random(1000),
       noiseSpeed: random(0.01, 0.02),
       wobbleAmp: random(40, 90)
@@ -630,7 +652,7 @@ function handleBlackHole() {
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
-    if (d < jitterSize * 0.55 && random() < 0.23) { // 23% ŠANCE vytáhnout hřebík
+    if (d < jitterSize * 0.55 && random() < 0.23) { 
       Matter.Composite.remove(world, p); 
       createExplosion(p.position.x, p.position.y);
       playExplosionSound(); 
@@ -648,7 +670,7 @@ function handleBlackHole() {
       continue;
     }
     
-    if (d < blackHole.size * 1.87) { // DOSAH SNÍŽEN O 33%
+    if (d < blackHole.size * 1.87) { 
       let safeDist = Math.max(d, 30); 
       let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
       let strength = (blackHole.size * 0.00018) / (safeDist / 80);
@@ -747,7 +769,6 @@ function initGame() {
           break;
       }
 
-      // --- LIMIT HŘEBÍKŮ: NESMÍ BÝT NÍŽ NEŽ ZAČÍNAJÍ CHLÍVKY ---
       if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
         let tooClose = false;
         for(let other of pegs) {
@@ -755,7 +776,6 @@ function initGame() {
         }
         if(!tooClose) valid = true;
       } else if (attempts > 45) {
-          // Pokud se nedaří najít místo, prostě tento hřebík přeskočíme
           break; 
       }
     }
