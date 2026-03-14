@@ -181,14 +181,13 @@ function draw() {
   }
   
   handleBlackHole();
-  handleCosmicEvent(); // NOVÝ PRVEK
+  handleCosmicEvent();
 
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
       timer--;
       checkSingularitySpawn();
       
-      // ŠANCE NA METEORIT CCA 17% NA KOLO (pokud ještě nebyl)
       if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) {
           triggerCosmicEvent();
       }
@@ -198,7 +197,7 @@ function draw() {
       if (timer <= 0) { 
         gameState = "WAITING"; 
         waitStartTime = millis(); 
-        shakeAmount = 12; 
+        shakeAmount = 6; // Sníženo, aby to při konci tak neházelo
         playCleanupSound(); 
         playTimerEndSequence();
       }
@@ -230,10 +229,11 @@ function draw() {
   drawProceduralHUD();
   drawAntiBotOverlay();
 
+  // OPRAVA EFEKTU - Už žádný Blur a Invert, plynulý atmosférický overlay
   if (flashEffect > 0) { 
-    fill(255, 255, 255, map(flashEffect, 0, 15, 0, 50));
+    noStroke();
+    fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); // Jemně modré pročištění
     rect(0, 0, W, H);
-    if (flashEffect > 10) filter(BLUR, 1);
     flashEffect--; 
   }
   pop();
@@ -248,7 +248,7 @@ function triggerCosmicEvent() {
     let size = random(25, 45);
     let startX = fromLeft ? -100 : W + 100;
     let targetX = fromLeft ? W + 200 : -200;
-    let targetY = H - ZONE_H - random(20, 120); // Let těsně nad chlívky
+    let targetY = H - ZONE_H - random(20, 120); 
     
     let body = Matter.Bodies.circle(startX, targetY, size/2, {
         isStatic: false,
@@ -256,7 +256,7 @@ function triggerCosmicEvent() {
         density: 0.1,
         frictionAir: 0,
         collisionFilter: {
-            mask: 1 // Koliduje s kuličkami, ale ne s piny (pokud mají piny jinou groupu)
+            mask: 1 
         }
     });
     
@@ -272,7 +272,6 @@ function triggerCosmicEvent() {
     Matter.World.add(world, body);
     Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
     
-    // NÁHODNÝ ZVUK PROLETU
     if (audioStarted) {
         let osc = new p5.Oscillator('sine');
         osc.start();
@@ -289,12 +288,10 @@ function handleCosmicEvent() {
     
     let pos = cosmicEvent.body.position;
     
-    // Trail efekt
     cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
     if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
     
     push();
-    // Vykreslení trailu
     noStroke();
     for(let i=0; i<cosmicEvent.trail.length; i++) {
         let t = cosmicEvent.trail[i];
@@ -304,37 +301,33 @@ function handleCosmicEvent() {
         t.life -= 10;
     }
     
-    // Vykreslení jádra
     fill(255);
     ellipse(pos.x, pos.y, cosmicEvent.size);
     fill(cosmicEvent.color);
     ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
     pop();
     
-    // Odstranění pokud vyletí z obrazovky
     if (pos.x < -300 || pos.x > W + 300) {
         Matter.World.remove(world, cosmicEvent.body);
         cosmicEvent = null;
     }
 }
 
-// --- NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
+// --- OPRAVA: PROFESIONÁLNÍ ZVUKY KONCE ČASOVAČE ---
 function playTimerEndSequence() {
   if (!audioStarted) return;
-  let totalGlitches = 8;
-  for(let i=0; i < totalGlitches; i++) {
+  // Profesionální plynulý klesající "power-down" zvuk místo stroboskopu
+  let endNotes = [600, 400, 250, 100]; 
+  for(let i=0; i < endNotes.length; i++) {
     setTimeout(() => {
       if (gameState === "WAITING") {
-        let randomFreq = random(150, 800);
-        let duration = random(0.1, 0.5);
-        let volume = random(0.02, 0.06);
-        fxSynth.play(randomFreq, volume, 0, duration);
-        
-        shakeAmount = random(3, 10);
-        flashEffect = 15; 
+        let f = endNotes[i] + random(-20, 20); // Pokaždé lehká variace tóniny
+        fxSynth.play(f, 0.08, 0, 0.4);
+        shakeAmount = random(2, 4); // Už žádné šílené otřesy
       }
-    }, i * 350);
+    }, i * 400);
   }
+  flashEffect = 60; // Plynulejší a delší vizuální "zklidnění"
 }
 
 function drawProceduralHUD() {
@@ -367,6 +360,10 @@ function drawAntiBotOverlay() {
   if (random() < 0.02) {
     fill(0, 255, 255, 100);
     rect(0, random(H), W, random(1, 10));
+  }
+  if (random() < 0.05) {
+    fill(255, 0, 0, 50);
+    rect(random(W), random(H), 20, 20);
   }
   pop();
 }
@@ -447,7 +444,7 @@ function drawBalls() {
           cz.flashColor = b.color; 
           
           if(cz.score >= 5000) { 
-              flashEffect = 10;
+              flashEffect = 20;
               shakeAmount = 15;
               playJackpotSound(); 
           } 
@@ -496,18 +493,18 @@ function drawZones() {
 }
 
 function drawWaitingMessage() {
-  let alpha = map(sin(frameCount * 0.1), -1, 1, 150, 255);
+  let alpha = map(sin(frameCount * 0.15), -1, 1, 100, 255);
   push();
-  fill(0, 255, 255, alpha);
+  fill(255, 50, 50, alpha);
   textAlign(CENTER, CENTER);
-  textSize(24);
+  textSize(30);
   stroke(0);
-  strokeWeight(3);
-  text("WARP DRIVE COOLING", W/2, H/2 - 50);
-  textSize(12);
+  strokeWeight(4);
+  text("WARNING: CLEANUP", W/2, H/2 - 50);
+  textSize(14);
   noStroke();
   fill(255, 200, 0, alpha);
-  text("COLLECTING FINAL DATA UNITS...", W/2, H/2);
+  text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2);
   pop();
 }
 
@@ -593,7 +590,6 @@ function drawGalacticBackground() {
     if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); }
   }
   
-  // STATICKÉ KOMETY V POZADÍ (nesouvisí s kolizním meteoritem)
   updateComet();
   
   for(let i = spaceDebris.length - 1; i >= 0; i--) {
@@ -615,6 +611,19 @@ function drawGalacticBackground() {
       fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3); 
     }
     pop();
+
+    if (currentComet) {
+      let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
+      let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
+      if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
+        createExplosion(d.x, d.y);
+        playExplosionSound();
+        shakeAmount = 10;
+        spaceDebris.splice(i, 1);
+        currentComet = null;
+        continue;
+      }
+    }
 
     if (d.y > H + 150) {
       if (d.isRare) spaceDebris.splice(i, 1);
@@ -763,7 +772,7 @@ function resetGame() {
   roundCount++; 
   gameState = "PLAYING";
   resultsTimer = 10;
-  eventOccurredThisRound = false; // RESET EVENTU
+  eventOccurredThisRound = false; 
   currentDestination = generatePlanetName(); 
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
@@ -878,7 +887,7 @@ function initGame() {
       let peg = Matter.Bodies.circle(px, py, 2.5, { 
           isStatic: true, 
           restitution: pegRestitution,
-          collisionFilter: { category: 2 } // Odlišná kategorie od meteoritu
+          collisionFilter: { category: 2 } 
       });
       pegs.push(peg);
       Matter.World.add(world, peg);
@@ -1103,32 +1112,18 @@ function startSpaceAudio() {
     } 
 }
 
+// --- OPRAVA: PENTATONICKÝ NÁHODNÝ SPAWN ---
 function playSpawnSound() { 
   if (audioStarted) {
-    let baseNote = 440;
-    fxSynth.play(baseNote, 0.05, 0, 0.1);
-  }
+    // Pentatonická stupnice A (A4, B4, C#5, E5, F#5, A5)
+    let scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
+    let baseNote = random(scale) + random(-5, 5); 
+    let vol = random(0.02, 0.05);
+    let dur = random(0.05, 0.15);
+    fxSynth.play(baseNote, vol, 0, dur); 
+  } 
 }
 
-function playCleanupSound() {
-    if (audioStarted) {
-        fxSynth.play(200, 0.1, 0, 0.5);
-    }
-}
-
-function playJackpotSound() {
-    if (audioStarted) {
-        let notes = [60, 64, 67, 72];
-        notes.forEach((n, i) => {
-            setTimeout(() => {
-                fxSynth.play(midiToFreq(n), 0.1, 0, 0.2);
-            }, i * 100);
-        });
-    }
-}
-
-function playExplosionSound() {
-    if (audioStarted) {
-        fxSynth.play(random(50, 150), 0.08, 0, 0.1);
-    }
-}
+function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(880, 0.2, 0, 0.5); fxSynth.play(1100, 0.2, 0.1, 0.5); } }
+function playExplosionSound() { if (audioStarted) fxSynth.play(random(50, 150), 0.1, 0, 0.2); }
