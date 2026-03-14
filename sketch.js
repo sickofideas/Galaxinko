@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.2.1 - SMOOTH NEBULA EDITION) ---
+// --- GALAXINKO (v5.3.0 - COSMIC COLLISION EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -23,6 +23,10 @@ let shakeAmount = 0;
 let currentDestination = "";
 let currentGravity = 0.6; 
 let currentBounce = 50; 
+
+// --- NEW COLLISION ELEMENT ---
+let cosmicEvent = null;
+let eventOccurredThisRound = false;
 
 // --- NEW ANTI-BOT VARIABLES ---
 let camOffset = { x: 0, y: 0, z: 1.0 };
@@ -177,11 +181,18 @@ function draw() {
   }
   
   handleBlackHole();
+  handleCosmicEvent(); // NOVÝ PRVEK
 
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
       timer--;
       checkSingularitySpawn();
+      
+      // ŠANCE NA METEORIT CCA 17% NA KOLO (pokud ještě nebyl)
+      if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) {
+          triggerCosmicEvent();
+      }
+
       if (random() < 0.11) spawnRareLegend();
       
       if (timer <= 0) { 
@@ -219,7 +230,6 @@ function draw() {
   drawProceduralHUD();
   drawAntiBotOverlay();
 
-  // OPRAVENO: Místo Invertu jemné rozostření a záblesk mlhoviny
   if (flashEffect > 0) { 
     fill(255, 255, 255, map(flashEffect, 0, 15, 0, 50));
     rect(0, 0, W, H);
@@ -229,21 +239,99 @@ function draw() {
   pop();
 }
 
-// --- NOVÁ FUNKCE PRO NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
+// --- COSMIC COLLISION SYSTEM ---
+function triggerCosmicEvent() {
+    if (cosmicEvent) return;
+    eventOccurredThisRound = true;
+    
+    let fromLeft = random() < 0.5;
+    let size = random(25, 45);
+    let startX = fromLeft ? -100 : W + 100;
+    let targetX = fromLeft ? W + 200 : -200;
+    let targetY = H - ZONE_H - random(20, 120); // Let těsně nad chlívky
+    
+    let body = Matter.Bodies.circle(startX, targetY, size/2, {
+        isStatic: false,
+        isSensor: false,
+        density: 0.1,
+        frictionAir: 0,
+        collisionFilter: {
+            mask: 1 // Koliduje s kuličkami, ale ne s piny (pokud mají piny jinou groupu)
+        }
+    });
+    
+    let isComet = random() < 0.5;
+    cosmicEvent = {
+        body: body,
+        type: isComet ? "COMET" : "METEOR",
+        size: size,
+        color: isComet ? color(150, 200, 255) : color(255, 100, 50),
+        trail: []
+    };
+    
+    Matter.World.add(world, body);
+    Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
+    
+    // NÁHODNÝ ZVUK PROLETU
+    if (audioStarted) {
+        let osc = new p5.Oscillator('sine');
+        osc.start();
+        osc.freq(random(100, 400));
+        osc.freq(random(800, 1200), 1.5);
+        osc.amp(0.1);
+        osc.amp(0, 1.5);
+        setTimeout(() => osc.stop(), 1600);
+    }
+}
+
+function handleCosmicEvent() {
+    if (!cosmicEvent) return;
+    
+    let pos = cosmicEvent.body.position;
+    
+    // Trail efekt
+    cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
+    if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
+    
+    push();
+    // Vykreslení trailu
+    noStroke();
+    for(let i=0; i<cosmicEvent.trail.length; i++) {
+        let t = cosmicEvent.trail[i];
+        let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150);
+        fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha);
+        ellipse(t.x, t.y, cosmicEvent.size * (i/cosmicEvent.trail.length));
+        t.life -= 10;
+    }
+    
+    // Vykreslení jádra
+    fill(255);
+    ellipse(pos.x, pos.y, cosmicEvent.size);
+    fill(cosmicEvent.color);
+    ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
+    pop();
+    
+    // Odstranění pokud vyletí z obrazovky
+    if (pos.x < -300 || pos.x > W + 300) {
+        Matter.World.remove(world, cosmicEvent.body);
+        cosmicEvent = null;
+    }
+}
+
+// --- NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
 function playTimerEndSequence() {
   if (!audioStarted) return;
   let totalGlitches = 8;
   for(let i=0; i < totalGlitches; i++) {
     setTimeout(() => {
       if (gameState === "WAITING") {
-        // Pokaždé jiný zvuk - náhodná nota i délka
         let randomFreq = random(150, 800);
         let duration = random(0.1, 0.5);
         let volume = random(0.02, 0.06);
         fxSynth.play(randomFreq, volume, 0, duration);
         
         shakeAmount = random(3, 10);
-        flashEffect = 15; // Krátký vizuální pulse
+        flashEffect = 15; 
       }
     }, i * 350);
   }
@@ -505,6 +593,7 @@ function drawGalacticBackground() {
     if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); }
   }
   
+  // STATICKÉ KOMETY V POZADÍ (nesouvisí s kolizním meteoritem)
   updateComet();
   
   for(let i = spaceDebris.length - 1; i >= 0; i--) {
@@ -526,19 +615,6 @@ function drawGalacticBackground() {
       fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3); 
     }
     pop();
-
-    if (currentComet) {
-      let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
-      let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
-      if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
-        createExplosion(d.x, d.y);
-        playExplosionSound();
-        shakeAmount = 10;
-        spaceDebris.splice(i, 1);
-        currentComet = null;
-        continue;
-      }
-    }
 
     if (d.y > H + 150) {
       if (d.isRare) spaceDebris.splice(i, 1);
@@ -687,9 +763,10 @@ function resetGame() {
   roundCount++; 
   gameState = "PLAYING";
   resultsTimer = 10;
+  eventOccurredThisRound = false; // RESET EVENTU
   currentDestination = generatePlanetName(); 
   if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null;
+  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
   initGame(); 
   generateDeepSpaceElements(); 
   prepareSingularityEvents();
@@ -800,7 +877,8 @@ function initGame() {
     if (valid) {
       let peg = Matter.Bodies.circle(px, py, 2.5, { 
           isStatic: true, 
-          restitution: pegRestitution 
+          restitution: pegRestitution,
+          collisionFilter: { category: 2 } // Odlišná kategorie od meteoritu
       });
       pegs.push(peg);
       Matter.World.add(world, peg);
@@ -860,7 +938,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.2.1", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.3.0", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -1027,12 +1105,30 @@ function startSpaceAudio() {
 
 function playSpawnSound() { 
   if (audioStarted) {
-    let baseNote = random(musicScale);
-    let freq = midiToFreq(baseNote) + random(-2, 2);
-    fxSynth.play(freq, 0.01, 0, 0.4); 
-  } 
+    let baseNote = 440;
+    fxSynth.play(baseNote, 0.05, 0, 0.1);
+  }
 }
 
-function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
-function playJackpotSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.05, 0, 0.8); }
-function playExplosionSound() { if (audioStarted) fxSynth.play(random(50, 100), 0.02, 0, 0.3); }
+function playCleanupSound() {
+    if (audioStarted) {
+        fxSynth.play(200, 0.1, 0, 0.5);
+    }
+}
+
+function playJackpotSound() {
+    if (audioStarted) {
+        let notes = [60, 64, 67, 72];
+        notes.forEach((n, i) => {
+            setTimeout(() => {
+                fxSynth.play(midiToFreq(n), 0.1, 0, 0.2);
+            }, i * 100);
+        });
+    }
+}
+
+function playExplosionSound() {
+    if (audioStarted) {
+        fxSynth.play(random(50, 150), 0.08, 0, 0.1);
+    }
+}
