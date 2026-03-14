@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.7.0 - Intuitive UI Update) ---
+// --- GALAXINKO (v4.8.0 - TikTok Battle UI Update) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;                    
+let roundCount = 1;                     
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -655,57 +655,77 @@ function drawPegs() {
 
 function drawUI() {
   push(); 
-  // --- VRCHNÍ LIŠTA ---
+  // --- TOP BAR BACKGROUND ---
   fill(0, 0, 40, 255); 
   noStroke(); 
-  rect(0, 0, W, 80); 
+  rect(0, 0, W, 85); 
   stroke(0, 255, 255, 150); 
   strokeWeight(2); 
-  line(0, 78, W, 78);
+  line(0, 83, W, 83);
 
-  // --- LOGO ---
+  // --- BRANDED LOGO (TOP LEFT) ---
+  let logoX = 25;
+  let logoY = 40;
+  
+  // Neon Glow Effect for Logo
   noStroke();
   textAlign(LEFT, CENTER);
+  
+  // Glitch effect shadow
+  if (frameCount % 60 < 5) {
+      fill(255, 0, 100, 150);
+      text(GAME_TITLE, logoX + 3, logoY + 2);
+  }
+  
   fill(0, 255, 255, 50);
-  textSize(26); 
-  text(GAME_TITLE, 27, 40); 
+  textSize(28); 
+  text(GAME_TITLE, logoX + 2, logoY + 2); 
+  fill(255);
+  textSize(28); 
+  text(GAME_TITLE, logoX, logoY);
+  
+  // Subtitle
   fill(0, 255, 255);
-  textSize(24); 
-  text(GAME_TITLE, 25, 38);
+  textSize(8);
+  text("TIKTOK INTERACTIVE BATTLE", logoX, logoY + 25);
   
-  // --- NOVÁ VELKÁ "DROP ZÓNA" PRO KLIKÁNÍ ---
-  let dropZoneW = 400;
+  // --- INTERACTIVE INSTRUCTIONS (CENTER DROP ZONE) ---
+  let dropZoneW = 420;
   let dropZoneX = W/2 - dropZoneW/2;
-  let pulse = sin(frameCount * 0.1) * 5;
+  let pulse = sin(frameCount * 0.1) * 3;
   
-  // Podklad Drop Zóny
-  fill(red(winnerColor), green(winnerColor), blue(winnerColor), 40);
-  rect(dropZoneX, 10, dropZoneW, 60, 10);
+  // Outer Glow
+  fill(red(winnerColor), green(winnerColor), blue(winnerColor), 30);
+  rect(dropZoneX - 5, 8, dropZoneW + 10, 68, 12);
   
-  // Rámeček Drop Zóny (pulzující)
-  stroke(winnerColor);
-  strokeWeight(2 + pulse/2);
-  noFill();
-  rect(dropZoneX - pulse/2, 10 - pulse/2, dropZoneW + pulse, 60 + pulse, 10);
+  // Main Box
+  fill(10, 10, 30, 220);
+  stroke(255, 255, 255, 100 + pulse * 20);
+  strokeWeight(2);
+  rect(dropZoneX, 12, dropZoneW, 60, 10);
   
-  // Text v Drop Zóně
+  // Dynamic Call to Action
   noStroke();
   textAlign(CENTER, CENTER);
-  fill(255);
-  textSize(18);
-  text("CLICK HERE TO DROP", W/2, 33);
-  textSize(10);
+  
+  let ctaColor = (frameCount % 40 < 20) ? color(255, 255, 0) : color(255, 255, 255);
+  fill(ctaColor);
+  textSize(12);
+  text("HOW TO PLAY & COMPETE:", W/2, 28);
+  
   fill(200);
-  text("LIKE = AUTOMATIC DROP", W/2, 55);
+  textSize(9);
+  let msg = "CHAT = 1 UNIT | LIKE = AUTO-SPAWN | GIFT = MEGA DROP";
+  text(msg, W/2, 52);
 
-  // Destinace a G-Force
+  // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 25);
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 45); pop();
   
   // --- LEFT: RECORDS BOX ---
-  push(); translate(0, 95); 
+  push(); translate(0, 100); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
   
@@ -749,7 +769,7 @@ function drawUI() {
   pop();
   
   // --- RIGHT: ELITE DROPPERS ---
-  push(); translate(W - 260, 95);
+  push(); translate(W - 260, 100);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
   fill(192); rect(0, 0, 250, 285); 
   fill(0, 0, 30, 230); rect(2, 2, 246, 281); 
@@ -772,15 +792,15 @@ function drawUI() {
 
 function mouseClicked() {
   // Reset Records Click (Left Box Top)
-  if (mouseX > 10 && mouseX < 260 && mouseY > 95 && mouseY < 125) {
+  if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
     shakeAmount = 5; 
     return;
   }
   
-  // --- NOVÉ KLIKÁNÍ V DROP ZÓNĚ ---
-  if (mouseY > 0 && mouseY < 80) {
+  // --- SIMULATE DROP ON CLICK (FOR TESTING) ---
+  if (mouseY > 0 && mouseY < 85) {
     let randomBot = random(TEST_BOTS);
     spawnBall(randomBot);
     shakeAmount = 2;
@@ -863,6 +883,5 @@ function startSpaceAudio() {
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
