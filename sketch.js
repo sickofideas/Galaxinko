@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.1.5 - BALANCED SINGULARITY EDITION) ---
+// --- GALAXINKO (v5.2.0 - INFINITE GEOMETRY EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -155,11 +155,7 @@ function draw() {
   camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.05;
 
   translate(W/2, H/2);
-  if (typeof scale === "function") {
-    scale(camOffset.z);
-  } else {
-    p5.prototype.scale(camOffset.z);
-  }
+  scale(camOffset.z);
   translate(-W/2 + camOffset.x, -H/2 + camOffset.y);
 
   if (shakeAmount > 0) { 
@@ -193,7 +189,7 @@ function draw() {
         waitStartTime = millis(); 
         shakeAmount = 5; 
         playCleanupSound(); 
-        playTimerEndSequence(); // <-- NOVÝ EFEKT
+        playTimerEndSequence();
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -204,9 +200,7 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    // Glitch efekt při čekání
     if (random() < 0.1) flashEffect = 2;
-    
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 10; 
@@ -236,7 +230,6 @@ function draw() {
 // --- NOVÁ FUNKCE PRO NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
 function playTimerEndSequence() {
   if (!audioStarted) return;
-  
   let totalGlitches = 12;
   for(let i=0; i < totalGlitches; i++) {
     setTimeout(() => {
@@ -297,8 +290,7 @@ function spawnBall(userName) {
   totalBallsFired++; 
   
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
-
-  let spawnX = W/2 + random(-12, 12);
+  let spawnX = W/2 + random(-15, 15);
   let ballBody = Matter.Bodies.rectangle(spawnX, 90, 10, 10, { 
     restitution: ballRestitution, 
     friction: 0.2, 
@@ -703,8 +695,8 @@ function resetGame() {
 }
 
 function generatePlanetName() {
-  const names = ["XERON", "KEPLER", "ZENON", "AETHER", "NIBIRU", "PANDORA", "CYGNUS", "TITAN", "VULCAN", "ARRAKIS"];
-  const types = ["PRIME", "STATION", "SYSTEM", "REACH", "BETA", "MAJOR", "MINOR", "VOID"];
+  const names = ["XERON", "KEPLER", "ZENON", "AETHER", "NIBIRU", "PANDORA", "CYGNUS", "TITAN", "VULCAN", "ARRAKIS", "SOLARIS", "ZION", "EDEN"];
+  const types = ["PRIME", "STATION", "SYSTEM", "REACH", "BETA", "MAJOR", "MINOR", "VOID", "CLUSTER", "GATE"];
   return random(names) + " " + random(types);
 }
 
@@ -715,12 +707,14 @@ function initGame() {
   }
   world.gravity.y = currentGravity;
 
-  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND"];
+  // --- NEKONEČNÝ VÝBĚR OBRAZCŮ (INFINITE PATTERNS) ---
+  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "FRACTAL_TREE", "HEXAGON_GRID"];
   const mode = random(patterns);
 
-  let numPegs = floor(random(250, 450));
+  let numPegs = floor(random(300, 500));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
 
+  // Horní usměrňovač
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
   pegs.push(blocker);
   Matter.World.add(world, blocker);
@@ -744,24 +738,48 @@ function initGame() {
           py = 160 + floor(i/20) * 40 + sin(i * 0.5) * 30;
           break;
         case "HOURGLASS":
-          let row = floor(i / 15);
-          let col = i % 15;
-          let shrink = abs(row - 15) * 12;
-          px = map(col, 0, 15, 100 + shrink, W - 100 - shrink);
-          py = 160 + row * 25;
+          let rowH = floor(i / 15);
+          let colH = i % 15;
+          let shrink = abs(rowH - 15) * 12;
+          px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink);
+          py = 160 + rowH * 25;
           break;
         case "GALAXY":
-          let a = random(TWO_PI);
-          let rad = pow(random(), 0.5) * 350;
-          px = W/2 + cos(a) * rad;
-          py = 450 + sin(a) * rad * 0.8;
+          let aG = random(TWO_PI);
+          let radG = pow(random(), 0.5) * 350;
+          px = W/2 + cos(aG) * radG;
+          py = 450 + sin(aG) * radG * 0.8;
           break;
-        case "DIAMOND":
-          let dRow = floor(i/18);
-          let dCol = i % 18;
-          let dOffset = abs(dRow - 15) * 15;
-          px = map(dCol, 0, 18, 50 + dOffset, W - 50 - dOffset);
-          py = 160 + dRow * 25;
+        case "HYPERCUBE":
+          let side = 300;
+          let ix = i % 10;
+          let iy = floor(i / 10) % 10;
+          let iz = floor(i / 100);
+          px = W/2 - side/2 + ix * 30 + iz * 15;
+          py = 200 + iy * 30 + iz * 15;
+          break;
+        case "DNA_HELIX":
+          let t = i * 0.1;
+          let sideDNA = (i % 2 === 0) ? 1 : -1;
+          px = W/2 + sideDNA * cos(t) * 100;
+          py = 160 + i * 4;
+          break;
+        case "SATURN_RINGS":
+          let angleS = random(TWO_PI);
+          let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250);
+          px = W/2 + cos(angleS) * distS;
+          py = 400 + sin(angleS) * distS * 0.4;
+          break;
+        case "FRACTAL_TREE":
+          let level = floor(log(i + 1) / log(2));
+          px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level));
+          py = 160 + level * 60;
+          break;
+        case "HEXAGON_GRID":
+          let hRow = floor(i / 12);
+          let hCol = i % 12;
+          px = 100 + hCol * 60 + (hRow % 2) * 30;
+          py = 180 + hRow * 50;
           break;
         default: 
           px = random(60, W - 60);
@@ -772,7 +790,7 @@ function initGame() {
       if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
         let tooClose = false;
         for(let other of pegs) {
-          if(dist(px, py, other.position.x, other.position.y) < 24) { tooClose = true; break; }
+          if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
         }
         if(!tooClose) valid = true;
       } else if (attempts > 45) {
@@ -790,6 +808,7 @@ function initGame() {
     }
   }
 
+  // Zóny
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0;
   zones = [];
@@ -843,7 +862,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.1.5", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.2.0", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -1018,4 +1037,5 @@ function playSpawnSound() {
 
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
+function play開Sound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
