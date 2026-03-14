@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.2.1 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.3.0 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -190,7 +190,6 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    // Pokud už nejsou kuličky, nebo uplynulo 9 sekund, ukaž výsledky
     if (balls.length === 0 || timeSinceWait > 9) { 
       gameState = "RESULTS"; 
       resultsTimer = 12; 
@@ -217,11 +216,12 @@ function drawCleaningUp() {
   push();
   textAlign(CENTER, CENTER);
   let pulse = sin(frameCount * 0.1) * 50 + 200;
+  fill(0, 255, 255, pulse);
+  textSize(35);
+  text("STABILIZING...", W/2, H/2 - 20);
   fill(255, pulse);
-  textSize(30);
-  text("CLEANING UP...", W/2, H/2);
   textSize(12);
-  text("WAITING FOR REMAINING UNITS", W/2, H/2 + 40);
+  text("WAITING FOR REMAINING UNITS", W/2, H/2 + 30);
   pop();
 }
 
@@ -576,49 +576,62 @@ function drawZones() {
 
 function drawWalls() { fill(0, 255, 255, 100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); fill(0, 255, 255); rect(0, H - 4, W, 4); }
 
-// NOVÁ LEPŠÍ VÝSLEDKOVÁ TABULKA
+// --- VYLEPŠENÁ VÝSLEDKOVÁ TABULKA ---
 function drawResultsOverlay() { 
-    fill(0, 240); rect(0, 0, W, H); 
+    fill(0, 230); rect(0, 0, W, H); 
     
-    // Hlavní neonový rám
-    stroke(0, 255, 255, pulseAlpha()); strokeWeight(4); noFill(); 
-    rect(100, 100, W-200, H-200, 10);
+    // Hlavní neonový rám s pulzováním
+    let pAlpha = pulseAlpha();
+    stroke(0, 255, 255, pAlpha); strokeWeight(4); noFill(); 
+    rect(100, 100, W-200, H-200, 15);
     
     // Záhlaví
-    noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(35); 
-    text("MISSION COMPLETE", W/2, 180); 
-    fill(0, 255, 255); textSize(12);
-    text(`SECTOR: ${currentDestination}`, W/2, 215);
+    noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(38); 
+    text("MISSION COMPLETE", W/2, 185); 
+    
+    fill(0, 255, 255); textSize(14);
+    text(`SECTOR: ${currentDestination} RECONNAISSANCE`, W/2, 225);
 
-    // Tabulka vítězů
+    // Výpočet a zobrazení TOP 5 hráčů
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5); 
     
+    if (sorted.length === 0) {
+        fill(255, 150); textAlign(CENTER); textSize(16);
+        text("NO DATA COLLECTED THIS ROUND", W/2, H/2);
+    }
+
     sorted.forEach((e, i) => { 
-      let yPos = 320 + i * 85;
-      // Pozadí pro každého hráče (pruh)
-      fill(20, 20, 60, 180);
+      let yPos = 330 + i * 90;
+      
+      // Skleněný efekt pozadí
+      fill(20, 20, 80, 180);
       noStroke();
-      rect(150, yPos - 45, W-300, 70, 5);
+      rect(150, yPos - 45, W-300, 75, 8);
       
-      // Jméno a rank
+      // Rank a Jméno
       textAlign(LEFT);
-      fill(255); textSize(20);
-      text(`${i+1}. ${e[0]}`, 180, yPos);
+      fill(255); textSize(22);
+      let rankText = i === 0 ? "★ " : `${i+1}. `;
+      text(`${rankText}${e[0]}`, 180, yPos);
       
-      // Skóre
+      // Skóre s barevným zvýrazněním
       textAlign(RIGHT);
-      fill(e[1].color); textSize(24); 
-      text(e[1].score, W - 180, yPos);
+      fill(e[1].color); textSize(26); 
+      text(e[1].score.toLocaleString(), W - 180, yPos);
       
-      // Oddělovací linka pod jménem
+      // Dekorační linka
       stroke(e[1].color); strokeWeight(2);
-      line(180, yPos + 15, W - 180, yPos + 15);
+      line(180, yPos + 20, W - 180, yPos + 20);
       noStroke();
     }); 
 
-    // Spodní info o dalším kole
-    fill(255, pulseAlpha()); textAlign(CENTER); textSize(14); 
-    text("PREPARING FOR HYPERJUMP: " + resultsTimer + "s", W/2, H - 150); 
+    // Spodní info s odpočtem
+    fill(255, pAlpha); textAlign(CENTER); textSize(14); 
+    text("INITIATING HYPERJUMP IN: " + resultsTimer + "s", W/2, H - 150); 
+    
+    // Verze hry v rohu
+    fill(100); textSize(10); textAlign(RIGHT);
+    text("GALAXINKO v4.3.0", W - 120, H - 120);
 }
 
 function pulseAlpha() { return sin(frameCount * 0.1) * 55 + 200; }
