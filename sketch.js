@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.6 - CLEAN SIMULATION VERSION) ---
+// --- GALAXINKO (v4.8.7 - STABLE SINGULARITY VERSION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -228,10 +228,16 @@ function spawnBall(userName) {
 
 function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
-    let b = balls[i], pos = b.body.position; 
-    
-    if (!b.body || isNaN(pos.x)) {
+    let b = balls[i];
+    if (!b.body) {
        balls.splice(i, 1);
+       continue;
+    }
+    
+    let pos = b.body.position; 
+    
+    if (isNaN(pos.x) || isNaN(pos.y)) {
+       removeBall(b);
        continue;
     }
 
@@ -276,7 +282,7 @@ function drawBalls() {
       }
     }
     
-    if (pos.y > H + 150 || pos.x < -100 || pos.x > W + 100) {
+    if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) {
         removeBall(b);
     }
   }
@@ -513,12 +519,12 @@ function checkSingularitySpawn() {
       x: fromLeft ? -150 : W + 150,
       y: random(200, H - 350),
       startY: 0,
-      targetX: fromLeft ? W + 200 : -200,
-      speed: random(0.5, 1.0),
-      size: random(50, 120),
+      targetX: fromLeft ? W + 250 : -250,
+      speed: random(0.8, 1.5),
+      size: random(60, 110),
       noiseOffset: random(1000),
-      noiseSpeed: random(0.005, 0.015),
-      wobbleAmp: random(50, 120)
+      noiseSpeed: random(0.01, 0.02),
+      wobbleAmp: random(40, 90)
     };
     blackHole.startY = blackHole.y;
     bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
@@ -526,48 +532,66 @@ function checkSingularitySpawn() {
 }
 
 function handleBlackHole() {
-  if (blackHole) {
-    let dir = blackHole.targetX > blackHole.x ? 1 : -1;
-    blackHole.x += blackHole.speed * dir;
-    let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
-    blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
-    let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
+  if (!blackHole) return;
+
+  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
+  blackHole.x += blackHole.speed * dir;
+  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
+  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
+  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
+  
+  if (audioStarted) {
+    let centerDist = abs(W/2 - blackHole.x);
+    let vol = map(centerDist, W, 0, 0, 0.12);
+    bhOsc.amp(vol, 0.1);
+    bhOsc.freq(35 + n * 15);
+  }
+
+  // Draw BH
+  push(); translate(blackHole.x, blackHole.y); noStroke();
+  for(let i=5; i>0; i--) { 
+    fill(10 + i*10, 0, 40 + i*20, 25); 
+    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10); 
+    ellipse(0, 0, s); 
+  }
+  fill(0); ellipse(0, 0, jitterSize); pop();
+
+  // STABLE CLEANUP: Pegs
+  for (let i = pegs.length - 1; i >= 0; i--) {
+    let p = pegs[i];
+    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
+    if (d < jitterSize * 0.55) {
+      Matter.Composite.remove(world, p); 
+      createExplosion(p.position.x, p.position.y);
+      playExplosionSound(); 
+      pegs.splice(i, 1);
+    }
+  }
+
+  // STABLE CLEANUP: Balls
+  for (let i = balls.length - 1; i >= 0; i--) {
+    let b = balls[i];
+    if (!b.body) continue;
+    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
     
-    if (audioStarted) {
-      let centerDist = abs(W/2 - blackHole.x);
-      let vol = map(centerDist, W, 0, 0, 0.15);
-      bhOsc.amp(vol, 0.1);
-      bhOsc.freq(30 + n * 20);
+    if (d < jitterSize * 0.5) {
+      removeBall(b);
+      continue;
     }
+    
+    if (d < blackHole.size * 2.8) { 
+      let safeDist = Math.max(d, 30); 
+      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
+      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
+      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
+      Matter.Body.applyForce(b.body, b.body.position, force);
+    }
+  }
 
-    push(); translate(blackHole.x, blackHole.y); noStroke();
-    for(let i=5; i>0; i--) { fill(10 + i*10, 0, 40 + i*20, 25); let s = jitterSize + i * (blackHole.size * 0.1) + (n * 15); ellipse(0, 0, s); }
-    fill(0); ellipse(0, 0, jitterSize); pop();
-
-    for (let i = pegs.length - 1; i >= 0; i--) {
-      let p = pegs[i];
-      if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jitterSize * 0.6) {
-        Matter.Composite.remove(world, p); 
-        createExplosion(p.position.x, p.position.y);
-        playExplosionSound(); 
-        pegs.splice(i, 1);
-      }
-    }
-
-    for (let b of balls) {
-      let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
-      if (d < blackHole.size * 2.5) { 
-        let safeDist = Math.max(d, 20); 
-        let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
-        let strength = (blackHole.size * 0.00015) / (safeDist / 100);
-        let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
-        Matter.Body.applyForce(b.body, b.body.position, force);
-      }
-    }
-    if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
-       blackHole = null;
-       bhOsc.amp(0, 0.5);
-    }
+  // Check if BH is gone
+  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+      blackHole = null;
+      if (audioStarted) bhOsc.amp(0, 0.5);
   }
 }
 
@@ -662,9 +686,9 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("ORBITAL PHYSICS SIMULATION v4.8", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v4.8.7", logoX + 2, logoY + 34);
   
-  // --- CENTERED STATUS ZONE (CLEAN VERSION) ---
+  // --- CENTERED STATUS ZONE ---
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
@@ -682,7 +706,7 @@ function drawUI() {
   text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
   fill(0, 255, 255);
   textSize(10);
-  text("COLLECTING COSMIC DATA | ENERGY FLOW: STABLE", dropZoneX + dropZoneW/2, 55);
+  text("COSMIC DATA STABLE | NO COLLISION DETECTED", dropZoneX + dropZoneW/2, 55);
 
   // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
@@ -799,7 +823,10 @@ function updateWinnerColor() {
 }
 
 function removeBall(b) { 
-  if (b.body) Matter.World.remove(world, b.body); 
+  if (b.body) {
+    Matter.World.remove(world, b.body); 
+    b.body = null;
+  }
   let i = balls.indexOf(b); 
   if (i !== -1) balls.splice(i, 1); 
 }
