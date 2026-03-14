@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.3.0 - Jackpot Edition) ---
+// --- GALAXINKO (v4.1.0 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -37,12 +37,15 @@ function connectTikfinity() {
   socket.onmessage = (event) => {
     let data = JSON.parse(event.data);
     
+    // Získání jména uživatele
     let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
     
+    // REAKCE NA EVENTY
     if (data.event === "like") {
+      // Pokud přijde víc liků najednou (simulate 15 likes), vypustí se smyčkou
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
-        setTimeout(() => spawnBall(name), i * 120);
+        setTimeout(() => spawnBall(name), i * 120); // Rozestup 120ms, aby se nesekly o sebe
       }
     }
 
@@ -51,6 +54,7 @@ function connectTikfinity() {
     }
 
     if (data.event === "gift") {
+      // Dáreček vypustí 5 kuliček
       for(let i=0; i<5; i++) {
         setTimeout(() => spawnBall(name), i * 150);
       }
@@ -215,6 +219,7 @@ function draw() {
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
   
+  // Pokus o spuštění audia při prvním spawnu (řeší focus prohlížeče)
   if (!audioStarted) startSpaceAudio();
   
   playSpawnSound(); 
@@ -242,20 +247,6 @@ function spawnBall(userName) {
 function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i], pos = b.body.position; 
-    
-    if (gameState === "WAITING") {
-      let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
-      if (cz) {
-        Matter.Body.setVelocity(b.body, { x: 0, y: 0 });
-        Matter.Body.setAngularVelocity(b.body, 0);
-        let targetX = cz.x + cz.w / 2;
-        let targetY = H - (ZONE_H / 2);
-        let newX = lerp(pos.x, targetX, 0.15);
-        let newY = lerp(pos.y, targetY, 0.15);
-        Matter.Body.setPosition(b.body, { x: newX, y: newY });
-      }
-    }
-
     push(); 
     translate(pos.x, pos.y); 
     rotate(b.body.angle); 
@@ -557,44 +548,10 @@ function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYI
 
 function drawZones() { 
   for (let z of zones) { 
-    let isJackpot = (z.score >= 5000);
-    
-    // Pozadí chlívku
-    if (z.flash > 0) {
-      fill(z.flashColor);
-      z.flash -= 10;
-    } else {
-      fill(10, 10, 40, 180);
-    }
+    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 180)); 
+    if (z.flash > 0) z.flash -= 10; 
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
-    
-    // Speciální vizuál pro 5000 Jackpot
-    if (isJackpot) {
-      let pulse = sin(frameCount * 0.1) * 40;
-      strokeWeight(2);
-      stroke(255, 255, 0, 150 + pulse);
-      noFill();
-      rect(z.x + 2, H - ZONE_H + 2, z.w - 4, ZONE_H - 4);
-      noStroke();
-    }
-
-    push(); 
-    translate(z.x + z.w/2, H - 15); 
-    rotate(-HALF_PI); 
-    textAlign(LEFT, CENTER); 
-    
-    if (isJackpot) {
-      fill(255, 255, 0); // Žlutý text
-      textSize(z.w < 30 ? 8 : 12);
-      textStyle(BOLD);
-    } else {
-      fill(255);
-      textSize(z.w < 30 ? 7 : 10);
-      textStyle(NORMAL);
-    }
-    
-    text(z.score, 0, 0); 
-    pop(); 
+    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(z.w < 30 ? 7 : 10); fill(255); text(z.score, 0, 0); pop(); 
   } 
 }
 
@@ -674,3 +631,4 @@ function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); 
 function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.04, 0, 0.3); }
+
