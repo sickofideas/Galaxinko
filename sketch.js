@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.1.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.2.0 - Tikfinity Ultimate Edition) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -42,10 +42,9 @@ function connectTikfinity() {
     
     // REAKCE NA EVENTY
     if (data.event === "like") {
-      // Pokud přijde víc liků najednou (simulate 15 likes), vypustí se smyčkou
       let count = data.data.likeCount || 1;
       for (let i = 0; i < count; i++) {
-        setTimeout(() => spawnBall(name), i * 120); // Rozestup 120ms, aby se nesekly o sebe
+        setTimeout(() => spawnBall(name), i * 120);
       }
     }
 
@@ -54,7 +53,6 @@ function connectTikfinity() {
     }
 
     if (data.event === "gift") {
-      // Dáreček vypustí 5 kuliček
       for(let i=0; i<5; i++) {
         setTimeout(() => spawnBall(name), i * 150);
       }
@@ -92,7 +90,7 @@ let nextChordTime = 0;
 
 const W = 900; 
 const H = 950; 
-const ZONE_H = 100; 
+const ZONE_H = 110; 
 
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28},
@@ -219,12 +217,11 @@ function draw() {
 function spawnBall(userName) { 
   if (!libraryLoaded || gameState !== "PLAYING") return; 
   
-  // Pokus o spuštění audia při prvním spawnu (řeší focus prohlížeče)
   if (!audioStarted) startSpaceAudio();
   
   playSpawnSound(); 
   totalBallsFired++; 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 80, 10, 10, { 
+  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 80, 12, 12, { 
     restitution: 0.6, 
     friction: 0.01, 
     frictionAir: 0.04, 
@@ -253,14 +250,14 @@ function drawBalls() {
     fill(b.color); 
     stroke(255); 
     strokeWeight(1); 
-    rect(-5, -5, 10, 10); 
+    rect(-6, -6, 12, 12); 
     
     rotate(-b.body.angle); 
     fill(255);
     noStroke();
     textAlign(CENTER);
-    textSize(8);
-    text(b.name, 0, -12); 
+    textSize(10); // Zvětšený text u kuliček
+    text(b.name, 0, -15); 
     pop();
     
     for(let p of pegs) {
@@ -514,32 +511,40 @@ function drawPegs() {
 }
 
 function drawUI() {
-  push(); fill(0, 0, 40, 255); noStroke(); rect(0, 0, W, 60); stroke(0, 255, 255, 150); strokeWeight(2); line(0, 58, W, 58);
-  noStroke(); textAlign(LEFT, CENTER); fill(0, 255, 255); textSize(18); text(GAME_TITLE, 25, 30);
+  push(); fill(0, 0, 40, 255); noStroke(); rect(0, 0, W, 65); stroke(0, 255, 255, 200); strokeWeight(3); line(0, 63, W, 63);
+  noStroke(); textAlign(LEFT, CENTER); fill(0, 255, 255); textSize(24); text(GAME_TITLE, 30, 32);
   
   let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
-  textAlign(CENTER, CENTER); fill(flashCol); textSize(14); text("❤ 1 LIKE = 1 DROP", W/2, 30);
+  textAlign(CENTER, CENTER); fill(flashCol); textSize(18); text("❤ 1 LIKE = 1 DROP", W/2, 32);
 
-  fill(0, 255, 255); textAlign(RIGHT); textSize(9); text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
-  let gDisp = floor(map(currentGravity, 0.1, 2.0, 1, 99)); fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 38); pop();
+  fill(0, 255, 255); textAlign(RIGHT); textSize(10); text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
+  let gDisp = floor(map(currentGravity, 0.1, 2.0, 1, 99)); fill(200); textSize(9); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
-  push(); translate(0, 75); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
+  // RECORDS BOX
+  push(); translate(0, 75); fill(0, 255, 255); rect(10, 0, 300, 130); fill(0, 0, 20, 250); rect(13, 3, 294, 124); 
+  fill(255, 215, 0); textAlign(LEFT); textSize(11); text("GALAXINKO RECORDS", 25, 25); 
   allTimeRecords.forEach((rec, i) => { 
     fill(rec.color[0], rec.color[1], rec.color[2]); 
-    text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
+    textSize(11);
+    text(`${i+1}. ${rec.name}: ${rec.score}`, 25, 55 + i * 25); 
   });
   
-  fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
+  // WARP BOX
+  fill(0, 255, 255); rect(10, 140, 300, 80); fill(0, 0, 30, 250); rect(13, 143, 294, 74);
   if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); fill(timer < 7 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
-    fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172); 
+    textAlign(LEFT, CENTER); fill(timer < 7 ? color(255,0,0) : color(0,255,255)); 
+    textSize(14); text("WARP: " + timer + "s", 25, 170); 
+    fill(0, 255, 0); textSize(10); text(`UNITS: ${totalBallsFired}`, 25, 195); 
   }
   
+  // ELITE DROPPERS BOX
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
-  fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
+  fill(255, 255, 0); rect(W - 310, 0, 300, 240); fill(0, 0, 30, 250); rect(W - 307, 3, 294, 234); 
+  fill(255, 255, 0); textAlign(LEFT); textSize(11); text("ELITE DROPPERS", W - 290, 25); 
   sorted.forEach((e, i) => { 
     fill(e[1].color); 
-    text(`${i+1}. ${e[0]}: ${e[1].score}`, W - 238, 50 + i * 18); 
+    textSize(11);
+    text(`${i+1}. ${e[0]}: ${e[1].score}`, W - 290, 60 + i * 22); 
   }); 
   pop();
 }
@@ -548,21 +553,27 @@ function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYI
 
 function drawZones() { 
   for (let z of zones) { 
-    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 180)); 
+    fill(z.flash > 0 ? z.flashColor : color(10, 10, 40, 200)); 
     if (z.flash > 0) z.flash -= 10; 
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
-    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(z.w < 30 ? 7 : 10); fill(255); text(z.score, 0, 0); pop(); 
+    push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER); 
+    textSize(z.w < 35 ? 9 : 13); // Zvětšené body v zónách
+    fill(255); text(z.score, 0, 0); pop(); 
   } 
 }
 
-function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); rect(0, H - 4, W, 4); }
+function drawWalls() { fill(0, 255, 255, 100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); fill(0, 255, 255); rect(0, H - 4, W, 4); }
 
 function drawResultsOverlay() { 
-    fill(0, 235); rect(0, 0, W, H); 
-    fill(255, 215, 0); textAlign(CENTER); textSize(24); text("MISSION COMPLETE", W/2, H/2 - 160); 
+    fill(0, 245); rect(0, 0, W, H); 
+    stroke(255, 215, 0); strokeWeight(4); noFill(); rect(50, 50, W-100, H-100); noStroke();
+    fill(255, 215, 0); textAlign(CENTER); textSize(32); text("MISSION COMPLETE", W/2, H/2 - 200); 
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5); 
-    sorted.forEach((e, i) => { fill(e[1].color); textSize(20); text(`${i+1}. ${e[0]}: ${e[1].score}`, W/2, H/2 - 60 + i * 55); }); 
-    fill(255); textSize(12); text("NEXT JUMP IN: " + resultsTimer + "s", W/2, H/2 + 195); 
+    sorted.forEach((e, i) => { 
+      fill(e[1].color); textSize(24); 
+      text(`${i+1}. ${e[0]} » ${e[1].score}`, W/2, H/2 - 80 + i * 65); 
+    }); 
+    fill(255); textSize(14); text("PREPARING NEXT JUMP: " + resultsTimer + "s", W/2, H/2 + 280); 
 }
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
@@ -571,7 +582,7 @@ function createExplosion(x, y) { for (let i = 0; i < 15; i++) explosions.push({ 
 
 function drawExplosions() { 
     for (let i = explosions.length - 1; i >= 0; i--) { 
-        let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 3, 3); e.x += e.vx; e.y += e.vy; e.life -= 5; 
+        let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 4, 4); e.x += e.vx; e.y += e.vy; e.life -= 5; 
         if (e.life <= 0) explosions.splice(i, 1); 
     } 
 }
