@@ -142,7 +142,6 @@ function setup() {
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
-  // První inicializace času a gravitace
   currentGravity = random(0.05, 1.95);
   timer = floor(random(40, 301));
   
@@ -221,7 +220,7 @@ function spawnBall(userName) {
   
   playSpawnSound(); 
   totalBallsFired++; 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 80, 10, 10, { 
+  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
     restitution: 0.6, 
     friction: 0.01, 
     frictionAir: 0.04, 
@@ -456,7 +455,6 @@ function handleBlackHole() {
 }
 
 function resetGame() {
-  // Generování nových náhodných hodnot
   currentGravity = random(0.05, 1.95); 
   timer = floor(random(40, 301)); 
   
@@ -487,12 +485,11 @@ function initGame() {
     world = engine.world; 
   }
   
-  // KLÍČOVÁ OPRAVA: Nastavení gravitace přímo do fyzikálního světa
   world.gravity.y = currentGravity;
   
   let rows = 32, spX = 26, spY = 23.5; 
   for (let r = 0; r < rows; r++) {
-    let y = 100 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
+    let y = 110 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
     for (let c = 0; c < dots; c++) { 
         let peg = Matter.Bodies.circle(sX + c * spX, y, 2, { isStatic: true, restitution: 0.85 }); 
         pegs.push(peg); Matter.World.add(world, peg); 
@@ -524,19 +521,37 @@ function drawPegs() {
 }
 
 function drawUI() {
-  push(); fill(0, 0, 40, 255); noStroke(); rect(0, 0, W, 60); stroke(0, 255, 255, 150); strokeWeight(2); line(0, 58, W, 58);
-  noStroke(); textAlign(LEFT, CENTER); fill(0, 255, 255); textSize(18); text(GAME_TITLE, 25, 30);
+  push(); 
+  fill(0, 0, 40, 255); 
+  noStroke(); 
+  rect(0, 0, W, 70); 
+  stroke(0, 255, 255, 150); 
+  strokeWeight(2); 
+  line(0, 68, W, 68);
+
+  // --- ZVĚTŠENÝ NÁZEV HRY ---
+  noStroke();
+  textAlign(LEFT, CENTER);
+  fill(0, 255, 255, 50);
+  textSize(26); 
+  text(GAME_TITLE, 27, 37); 
+  fill(0, 255, 255);
+  textSize(24); 
+  text(GAME_TITLE, 25, 35);
   
   let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
-  textAlign(CENTER, CENTER); fill(flashCol); textSize(14); text("❤ 1 LIKE = 1 DROP", W/2, 30);
+  textAlign(CENTER, CENTER); 
+  fill(flashCol); 
+  textSize(14); 
+  text("❤ 1 LIKE = 1 DROP", W/2, 35);
 
-  fill(0, 255, 255); textAlign(RIGHT); textSize(9); text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
+  fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
+  text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
   
-  // Zobrazení G-FORCE v rozsahu 1-99
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 38); pop();
+  fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
-  push(); translate(0, 75); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
+  push(); translate(0, 85); fill(192); rect(10, 0, 240, 110); fill(0, 0, 20, 230); rect(12, 2, 236, 106); fill(255, 215, 0); textAlign(LEFT); textSize(8); text("GALAXINKO RECORDS", 22, 20); 
   allTimeRecords.forEach((rec, i) => { 
     fill(rec.color[0], rec.color[1], rec.color[2]); 
     text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
