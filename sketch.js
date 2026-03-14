@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;                
+let roundCount = 1;                 
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -159,7 +159,6 @@ function draw() {
   drawGravityDust(); 
   drawGalacticBackground(); 
   
-  // FIX: Bezpečný update engine
   try {
     Matter.Engine.update(engine, 1000 / 60);
   } catch (e) {
@@ -242,7 +241,6 @@ function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i], pos = b.body.position; 
     
-    // Safety check proti smazaným tělům
     if (!b.body || isNaN(pos.x)) {
        balls.splice(i, 1);
        continue;
@@ -557,7 +555,6 @@ function handleBlackHole() {
     for(let i=5; i>0; i--) { fill(10 + i*10, 0, 40 + i*20, 25); let s = jitterSize + i * (blackHole.size * 0.1) + (n * 15); ellipse(0, 0, s); }
     fill(0); ellipse(0, 0, jitterSize); pop();
 
-    // FIX: Bezpečnější mazání kolíků
     for (let i = pegs.length - 1; i >= 0; i--) {
       let p = pegs[i];
       if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jitterSize * 0.6) {
@@ -571,7 +568,6 @@ function handleBlackHole() {
     for (let b of balls) {
       let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
       if (d < blackHole.size * 1.5) {
-        // FIX: Ochrana proti dělení nulou a NaN hodnotám
         let safeDist = Math.max(d, 10);
         let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
         let magnitude = 0.00008 * (blackHole.size / safeDist);
@@ -671,7 +667,8 @@ function drawUI() {
   textSize(24); 
   text(GAME_TITLE, 25, 35);
   
-  let flashSize = 19 + sin(frameCount * 0.15) * 2; 
+  // --- ZVĚTŠENÝ BLIKAJÍCÍ TEXT ---
+  let flashSize = 32 + sin(frameCount * 0.1) * 3; // Mnohem větší font s pulzováním
   let msgIndex = floor(frameCount / 60) % 2;
   let messages = ["❤ LIKES = DROPS", "❤ LIKE TO PLAY"];
   let flashCol = (frameCount % 20 < 10) ? color(255, 50, 50) : color(255, 255, 255); 
@@ -679,7 +676,8 @@ function drawUI() {
   textAlign(CENTER, CENTER); 
   fill(flashCol); 
   textSize(flashSize); 
-  text(messages[msgIndex], W/2, 35);
+  text(messages[msgIndex], W/2, 35); // Vykreslení uprostřed lišty
+  // -------------------------------
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination} [R-${nf(roundCount, 2)}]`, W - 25, 22);
