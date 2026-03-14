@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.4.2 - Jackpot Visual Fix) ---
+// --- GALAXINKO (v4.4.3 - Competitive Records Update) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 10;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;            
+let roundCount = 1;             
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -102,11 +102,8 @@ const RARE_POOL = [
 let synth, fxSynth, backgroundOsc;
 let audioStarted = false;
 
-let allTimeRecords = [
-  { name: "NONE", score: 0, color: [255, 215, 0] },
-  { name: "NONE", score: 0, color: [192, 192, 192] },
-  { name: "NONE", score: 0, color: [205, 127, 50] }
-];
+// Rozšířeno na 8 míst
+let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
 function preload() {
   let script = document.createElement('script');
@@ -248,7 +245,6 @@ function drawBalls() {
     rect(-5, -5, 10, 10); 
     
     rotate(-b.body.angle); 
-    // OPRAVA: Jméno má nyní stejnou barvu jako kulička
     fill(b.color);
     noStroke();
     textAlign(CENTER);
@@ -291,7 +287,6 @@ function drawZones() {
   for (let z of zones) { 
     let isJackpot = (z.score >= 5000);
     
-    // Pozadí zóny
     if (z.flash > 0) {
       fill(z.flashColor);
       z.flash -= 10;
@@ -299,7 +294,7 @@ function drawZones() {
       fill(isJackpot ? color(40, 30, 0, 200) : color(10, 10, 40, 180));
     }
     
-    noStroke(); // Čáry zón jsou teď definovány pouze přes drawWalls()
+    noStroke(); 
     rect(z.x, H - ZONE_H, z.w, ZONE_H); 
     
     push(); 
@@ -308,11 +303,11 @@ function drawZones() {
     textAlign(LEFT, CENTER); 
     
     if (isJackpot) {
-      // Blikající efekt POUZE pro text čísla 5000
       let blinkCol = (frameCount % 30 < 15) ? color(255, 215, 0) : color(255, 255, 255);
       fill(blinkCol);
       textSize(13);
-      text("★" + z.score + "★", 0, 0);
+      // Odebrány hvězdičky
+      text(z.score, 0, 0);
     } else {
       fill(255);
       textSize(z.w < 30 ? 7 : 10); 
@@ -671,32 +666,52 @@ function drawUI() {
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); text(`G-FORCE: ${gDisp}`, W - 25, 42); pop();
   
-  // --- RECORDS TABLE ---
+  // --- RECORDS TABLE (8 PLACES, DIFFERENT SIZES) ---
   push(); translate(0, 85); 
-  fill(192); rect(10, 0, 240, 110); 
-  fill(0, 0, 20, 230); rect(12, 2, 236, 106); 
+  fill(192); rect(10, 0, 250, 225); 
+  fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
   
-  fill(255, 215, 0); textAlign(LEFT); textSize(8); 
-  text("GALAXINKO RECORDS", 22, 20); 
+  fill(255, 215, 0); textAlign(CENTER); textSize(9); 
+  text("GALAXINKO RECORDS", 130, 20); 
   
+  textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { 
+    let tSize = 8;
+    if(i === 0) tSize = 12; // 1. místo největší
+    else if(i === 1) tSize = 10; // 2. místo střední
+    else if(i === 2) tSize = 9; // 3. místo lehce menší
+    
+    textSize(tSize);
     fill(rec.color[0], rec.color[1], rec.color[2]); 
-    text(`${i+1}. ${rec.name}: ${rec.score}`, 22, 45 + i * 22); 
+    text(`${i+1}. ${rec.name}`, 22, 48 + i * 22); 
+    textAlign(RIGHT);
+    fill(255, 180);
+    text(rec.score, 248, 48 + i * 22);
+    textAlign(LEFT);
   });
   
-  // STATUS BOX
-  fill(192); rect(10, 120, 240, 70); fill(0, 0, 30, 230); rect(12, 122, 236, 66);
+  // --- COMPACT STATUS BOX (RESIZED & MOVED) ---
+  translate(0, 235);
+  fill(192); rect(10, 0, 250, 60); 
+  fill(0, 0, 40, 245); rect(12, 2, 246, 56);
+  
+  textSize(8);
   if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(0,255,255)); text("WARP: " + timer + "s", 22, 145); 
-    fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172); 
+    textAlign(LEFT, CENTER); 
+    fill(timer < 10 ? color(255,0,0) : color(0,255,255)); 
+    text("WARP-DRIVE: " + timer + "s", 22, 18); 
+    fill(0, 255, 0); 
+    text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
   } else if (gameState === "WAITING") {
     let waitCol = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 150, 0);
-    textAlign(LEFT, CENTER); fill(waitCol); textSize(8);
-    text("CLEANUP PHASE...", 22, 145);
-    fill(0, 255, 0); textSize(8); text(`UNITS: ${totalBallsFired}`, 22, 172);
+    textAlign(LEFT, CENTER); fill(waitCol);
+    text("CLEANUP PHASE...", 22, 18);
+    fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
   }
+  pop();
   
   // ELITE DROPPERS
+  push(); translate(0, 85);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 8); 
   fill(192); rect(W - 250, 0, 240, 210); fill(0, 0, 30, 230); rect(W - 248, 2, 236, 206); fill(255, 255, 0); textAlign(LEFT); textSize(8); text("ELITE DROPPERS", W - 238, 20); 
   sorted.forEach((e, i) => { 
@@ -707,12 +722,8 @@ function drawUI() {
 }
 
 function mouseClicked() {
-  if (mouseX > 10 && mouseX < 250 && mouseY > 85 && mouseY < 115) {
-    allTimeRecords = [
-      { name: "NONE", score: 0, color: [255, 215, 0] },
-      { name: "NONE", score: 0, color: [192, 192, 192] },
-      { name: "NONE", score: 0, color: [205, 127, 50] }
-    ];
+  if (mouseX > 10 && mouseX < 260 && mouseY > 85 && mouseY < 115) {
+    allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
     shakeAmount = 5; 
   }
@@ -753,7 +764,7 @@ function checkAllTimeRecords(n, s, col) {
     let idx = allTimeRecords.findIndex(r => r.name === n); 
     if (idx !== -1) { if (s > allTimeRecords[idx].score) allTimeRecords[idx].score = s; } 
     else allTimeRecords.push({ name: n, score: s, color: [red(col), green(col), blue(col)] }); 
-    allTimeRecords.sort((a, b) => b.score - a.score); allTimeRecords = allTimeRecords.slice(0, 3); 
+    allTimeRecords.sort((a, b) => b.score - a.score); allTimeRecords = allTimeRecords.slice(0, 8); 
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
 }
 
