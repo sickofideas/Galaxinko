@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.4.3 - Competitive Records Update - STABILITY FIX) ---
+// --- GALAXINKO (v4.4.4 - TikTok Interaction Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -668,7 +668,7 @@ function drawUI() {
   text(GAME_TITLE, 25, 35);
   
   // --- ZVĚTŠENÝ BLIKAJÍCÍ TEXT ---
-  let flashSize = 32 + sin(frameCount * 0.1) * 3; // Mnohem větší font s pulzováním
+  let flashSize = 32 + sin(frameCount * 0.1) * 3; 
   let msgIndex = floor(frameCount / 60) % 2;
   let messages = ["❤ LIKES = DROPS", "❤ LIKE TO PLAY"];
   let flashCol = (frameCount % 20 < 10) ? color(255, 50, 50) : color(255, 255, 255); 
@@ -676,7 +676,7 @@ function drawUI() {
   textAlign(CENTER, CENTER); 
   fill(flashCol); 
   textSize(flashSize); 
-  text(messages[msgIndex], W/2, 35); // Vykreslení uprostřed lišty
+  text(messages[msgIndex], W/2, 35); 
   // -------------------------------
 
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
@@ -744,7 +744,7 @@ function mouseClicked() {
   }
 }
 
-function keyPressed() { if ((key === 'l' || key === 'L') && gameState === "PLAYING") spawnBall("PLAYER"); }
+// ODSTRANĚNA FUNKCE keyPressed, ABY NEDOCHÁZELO K DUPLICITNÍMU SPAWNOVÁNÍ PŘI LIKU
 
 function drawWalls() { 
   stroke(100); 
@@ -822,5 +822,6 @@ function startSpaceAudio() {
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
