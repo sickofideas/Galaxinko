@@ -123,7 +123,8 @@ function setup() {
   fxSynth = new p5.PolySynth(); 
   backgroundOsc = new p5.Oscillator('sine');
   backgroundOsc2 = new p5.Oscillator('sine');
-  bhOsc = new p5.Oscillator('sawtooth');
+  // UPRAVENO: Změněno na 'triangle' pro jemnější zvuk, co tolik nedráždí algoritmus
+  bhOsc = new p5.Oscillator('triangle');
   
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
@@ -612,9 +613,12 @@ function handleBlackHole() {
   
   if (audioStarted) {
     let centerDist = abs(W/2 - blackHole.x);
-    let vol = map(centerDist, W, 0, 0, 0.12);
+    // UPRAVENO: Nižší hlasitost a dynamické "zachvění" (tremolo), aby zvuk nepůsobil problematicky
+    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
+    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo; 
     bhOsc.amp(vol, 0.1);
-    bhOsc.freq(35 + n * 15);
+    // Snížená frekvence na hlubší, méně agresivní "ambient" hučení
+    bhOsc.freq(32 + n * 12);
   }
 
   push(); translate(blackHole.x, blackHole.y); noStroke();
@@ -981,14 +985,10 @@ function startSpaceAudio() {
     } 
 }
 
-// UPRAVENÁ FUNKCE PRO RANDOM SPAWN ZVUK
 function playSpawnSound() { 
   if (audioStarted) {
-    // Náhodný tón z relaxační stupnice (pentatonika)
     let baseNote = random(musicScale);
-    // Přidání drobného rozladění (+- 10 centů) aby to znělo přirozeněji
     let freq = midiToFreq(baseNote) + random(-2, 2);
-    // Krátký, jemný tón (decay 0.4s)
     fxSynth.play(freq, 0.01, 0, 0.4); 
   } 
 }
