@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.9.0 - ULTRA LOGO & CENTERED UI) ---
+// --- GALAXINKO (v4.8.5 - MEGA LOGO & CENTERED UI) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -206,7 +206,7 @@ function spawnBall(userName) {
   
   playSpawnSound(); 
   totalBallsFired++; 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 110, 10, 10, { 
+  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
     restitution: 0.6, 
     friction: 0.2, 
     frictionAir: 0.04, 
@@ -601,7 +601,7 @@ function initGame() {
   world.gravity.y = currentGravity;
   let rows = 32, spX = 26, spY = 23.5; 
   for (let r = 0; r < rows; r++) {
-    let y = 135 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
+    let y = 110 + r * spY, dots = r + 3, sX = (W / 2) - ((dots - 1) * spX) / 2;
     for (let c = 0; c < dots; c++) { 
         let peg = Matter.Bodies.circle(sX + c * spX, y, 2, { isStatic: true, restitution: 0.85 }); 
         pegs.push(peg); Matter.World.add(world, peg); 
@@ -642,135 +642,138 @@ function drawPegs() {
 
 function drawUI() {
   push(); 
-  // --- TOP BAR BACKGROUND (FROSTED GLASS EFFECT) ---
-  fill(5, 5, 25, 230); 
+  // --- TOP BAR BACKGROUND ---
+  fill(0, 0, 40, 255); 
   noStroke(); 
-  rect(0, 0, W, 110); 
-  stroke(0, 255, 255, 100); 
-  strokeWeight(3); 
-  line(0, 108, W, 108);
+  rect(0, 0, W, 85); 
+  stroke(0, 255, 255, 150); 
+  strokeWeight(2); 
+  line(0, 83, W, 83);
 
-  // --- ULTRA MEGA LOGO (LEFT ALIGNED) ---
-  let logoX = 30;
-  let logoY = 60;
+  // --- MEGA BRANDED LOGO (TOP LEFT) ---
+  let logoX = 20;
+  let logoY = 40;
   textAlign(LEFT, CENTER);
   
-  // Outer Glow Layer
-  for(let i=8; i>0; i--) {
-     fill(0, 255, 255, 15 - i);
-     textSize(82 + i); 
-     text(GAME_TITLE, logoX - i/2, logoY);
-  }
+  // Glowing Shadow Layer
+  fill(0, 255, 255, 30);
+  textSize(64); 
+  text(GAME_TITLE, logoX + 4, logoY + 4); 
   
-  // Hard Shadow
-  fill(255, 0, 150, 150);
-  textSize(82);
-  text(GAME_TITLE, logoX + 6, logoY + 6);
-  
-  // Main White Text
+  // Main Text
   fill(255);
-  textSize(82); 
+  textSize(64); 
   text(GAME_TITLE, logoX, logoY);
   
-  // Subtitle
   fill(0, 255, 255);
-  textSize(12);
-  text("INTERACTIVE TIKTOK SPACE PLINKO", logoX + 5, logoY + 38);
-
-  // --- CENTERED DROP ZONE (ABSOLUTELY CENTERED) ---
-  let dropW = 340;
-  let dropX = W/2 - dropW/2;
-  let pulse = sin(frameCount * 0.1) * 5;
+  textSize(10);
+  text("TIKTOK INTERACTIVE SPACE GAME", logoX + 2, logoY + 34);
   
-  // Container
-  fill(10, 10, 40, 200);
-  stroke(255, 0, 100, 150 + pulse * 10);
-  strokeWeight(4);
-  rect(dropX, 15, dropW, 80, 15);
+  // --- CENTERED DROP ZONE (OPRAVENO) ---
+  let dropZoneW = 380;
+  let dropZoneX = W/2 - (dropZoneW / 2); // Absolutní střed plátna
+  let pulse = sin(frameCount * 0.12) * 4;
   
-  // CTA Text
+  fill(255, 0, 100, 15 + pulse * 2);
+  rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
+  
+  fill(10, 10, 30, 240);
+  stroke(255, 0, 100, 180 + pulse * 10);
+  strokeWeight(3);
+  rect(dropZoneX, 10, dropZoneW, 64, 12);
+  
   noStroke();
   textAlign(CENTER, CENTER);
-  let ctaCol = (frameCount % 40 < 20) ? color(255, 255, 255) : color(255, 0, 100);
-  fill(ctaCol);
-  textSize(20);
-  text("TAP TO DROP!", W/2, 45);
+  let ctaColor = (frameCount % 30 < 15) ? color(255, 0, 100) : color(255, 255, 255);
+  fill(ctaColor);
+  textSize(18);
+  text("TAP LIKE TO SPAWN!", dropZoneX + dropZoneW/2, 32);
   
   fill(200);
   textSize(10);
-  text("1 LIKE = 1 SPACE UNIT", W/2, 75);
+  text("1 LIKE = 1 UNIT | BOOST THE FLEET!", dropZoneX + dropZoneW/2, 58);
 
-  // --- RIGHT SIDE INFO (VERTICAL STACK) ---
-  textAlign(RIGHT, CENTER);
-  fill(0, 255, 255);
-  textSize(11);
-  text(currentDestination, W - 30, 30);
+  // --- TOP RIGHT INFO ---
+  fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
+  text(`${currentDestination}`, W - 25, 25);
+  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
+  fill(200); textSize(8); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); pop();
   
-  fill(255, 215, 0);
-  textSize(10);
-  text(`R-${roundCount} [SYSTEM OK]`, W - 30, 55);
-  
-  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99));
-  fill(200);
-  textSize(9);
-  text(`G-FORCE: ${gDisp}%`, W - 30, 80);
-  pop();
-  
-  // --- SIDE BOXES ---
-  // RECORDS (LEFT)
-  push(); translate(0, 130); 
+  // --- LEFT: RECORDS BOX ---
+  push(); translate(0, 100); 
   fill(192); rect(10, 0, 250, 225); 
   fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
+  
   fill(255, 215, 0); textAlign(CENTER); textSize(9); 
   text("GALAXINKO RECORDS", 130, 20); 
+  
   textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { 
-    let tSize = (i === 0) ? 12 : (i < 3 ? 10 : 8);
+    let tSize = 8;
+    if(i === 0) tSize = 12;
+    else if(i === 1) tSize = 10;
+    else if(i === 2) tSize = 9;
+    
     textSize(tSize);
     fill(rec.color[0], rec.color[1], rec.color[2]); 
     text(`${i+1}. ${rec.name}`, 22, 48 + i * 22); 
-    textAlign(RIGHT); fill(255, 180); text(rec.score, 248, 48 + i * 22); textAlign(LEFT);
+    textAlign(RIGHT);
+    fill(255, 180);
+    text(rec.score, 248, 48 + i * 22);
+    textAlign(LEFT);
   });
   
-  // STATUS (LEFT BELOW)
+  // --- LEFT: STATUS BOX ---
   translate(0, 235);
   fill(192); rect(10, 0, 250, 60); 
   fill(0, 0, 40, 245); rect(12, 2, 246, 56);
+  
   textSize(8);
   if (gameState === "PLAYING") { 
+    textAlign(LEFT, CENTER); 
     fill(timer < 10 ? color(255,0,0) : color(0,255,255)); 
     text("WARP-DRIVE: " + timer + "s", 22, 18); 
-    fill(0, 255, 0); text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
+    fill(0, 255, 0); 
+    text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
   } else if (gameState === "WAITING") {
     let waitCol = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 150, 0);
-    fill(waitCol); text("CLEANUP PHASE...", 22, 18);
+    textAlign(LEFT, CENTER); fill(waitCol);
+    text("CLEANUP PHASE...", 22, 18);
     fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
   }
   pop();
   
-  // ELITE DROPPERS (RIGHT)
-  push(); translate(W - 260, 130);
+  // --- RIGHT: ELITE DROPPERS ---
+  push(); translate(W - 260, 100);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
   fill(192); rect(0, 0, 250, 285); 
   fill(0, 0, 30, 230); rect(2, 2, 246, 281); 
-  fill(255, 255, 0); textAlign(CENTER); textSize(10); text("ELITE DROPPERS", 125, 20); 
-  textAlign(LEFT); textSize(8);
+  fill(255, 255, 0); 
+  textAlign(CENTER); 
+  textSize(10); 
+  text("ELITE DROPPERS", 125, 20); 
+  textAlign(LEFT);
+  textSize(8);
   sorted.forEach((e, i) => { 
-    fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
-    textAlign(RIGHT); fill(255); text(e[1].score, 235, 50 + i * 19); textAlign(LEFT);
+    fill(e[1].color); 
+    text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
+    textAlign(RIGHT);
+    fill(255);
+    text(e[1].score, 235, 50 + i * 19); 
+    textAlign(LEFT);
   }); 
   pop();
 }
 
 function mouseClicked() {
-  if (mouseX > 10 && mouseX < 260 && mouseY > 130 && mouseY < 160) {
+  if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
     shakeAmount = 5; 
     return;
   }
   
-  if (mouseY > 0 && mouseY < 110) {
+  if (mouseY > 0 && mouseY < 85) {
     let randomBot = random(TEST_BOTS);
     spawnBall(randomBot);
     shakeAmount = 2;
@@ -855,3 +858,4 @@ function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02,
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
+
