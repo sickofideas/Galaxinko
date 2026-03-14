@@ -132,7 +132,6 @@ function setup() {
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
-  // Prvotní hod na meteorit
   meteoriteEnabledInRound = (random() < 0.17);
   
   currentGravity = random(0.05, 1.95);
@@ -180,7 +179,7 @@ function draw() {
   }
   
   handleBlackHole();
-  handleMeteorite(); // Logika pohybu meteoritu
+  handleMeteorite();
 
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
@@ -204,7 +203,8 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    if (random() < 0.1) flashEffect = 2;
+    // Opraveno: Blikání (flashEffect) se aktivuje méně často
+    if (random() < 0.05) flashEffect = 5; 
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 10; 
@@ -224,8 +224,10 @@ function draw() {
   drawProceduralHUD();
   drawAntiBotOverlay();
 
+  // --- OPRAVENÁ LOGIKA BLIKÁNÍ (INVERTU) ---
   if (flashEffect > 0) { 
-    if (flashEffect % 2 === 0) filter(INVERT); 
+    // Místo střídání každý sudý frame invertujeme jen na začátku efektu
+    if (flashEffect > 2) filter(INVERT);  
     flashEffect--; 
   }
   pop();
@@ -257,41 +259,35 @@ function handleMeteorite() {
         Matter.World.add(world, mBody);
     }
 
-    // Pohyb
     let pos = activeMeteorite.body.position;
     let newX = pos.x + (activeMeteorite.speed * activeMeteorite.dir);
     
-    // Odraz od stěn a změna rychlosti/zvuku
     if (newX > W - 50 || newX < 50) {
         activeMeteorite.dir *= -1;
         activeMeteorite.speed = random(3, 9);
         playMeteorSound();
     }
 
-    // Kmitání (vibrace)
     activeMeteorite.wobble = sin(frameCount * 0.2) * 3;
     Matter.Body.setPosition(activeMeteorite.body, { 
         x: newX, 
         y: (H - ZONE_H - 50) + activeMeteorite.wobble 
     });
 
-    // Vykreslení meteoritu
     push();
     translate(pos.x, pos.y);
     fill(255, 150, 0, 200);
     noStroke();
-    // Ohnivý ohon
     for(let i=0; i<5; i++) {
         fill(255, 50 + i*30, 0, 150 - i*20);
         ellipse(-activeMeteorite.dir * (20 + i*10), sin(frameCount*0.5 + i)*5, 40 - i*5);
     }
-    // Jádro
     fill(activeMeteorite.color);
     stroke(255, 255, 0);
     strokeWeight(2);
     ellipse(0, 0, 60 + activeMeteorite.wobble);
     fill(0, 50);
-    ellipse(10, -10, 15); // Krátery
+    ellipse(10, -10, 15); 
     ellipse(-15, 5, 10);
     pop();
 }
@@ -302,7 +298,6 @@ function playMeteorSound() {
     fxSynth.play(freq, 0.1, 0, 0.1);
 }
 
-// --- SOUNDS & UTILS ---
 function playTimerEndSequence() {
   if (!audioStarted) return;
   let totalGlitches = 12;
@@ -433,7 +428,7 @@ function drawBalls() {
           cz.flashColor = b.color; 
           
           if(cz.score >= 5000) { 
-              flashEffect = 20;
+              flashEffect = 10;
               shakeAmount = 15;
               playJackpotSound(); 
           } 
@@ -749,7 +744,6 @@ function resetGame() {
   gameState = "PLAYING";
   resultsTimer = 10;
   
-  // Šance na meteorit v novém kole
   meteoriteEnabledInRound = (random() < 0.17);
   
   currentDestination = generatePlanetName(); 
@@ -913,7 +907,6 @@ function drawUI() {
   text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
   pop();
   
-  // Rekordy a top list...
   push(); translate(0, 100); 
   fill(0, 0, 20, 200); rect(10, 0, 250, 225);
   fill(0, 255, 255); textAlign(CENTER); textSize(9); text("MISSION MILESTONES", 130, 20);
