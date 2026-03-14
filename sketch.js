@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.1.0 - Tikfinity Ultimate Edition) ---
+// --- GALAXINKO (v4.1.1 - Collision Fix) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -14,7 +14,7 @@ let resultsTimer = 12;
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
-let roundCount = 1;      
+let roundCount = 1;       
 let gameState = "PLAYING"; 
 let libraryLoaded = false;
 let winnerColor;
@@ -345,6 +345,20 @@ function drawGalacticBackground() {
     }
     pop();
 
+    // --- KOLIZE S KOMETOU (NEW) ---
+    if (currentComet) {
+      let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
+      let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
+      if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
+        createExplosion(d.x, d.y);
+        playExplosionSound();
+        shakeAmount = 10;
+        spaceDebris.splice(i, 1);
+        currentComet = null;
+        continue;
+      }
+    }
+
     if (d.y > H + 150) {
       if (d.isRare) spaceDebris.splice(i, 1);
       else { d.y = -100; d.x = random(W); }
@@ -529,7 +543,6 @@ function drawUI() {
   strokeWeight(2); 
   line(0, 68, W, 68);
 
-  // --- ZVĚTŠENÝ NÁZEV HRY ---
   noStroke();
   textAlign(LEFT, CENTER);
   fill(0, 255, 255, 50);
@@ -539,8 +552,7 @@ function drawUI() {
   textSize(24); 
   text(GAME_TITLE, 25, 35);
   
-  // --- OPRAVENÉ A ZVĚTŠENÉ "LIKES = DROPS" ---
-  let flashSize = 18 + sin(frameCount * 0.1) * 3; // Pulzující velikost
+  let flashSize = 18 + sin(frameCount * 0.1) * 3; 
   let flashCol = (frameCount % 20 < 10) ? color(255, 255, 0) : color(255, 255, 255); 
   
   textAlign(CENTER, CENTER); 
@@ -598,18 +610,18 @@ function drawResultsOverlay() {
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 
-function createExplosion(x, y) { for (let i = 0; i < 15; i++) explosions.push({ x: x, y: y, vx: random(-3, 3), vy: random(-3, 3), life: 255, col: color(255, random(100, 255), 0) }); }
+function createExplosion(x, y) { for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: color(255, random(100, 255), 0) }); }
 
 function drawExplosions() { 
     for (let i = explosions.length - 1; i >= 0; i--) { 
-        let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 3, 3); e.x += e.vx; e.y += e.vy; e.life -= 5; 
+        let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 4, 4); e.x += e.vx; e.y += e.vy; e.life -= 5; 
         if (e.life <= 0) explosions.splice(i, 1); 
     } 
 }
 
 function updateComet() { 
     if (currentComet === null && gameState === "PLAYING" && random() < 0.003) {
-        currentComet = { x: random(W), y: -50, targetX: W + 100, targetY: H + 100, progress: 0, speed: random(0.01, 0.03), size: random(4, 8), color: color(255, 255, 200, 200) };
+        currentComet = { x: random(W), y: -50, targetX: W + 100, targetY: H + 100, progress: 0, speed: random(0.01, 0.03), size: random(6, 10), color: color(255, 255, 200, 200) };
     }
     if (currentComet) { 
         currentComet.progress += currentComet.speed; 
@@ -661,4 +673,4 @@ function startSpaceAudio() {
 function playSpawnSound() { if (audioStarted) fxSynth.play('G3', 0.01, 0, 0.1); }
 function playCleanupSound() { if (audioStarted) fxSynth.play('E2', 0.02, 0, 1.0); }
 function playJackpotSound() { if (audioStarted) { fxSynth.play('Eb4', 0.03, 0, 1.2); fxSynth.play('Bb4', 0.03, 0.2, 1.2); } }
-function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.04, 0, 0.3); }
+function playExplosionSound() { if (audioStarted) fxSynth.play('C2', 0.1, 0, 0.4); }
