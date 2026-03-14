@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.2.0 - INFINITE GEOMETRY EDITION) ---
+// --- GALAXINKO (v5.3.0 - METEORITE MAYHEM EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -23,6 +23,10 @@ let shakeAmount = 0;
 let currentDestination = "";
 let currentGravity = 0.6; 
 let currentBounce = 50; 
+
+// --- METEORITE LOGIC ---
+let activeMeteorite = null;
+let meteoriteEnabledInRound = false;
 
 // --- NEW ANTI-BOT VARIABLES ---
 let camOffset = { x: 0, y: 0, z: 1.0 };
@@ -128,11 +132,12 @@ function setup() {
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
+  // Prvotní hod na meteorit
+  meteoriteEnabledInRound = (random() < 0.17);
+  
   currentGravity = random(0.05, 1.95);
   currentBounce = floor(random(1, 100));
-  
   timer = floor(random(40, 181));
-  
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -146,8 +151,6 @@ function draw() {
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
   
-  updateJukebox(); 
-
   push();
   let camSpeed = 0.005;
   camOffset.x = (noise(frameCount * camSpeed) - 0.5) * 40;
@@ -177,6 +180,7 @@ function draw() {
   }
   
   handleBlackHole();
+  handleMeteorite(); // Logika pohybu meteoritu
 
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
@@ -227,7 +231,78 @@ function draw() {
   pop();
 }
 
-// --- NOVÁ FUNKCE PRO NÁHODNÉ ZVUKY KONCE ČASOVAČE ---
+// --- METEORITE LOGIC ---
+function handleMeteorite() {
+    if (!meteoriteEnabledInRound || gameState !== "PLAYING") {
+        if (activeMeteorite) {
+            Matter.World.remove(world, activeMeteorite.body);
+            activeMeteorite = null;
+        }
+        return;
+    }
+
+    if (!activeMeteorite) {
+        let mBody = Matter.Bodies.circle(W/2, H - ZONE_H - 40, 35, { 
+            isStatic: true, 
+            label: "METEORITE",
+            restitution: 1.2 
+        });
+        activeMeteorite = {
+            body: mBody,
+            speed: random(2, 7),
+            dir: random() > 0.5 ? 1 : -1,
+            wobble: 0,
+            color: color(255, 100, 0)
+        };
+        Matter.World.add(world, mBody);
+    }
+
+    // Pohyb
+    let pos = activeMeteorite.body.position;
+    let newX = pos.x + (activeMeteorite.speed * activeMeteorite.dir);
+    
+    // Odraz od stěn a změna rychlosti/zvuku
+    if (newX > W - 50 || newX < 50) {
+        activeMeteorite.dir *= -1;
+        activeMeteorite.speed = random(3, 9);
+        playMeteorSound();
+    }
+
+    // Kmitání (vibrace)
+    activeMeteorite.wobble = sin(frameCount * 0.2) * 3;
+    Matter.Body.setPosition(activeMeteorite.body, { 
+        x: newX, 
+        y: (H - ZONE_H - 50) + activeMeteorite.wobble 
+    });
+
+    // Vykreslení meteoritu
+    push();
+    translate(pos.x, pos.y);
+    fill(255, 150, 0, 200);
+    noStroke();
+    // Ohnivý ohon
+    for(let i=0; i<5; i++) {
+        fill(255, 50 + i*30, 0, 150 - i*20);
+        ellipse(-activeMeteorite.dir * (20 + i*10), sin(frameCount*0.5 + i)*5, 40 - i*5);
+    }
+    // Jádro
+    fill(activeMeteorite.color);
+    stroke(255, 255, 0);
+    strokeWeight(2);
+    ellipse(0, 0, 60 + activeMeteorite.wobble);
+    fill(0, 50);
+    ellipse(10, -10, 15); // Krátery
+    ellipse(-15, 5, 10);
+    pop();
+}
+
+function playMeteorSound() {
+    if (!audioStarted) return;
+    let freq = random(100, 300);
+    fxSynth.play(freq, 0.1, 0, 0.1);
+}
+
+// --- SOUNDS & UTILS ---
 function playTimerEndSequence() {
   if (!audioStarted) return;
   let totalGlitches = 12;
@@ -526,19 +601,6 @@ function drawGalacticBackground() {
     }
     pop();
 
-    if (currentComet) {
-      let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
-      let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
-      if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
-        createExplosion(d.x, d.y);
-        playExplosionSound();
-        shakeAmount = 10;
-        spaceDebris.splice(i, 1);
-        currentComet = null;
-        continue;
-      }
-    }
-
     if (d.y > H + 150) {
       if (d.isRare) spaceDebris.splice(i, 1);
       else { d.y = -100; d.x = random(W); }
@@ -686,9 +748,13 @@ function resetGame() {
   roundCount++; 
   gameState = "PLAYING";
   resultsTimer = 10;
+  
+  // Šance na meteorit v novém kole
+  meteoriteEnabledInRound = (random() < 0.17);
+  
   currentDestination = generatePlanetName(); 
   if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null;
+  pegs = []; walls = []; balls = []; blackHole = null; activeMeteorite = null;
   initGame(); 
   generateDeepSpaceElements(); 
   prepareSingularityEvents();
@@ -707,14 +773,12 @@ function initGame() {
   }
   world.gravity.y = currentGravity;
 
-  // --- NEKONEČNÝ VÝBĚR OBRAZCŮ (INFINITE PATTERNS) ---
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "FRACTAL_TREE", "HEXAGON_GRID"];
   const mode = random(patterns);
 
   let numPegs = floor(random(300, 500));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
 
-  // Horní usměrňovač
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
   pegs.push(blocker);
   Matter.World.add(world, blocker);
@@ -743,37 +807,6 @@ function initGame() {
           let shrink = abs(rowH - 15) * 12;
           px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink);
           py = 160 + rowH * 25;
-          break;
-        case "GALAXY":
-          let aG = random(TWO_PI);
-          let radG = pow(random(), 0.5) * 350;
-          px = W/2 + cos(aG) * radG;
-          py = 450 + sin(aG) * radG * 0.8;
-          break;
-        case "HYPERCUBE":
-          let side = 300;
-          let ix = i % 10;
-          let iy = floor(i / 10) % 10;
-          let iz = floor(i / 100);
-          px = W/2 - side/2 + ix * 30 + iz * 15;
-          py = 200 + iy * 30 + iz * 15;
-          break;
-        case "DNA_HELIX":
-          let t = i * 0.1;
-          let sideDNA = (i % 2 === 0) ? 1 : -1;
-          px = W/2 + sideDNA * cos(t) * 100;
-          py = 160 + i * 4;
-          break;
-        case "SATURN_RINGS":
-          let angleS = random(TWO_PI);
-          let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250);
-          px = W/2 + cos(angleS) * distS;
-          py = 400 + sin(angleS) * distS * 0.4;
-          break;
-        case "FRACTAL_TREE":
-          let level = floor(log(i + 1) / log(2));
-          px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level));
-          py = 160 + level * 60;
           break;
         case "HEXAGON_GRID":
           let hRow = floor(i / 12);
@@ -808,7 +841,6 @@ function initGame() {
     }
   }
 
-  // Zóny
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0;
   zones = [];
@@ -854,23 +886,23 @@ function drawUI() {
   let logoX = 20;
   let logoY = 40;
   textAlign(LEFT, CENTER);
-  fill(0, 255, 255, 20);
-  textSize(64); 
-  text(GAME_TITLE, logoX + 4, logoY + 4); 
   fill(255);
   textSize(64); 
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.2.0", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.3.0", logoX + 2, logoY + 34);
   
+  if (meteoriteEnabledInRound) {
+      fill(255, 100, 0);
+      textSize(10);
+      text("METEORITE ACTIVITY: HIGH", logoX + 2, logoY + 46);
+  }
+
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
-  let pulse = sin(frameCount * 0.1) * 3;
-  fill(0, 255, 255, 10 + pulse);
-  rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
   fill(5, 5, 20, 250);
-  stroke(0, 255, 255, 120 + pulse * 10);
+  stroke(0, 255, 255, 120);
   strokeWeight(2);
   rect(dropZoneX, 10, dropZoneW, 64, 12);
   
@@ -879,78 +911,22 @@ function drawUI() {
   fill(255);
   textSize(16);
   text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
-  fill(0, 255, 255);
-  textSize(10);
-  text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 55);
-
-  fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
-  text(`${currentDestination}`, W - 25, 25);
-  
-  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(200); textSize(8); 
-  text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); 
-  
-  fill(255, 150, 0); 
-  text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
   pop();
   
+  // Rekordy a top list...
   push(); translate(0, 100); 
-  fill(100, 100, 150, 100); rect(10, 0, 250, 225); 
-  fill(0, 0, 20, 245); rect(12, 2, 246, 221); 
-  fill(0, 255, 255); textAlign(CENTER); textSize(9); 
-  text("MISSION MILESTONES", 130, 20); 
+  fill(0, 0, 20, 200); rect(10, 0, 250, 225);
+  fill(0, 255, 255); textAlign(CENTER); textSize(9); text("MISSION MILESTONES", 130, 20);
   textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { 
-    let tSize = (i === 0) ? 12 : (i === 1) ? 10 : 9;
-    textSize(tSize);
     fill(rec.color[0], rec.color[1], rec.color[2]); 
-    text(`${i+1}. ${rec.name}`, 22, 48 + i * 22); 
-    textAlign(RIGHT);
-    fill(255, 180);
-    text(rec.score, 248, 48 + i * 22);
-    textAlign(LEFT);
+    text(`${i+1}. ${rec.name}`, 22, 48 + i * 22);
+    textAlign(RIGHT); fill(255, 180); text(rec.score, 248, 48 + i * 22); textAlign(LEFT);
   });
-  
-  translate(0, 235);
-  fill(100, 100, 150, 100); rect(10, 0, 250, 60); 
-  fill(0, 0, 30, 245); rect(12, 2, 246, 56);
-  textSize(8);
-  if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); 
-    fill(timer < 10 ? color(255,0,0) : color(0,255,255)); 
-    text("WARP-DRIVE: " + timer + "s", 22, 18); 
-    fill(0, 255, 0); 
-    text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
-  } else if (gameState === "WAITING") {
-    textAlign(LEFT, CENTER); fill(255, 200, 0);
-    text("CLEANUP PHASE...", 22, 18);
-    fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
-  }
-  pop();
-  
-  push(); translate(W - 260, 100);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
-  fill(100, 100, 150, 100); rect(0, 0, 250, 285); 
-  fill(0, 0, 20, 240); rect(2, 2, 246, 281); 
-  fill(0, 255, 255); 
-  textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20); 
-  textAlign(LEFT); textSize(8);
-  sorted.forEach((e, i) => { 
-    fill(e[1].color); 
-    text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
-    textAlign(RIGHT); fill(255); text(e[1].score, 235, 50 + i * 19); 
-    textAlign(LEFT);
-  }); 
   pop();
 }
 
 function mouseClicked() {
-  if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
-    allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
-    localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
-    shakeAmount = 5; 
-    return;
-  }
   if (mouseY > 0 && mouseY < 85) {
     spawnBall(random(TEST_BOTS));
     shakeAmount = 2;
@@ -1015,27 +991,15 @@ function generateDeepSpaceElements() {
     spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) }); 
 }
 
-function updateJukebox() {
-  if (!audioStarted) return;
-} 
-
 function startSpaceAudio() { 
     if (!audioStarted) { 
         userStartAudio(); 
         bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); 
         audioStarted = true; 
-    } 
+    }
 }
 
-function playSpawnSound() { 
-  if (audioStarted) {
-    let baseNote = random(musicScale);
-    let freq = midiToFreq(baseNote) + random(-2, 2);
-    fxSynth.play(freq, 0.01, 0, 0.4); 
-  } 
-}
-
-function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
-function play開Sound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
-function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
+function playSpawnSound() { if(audioStarted) synth.play(random(musicScale), 0.1, 0, 0.1); }
+function playJackpotSound() { if(audioStarted) { fxSynth.play(880, 0.2, 0, 0.5); fxSynth.play(1100, 0.2, 0.1, 0.5); } }
+function playExplosionSound() { if(audioStarted) fxSynth.play(random(50, 150), 0.1, 0, 0.2); }
+function playCleanupSound() { if(audioStarted) fxSynth.play(60, 0.3, 0, 1.2); }
