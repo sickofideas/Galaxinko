@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.8.5 - MEGA LOGO & CENTERED UI) ---
+// --- GALAXINKO (v4.8.6 - CLEAN SIMULATION VERSION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -34,7 +34,7 @@ function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   
   socket.onopen = () => {
-    console.log("[Tikfinity] Connection established - Game is listening");
+    console.log("[Tikfinity] Connection established - Lab is online");
   };
 
   socket.onmessage = (event) => {
@@ -50,7 +50,7 @@ function connectTikfinity() {
   };
 
   socket.onclose = () => {
-    console.log("[Tikfinity] Disconnected, retrying in 5s...");
+    console.log("[Tikfinity] Reconnecting...");
     setTimeout(connectTikfinity, 5000);
   };
 }
@@ -643,10 +643,10 @@ function drawPegs() {
 function drawUI() {
   push(); 
   // --- TOP BAR BACKGROUND ---
-  fill(0, 0, 40, 255); 
+  fill(0, 0, 30, 255); 
   noStroke(); 
   rect(0, 0, W, 85); 
-  stroke(0, 255, 255, 150); 
+  stroke(0, 255, 255, 100); 
   strokeWeight(2); 
   line(0, 83, W, 83);
 
@@ -654,7 +654,7 @@ function drawUI() {
   let logoX = 20;
   let logoY = 40;
   textAlign(LEFT, CENTER);
-  fill(0, 255, 255, 30);
+  fill(0, 255, 255, 20);
   textSize(64); 
   text(GAME_TITLE, logoX + 4, logoY + 4); 
   fill(255);
@@ -662,27 +662,27 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("TIKTOK INTERACTIVE SPACE GAME", logoX + 2, logoY + 34);
+  text("ORBITAL PHYSICS SIMULATION v4.8", logoX + 2, logoY + 34);
   
-  // --- CENTERED DROP ZONE ---
-  let dropZoneW = 380;
+  // --- CENTERED STATUS ZONE (CLEAN VERSION) ---
+  let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
-  let pulse = sin(frameCount * 0.12) * 4;
-  fill(255, 0, 100, 15 + pulse * 2);
+  let pulse = sin(frameCount * 0.1) * 3;
+  fill(0, 255, 255, 10 + pulse);
   rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
-  fill(10, 10, 30, 240);
-  stroke(255, 0, 100, 180 + pulse * 10);
-  strokeWeight(3);
+  fill(5, 5, 20, 250);
+  stroke(0, 255, 255, 120 + pulse * 10);
+  strokeWeight(2);
   rect(dropZoneX, 10, dropZoneW, 64, 12);
+  
   noStroke();
   textAlign(CENTER, CENTER);
-  let ctaColor = (frameCount % 30 < 15) ? color(255, 0, 100) : color(255, 255, 255);
-  fill(ctaColor);
-  textSize(18);
-  text("TAP LIKE TO SPAWN!", dropZoneX + dropZoneW/2, 32);
-  fill(200);
+  fill(255);
+  textSize(16);
+  text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
+  fill(0, 255, 255);
   textSize(10);
-  text("1 LIKE = 1 UNIT | BOOST THE FLEET!", dropZoneX + dropZoneW/2, 58);
+  text("COLLECTING COSMIC DATA | ENERGY FLOW: STABLE", dropZoneX + dropZoneW/2, 55);
 
   // --- TOP RIGHT INFO ---
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
@@ -692,10 +692,10 @@ function drawUI() {
   
   // --- LEFT: RECORDS BOX ---
   push(); translate(0, 100); 
-  fill(192); rect(10, 0, 250, 225); 
-  fill(0, 0, 25, 240); rect(12, 2, 246, 221); 
-  fill(255, 215, 0); textAlign(CENTER); textSize(9); 
-  text("GALAXINKO RECORDS", 130, 20); 
+  fill(100, 100, 150, 100); rect(10, 0, 250, 225); 
+  fill(0, 0, 20, 245); rect(12, 2, 246, 221); 
+  fill(0, 255, 255); textAlign(CENTER); textSize(9); 
+  text("MISSION MILESTONES", 130, 20); 
   textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { 
     let tSize = (i === 0) ? 12 : (i === 1) ? 10 : 9;
@@ -710,8 +710,8 @@ function drawUI() {
   
   // --- LEFT: STATUS BOX ---
   translate(0, 235);
-  fill(192); rect(10, 0, 250, 60); 
-  fill(0, 0, 40, 245); rect(12, 2, 246, 56);
+  fill(100, 100, 150, 100); rect(10, 0, 250, 60); 
+  fill(0, 0, 30, 245); rect(12, 2, 246, 56);
   textSize(8);
   if (gameState === "PLAYING") { 
     textAlign(LEFT, CENTER); 
@@ -720,8 +720,7 @@ function drawUI() {
     fill(0, 255, 0); 
     text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42); 
   } else if (gameState === "WAITING") {
-    let waitCol = (frameCount % 30 < 15) ? color(255, 255, 0) : color(255, 150, 0);
-    textAlign(LEFT, CENTER); fill(waitCol);
+    textAlign(LEFT, CENTER); fill(255, 200, 0);
     text("CLEANUP PHASE...", 22, 18);
     fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
   }
@@ -730,10 +729,10 @@ function drawUI() {
   // --- RIGHT: ELITE DROPPERS ---
   push(); translate(W - 260, 100);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
-  fill(192); rect(0, 0, 250, 285); 
-  fill(0, 0, 30, 230); rect(2, 2, 246, 281); 
-  fill(255, 255, 0); 
-  textAlign(CENTER); textSize(10); text("ELITE DROPPERS", 125, 20); 
+  fill(100, 100, 150, 100); rect(0, 0, 250, 285); 
+  fill(0, 0, 20, 240); rect(2, 2, 246, 281); 
+  fill(0, 255, 255); 
+  textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20); 
   textAlign(LEFT); textSize(8);
   sorted.forEach((e, i) => { 
     fill(e[1].color); 
