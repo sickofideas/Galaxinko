@@ -1,4 +1,4 @@
-// --- GALAXINKO (v4.2.0 - Gravity-Reactive Pegs) ---
+// --- GALAXINKO (v4.3.0 - Final Phase & Results Update) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -10,7 +10,7 @@ let walls = [];
 let explosions = []; 
 let leaderboard = {}; 
 let timer = 40; 
-let resultsTimer = 12; 
+let resultsTimer = 10; 
 let lastTick = 0;
 let waitStartTime = 0; 
 let totalBallsFired = 0;
@@ -193,9 +193,10 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
+    // Pokud nejsou kuličky nebo vypršel limit 10s pro dojezd
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
-      resultsTimer = 12; 
+      resultsTimer = 10; 
     }
   }
 
@@ -206,7 +207,9 @@ function draw() {
   drawExplosions();
   drawUI();
   
+  if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
+
   if (flashEffect > 0) { 
     if (flashEffect % 2 === 0) filter(INVERT); 
     flashEffect--; 
@@ -286,6 +289,76 @@ function drawBalls() {
         removeBall(b);
     }
   }
+}
+
+function drawWaitingMessage() {
+  let alpha = map(sin(frameCount * 0.15), -1, 1, 100, 255);
+  push();
+  fill(255, 50, 50, alpha);
+  textAlign(CENTER, CENTER);
+  textSize(30);
+  stroke(0);
+  strokeWeight(4);
+  text("POZOR! DOKLEPÁVÁNÍ", W/2, H/2 - 50);
+  textSize(14);
+  noStroke();
+  fill(255, 200, 0, alpha);
+  text("ČEKÁME NA POSLEDNÍ KULIČKY...", W/2, H/2);
+  pop();
+}
+
+function drawResultsOverlay() { 
+    // Backdrop
+    fill(0, 0, 20, 230); 
+    rect(50, 50, W - 100, H - 100, 20);
+    stroke(0, 255, 255, 150);
+    strokeWeight(3);
+    noFill();
+    rect(60, 60, W - 120, H - 120, 15);
+
+    // Header
+    noStroke();
+    fill(0, 255, 255);
+    textAlign(CENTER);
+    textSize(28);
+    text("KOLO DOKONČENO", W/2, 140);
+    
+    fill(255, 215, 0);
+    textSize(16);
+    text(`CÍL: ${currentDestination}`, W/2, 180);
+
+    // Leaderboard v tabulce
+    let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 7); 
+    
+    for (let i = 0; i < sorted.length; i++) {
+        let entry = sorted[i];
+        let yPos = 260 + i * 65;
+        
+        // Řádek
+        fill(255, 255, 255, 20);
+        rect(100, yPos - 35, W - 200, 55, 5);
+        
+        // Pořadí a jméno
+        textAlign(LEFT);
+        fill(entry[1].color);
+        textSize(22);
+        text(`${i + 1}. ${entry[0]}`, 130, yPos);
+        
+        // Skóre
+        textAlign(RIGHT);
+        fill(255);
+        text(entry[1].score.toLocaleString(), W - 130, yPos);
+    }
+
+    // Timer do dalšího kola
+    textAlign(CENTER);
+    fill(255, 50, 50);
+    textSize(14);
+    let barWidth = map(resultsTimer, 0, 10, 0, 300);
+    rect(W/2 - 150, H - 150, barWidth, 10);
+    
+    fill(255);
+    text(`DALŠÍ SKOK ZA: ${resultsTimer}s`, W/2, H - 110);
 }
 
 function spawnRareLegend() {
@@ -479,7 +552,7 @@ function resetGame() {
   totalBallsFired = 0; 
   roundCount++; 
   gameState = "PLAYING";
-  resultsTimer = 12;
+  resultsTimer = 10;
   currentDestination = generatePlanetName(); 
   
   if (world) Matter.World.clear(world, false);
@@ -528,14 +601,8 @@ function initGame() {
   Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H + 48, W, 100, {isStatic:true, friction: 1})]);
 }
 
-// --- UPRAVENÁ FUNKCE: Hřebíky mění barvu podle gravitace ---
 function drawPegs() { 
   noStroke(); 
-  
-  // Vytvoření barevného spektra na základě gravitace
-  // Nízká gravitace (0.05) -> Ledově modrá
-  // Střední gravitace (1.0) -> Azurová/Zelená
-  // Vysoká gravitace (1.95) -> Ohnivě oranžová/Červená
   let pegR = map(currentGravity, 0.05, 1.95, 0, 255);
   let pegG = map(currentGravity, 0.05, 1.95, 255, 100);
   let pegB = map(currentGravity, 0.05, 1.95, 255, 0);
@@ -544,7 +611,7 @@ function drawPegs() {
   for (let p of pegs) { 
     p.glow = p.glow || 0; 
     if (p.glow > 0) { 
-      fill(pegR, pegG + 50, pegB + 50, p.glow); // Záře je o něco jasnější verze základní barvy
+      fill(pegR, pegG + 50, pegB + 50, p.glow); 
       rect(p.position.x - 4, p.position.y - 4, 8, 8); 
       p.glow -= 20; 
     } 
@@ -623,14 +690,6 @@ function drawZones() {
 }
 
 function drawWalls() { fill(100); for (let w of walls) rect(w.position.x - 2, H - ZONE_H, 4, ZONE_H); }
-
-function drawResultsOverlay() { 
-    fill(0, 245); rect(0, 0, W, H); 
-    fill(255, 215, 0); textAlign(CENTER); textSize(24); text("MISSION COMPLETE", W/2, H/2 - 160); 
-    let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5); 
-    sorted.forEach((e, i) => { fill(e[1].color); textSize(20); text(`${i+1}. ${e[0]}: ${e[1].score}`, W/2, H/2 - 60 + i * 55); }); 
-    fill(255); textSize(12); text("NEXT JUMP IN: " + resultsTimer + "s", W/2, H/2 + 195); 
-}
 
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 
