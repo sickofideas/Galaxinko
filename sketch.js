@@ -75,7 +75,7 @@ let blackHole = null;
 let bhSpawnTimes = [];
 
 // --- PROCEDURAL RELAX JUKEBOX ---
-let musicScale = [48, 52, 55, 57, 60, 64, 67, 72]; // Pentatonika pro relax
+let musicScale = [48, 52, 55, 57, 60, 64, 67, 72]; 
 let nextNoteTime = 0;
 let bhOsc; 
 
@@ -276,7 +276,9 @@ function spawnBall(userName) {
   
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
+  // Mírný rozptyl spawnu, aby nepadaly úplně stejně
+  let spawnX = W/2 + random(-12, 12);
+  let ballBody = Matter.Bodies.rectangle(spawnX, 90, 10, 10, { 
     restitution: ballRestitution, 
     friction: 0.2, 
     frictionAir: 0.04, 
@@ -591,7 +593,7 @@ function checkSingularitySpawn() {
       startY: 0,
       targetX: fromLeft ? W + 250 : -250,
       speed: random(0.8, 1.5),
-      size: random(20, 36), // UPRAVENO: 33% původní velikosti (původně 60-110)
+      size: random(20, 36), 
       noiseOffset: random(1000),
       noiseSpeed: random(0.01, 0.02),
       wobbleAmp: random(40, 90)
@@ -698,6 +700,12 @@ function initGame() {
   let numPegs = floor(random(250, 450));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
 
+  // --- KRITICKÁ OPRAVA: HLAVNÍ BLOKUJÍCÍ HŘEBÍK ---
+  // Vytvoříme hřebík přesně pod bodem spawnu kuliček
+  let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
+  pegs.push(blocker);
+  Matter.World.add(world, blocker);
+
   for (let i = 0; i < numPegs; i++) {
     let px, py;
     let valid = false;
@@ -710,18 +718,18 @@ function initGame() {
           let angle = i * 0.15;
           let r = 15 + i * 1.5;
           px = W/2 + cos(angle) * r;
-          py = 150 + i * 1.8;
+          py = 180 + i * 1.8; // Posunuto níž, aby nekolidovalo se spawnem
           break;
         case "WAVES":
           px = map(i % 20, 0, 20, 50, W-50);
-          py = 150 + floor(i/20) * 40 + sin(i * 0.5) * 30;
+          py = 160 + floor(i/20) * 40 + sin(i * 0.5) * 30;
           break;
         case "HOURGLASS":
           let row = floor(i / 15);
           let col = i % 15;
           let shrink = abs(row - 15) * 12;
           px = map(col, 0, 15, 100 + shrink, W - 100 - shrink);
-          py = 150 + row * 25;
+          py = 160 + row * 25;
           break;
         case "GALAXY":
           let a = random(TWO_PI);
@@ -734,21 +742,23 @@ function initGame() {
           let dCol = i % 18;
           let dOffset = abs(dRow - 15) * 15;
           px = map(dCol, 0, 18, 50 + dOffset, W - 50 - dOffset);
-          py = 150 + dRow * 25;
+          py = 160 + dRow * 25;
           break;
         default: 
           px = random(60, W - 60);
-          py = random(120, H - 250);
+          py = random(140, H - 250);
           break;
       }
 
-      if (py > 110 && py < H - 180 && px > 40 && px < W - 40) {
+      // Kontrola limitů a kolizí mezi hřebíky
+      if (py > 115 && py < H - 180 && px > 40 && px < W - 40) {
         let tooClose = false;
         for(let other of pegs) {
-          if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
+          if(dist(px, py, other.position.x, other.position.y) < 24) { tooClose = true; break; }
         }
         if(!tooClose) valid = true;
       } else if (mode === "CHAOS" || mode === "GALAXY") {
+          // U chaosu povolíme volnější pravidla
       } else {
           valid = true; 
       }
@@ -991,5 +1001,6 @@ function playSpawnSound() {
 }
 
 function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
 function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
