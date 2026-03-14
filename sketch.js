@@ -31,7 +31,7 @@ function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   
   socket.onopen = () => {
-    console.log("[Tikfinity] Spojení navázáno - Hra naslouchá");
+    console.log("[Tikfinity] Connection established - Game is listening");
   };
 
   socket.onmessage = (event) => {
@@ -61,7 +61,7 @@ function connectTikfinity() {
   };
 
   socket.onclose = () => {
-    console.log("[Tikfinity] Odpojeno, zkouším se znovu připojit za 5s...");
+    console.log("[Tikfinity] Disconnected, retrying in 5s...");
     setTimeout(connectTikfinity, 5000);
   };
 }
@@ -193,7 +193,7 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    // Pokud nejsou kuličky nebo vypršel limit 10s pro dojezd
+    // Transition if no balls left or 10s timeout reached
     if (balls.length === 0 || timeSinceWait > 10) { 
       gameState = "RESULTS"; 
       resultsTimer = 10; 
@@ -299,11 +299,11 @@ function drawWaitingMessage() {
   textSize(30);
   stroke(0);
   strokeWeight(4);
-  text("POZOR! DOKLEPÁVÁNÍ", W/2, H/2 - 50);
+  text("WARNING! CLEANUP PHASE", W/2, H/2 - 50);
   textSize(14);
   noStroke();
   fill(255, 200, 0, alpha);
-  text("ČEKÁME NA POSLEDNÍ KULIČKY...", W/2, H/2);
+  text("WAITING FOR REMAINING UNITS...", W/2, H/2);
   pop();
 }
 
@@ -321,36 +321,36 @@ function drawResultsOverlay() {
     fill(0, 255, 255);
     textAlign(CENTER);
     textSize(28);
-    text("KOLO DOKONČENO", W/2, 140);
+    text("ROUND COMPLETE", W/2, 140);
     
     fill(255, 215, 0);
     textSize(16);
-    text(`CÍL: ${currentDestination}`, W/2, 180);
+    text(`DESTINATION: ${currentDestination}`, W/2, 180);
 
-    // Leaderboard v tabulce
+    // Leaderboard Table
     let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 7); 
     
     for (let i = 0; i < sorted.length; i++) {
         let entry = sorted[i];
         let yPos = 260 + i * 65;
         
-        // Řádek
+        // Row background
         fill(255, 255, 255, 20);
         rect(100, yPos - 35, W - 200, 55, 5);
         
-        // Pořadí a jméno
+        // Rank and Name
         textAlign(LEFT);
         fill(entry[1].color);
         textSize(22);
         text(`${i + 1}. ${entry[0]}`, 130, yPos);
         
-        // Skóre
+        // Score
         textAlign(RIGHT);
         fill(255);
         text(entry[1].score.toLocaleString(), W - 130, yPos);
     }
 
-    // Timer do dalšího kola
+    // Next Round Timer
     textAlign(CENTER);
     fill(255, 50, 50);
     textSize(14);
@@ -358,7 +358,7 @@ function drawResultsOverlay() {
     rect(W/2 - 150, H - 150, barWidth, 10);
     
     fill(255);
-    text(`DALŠÍ SKOK ZA: ${resultsTimer}s`, W/2, H - 110);
+    text(`NEXT JUMP IN: ${resultsTimer}s`, W/2, H - 110);
 }
 
 function spawnRareLegend() {
