@@ -22,7 +22,7 @@ let flashEffect = 0;
 let shakeAmount = 0; 
 let currentDestination = "";
 let currentGravity = 0.6; 
-let currentBounce = 50; // Nová proměnná pro odrazivost
+let currentBounce = 50; 
 
 // --- NEW ANTI-BOT VARIABLES ---
 let camOffset = { x: 0, y: 0, z: 1.0 };
@@ -75,7 +75,7 @@ let blackHole = null;
 let bhSpawnTimes = [];
 
 // --- PROCEDURAL RELAX JUKEBOX ---
-let musicScale = [52, 55, 59, 60, 64, 67, 71]; 
+let musicScale = [48, 52, 55, 57, 60, 64, 67, 72]; // Pentatonika pro relax
 let nextNoteTime = 0;
 let bhOsc; 
 
@@ -94,7 +94,7 @@ const RARE_POOL = [
   {id: "SHUTTLE", name: "NASA SHUTTLE", col: [255, 255, 255], size: 35}
 ];
 
-let synth, fxSynth, backgroundOsc;
+let synth, fxSynth, backgroundOsc, backgroundOsc2;
 let audioStarted = false;
 
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
@@ -122,13 +122,14 @@ function setup() {
   synth = new p5.PolySynth(); 
   fxSynth = new p5.PolySynth(); 
   backgroundOsc = new p5.Oscillator('sine');
+  backgroundOsc2 = new p5.Oscillator('sine');
   bhOsc = new p5.Oscillator('sawtooth');
   
   for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
   currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100)); // Prvotní bounce
+  currentBounce = floor(random(1, 100));
   timer = floor(random(40, 301));
   
   currentDestination = generatePlanetName();
@@ -272,7 +273,6 @@ function spawnBall(userName) {
   playSpawnSound(); 
   totalBallsFired++; 
   
-  // Převod 1-99 bounce na fyzikální hodnotu (asi 0.3 až 1.5 pro kuličku)
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
 
   let ballBody = Matter.Bodies.rectangle(W/2 + random(-15, 15), 90, 10, 10, { 
@@ -662,7 +662,7 @@ function handleBlackHole() {
 
 function resetGame() {
   currentGravity = random(0.05, 1.95); 
-  currentBounce = floor(random(1, 100)); // Reset odrazivosti na novou hodnotu
+  currentBounce = floor(random(1, 100));
   timer = floor(random(40, 301)); 
   leaderboard = {}; 
   totalBallsFired = 0; 
@@ -683,7 +683,6 @@ function generatePlanetName() {
   return random(names) + " " + random(types);
 }
 
-// --- NEW PROCEDURAL PEG GENERATOR ---
 function initGame() {
   if(!engine) { 
     engine = Matter.Engine.create(); 
@@ -691,14 +690,11 @@ function initGame() {
   }
   world.gravity.y = currentGravity;
 
-  // Vybrat náhodný typ patternu kolíků
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND"];
   const mode = random(patterns);
   console.log("Generating Pattern: " + mode + " | Bounce: " + currentBounce);
 
   let numPegs = floor(random(250, 450));
-  
-  // Převod 1-99 bounce na fyzikální restitution (cca 0.1 až 1.8 pro extrémní odrazy)
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
 
   for (let i = 0; i < numPegs; i++) {
@@ -739,7 +735,7 @@ function initGame() {
           px = map(dCol, 0, 18, 50 + dOffset, W - 50 - dOffset);
           py = 150 + dRow * 25;
           break;
-        default: // CHAOS / FIELDS
+        default: 
           px = random(60, W - 60);
           py = random(120, H - 250);
           break;
@@ -758,7 +754,6 @@ function initGame() {
     }
 
     if (valid) {
-      // POUŽITÍ DYNAMICKÉ ODRAZIVOSTI:
       let peg = Matter.Bodies.circle(px, py, 2.5, { 
           isStatic: true, 
           restitution: pegRestitution 
@@ -768,7 +763,6 @@ function initGame() {
     }
   }
 
-  // Generování zón (spodek)
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0;
   zones = [];
@@ -846,12 +840,10 @@ function drawUI() {
   fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
   text(`${currentDestination}`, W - 25, 25);
   
-  // ZOBRAZENÍ G-FORCE A BOUNCE-X POD SEBOU
   let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
   fill(200); textSize(8); 
   text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); 
   
-  // Nový ukazatel Bounce pod G-Force
   fill(255, 150, 0); 
   text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
   pop();
@@ -979,23 +971,31 @@ function generateDeepSpaceElements() {
 
 function updateJukebox() {
   if (!audioStarted) return;
+  // Procedurální melodie - náhodné tóny z relaxační stupnice
   if (millis() > nextNoteTime) {
     let note = random(musicScale); 
-    synth.play(midiToFreq(note), 0.08, 0, 4); 
-    nextNoteTime = millis() + random(1500, 4000); 
+    // Velmi jemný tón s dlouhým dozvukem
+    synth.play(midiToFreq(note), 0.04, 0, 5); 
+    nextNoteTime = millis() + random(2000, 6000); 
   }
+  
+  // Mírná modulace pozadí pro pocit pohybu vesmírem
+  let mod = noise(frameCount * 0.005);
+  backgroundOsc.freq(55 + mod * 2);
+  backgroundOsc2.freq(55.5 - mod * 2); // Interference tvoří jemné vlnění
 } 
 
 function startSpaceAudio() { 
     if (!audioStarted) { 
         userStartAudio(); 
-        backgroundOsc.freq(55); backgroundOsc.amp(0.02, 4); backgroundOsc.start();
+        backgroundOsc.freq(55); backgroundOsc.amp(0.015, 4); backgroundOsc.start();
+        backgroundOsc2.freq(55.5); backgroundOsc2.amp(0.015, 4); backgroundOsc2.start();
         bhOsc.freq(30); bhOsc.amp(0); bhOsc.start(); 
         audioStarted = true; 
     } 
 }
 
-function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.02, 0, 0.2); }
-function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.03, 0, 1.5); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(79), 0.05, 0, 1.5); fxSynth.play(midiToFreq(84), 0.05, 0.3, 1.5); } }
-function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.06, 0, 0.5); }
+function playSpawnSound() { if (audioStarted) fxSynth.play(midiToFreq(72), 0.01, 0, 0.5); }
+function playCleanupSound() { if (audioStarted) fxSynth.play(midiToFreq(48), 0.02, 0, 2.0); }
+function playJackpotSound() { if (audioStarted) { fxSynth.play(midiToFreq(67), 0.03, 0, 2.0); fxSynth.play(midiToFreq(72), 0.03, 0.5, 2.0); } }
+function playExplosionSound() { if (audioStarted) fxSynth.play(midiToFreq(36), 0.04, 0, 1.0); }
