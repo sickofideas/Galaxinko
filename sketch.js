@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.3.0 - COSMIC COLLISION EDITION) ---
+// --- GALAXINKO (v5.4.0 - SHAPE SHIFTER EDITION) ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -103,6 +103,94 @@ let audioStarted = false;
 
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
+// --- PEG SHAPE TEMPLATES ---
+const SHAPES = {
+  "HEART": [
+    "     ***** ***** ",
+    "   ********* ********* ",
+    "  ********************* ",
+    " *********************** ",
+    " *********************** ",
+    " *********************** ",
+    "  ********************* ",
+    "   ******************* ",
+    "    ***************** ",
+    "     *************** ",
+    "       *********** ",
+    "         ******* ",
+    "           *** ",
+    "            * "
+  ],
+  "CAT": [
+    "  * * ",
+    "  ** ** ",
+    "  *** *** ",
+    "  **** **** ",
+    "  ********************* ",
+    "  ********************* ",
+    "  ********************* ",
+    "   ******************* ",
+    "    ***************** ",
+    "     *************** ",
+    "      ************* ",
+    "       *********** ",
+    "         ******* "
+  ],
+  "SWORD": [
+    "            * ",
+    "           *** ",
+    "          ***** ",
+    "          ***** ",
+    "          ***** ",
+    "          ***** ",
+    "          ***** ",
+    "          ***** ",
+    "          ***** ",
+    "          ***** ",
+    "      ************* ",
+    "      ************* ",
+    "            * ",
+    "            * ",
+    "            * "
+  ],
+  "UFO": [
+    "                         ",
+    "          ***** ",
+    "        ********* ",
+    "       *********** ",
+    "  ********************* ",
+    " *********************** ",
+    "  ********************* ",
+    "    *** *** *** ",
+    "    * * * ",
+    "                         "
+  ],
+  "MUG": [
+    "                         ",
+    "      ************* ",
+    "      * * *** ",
+    "      * * * ",
+    "      * * * ",
+    "      * * * ",
+    "      * * *** ",
+    "      * * ",
+    "      ************* ",
+    "       *********** "
+  ],
+  "CAR": [
+    "                         ",
+    "                         ",
+    "        ******* ",
+    "      *********** ",
+    "     * * ",
+    "  ********************* ",
+    "  ********************* ",
+    "  ********************* ",
+    "   *** *** ",
+    "   *** *** "
+  ]
+};
+
 function preload() {
   let script = document.createElement('script');
   script.src = 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js';
@@ -141,6 +229,72 @@ function setup() {
   generateDeepSpaceElements();
   prepareSingularityEvents();
   connectTikfinity();
+}
+
+function startSpaceAudio() {
+  if (audioStarted) return;
+  userStartAudio();
+  backgroundOsc.start();
+  backgroundOsc.amp(0.02, 2);
+  backgroundOsc.freq(55);
+  backgroundOsc2.start();
+  backgroundOsc2.amp(0.01, 2);
+  backgroundOsc2.freq(110);
+  bhOsc.start();
+  bhOsc.amp(0);
+  audioStarted = true;
+}
+
+function playSpawnSound() {
+  if (!audioStarted) return;
+  let scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
+  let baseNote = random(scale) + random(-5, 5); 
+  let vol = random(0.02, 0.05);
+  let dur = random(0.05, 0.15);
+  fxSynth.play(baseNote, vol, 0, dur); 
+}
+
+function playJackpotSound() {
+  if (!audioStarted) return;
+  synth.play('C5', 0.1, 0, 0.1);
+  setTimeout(() => synth.play('E5', 0.1, 0, 0.1), 100);
+  setTimeout(() => synth.play('G5', 0.1, 0, 0.2), 200);
+  setTimeout(() => synth.play('C6', 0.2, 0, 0.5), 300);
+}
+
+function playExplosionSound() {
+  if (!audioStarted) return;
+  fxSynth.play(random(50, 150), 0.1, 0, 0.2);
+}
+
+function playCleanupSound() {
+  if (!audioStarted) return;
+  fxSynth.play(100, 0.05, 0, 1.0);
+}
+
+function playTimerEndSequence() {
+  if (!audioStarted) return;
+  let endNotes = [600, 400, 250, 100]; 
+  for(let i=0; i < endNotes.length; i++) {
+    setTimeout(() => {
+      if (gameState === "WAITING") {
+        let f = endNotes[i] + random(-20, 20); 
+        fxSynth.play(f, 0.08, 0, 0.4);
+        shakeAmount = random(2, 4); 
+      }
+    }, i * 400);
+  }
+  flashEffect = 60; 
+}
+
+function updateJukebox() {
+  if (!audioStarted || gameState !== "PLAYING") return;
+  if (millis() > nextNoteTime) {
+    let note = random(musicScale);
+    let freq = pow(2, (note - 69) / 12) * 440;
+    synth.play(freq, 0.01, 0, 1.5);
+    nextNoteTime = millis() + random(2000, 5000);
+  }
 }
 
 function draw() {
@@ -197,7 +351,7 @@ function draw() {
       if (timer <= 0) { 
         gameState = "WAITING"; 
         waitStartTime = millis(); 
-        shakeAmount = 6; // Sníženo, aby to při konci tak neházelo
+        shakeAmount = 6; 
         playCleanupSound(); 
         playTimerEndSequence();
       }
@@ -229,17 +383,15 @@ function draw() {
   drawProceduralHUD();
   drawAntiBotOverlay();
 
-  // OPRAVA EFEKTU - Už žádný Blur a Invert, plynulý atmosférický overlay
   if (flashEffect > 0) { 
     noStroke();
-    fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); // Jemně modré pročištění
+    fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); 
     rect(0, 0, W, H);
     flashEffect--; 
   }
   pop();
 }
 
-// --- COSMIC COLLISION SYSTEM ---
 function triggerCosmicEvent() {
     if (cosmicEvent) return;
     eventOccurredThisRound = true;
@@ -247,7 +399,6 @@ function triggerCosmicEvent() {
     let fromLeft = random() < 0.5;
     let size = random(25, 45);
     let startX = fromLeft ? -100 : W + 100;
-    let targetX = fromLeft ? W + 200 : -200;
     let targetY = H - ZONE_H - random(20, 120); 
     
     let body = Matter.Bodies.circle(startX, targetY, size/2, {
@@ -255,9 +406,7 @@ function triggerCosmicEvent() {
         isSensor: false,
         density: 0.1,
         frictionAir: 0,
-        collisionFilter: {
-            mask: 1 
-        }
+        collisionFilter: { mask: 1 }
     });
     
     let isComet = random() < 0.5;
@@ -285,49 +434,25 @@ function triggerCosmicEvent() {
 
 function handleCosmicEvent() {
     if (!cosmicEvent) return;
-    
     let pos = cosmicEvent.body.position;
-    
-    cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
+    cosmicEvent.trail.push({x: pos.x, y: pos.y});
     if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
     
     push();
     noStroke();
     for(let i=0; i<cosmicEvent.trail.length; i++) {
-        let t = cosmicEvent.trail[i];
         let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150);
         fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha);
-        ellipse(t.x, t.y, cosmicEvent.size * (i/cosmicEvent.trail.length));
-        t.life -= 10;
+        ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
     }
-    
-    fill(255);
-    ellipse(pos.x, pos.y, cosmicEvent.size);
-    fill(cosmicEvent.color);
-    ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
+    fill(255); ellipse(pos.x, pos.y, cosmicEvent.size);
+    fill(cosmicEvent.color); ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
     pop();
     
     if (pos.x < -300 || pos.x > W + 300) {
         Matter.World.remove(world, cosmicEvent.body);
         cosmicEvent = null;
     }
-}
-
-// --- OPRAVA: PROFESIONÁLNÍ ZVUKY KONCE ČASOVAČE ---
-function playTimerEndSequence() {
-  if (!audioStarted) return;
-  // Profesionální plynulý klesající "power-down" zvuk místo stroboskopu
-  let endNotes = [600, 400, 250, 100]; 
-  for(let i=0; i < endNotes.length; i++) {
-    setTimeout(() => {
-      if (gameState === "WAITING") {
-        let f = endNotes[i] + random(-20, 20); // Pokaždé lehká variace tóniny
-        fxSynth.play(f, 0.08, 0, 0.4);
-        shakeAmount = random(2, 4); // Už žádné šílené otřesy
-      }
-    }, i * 400);
-  }
-  flashEffect = 60; // Plynulejší a delší vizuální "zklidnění"
 }
 
 function drawProceduralHUD() {
@@ -406,7 +531,6 @@ function drawBalls() {
     }
     
     let pos = b.body.position; 
-    
     if (isNaN(pos.x) || isNaN(pos.y)) {
        removeBall(b);
        continue;
@@ -453,10 +577,14 @@ function drawBalls() {
       }
     }
     
-    if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) {
-        removeBall(b);
-    }
+    if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) removeBall(b);
   }
+}
+
+function removeBall(b) {
+  Matter.World.remove(world, b.body);
+  let idx = balls.indexOf(b);
+  if (idx !== -1) balls.splice(idx, 1);
 }
 
 function drawZones() { 
@@ -787,6 +915,7 @@ function generatePlanetName() {
   return random(names) + " " + random(types);
 }
 
+// --- OPRAVA: PŘIDÁNY VZORY TVARŮ (Zvířata, věci) ---
 function initGame() {
   if(!engine) { 
     engine = Matter.Engine.create(); 
@@ -794,7 +923,7 @@ function initGame() {
   }
   world.gravity.y = currentGravity;
 
-  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "FRACTAL_TREE", "HEXAGON_GRID"];
+  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "FRACTAL_TREE", "HEXAGON_GRID", "SHAPE_HEART", "SHAPE_CAT", "SHAPE_SWORD", "SHAPE_UFO", "SHAPE_MUG", "SHAPE_CAR"];
   const mode = random(patterns);
 
   let numPegs = floor(random(300, 500));
@@ -804,93 +933,135 @@ function initGame() {
   pegs.push(blocker);
   Matter.World.add(world, blocker);
 
-  for (let i = 0; i < numPegs; i++) {
-    let px, py;
-    let valid = false;
-    let attempts = 0;
-
-    while (!valid && attempts < 50) {
-      attempts++;
-      switch(mode) {
-        case "SPIRAL":
-          let angle = i * 0.15;
-          let r = 15 + i * 1.5;
-          px = W/2 + cos(angle) * r;
-          py = 180 + i * 1.8;
-          break;
-        case "WAVES":
-          px = map(i % 20, 0, 20, 50, W-50);
-          py = 160 + floor(i/20) * 40 + sin(i * 0.5) * 30;
-          break;
-        case "HOURGLASS":
-          let rowH = floor(i / 15);
-          let colH = i % 15;
-          let shrink = abs(rowH - 15) * 12;
-          px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink);
-          py = 160 + rowH * 25;
-          break;
-        case "GALAXY":
-          let aG = random(TWO_PI);
-          let radG = pow(random(), 0.5) * 350;
-          px = W/2 + cos(aG) * radG;
-          py = 450 + sin(aG) * radG * 0.8;
-          break;
-        case "HYPERCUBE":
-          let side = 300;
-          let ix = i % 10;
-          let iy = floor(i / 10) % 10;
-          let iz = floor(i / 100);
-          px = W/2 - side/2 + ix * 30 + iz * 15;
-          py = 200 + iy * 30 + iz * 15;
-          break;
-        case "DNA_HELIX":
-          let t = i * 0.1;
-          let sideDNA = (i % 2 === 0) ? 1 : -1;
-          px = W/2 + sideDNA * cos(t) * 100;
-          py = 160 + i * 4;
-          break;
-        case "SATURN_RINGS":
-          let angleS = random(TWO_PI);
-          let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250);
-          px = W/2 + cos(angleS) * distS;
-          py = 400 + sin(angleS) * distS * 0.4;
-          break;
-        case "FRACTAL_TREE":
-          let level = floor(log(i + 1) / log(2));
-          px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level));
-          py = 160 + level * 60;
-          break;
-        case "HEXAGON_GRID":
-          let hRow = floor(i / 12);
-          let hCol = i % 12;
-          px = 100 + hCol * 60 + (hRow % 2) * 30;
-          py = 180 + hRow * 50;
-          break;
-        default: 
-          px = random(60, W - 60);
-          py = random(140, H - 300);
-          break;
-      }
-
-      if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
+  if (mode.startsWith("SHAPE_")) {
+    let shapeName = mode.split("_")[1];
+    let shape = SHAPES[shapeName];
+    let rows = shape.length;
+    let cols = shape[0].length;
+    
+    // Vykreslení konkrétního tvaru z ASCII mapy
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (shape[r][c] === '*') {
+                let px = map(c, 0, cols - 1, 150, W - 150) + random(-2, 2);
+                let py = map(r, 0, rows - 1, 200, H - 350) + random(-2, 2);
+                
+                let peg = Matter.Bodies.circle(px, py, 2.5, { 
+                    isStatic: true, 
+                    restitution: pegRestitution,
+                    collisionFilter: { category: 2 } 
+                });
+                pegs.push(peg);
+                Matter.World.add(world, peg);
+            }
+        }
+    }
+    
+    // Zaplnění prázdného místa náhodným rozptylem
+    let scatter = floor(random(100, 200));
+    for (let i = 0; i < scatter; i++) {
+        let px = random(40, W - 40);
+        let py = random(140, H - 280);
         let tooClose = false;
         for(let other of pegs) {
           if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
         }
-        if(!tooClose) valid = true;
-      } else if (attempts > 45) {
-          break; 
-      }
+        if(!tooClose) {
+            let peg = Matter.Bodies.circle(px, py, 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } });
+            pegs.push(peg); Matter.World.add(world, peg);
+        }
     }
 
-    if (valid) {
-      let peg = Matter.Bodies.circle(px, py, 2.5, { 
-          isStatic: true, 
-          restitution: pegRestitution,
-          collisionFilter: { category: 2 } 
-      });
-      pegs.push(peg);
-      Matter.World.add(world, peg);
+  } else {
+    // Klasické matematické generování
+    for (let i = 0; i < numPegs; i++) {
+      let px, py;
+      let valid = false;
+      let attempts = 0;
+
+      while (!valid && attempts < 50) {
+        attempts++;
+        switch(mode) {
+          case "SPIRAL":
+            let angle = i * 0.15;
+            let r = 15 + i * 1.5;
+            px = W/2 + cos(angle) * r;
+            py = 180 + i * 1.8;
+            break;
+          case "WAVES":
+            px = map(i % 20, 0, 20, 50, W-50);
+            py = 160 + floor(i/20) * 40 + sin(i * 0.5) * 30;
+            break;
+          case "HOURGLASS":
+            let rowH = floor(i / 15);
+            let colH = i % 15;
+            let shrink = abs(rowH - 15) * 12;
+            px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink);
+            py = 160 + rowH * 25;
+            break;
+          case "GALAXY":
+            let aG = random(TWO_PI);
+            let radG = pow(random(), 0.5) * 350;
+            px = W/2 + cos(aG) * radG;
+            py = 450 + sin(aG) * radG * 0.8;
+            break;
+          case "HYPERCUBE":
+            let side = 300;
+            let ix = i % 10;
+            let iy = floor(i / 10) % 10;
+            let iz = floor(i / 100);
+            px = W/2 - side/2 + ix * 30 + iz * 15;
+            py = 200 + iy * 30 + iz * 15;
+            break;
+          case "DNA_HELIX":
+            let t = i * 0.1;
+            let sideDNA = (i % 2 === 0) ? 1 : -1;
+            px = W/2 + sideDNA * cos(t) * 100;
+            py = 160 + i * 4;
+            break;
+          case "SATURN_RINGS":
+            let angleS = random(TWO_PI);
+            let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250);
+            px = W/2 + cos(angleS) * distS;
+            py = 400 + sin(angleS) * distS * 0.4;
+            break;
+          case "FRACTAL_TREE":
+            let level = floor(log(i + 1) / log(2));
+            px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level));
+            py = 160 + level * 60;
+            break;
+          case "HEXAGON_GRID":
+            let hRow = floor(i / 12);
+            let hCol = i % 12;
+            px = 100 + hCol * 60 + (hRow % 2) * 30;
+            py = 180 + hRow * 50;
+            break;
+          default: 
+            px = random(60, W - 60);
+            py = random(140, H - 300);
+            break;
+        }
+
+        if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
+          let tooClose = false;
+          for(let other of pegs) {
+            if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; }
+          }
+          if(!tooClose) valid = true;
+        } else if (attempts > 45) {
+            break; 
+        }
+      }
+
+      if (valid) {
+        let peg = Matter.Bodies.circle(px, py, 2.5, { 
+            isStatic: true, 
+            restitution: pegRestitution,
+            collisionFilter: { category: 2 } 
+        });
+        pegs.push(peg);
+        Matter.World.add(world, peg);
+      }
     }
   }
 
@@ -947,7 +1118,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.3.0", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.4.0", logoX + 2, logoY + 34);
   
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
@@ -1111,19 +1282,3 @@ function startSpaceAudio() {
         audioStarted = true; 
     } 
 }
-
-// --- OPRAVA: PENTATONICKÝ NÁHODNÝ SPAWN ---
-function playSpawnSound() { 
-  if (audioStarted) {
-    // Pentatonická stupnice A (A4, B4, C#5, E5, F#5, A5)
-    let scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
-    let baseNote = random(scale) + random(-5, 5); 
-    let vol = random(0.02, 0.05);
-    let dur = random(0.05, 0.15);
-    fxSynth.play(baseNote, vol, 0, dur); 
-  } 
-}
-
-function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
-function playJackpotSound() { if (audioStarted) { fxSynth.play(880, 0.2, 0, 0.5); fxSynth.play(1100, 0.2, 0.1, 0.5); } }
-function playExplosionSound() { if (audioStarted) fxSynth.play(random(50, 150), 0.1, 0, 0.2); }
