@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE PRAHA ČAS ---
+// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE TIME ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -378,7 +378,7 @@ function draw() {
     flashEffect--; 
   }
 
-  // === LIVE PRAHA ČAS A DATUM (viditelné nahoře vpravo) ===
+  // === LIVE TIME (jen čas + datum se sekundami – viditelné na horní liště, bez kolize s názvem planety) ===
   let pragueTime = new Intl.DateTimeFormat('cs-CZ', {
     timeZone: 'Europe/Prague',
     dateStyle: 'short',
@@ -386,9 +386,9 @@ function draw() {
   }).format(new Date());
 
   fill(255, 60, 60);
-  textSize(14);
+  textSize(13);
   textAlign(RIGHT);
-  text("LIVE: " + pragueTime, W - 20, 25);
+  text("LIVE TIME " + pragueTime, W - 20, 12);   // ← posunuto nahoru na y=12, aby to nezasahovalo do názvu planety
 
   pop();
 }
