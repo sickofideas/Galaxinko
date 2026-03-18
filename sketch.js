@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) s hromaděním kuliček + pomalé mizení při přeplnění ---
+// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE PRAHA ČAS ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -378,209 +378,23 @@ function draw() {
     flashEffect--; 
   }
 
-  // HLAVNÍ ZMĚNA – správa přeplnění zón (hromadění + pomalé mizení)
-  manageZoneOverflow();
+  // === LIVE PRAHA ČAS A DATUM (viditelné nahoře vpravo) ===
+  let pragueTime = new Intl.DateTimeFormat('cs-CZ', {
+    timeZone: 'Europe/Prague',
+    dateStyle: 'short',
+    timeStyle: 'medium'
+  }).format(new Date());
+
+  fill(255, 60, 60);
+  textSize(14);
+  textAlign(RIGHT);
+  text("LIVE: " + pragueTime, W - 20, 25);
 
   pop();
 }
 
-// NOVÁ FUNKCE – správa přeplnění chlívků (hromadění + pomalé mizení)
-function manageZoneOverflow() {
-  zones.forEach(z => {
-    let currentCount = z.ballsInZone.length;
-    // Hrubý odhad maximálního počtu kuliček (uprav 80 podle velikosti kuliček a chlívku)
-    let maxBalls = Math.floor((z.w * (ZONE_H * 0.95)) / 80); // 95 % výšky, 80 = přibližná plocha jedné kuličky
-
-    if (currentCount > maxBalls) {
-      let toRemove = Math.max(1, Math.floor((currentCount - maxBalls) * 0.05)); // 5 % přebytku za frame
-      for (let k = 0; k < toRemove && z.ballsInZone.length > 0; k++) {
-        let oldest = z.ballsInZone.shift(); // mažeme nejstarší
-        if (oldest && oldest.body) {
-          removeBall(oldest);
-        }
-      }
-    }
-  });
-}
-
-// Upravené drawBalls – kuličky se hromadí, ne mizí hned
-function drawBalls() {
-  for (let i = balls.length - 1; i >= 0; i--) {
-    let b = balls[i];
-    if (!b.body) {
-       balls.splice(i, 1);
-       continue;
-    }
-    
-    let pos = b.body.position;
-    if (isNaN(pos.x) || isNaN(pos.y)) {
-       removeBall(b);
-       continue;
-    }
-
-    push(); 
-    translate(pos.x, pos.y);
-    rotate(b.body.angle); 
-    fill(b.color); 
-    stroke(255); 
-    strokeWeight(1); 
-    rect(-5, -5, 10, 10); 
-    
-    rotate(-b.body.angle); 
-    fill(b.color);
-    noStroke();
-    textAlign(CENTER);
-    textSize(8);
-    text(b.name, 0, -12); 
-    pop();
-    for(let p of pegs) {
-      if(abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
-    }
-
-    // BODOVÁNÍ + přidání do zóny (bez mazání)
-    if (pos.y > H - ZONE_H - 5 && !b.scored) {
-      let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
-      if (cz) { 
-        b.scored = true; 
-        updateScore(b.name, cz.score, b.color);
-        cz.flash = 255; 
-        cz.flashColor = b.color; 
-        
-        if(cz.score >= 5000) { 
-            shakeAmount = 8;
-            playJackpotSound(); 
-        } 
-        checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color);
-        
-        // Přidáme kuličku do seznamu zóny – bude se hromadit
-        cz.ballsInZone.push(b);
-      }
-    }
-    
-    if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) {
-        removeBall(b);
-    }
-  }
-}
-
-// --- NOVÉ FUNKCE PRO DIVÁKY NA POZADÍ (s kolizemi + jiskrami) ---
-function onUserJoin(username, imgUrl) {
-    if (viewerSpaceObjects.find(o => o.name === username)) return;
-    let obj = {
-        name: username,
-        x: random(100, W-100),
-        y: random(100, H-300),
-        vx: random(-0.3, 0.3),
-        vy: random(-0.3, 0.3),
-        baseSize: 40,
-        extraSize: 0,
-        color: [random(100, 255), random(100, 255), random(255)],
-        img: null,
-        angle: random(TWO_PI)
-    };
-    if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
-    viewerSpaceObjects.push(obj);
-}
-
-function updateUserLikes(username, count) {
-    let obj = viewerSpaceObjects.find(o => o.name === username);
-    if (obj) {
-        obj.extraSize += count * 2; 
-        if (obj.extraSize > 150) obj.extraSize = 150; 
-    } else {
-        onUserJoin(username, null);
-        setTimeout(() => updateUserLikes(username, count), 500);
-    }
-}
-
-function onUserQuit(username) {
-    viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username);
-}
-
-function drawViewerObjects() {
-    for (let i = 0; i < viewerSpaceObjects.length; i++) {
-        let obj = viewerSpaceObjects[i];
-        obj.x += obj.vx + sin(frameCount * 0.01) * 0.1;
-        obj.y += obj.vy + cos(frameCount * 0.01) * 0.1;
-        obj.angle += 0.005;
-
-        if (obj.x < 50 || obj.x > W-50) obj.vx *= -1;
-        if (obj.y < 50 || obj.y > H-250) obj.vy *= -1;
-
-        // KOLIZE + JISKRY
-        for (let j = i + 1; j < viewerSpaceObjects.length; j++) {
-            let other = viewerSpaceObjects[j];
-            let dx = obj.x - other.x;
-            let dy = obj.y - other.y;
-            let distAB = sqrt(dx * dx + dy * dy);
-            let minDist = (obj.baseSize + obj.extraSize + other.baseSize + other.extraSize) / 2 + 10;
-
-            if (distAB < minDist && distAB > 5) {
-                let nx = dx / distAB;
-                let ny = dy / distAB;
-                let overlap = minDist - distAB;
-
-                obj.x += nx * overlap * 0.6;
-                obj.y += ny * overlap * 0.6;
-                other.x -= nx * overlap * 0.6;
-                other.y -= ny * overlap * 0.6;
-
-                let tempVx = obj.vx;
-                let tempVy = obj.vy;
-                obj.vx = other.vx * 0.8;
-                obj.vy = other.vy * 0.8;
-                other.vx = tempVx * 0.8;
-                other.vy = tempVy * 0.8;
-
-                // Jiskry
-                for (let k = 0; k < 8; k++) {
-                    let ang = random(TWO_PI);
-                    let sp = random(1.5, 4);
-                    explosions.push({
-                        x: (obj.x + other.x) / 2,
-                        y: (obj.y + other.y) / 2,
-                        vx: cos(ang) * sp,
-                        vy: sin(ang) * sp,
-                        life: 160,
-                        col: color(255, random(180, 255), random(80, 220))
-                    });
-                }
-            }
-        }
-
-        push();
-        translate(obj.x, obj.y);
-        rotate(obj.angle);
-        
-        let totalS = obj.baseSize + obj.extraSize;
-        
-        noStroke();
-        fill(obj.color[0], obj.color[1], obj.color[2], 40);
-        ellipse(0, 0, totalS + 20);
-
-        if (obj.img) {
-            imageMode(CENTER);
-            image(obj.img, 0, 0, totalS, totalS);
-        } else {
-            fill(obj.color);
-            ellipse(0, 0, totalS);
-            fill(255);
-            textAlign(CENTER, CENTER);
-            textSize(totalS * 0.3);
-            text(obj.name[0], 0, 0);
-        }
-        
-        rotate(-obj.angle);
-        fill(255, 200);
-        textSize(10);
-        textAlign(CENTER);
-        text(obj.name, 0, totalS/2 + 15);
-        pop();
-    }
-}
-
 // ────────────────────────────────────────────────
-// ZBYTEK PŮVODNÍHO KÓDU – BEZ ZMĚN
+// ZBYTEK PŮVODNÍHO KÓDU (beze změn)
 // ────────────────────────────────────────────────
 
 function triggerCosmicEvent() {
@@ -711,14 +525,68 @@ function spawnBall(userName) {
   Matter.World.add(world, ballBody); 
 }
 
+function drawBalls() {
+  for (let i = balls.length - 1; i >= 0; i--) {
+    let b = balls[i];
+    if (!b.body) {
+       balls.splice(i, 1);
+       continue;
+    }
+    
+    let pos = b.body.position;
+    if (isNaN(pos.x) || isNaN(pos.y)) {
+       removeBall(b);
+       continue;
+    }
+
+    push(); 
+    translate(pos.x, pos.y);
+    rotate(b.body.angle); 
+    fill(b.color); 
+    stroke(255); 
+    strokeWeight(1); 
+    rect(-5, -5, 10, 10); 
+    
+    rotate(-b.body.angle); 
+    fill(b.color);
+    noStroke();
+    textAlign(CENTER);
+    textSize(8);
+    text(b.name, 0, -12); 
+    pop();
+    for(let p of pegs) {
+      if(abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
+    }
+
+    if (pos.y > H - ZONE_H - 10) {
+      Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
+      if (!b.scored) {
+        let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
+        if (cz) { 
+          b.scored = true; 
+          updateScore(b.name, cz.score, b.color);
+          cz.flash = 255; 
+          cz.flashColor = b.color; 
+          
+          if(cz.score >= 5000) { 
+              shakeAmount = 8;
+              playJackpotSound(); 
+          } 
+          checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color);
+        }
+      }
+    }
+    
+    if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) {
+        removeBall(b);
+    }
+  }
+}
+
 function removeBall(b) {
   Matter.World.remove(world, b.body);
   let idx = balls.indexOf(b);
   if (idx !== -1) balls.splice(idx, 1);
-  // Odstranit i ze seznamu zóny, pokud tam je
-  zones.forEach(z => {
-    z.ballsInZone = z.ballsInZone.filter(ball => ball !== b);
-  });
 }
 
 function drawZones() { 
@@ -807,7 +675,10 @@ function drawResultsOverlay() {
     textAlign(CENTER);
     fill(255, 50, 50);
     textSize(20);
-    text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
+    let barWidth = map(resultsTimer, 0, 10, 0, W - 200);
+    rect(100, H - 120, barWidth, 15, 5);
+    fill(255);
+    text(`NEXT JUMP IN: ${resultsTimer}s`, W/2, H - 80);
 }
 
 function spawnRareLegend() {
@@ -832,7 +703,8 @@ function drawGalacticBackground() {
   for(let s of stars) { 
     ellipse(s.x, s.y, s.s);
     s.y += s.speed * currentTravelSpeed * 5; 
-    if (s.y > H) { s.y = 0; s.x = random(W); }
+    if (s.y > H) { s.y = 0; s.x = random(W);
+    } 
   }
   
   for(let p of massivePlanets) {
@@ -846,7 +718,8 @@ function drawGalacticBackground() {
     }
     noStroke(); fill(p.color); ellipse(0, 0, p.size); 
     pop();
-    if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); }
+    if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W);
+    }
   }
   
   updateComet();
@@ -871,10 +744,32 @@ function drawGalacticBackground() {
     }
     pop();
 
+    if (currentComet) {
+      let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
+      let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
+      if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
+        createExplosion(d.x, d.y);
+        playExplosionSound();
+        shakeAmount = 10;
+        spaceDebris.splice(i, 1);
+        currentComet = null;
+        continue;
+      }
+    }
+
     if (d.y > H + 150) {
       if (d.isRare) spaceDebris.splice(i, 1);
       else { d.y = -100; d.x = random(W); }
     }
+  }
+  
+  if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05);
+  else if (gameState === "WAITING") planetSize = lerp(planetSize, 450, 0.01);
+  if (planetSize > 10) { 
+    for(let r = 4; r > 0; r--) { 
+      fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4);
+      ellipse(W/2, H + 60, planetSize * (r * 0.6), planetSize * 0.4); 
+    } 
   }
 }
 
@@ -905,8 +800,16 @@ function drawGravityDust() {
   noStroke();
   let dustSpeed = currentGravity * 3 * currentTravelSpeed;
   for (let d of dust) {
+    if (blackHole) {
+      let distToBH = dist(d.x, d.y, blackHole.x, blackHole.y);
+      if (distToBH < 80) { 
+        let angle = atan2(blackHole.y - d.y, blackHole.x - d.x);
+        d.x += cos(angle) * 4; d.y += sin(angle) * 4;
+      }
+    }
     d.y += dustSpeed;
-    if (d.y > H) { d.y = 0; d.x = random(W); }
+    if (d.y > H) { d.y = 0;
+      d.x = random(W); }
     rect(d.x, d.y, d.s, d.s);
   }
 }
@@ -1007,7 +910,6 @@ function resetGame() {
   currentDestination = generatePlanetName();
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
-  zones.forEach(z => z.ballsInZone = []); // vymazat hromady
   initGame();
   generateDeepSpaceElements(); 
   prepareSingularityEvents();
@@ -1167,14 +1069,7 @@ function initGame() {
   zones = [];
   for (let i = 0; i < 21; i++) {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
-    zones.push({ 
-      x: curX, 
-      w: zw, 
-      score: sV[i], 
-      flash: 0, 
-      flashColor: color(255),
-      ballsInZone: []  // ← přidáno – seznam kuliček v zóně
-    });
+    zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255) });
     if (i > 0) { 
         let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 });
         walls.push(wall); Matter.World.add(world, wall); 
@@ -1370,6 +1265,7 @@ function generateDeepSpaceElements() {
     spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) });
 }
 
+// --- NOVÉ FUNKCE PRO DIVÁKY NA POZADÍ ---
 function onUserJoin(username, imgUrl) {
     if (viewerSpaceObjects.find(o => o.name === username)) return;
     let obj = {
@@ -1401,4 +1297,44 @@ function updateUserLikes(username, count) {
 
 function onUserQuit(username) {
     viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username);
+}
+
+function drawViewerObjects() {
+    for (let obj of viewerSpaceObjects) {
+        obj.x += obj.vx + sin(frameCount * 0.01) * 0.1;
+        obj.y += obj.vy + cos(frameCount * 0.01) * 0.1;
+        obj.angle += 0.005;
+
+        if (obj.x < 50 || obj.x > W-50) obj.vx *= -1;
+        if (obj.y < 50 || obj.y > H-250) obj.vy *= -1;
+
+        push();
+        translate(obj.x, obj.y);
+        rotate(obj.angle);
+        
+        let totalS = obj.baseSize + obj.extraSize;
+        
+        noStroke();
+        fill(obj.color[0], obj.color[1], obj.color[2], 40);
+        ellipse(0, 0, totalS + 20);
+
+        if (obj.img) {
+            imageMode(CENTER);
+            image(obj.img, 0, 0, totalS, totalS);
+        } else {
+            fill(obj.color);
+            ellipse(0, 0, totalS);
+            fill(255);
+            textAlign(CENTER, CENTER);
+            textSize(totalS * 0.3);
+            text(obj.name[0], 0, 0);
+        }
+        
+        rotate(-obj.angle);
+        fill(255, 200);
+        textSize(10);
+        textAlign(CENTER);
+        text(obj.name, 0, totalS/2 + 15);
+        pop();
+    }
 }
