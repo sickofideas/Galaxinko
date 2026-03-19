@@ -315,7 +315,7 @@ function draw() {
     flashEffect--; 
   }
 
-  // === LIVE TIME (jen čas + datum se sekundami – viditelné na horní liště) ===
+  // === LIVE TIME (viditelné nahoře vpravo) ===
   let liveTime = new Intl.DateTimeFormat('cs-CZ', {
     timeZone: 'Europe/Prague',
     dateStyle: 'short',
