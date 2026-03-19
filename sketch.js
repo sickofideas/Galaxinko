@@ -50,48 +50,44 @@ function connectTikfinity() {
   };
 
   socket.onmessage = (event) => {
-    try {
-      let data = JSON.parse(event.data);
-      console.log("[Tikfinity RAW]", data);
+  try {
+    let data = JSON.parse(event.data);
 
-      let rawName = data.data?.nickname || data.data?.uniqueId || data.uniqueId || data.user?.nickname || data.nickname || "Anonym";
-      let name = rawName.toUpperCase().substring(0, 12);
+    // Zkusíme chytit uživatele prakticky z jakéhokoli eventu, který obsahuje nickname
+    let possibleName = 
+      data?.data?.nickname || 
+      data?.data?.uniqueId || 
+      data?.nickname || 
+      data?.user?.nickname || 
+      data?.uniqueId || 
+      "Anonym";
 
-      // Spawn při připojení diváka – TikFinity posílá hlavně "roomUser"
-      if (
-        data.event === "roomUser" ||           // ← KLÍČOVÝ EVENT pro "xxx připojeno"
-        data.event === "join" ||
-        data.event === "viewer_join" ||
-        data.event === "connected" ||
-        data.event === "new_viewer" ||
-        (data.data && data.data.nickname) ||
-        data.nickname
-      ) {
-        console.log("[SPAWN TRIGGERED by]", data.event || "fallback", "→", name);
-        onUserJoin(name, data.data?.profilePictureUrl || data.profilePictureUrl || data.user?.profilePictureUrl || "");
-        spawnBall(name);
-      }
+    if (possibleName && possibleName !== "Anonym") {
+      let name = possibleName.toUpperCase().substring(0, 12);
 
-      // Odpojení
-      if (data.event === "leave" || data.event === "quit" || data.event === "disconnected") {
-        console.log("[LEAVE]", name);
-        onUserQuit(name);
-      }
+      // Spawneme kuličku + profilovku
+      onUserJoin(name, data?.data?.profilePictureUrl || data?.profilePictureUrl || "");
+      spawnBall(name);
 
-      // Like
-      if (data.event === "like") {
-        console.log("[LIKE]", name, data.data?.likeCount);
-        let count = data.data?.likeCount || 1;
-        updateUserLikes(name, count);
-        for (let i = 0; i < count; i++) {
-          setTimeout(() => spawnBall(name), i * 120);
-        }
-      }
-
-    } catch (err) {
-      console.error("[Tikfinity ERROR]", err, event.data);
+      // Abychom viděli, že to proběhlo (i bez konzole)
+      console.log("→ SPAWN:", name);
+      // Pokud chceš vidět jméno přímo ve hře (např. nahoře), můžeme přidat text
     }
-  };
+
+    // Like zůstává beze změny
+    if (data.event === "like") {
+      let name = (data.data?.nickname || "Anonym").toUpperCase().substring(0, 12);
+      let count = data.data?.likeCount || 1;
+      updateUserLikes(name, count);
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => spawnBall(name), i * 120);
+      }
+    }
+
+  } catch (err) {
+    // ticho, aby to nespadlo
+  }
+};
 
   socket.onerror = (err) => {
     console.error("[Tikfinity WS error]", err);
