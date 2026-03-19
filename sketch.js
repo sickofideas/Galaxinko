@@ -1,4 +1,5 @@
 // --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE TIME + SPAWN NA JOIN & LIKE ---
+// Opraveno pro TikFinity: spawn při eventu "roomUser" (připojení diváka)
 
 const GAME_TITLE = "GALAXINKO";
 
@@ -53,31 +54,31 @@ function connectTikfinity() {
       let data = JSON.parse(event.data);
       console.log("[Tikfinity RAW]", data);
 
-      let rawName = data.data?.nickname || data.data?.uniqueId || data.uniqueId || data.user?.nickname || "Anonym";
+      let rawName = data.data?.nickname || data.data?.uniqueId || data.uniqueId || data.user?.nickname || data.nickname || "Anonym";
       let name = rawName.toUpperCase().substring(0, 12);
 
-      // Spawn při připojení (join) – pokrývá všechny běžné varianty Tikfinity
+      // Spawn při připojení diváka – TikFinity posílá hlavně "roomUser"
       if (
+        data.event === "roomUser" ||           // ← KLÍČOVÝ EVENT pro "xxx připojeno"
         data.event === "join" ||
         data.event === "viewer_join" ||
         data.event === "connected" ||
         data.event === "new_viewer" ||
-        data.type === "join" ||
-        data.action === "join" ||
         (data.data && data.data.nickname) ||
-        (data.user && data.user.nickname) ||
         data.nickname
       ) {
-        console.log("[JOIN DETECTED → spawn]", name);
-        onUserJoin(name, data.data?.profilePictureUrl || data.profilePictureUrl || data.user?.profilePictureUrl);
+        console.log("[SPAWN TRIGGERED by]", data.event || "fallback", "→", name);
+        onUserJoin(name, data.data?.profilePictureUrl || data.profilePictureUrl || data.user?.profilePictureUrl || "");
         spawnBall(name);
       }
 
+      // Odpojení
       if (data.event === "leave" || data.event === "quit" || data.event === "disconnected") {
         console.log("[LEAVE]", name);
         onUserQuit(name);
       }
 
+      // Like
       if (data.event === "like") {
         console.log("[LIKE]", name, data.data?.likeCount);
         let count = data.data?.likeCount || 1;
@@ -102,7 +103,8 @@ function connectTikfinity() {
   };
 }
 
-// --- GALAXY ELEMENTS ---
+// --- ZBYTEK KÓDU (všechny funkce) ---
+
 let stars = [];
 let dust = [];
 let massivePlanets = [];
@@ -1311,6 +1313,7 @@ function triggerCosmicEvent() {
     frictionAir: 0,
     collisionFilter: { mask: 1 }
   });
+
   let isComet = random() < 0.5;
   cosmicEvent = {
     body: body,
@@ -1319,8 +1322,13 @@ function triggerCosmicEvent() {
     color: isComet ? color(150, 200, 255) : color(255, 100, 50),
     trail: []
   };
+
   Matter.World.add(world, body);
-  Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
+  Matter.Body.setVelocity(body, { 
+    x: fromLeft ? random(12, 18) : random(-12, -18), 
+    y: random(-1, 1) 
+  });
+
   if (audioStarted) {
     let osc = new p5.Oscillator('sine');
     osc.start();
@@ -1423,6 +1431,7 @@ function handleBlackHole() {
   ellipse(0, 0, jitterSize); 
   pop();
 
+  // Odstraňování pegů v dosahu černé díry
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
@@ -1434,6 +1443,7 @@ function handleBlackHole() {
     }
   }
 
+  // Přitahování a pohlcování kuliček
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
     if (!b.body) continue;
@@ -1452,106 +1462,10 @@ function handleBlackHole() {
     }
   }
 
-  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+  // Černá díra zmizí, když vyletí mimo obrazovku
+  if ((dir === 1 && blackHole.x > blackHole.targetX) || 
+      (dir === -1 && blackHole.x < blackHole.targetX)) {
     blackHole = null;
     if (audioStarted) bhOsc.amp(0, 0.5);
-  }
-}
-
-function resetGame() {
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 181));
-  leaderboard = {};
-  totalBallsFired = 0;
-  roundCount++;
-  gameState = "PLAYING";
-  resultsTimer = 10;
-  eventOccurredThisRound = false;
-  currentDestination = generatePlanetName();
-  if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
-  initGame();
-  generateDeepSpaceElements();
-  prepareSingularityEvents();
-}
-
-function drawProceduralHUD() {
-  push();
-  stroke(255, 10);
-  strokeWeight(1);
-  for(let i = 0; i < H; i += 4) {
-    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
-  }
-  fill(0, 255, 0, 150);
-  textSize(8);
-  textAlign(LEFT);
-  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
-  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
-  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
-
-  textAlign(RIGHT);
-  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
-  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
-  pop();
-}
-
-function drawAntiBotOverlay() {
-  push();
-  if (random() < 0.1) {
-    fill(255, 150);
-    noStroke();
-    circle(random(W), random(H), random(1, 3));
-  }
-  if (random() < 0.02) {
-    fill(0, 255, 255, 100);
-    rect(0, random(H), W, random(1, 10));
-  }
-  if (random() < 0.05) {
-    fill(255, 0, 0, 50);
-    rect(random(W), random(H), 20, 20);
-  }
-  pop();
-}
-
-function triggerCosmicEvent() {
-  if (cosmicEvent) return;
-  eventOccurredThisRound = true;
-
-  let fromLeft = random() < 0.5;
-  let size = random(25, 45);
-  let startX = fromLeft ? -100 : W + 100;
-  let targetY = H - ZONE_H - random(20, 120);
-
-  let body = Matter.Bodies.circle(startX, targetY, size/2, {
-    isStatic: false,
-    isSensor: false,
-    density: 0.1,
-    frictionAir: 0,
-    collisionFilter: { mask: 1 }
-  });
-  let isComet = random() < 0.5;
-  cosmicEvent = {
-    body: body,
-    type: isComet ? "COMET" : "METEOR",
-    size: size,
-    color: isComet ? color(150, 200, 255) : color(255, 100, 50),
-    trail: []
-  };
-
-  Matter.World.add(world, body);
-  Matter.Body.setVelocity(body, { 
-    x: fromLeft ? random(12, 18) : random(-12, -18), 
-    y: random(-1, 1) 
-  });
-
-  if (audioStarted) {
-    let osc = new p5.Oscillator('sine');
-    osc.start();
-    osc.freq(random(100, 400));
-    osc.freq(random(800, 1200), 1.5);
-    osc.amp(0.1);
-    osc.amp(0, 1.5);
-    setTimeout(() => osc.stop(), 1600);
   }
 }
