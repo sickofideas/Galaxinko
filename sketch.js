@@ -1,27 +1,27 @@
-// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE TIME + SPAWN NA JOIN ---
+// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE TIME + SPAWN NA JOIN & LIKE ---
 
-const GAME_TITLE = "GALAXINKO"; 
+const GAME_TITLE = "GALAXINKO";
 
 let engine, world;
 let balls = [];
 let pegs = [];
 let zones = [];
 let walls = [];
-let explosions = []; 
+let explosions = [];
 let leaderboard = {};
-let timer = 40; 
-let resultsTimer = 10; 
+let timer = 40;
+let resultsTimer = 10;
 let lastTick = 0;
-let waitStartTime = 0; 
+let waitStartTime = 0;
 let totalBallsFired = 0;
-let roundCount = 1;                         
-let gameState = "PLAYING"; 
+let roundCount = 1;
+let gameState = "PLAYING";
 let libraryLoaded = false;
 let winnerColor;
 let flashEffect = 0;
-let shakeAmount = 0; 
+let shakeAmount = 0;
 let currentDestination = "";
-let currentGravity = 0.6; 
+let currentGravity = 0.6;
 let currentBounce = 50;
 
 // --- VIEWER INTERACTION ---
@@ -43,56 +43,83 @@ const TIKFINITY_URL = "ws://localhost:21213/";
 
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
-  
+
   socket.onopen = () => {
-    console.log("[Tikfinity] Connection established - Lab is online");
+    console.log("[Tikfinity] Připojeno – čekám na události");
   };
 
   socket.onmessage = (event) => {
-    let data = JSON.parse(event.data);
-    let name = (data.data.nickname || data.data.uniqueId || "USER").toUpperCase().substring(0, 12);
-    
-    if (data.event === "join") {
-      onUserJoin(name, data.data.profilePictureUrl);
-      spawnBall(name);                    // ← NOVĚ: spawn kuličky při připojení
-    }
-    if (data.event === "leave" || data.event === "quit") {
-      onUserQuit(name);
-    }
-    
-    if (data.event === "like") {
-      let count = data.data.likeCount || 1;
-      updateUserLikes(name, count);
-      for (let i = 0; i < count; i++) {
-        setTimeout(() => spawnBall(name), i * 120);
+    try {
+      let data = JSON.parse(event.data);
+      console.log("[Tikfinity RAW]", data);
+
+      let rawName = data.data?.nickname || data.data?.uniqueId || data.uniqueId || data.user?.nickname || "Anonym";
+      let name = rawName.toUpperCase().substring(0, 12);
+
+      // Spawn při připojení (join) – pokrývá všechny běžné varianty Tikfinity
+      if (
+        data.event === "join" ||
+        data.event === "viewer_join" ||
+        data.event === "connected" ||
+        data.event === "new_viewer" ||
+        data.type === "join" ||
+        data.action === "join" ||
+        (data.data && data.data.nickname) ||
+        (data.user && data.user.nickname) ||
+        data.nickname
+      ) {
+        console.log("[JOIN DETECTED → spawn]", name);
+        onUserJoin(name, data.data?.profilePictureUrl || data.profilePictureUrl || data.user?.profilePictureUrl);
+        spawnBall(name);
       }
+
+      if (data.event === "leave" || data.event === "quit" || data.event === "disconnected") {
+        console.log("[LEAVE]", name);
+        onUserQuit(name);
+      }
+
+      if (data.event === "like") {
+        console.log("[LIKE]", name, data.data?.likeCount);
+        let count = data.data?.likeCount || 1;
+        updateUserLikes(name, count);
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => spawnBall(name), i * 120);
+        }
+      }
+
+    } catch (err) {
+      console.error("[Tikfinity ERROR]", err, event.data);
     }
   };
 
+  socket.onerror = (err) => {
+    console.error("[Tikfinity WS error]", err);
+  };
+
   socket.onclose = () => {
-    console.log("[Tikfinity] Reconnecting...");
+    console.log("[Tikfinity] Odpojeno – reconnect za 5s...");
     setTimeout(connectTikfinity, 5000);
   };
 }
 
 // --- GALAXY ELEMENTS ---
 let stars = [];
-let dust = []; 
-let massivePlanets = []; 
+let dust = [];
+let massivePlanets = [];
 let spaceDebris = [];
 let currentComet = null;
 let planetSize = 0;
-let currentTravelSpeed = 1.0; 
+let currentTravelSpeed = 1.0;
 
-let blackHole = null; 
+let blackHole = null;
 let bhSpawnTimes = [];
 
-let musicScale = [48, 52, 55, 57, 60, 64, 67, 72]; 
+let musicScale = [48, 52, 55, 57, 60, 64, 67, 72];
 let nextNoteTime = 0;
 let bhOsc;
 
-const W = 900; 
-const H = 950; 
+const W = 900;
+const H = 950;
 const ZONE_H = 80;
 
 const RARE_POOL = [
@@ -111,14 +138,77 @@ let audioStarted = false;
 
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
-// --- DENSER PEG SHAPE TEMPLATES ---
 const SHAPES = {
-  "HEART": ["  ***** ***** "," ******* ******* ","*****************","*****************"," *************** ","  ************* ","   *********** ","    ********* ","      ***** ","       *** ","        * "],
-  "APPLE": ["       *** ","      **** ","        ** ","    ********** ","  ************** "," ****************"," ****************"," ****************","  ************** ","    ********** "],
-  "ALIEN": ["      ******* ","   *********** "," *************** "," *** ***** *** "," *** ***** *** "," *************** ","  ************* ","    *** *** "],
-  "HOUSE": ["        * ","       *** ","      ***** ","     ******* ","    ********* ","   *********** ","   *********** ","   *** *** *** ","   *** *** *** ","   *********** "],
-  "SWORD": ["        * ","       *** ","       *** ","       *** ","       *** ","       *** ","  ************* ","  ************* ","       *** ","       *** ","        * "],
-  "MUSHROOM": ["      ***** ","    ********* ","  ************* "," *************** "," *************** ","    *** *** ","    ********* ","    ********* "]
+  "HEART": [
+    "  ***** ***** ",
+    " ******* ******* ",
+    "*****************",
+    "*****************",
+    " *************** ",
+    "  ************* ",
+    "   *********** ",
+    "    ********* ",
+    "      ***** ",
+    "       *** ",
+    "        * "
+  ],
+  "APPLE": [
+    "       *** ",
+    "      **** ",
+    "        ** ",
+    "    ********** ",
+    "  ************** ",
+    " ****************",
+    " ****************",
+    " ****************",
+    "  ************** ",
+    "    ********** "
+  ],
+  "ALIEN": [
+    "      ******* ",
+    "   *********** ",
+    " *************** ",
+    " *** ***** *** ",
+    " *** ***** *** ",
+    " *************** ",
+    "  ************* ",
+    "    *** *** "
+  ],
+  "HOUSE": [
+    "        * ",
+    "       *** ",
+    "      ***** ",
+    "     ******* ",
+    "    ********* ",
+    "   *********** ",
+    "   *********** ",
+    "   *** *** *** ",
+    "   *** *** *** ",
+    "   *********** "
+  ],
+  "SWORD": [
+    "        * ",
+    "       *** ",
+    "       *** ",
+    "       *** ",
+    "       *** ",
+    "       *** ",
+    "  ************* ",
+    "  ************* ",
+    "       *** ",
+    "       *** ",
+    "        * "
+  ],
+  "MUSHROOM": [
+    "      ***** ",
+    "    ********* ",
+    "  ************* ",
+    " *************** ",
+    " *************** ",
+    "    *** *** ",
+    "    ********* ",
+    "    ********* "
+  ]
 };
 
 function preload() {
@@ -140,19 +230,19 @@ function setup() {
   noSmooth();
   textFont('Press Start 2P');
   winnerColor = color(0, 0, 128);
-  synth = new p5.PolySynth(); 
-  fxSynth = new p5.PolySynth(); 
+  synth = new p5.PolySynth();
+  fxSynth = new p5.PolySynth();
   backgroundOsc = new p5.Oscillator('sine');
   backgroundOsc2 = new p5.Oscillator('sine');
   bhOsc = new p5.Oscillator('triangle');
-  for(let i=0; i<100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
-  for(let i=0; i<400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
-  
+  for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
+  for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
+
   currentGravity = random(0.05, 1.95);
   currentBounce = floor(random(1, 100));
-  
+
   timer = floor(random(40, 181));
-  
+
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -176,10 +266,10 @@ function startSpaceAudio() {
 function playSpawnSound() {
   if (!audioStarted) return;
   let scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
-  let baseNote = random(scale) + random(-5, 5); 
+  let baseNote = random(scale) + random(-5, 5);
   let vol = random(0.02, 0.05);
   let dur = random(0.05, 0.15);
-  fxSynth.play(baseNote, vol, 0, dur); 
+  fxSynth.play(baseNote, vol, 0, dur);
 }
 
 function playJackpotSound() {
@@ -202,17 +292,17 @@ function playCleanupSound() {
 
 function playTimerEndSequence() {
   if (!audioStarted) return;
-  let endNotes = [600, 400, 250, 100]; 
-  for(let i=0; i < endNotes.length; i++) {
+  let endNotes = [600, 400, 250, 100];
+  for (let i = 0; i < endNotes.length; i++) {
     setTimeout(() => {
       if (gameState === "WAITING") {
-        let f = endNotes[i] + random(-20, 20); 
+        let f = endNotes[i] + random(-20, 20);
         fxSynth.play(f, 0.08, 0, 0.4);
-        shakeAmount = random(2, 4); 
+        shakeAmount = random(2, 4);
       }
     }, i * 400);
   }
-  flashEffect = 60; 
+  flashEffect = 60;
 }
 
 function updateJukebox() {
@@ -230,8 +320,8 @@ function draw() {
   if (!engine) initGame();
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
-  
-  updateJukebox(); 
+
+  updateJukebox();
 
   push();
   let camSpeed = 0.005;
@@ -242,42 +332,42 @@ function draw() {
   translate(W/2, H/2);
   scale(camOffset.z);
   translate(-W/2 + camOffset.x, -H/2 + camOffset.y);
-  if (shakeAmount > 0) { 
-    translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount)); 
-    shakeAmount *= 0.92; 
+  if (shakeAmount > 0) {
+    translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount));
+    shakeAmount *= 0.92;
   }
 
   updateWinnerColor();
   updateTravelSpeed();
   background(2, 2, 8);
-  drawGravityDust(); 
-  drawGalacticBackground(); 
-  
+  drawGravityDust();
+  drawGalacticBackground();
+
   drawViewerObjects();
-  
+
   try {
     Matter.Engine.update(engine, 1000 / 60);
   } catch (e) {
     console.error("Matter.js Engine Error - Auto-recovering...");
   }
-  
+
   handleBlackHole();
   handleCosmicEvent();
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
       timer--;
       checkSingularitySpawn();
-      
+
       if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) {
-          triggerCosmicEvent();
+        triggerCosmicEvent();
       }
 
       if (random() < 0.11) spawnRareLegend();
-      if (timer <= 0) { 
-        gameState = "WAITING"; 
+      if (timer <= 0) {
+        gameState = "WAITING";
         waitStartTime = millis();
-        shakeAmount = 6; 
-        playCleanupSound(); 
+        shakeAmount = 6;
+        playCleanupSound();
         playTimerEndSequence();
       }
     } else if (gameState === "RESULTS") {
@@ -289,33 +379,32 @@ function draw() {
 
   if (gameState === "WAITING") {
     let timeSinceWait = (millis() - waitStartTime) / 1000;
-    if (balls.length === 0 || timeSinceWait > 10) { 
+    if (balls.length === 0 || timeSinceWait > 10) {
       gameState = "RESULTS";
-      resultsTimer = 10; 
+      resultsTimer = 10;
     }
   }
 
-  drawZones(); 
-  drawWalls(); 
-  drawPegs(); 
-  drawBalls(); 
+  drawZones();
+  drawWalls();
+  drawPegs();
+  drawBalls();
   drawExplosions();
   drawUI();
-  
+
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
 
   drawProceduralHUD();
   drawAntiBotOverlay();
 
-  if (flashEffect > 0) { 
+  if (flashEffect > 0) {
     noStroke();
-    fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); 
+    fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100));
     rect(0, 0, W, H);
-    flashEffect--; 
+    flashEffect--;
   }
 
-  // === LIVE TIME (viditelné nahoře vpravo) ===
   let liveTime = new Intl.DateTimeFormat('cs-CZ', {
     timeZone: 'Europe/Prague',
     dateStyle: 'short',
@@ -330,192 +419,89 @@ function draw() {
   pop();
 }
 
-// ────────────────────────────────────────────────
-// ZBYTEK PŮVODNÍHO KÓDU (beze změn)
-// ────────────────────────────────────────────────
-
-function triggerCosmicEvent() {
-    if (cosmicEvent) return;
-    eventOccurredThisRound = true;
-    
-    let fromLeft = random() < 0.5;
-    let size = random(25, 45);
-    let startX = fromLeft ? -100 : W + 100;
-    let targetY = H - ZONE_H - random(20, 120); 
-    
-    let body = Matter.Bodies.circle(startX, targetY, size/2, {
-        isStatic: false,
-        isSensor: false,
-        density: 0.1,
-        frictionAir: 0,
-        collisionFilter: { mask: 1 }
-    });
-    let isComet = random() < 0.5;
-    cosmicEvent = {
-        body: body,
-        type: isComet ? "COMET" : "METEOR",
-        size: size,
-        color: isComet ? color(150, 200, 255) : color(255, 100, 50),
-        trail: []
-    };
-    Matter.World.add(world, body);
-    Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
-    if (audioStarted) {
-        let osc = new p5.Oscillator('sine');
-        osc.start();
-        osc.freq(random(100, 400));
-        osc.freq(random(800, 1200), 1.5);
-        osc.amp(0.1);
-        osc.amp(0, 1.5);
-        setTimeout(() => osc.stop(), 1600);
-    }
-}
-
-function handleCosmicEvent() {
-    if (!cosmicEvent) return;
-    let pos = cosmicEvent.body.position;
-    
-    cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
-    if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
-    
-    push();
-    noStroke();
-    for(let i=0; i<cosmicEvent.trail.length; i++) {
-        let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150);
-        fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha);
-        ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
-    }
-    
-    fill(255);
-    ellipse(pos.x, pos.y, cosmicEvent.size);
-    fill(cosmicEvent.color);
-    ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
-    pop();
-    if (pos.x < -300 || pos.x > W + 300) {
-        Matter.World.remove(world, cosmicEvent.body);
-        cosmicEvent = null;
-    }
-}
-
-function drawProceduralHUD() {
-  push();
-  stroke(255, 10);
-  strokeWeight(1);
-  for(let i=0; i<H; i+=4) {
-    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
-  }
-  fill(0, 255, 0, 150);
-  textSize(8);
-  textAlign(LEFT);
-  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
-  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
-  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
-  
-  textAlign(RIGHT);
-  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
-  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
-  pop();
-}
-
-function drawAntiBotOverlay() {
-  push();
-  if (random() < 0.1) {
-    fill(255, 150);
-    noStroke();
-    circle(random(W), random(H), random(1, 3));
-  }
-  if (random() < 0.02) {
-    fill(0, 255, 255, 100);
-    rect(0, random(H), W, random(1, 10));
-  }
-  if (random() < 0.05) {
-    fill(255, 0, 0, 50);
-    rect(random(W), random(H), 20, 20);
-  }
-  pop();
-}
-
-function spawnBall(userName) { 
-  if (!libraryLoaded || gameState !== "PLAYING") return; 
+function spawnBall(userName) {
+  if (!libraryLoaded || gameState !== "PLAYING") return;
   if (!audioStarted) startSpaceAudio();
-  
-  playSpawnSound(); 
+
+  playSpawnSound();
   totalBallsFired++;
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
   let spawnX = W/2 + random(-15, 15);
-  let ballBody = Matter.Bodies.rectangle(spawnX, 90, 10, 10, { 
-    restitution: ballRestitution, 
-    friction: 0.2, 
-    frictionAir: 0.04, 
-    density: 0.001 
+  let ballBody = Matter.Bodies.rectangle(spawnX, 90, 10, 10, {
+    restitution: ballRestitution,
+    friction: 0.2,
+    frictionAir: 0.04,
+    density: 0.001
   });
+
   if (!leaderboard[userName]) {
     leaderboard[userName] = { score: 0, color: color(random(100,255), random(100,255), random(100,255)) };
   }
 
-  balls.push({ 
-    body: ballBody, 
-    name: userName, 
-    color: leaderboard[userName].color, 
-    scored: false 
+  balls.push({
+    body: ballBody,
+    name: userName,
+    color: leaderboard[userName].color,
+    scored: false
   });
-  Matter.World.add(world, ballBody); 
+  Matter.World.add(world, ballBody);
 }
 
 function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
     if (!b.body) {
-       balls.splice(i, 1);
-       continue;
-    }
-    
-    let pos = b.body.position;
-    if (isNaN(pos.x) || isNaN(pos.y)) {
-       removeBall(b);
-       continue;
+      balls.splice(i, 1);
+      continue;
     }
 
-    push(); 
+    let pos = b.body.position;
+    if (isNaN(pos.x) || isNaN(pos.y)) {
+      removeBall(b);
+      continue;
+    }
+
+    push();
     translate(pos.x, pos.y);
-    rotate(b.body.angle); 
-    fill(b.color); 
-    stroke(255); 
-    strokeWeight(1); 
-    rect(-5, -5, 10, 10); 
-    
-    rotate(-b.body.angle); 
+    rotate(b.body.angle);
+    fill(b.color);
+    stroke(255);
+    strokeWeight(1);
+    rect(-5, -5, 10, 10);
+
+    rotate(-b.body.angle);
     fill(b.color);
     noStroke();
     textAlign(CENTER);
     textSize(8);
-    text(b.name, 0, -12); 
+    text(b.name, 0, -12);
     pop();
-    for(let p of pegs) {
-      if(abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
+
+    for (let p of pegs) {
+      if (abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
     }
 
     if (pos.y > H - ZONE_H - 10) {
       Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
       if (!b.scored) {
         let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
-        if (cz) { 
-          b.scored = true; 
+        if (cz) {
+          b.scored = true;
           updateScore(b.name, cz.score, b.color);
-          cz.flash = 255; 
-          cz.flashColor = b.color; 
-          
-          if(cz.score >= 5000) { 
-              shakeAmount = 8;
-              playJackpotSound(); 
-          } 
+          cz.flash = 255;
+          cz.flashColor = b.color;
+
+          if (cz.score >= 5000) {
+            shakeAmount = 8;
+            playJackpotSound();
+          }
           checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color);
         }
       }
     }
-    
+
     if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) {
-        removeBall(b);
+      removeBall(b);
     }
   }
 }
@@ -526,315 +512,260 @@ function removeBall(b) {
   if (idx !== -1) balls.splice(idx, 1);
 }
 
-function drawZones() { 
-  for (let z of zones) { 
-    let isJackpot = (z.score >= 5000);
-    let baseCol = isJackpot ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
-    if (z.flash > 0) {
-      fill(z.flashColor);
-      z.flash -= 10;
-    } else {
-      fill(baseCol);
-    }
-    
-    noStroke();
-    rect(z.x, H - ZONE_H, z.w, ZONE_H); 
-    
-    push(); 
-    translate(z.x + z.w/2, H - 15); 
-    rotate(-HALF_PI); 
-    textAlign(LEFT, CENTER);
-    if (isJackpot) {
-      fill(255, 230, 100); 
-      textSize(12);
-      text(z.score, 0, 0);
-    } else {
-      fill(255);
-      textSize(z.w < 30 ? 7 : 10); 
-      text(z.score, 0, 0);
-    }
-    pop(); 
-  } 
+function onUserJoin(username, imgUrl) {
+  if (viewerSpaceObjects.find(o => o.name === username)) return;
+  let obj = {
+    name: username,
+    x: random(100, W-100),
+    y: random(100, H-300),
+    vx: random(-0.3, 0.3),
+    vy: random(-0.3, 0.3),
+    baseSize: 40,
+    extraSize: 0,
+    color: [random(100, 255), random(100, 255), random(255)],
+    img: null,
+    angle: random(TWO_PI)
+  };
+  if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
+  viewerSpaceObjects.push(obj);
 }
 
-function drawWaitingMessage() {
-  let alpha = map(sin(frameCount * 0.15), -1, 1, 100, 255);
+function updateUserLikes(username, count) {
+  let obj = viewerSpaceObjects.find(o => o.name === username);
+  if (obj) {
+    obj.extraSize += count * 2;
+    if (obj.extraSize > 150) obj.extraSize = 150;
+  } else {
+    onUserJoin(username, null);
+    setTimeout(() => updateUserLikes(username, count), 500);
+  }
+}
+
+function onUserQuit(username) {
+  viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username);
+}
+
+function drawViewerObjects() {
+  for (let obj of viewerSpaceObjects) {
+    obj.x += obj.vx + sin(frameCount * 0.01) * 0.1;
+    obj.y += obj.vy + cos(frameCount * 0.01) * 0.1;
+    obj.angle += 0.005;
+
+    if (obj.x < 50 || obj.x > W-50) obj.vx *= -1;
+    if (obj.y < 50 || obj.y > H-250) obj.vy *= -1;
+
+    push();
+    translate(obj.x, obj.y);
+    rotate(obj.angle);
+
+    let totalS = obj.baseSize + obj.extraSize;
+
+    noStroke();
+    fill(obj.color[0], obj.color[1], obj.color[2], 40);
+    ellipse(0, 0, totalS + 20);
+
+    if (obj.img) {
+      imageMode(CENTER);
+      image(obj.img, 0, 0, totalS, totalS);
+    } else {
+      fill(obj.color);
+      ellipse(0, 0, totalS);
+      fill(255);
+      textAlign(CENTER, CENTER);
+      textSize(totalS * 0.3);
+      text(obj.name[0], 0, 0);
+    }
+
+    rotate(-obj.angle);
+    fill(255, 200);
+    textSize(10);
+    textAlign(CENTER);
+    text(obj.name, 0, totalS/2 + 15);
+    pop();
+  }
+}
+
+function drawUI() {
   push();
-  fill(255, 50, 50, alpha);
-  textAlign(CENTER, CENTER);
-  textSize(30);
-  stroke(0);
-  strokeWeight(4);
-  text("WARNING: CLEANUP", W/2, H/2 - 50);
-  textSize(14);
+  fill(0, 0, 30, 255);
   noStroke();
-  fill(255, 200, 0, alpha);
-  text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2);
+  rect(0, 0, W, 85);
+  stroke(0, 255, 255, 100);
+  strokeWeight(2);
+  line(0, 83, W, 83);
+
+  let logoX = 20;
+  let logoY = 40;
+  textAlign(LEFT, CENTER);
+  fill(0, 255, 255, 20);
+  textSize(64);
+  text(GAME_TITLE, logoX + 4, logoY + 4);
+  fill(255);
+  textSize(64);
+  text(GAME_TITLE, logoX, logoY);
+  fill(0, 255, 255);
+  textSize(10);
+  text("STABLE SINGULARITY SIMULATION v5.4.1", logoX + 2, logoY + 34);
+
+  let dropZoneW = 400;
+  let dropZoneX = W/2 - (dropZoneW / 2);
+  let pulse = sin(frameCount * 0.1) * 3;
+  fill(0, 255, 255, 10 + pulse);
+  rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
+  fill(5, 5, 20, 250);
+  stroke(0, 255, 255, 120 + pulse * 10);
+  strokeWeight(2);
+  rect(dropZoneX, 10, dropZoneW, 64, 12);
+
+  noStroke();
+  textAlign(CENTER, CENTER);
+  fill(255);
+  textSize(16);
+  text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
+  fill(0, 255, 255);
+  textSize(10);
+  text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 55);
+  fill(0, 255, 255); textAlign(RIGHT); textSize(9);
+  text(`${currentDestination}`, W - 25, 25);
+
+  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99));
+  fill(200); textSize(8);
+  text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45);
+
+  fill(255, 150, 0);
+  text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
+  pop();
+
+  push(); translate(0, 100);
+  fill(100, 100, 150, 100); rect(10, 0, 250, 225);
+  fill(0, 0, 20, 245); rect(12, 2, 246, 221);
+  fill(0, 255, 255); textAlign(CENTER);
+  textSize(9);
+  text("MISSION MILESTONES", 130, 20);
+  textAlign(LEFT);
+  allTimeRecords.forEach((rec, i) => {
+    let tSize = (i === 0) ? 12 : (i === 1) ? 10 : 9;
+    textSize(tSize);
+    fill(rec.color[0], rec.color[1], rec.color[2]);
+    text(`${i+1}. ${rec.name}`, 22, 48 + i * 22);
+    textAlign(RIGHT);
+    fill(255, 180);
+    text(rec.score, 248, 48 + i * 22);
+    textAlign(LEFT);
+  });
+  translate(0, 235);
+  fill(100, 100, 150, 100); rect(10, 0, 250, 60);
+  fill(0, 0, 30, 245); rect(12, 2, 246, 56);
+  textSize(8);
+  if (gameState === "PLAYING") {
+    textAlign(LEFT, CENTER);
+    fill(timer < 10 ? color(255,0,0) : color(0,255,255));
+    text("WARP-DRIVE: " + timer + "s", 22, 18);
+    fill(0, 255, 0);
+    text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42);
+  } else if (gameState === "WAITING") {
+    textAlign(LEFT, CENTER); fill(255, 200, 0);
+    text("COOLING DOWN...", 22, 18);
+    fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
+  }
+  pop();
+
+  push(); translate(W - 260, 100);
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12);
+  fill(100, 100, 150, 100); rect(0, 0, 250, 285);
+  fill(0, 0, 20, 240); rect(2, 2, 246, 281);
+  fill(0, 255, 255);
+  textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20);
+  textAlign(LEFT); textSize(8);
+  sorted.forEach((e, i) => {
+    fill(e[1].color);
+    text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19);
+    textAlign(RIGHT); fill(255); text(e[1].score, 235, 50 + i * 19);
+    textAlign(LEFT);
+  });
   pop();
 }
 
-function drawResultsOverlay() { 
-    fill(0, 0, 20, 230); 
-    rect(20, 50, W - 40, H - 100, 20);
-    stroke(0, 255, 255, 150);
-    strokeWeight(4);
-    noFill();
-    rect(30, 60, W - 60, H - 120, 15);
-
-    noStroke();
-    fill(0, 255, 255);
-    textAlign(CENTER);
-    textSize(45); 
-    text("ROUND COMPLETE", W/2, 140);
-    
-    fill(255, 215, 0);
-    textSize(22); 
-    text(`SECTOR: ${currentDestination}`, W/2, 190);
-    let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
-    for (let i = 0; i < sorted.length; i++) {
-        let entry = sorted[i];
-        let yPos = 300 + i * 90; 
-        
-        fill(255, 255, 255, 20);
-        rect(60, yPos - 55, W - 120, 80, 10);
-        
-        textAlign(LEFT, CENTER);
-        fill(entry[1].color);
-        textSize(35);
-        text(`${i + 1}. ${entry[0]}`, 90, yPos - 15);
-        
-        textAlign(RIGHT, CENTER);
-        fill(255);
-        textSize(38); 
-        text(entry[1].score.toLocaleString(), W - 90, yPos - 15);
-    }
-
-    textAlign(CENTER);
-    fill(255, 50, 50);
-    textSize(20);
-    let barWidth = map(resultsTimer, 0, 10, 0, W - 200);
-    rect(100, H - 120, barWidth, 15, 5);
-    fill(255);
-    text(`NEXT JUMP IN: ${resultsTimer}s`, W/2, H - 80);
-}
-
-function spawnRareLegend() {
-  let legend = random(RARE_POOL);
-  spaceDebris.push({
-    x: random(50, W - 50),
-    y: -100,
-    type: "LEGEND",
-    legendId: legend.id,
-    size: legend.size,
-    color: color(legend.col[0], legend.col[1], legend.col[2]),
-    speed: random(0.8, 1.8),
-    rot: random(TWO_PI),
-    rotSpeed: random(-0.06, 0.06),
-    wobble: random(0.02, 0.08),
-    isRare: true
-  });
-}
-
-function drawGalacticBackground() {
-  fill(255, 120); noStroke();
-  for(let s of stars) { 
-    ellipse(s.x, s.y, s.s);
-    s.y += s.speed * currentTravelSpeed * 5; 
-    if (s.y > H) { s.y = 0; s.x = random(W); }
+function mouseClicked() {
+  if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
+    allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
+    localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
+    shakeAmount = 5;
+    return;
   }
-  
-  for(let p of massivePlanets) {
-    push(); translate(p.x, p.y);
-    p.y += p.speed * currentTravelSpeed * 5;
-    p.rot += p.rotSpeed * currentTravelSpeed; 
-    rotate(p.rot);
-    if (p.hasRing) { 
-      noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.1);
-      ellipse(0, 0, p.size * 2.2, p.size * 0.6); 
-    }
-    noStroke(); fill(p.color); ellipse(0, 0, p.size); 
-    pop();
-    if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); }
-  }
-  
-  updateComet();
-  
-  for(let i = spaceDebris.length - 1; i >= 0; i--) {
-    let d = spaceDebris[i];
-    push(); 
-    translate(d.x, d.y); 
-    d.y += d.speed * currentTravelSpeed * 2;
-    d.rot += d.rotSpeed * currentTravelSpeed;
-    rotate(d.rot);
-    if (d.type === "LEGEND") {
-      drawLegendShape(d);
-    } else if (d.type === "UFO") { 
-      d.x += sin(frameCount * d.wobble) * 2;
-      fill(0, 255, 100, 150); rect(-d.size/2, -d.size/6, d.size, d.size/3, 2); ellipse(0, -d.size/6, d.size/2, d.size/2);
-    } else if (d.type === "SATELLITE") { 
-      stroke(200, 200, 255, 120); strokeWeight(1); noFill();
-      rect(-d.size/4, -d.size/4, d.size/2, d.size/2); line(-d.size, 0, d.size, 0); rect(-d.size, -d.size/6, d.size/2, d.size/3); rect(d.size/2, -d.size/6, d.size/2, d.size/3);
-    } else { 
-      fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3);
-    }
-    pop();
-
-    if (d.y > H + 150) {
-      if (d.isRare) spaceDebris.splice(i, 1);
-      else { d.y = -100; d.x = random(W); }
-    }
-  }
-  
-  if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05);
-  else if (gameState === "WAITING") planetSize = lerp(planetSize, 450, 0.01);
-  if (planetSize > 10) { 
-    for(let r = 4; r > 0; r--) { 
-      fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4);
-      ellipse(W/2, H + 60, planetSize * (r * 0.6), planetSize * 0.4); 
-    } 
+  if (mouseY > 0 && mouseY < 85) {
+    spawnBall(random(TEST_BOTS));
+    shakeAmount = 2;
   }
 }
 
-function drawLegendShape(d) {
-  noStroke();
-  fill(d.color);
-  let s = d.size;
-  switch(d.legendId) {
-    case "STARMAN": rect(-s/2, -s/4, s, s/2, 5); fill(255);
-      ellipse(-s/4, -s/4, s/5); break;
-    case "HAWKING": fill(100); rect(-s/2, 0, s, s/4); fill(d.color); rect(-s/4, -s/2, s/2, s/2); break;
-    case "LAIKA": fill(150, 100); ellipse(0, 0, s, s); fill(d.color); ellipse(0, -s/6, s/2); break;
-    case "ET": fill(100, 50, 0);
-      rect(-s/2, 0, s, s/2); fill(255); ellipse(0, -s/4, s/2); break;
-    case "NYAN": fill(255, 200, 150); rect(-s/2, -s/3, s, s/1.5, 3); break;
-    case "VOYAGER": fill(180); ellipse(0, 0, s/2); fill(212, 175, 55); ellipse(0, 0, s/3); break;
-    case "OUMUAMUA": fill(60, 40, 30);
-      ellipse(0, 0, s, s/4); break;
-    case "SHUTTLE": fill(255); triangle(-s/2, s/2, s/2, s/2, 0, -s/2); break;
+function drawWalls() {
+  stroke(100);
+  strokeWeight(2);
+  for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H);
+}
+
+function updateTravelSpeed() {
+  currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01);
+}
+
+function createExplosion(x, y) {
+  for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: color(255, random(100, 255), 0) });
+}
+
+function drawExplosions() {
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    let e = explosions[i];
+    fill(red(e.col), green(e.col), blue(e.col), e.life);
+    rect(e.x, e.y, 4, 4);
+    e.x += e.vx;
+    e.y += e.vy;
+    e.life -= 5;
+    if (e.life <= 0) explosions.splice(i, 1);
   }
 }
 
-function drawGravityDust() {
-  let r = map(currentGravity, 0.05, 1.95, 100, 255);
-  let g = map(currentGravity, 0.05, 1.95, 200, 100);
-  let b = map(currentGravity, 0.05, 1.95, 255, 50);
-  fill(r, g, b, 150);
-  noStroke();
-  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
-  for (let d of dust) {
-    if (blackHole) {
-      let distToBH = dist(d.x, d.y, blackHole.x, blackHole.y);
-      if (distToBH < 80) { 
-        let angle = atan2(blackHole.y - d.y, blackHole.x - d.x);
-        d.x += cos(angle) * 4; d.y += sin(angle) * 4;
-      }
-    }
-    d.y += dustSpeed;
-    if (d.y > H) { d.y = 0;
-      d.x = random(W); }
-    rect(d.x, d.y, d.s, d.s);
+function updateComet() {
+  if (currentComet === null && gameState === "PLAYING" && random() < 0.003) {
+    currentComet = { x: random(W), y: -50, targetX: W + 100, targetY: H + 100, progress: 0, speed: random(0.01, 0.03), size: random(6, 10), color: color(255, 255, 200, 200) };
+  }
+  if (currentComet) {
+    currentComet.progress += currentComet.speed;
+    let curX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
+    let curY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
+    fill(currentComet.color);
+    ellipse(curX, curY, currentComet.size);
+    if (currentComet.progress > 1.2) currentComet = null;
   }
 }
 
-function prepareSingularityEvents() {
-  bhSpawnTimes = [];
-  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
+function checkAllTimeRecords(n, s, col) {
+  let idx = allTimeRecords.findIndex(r => r.name === n);
+  if (idx !== -1) {
+    if (s > allTimeRecords[idx].score) allTimeRecords[idx].score = s;
+  } else {
+    allTimeRecords.push({ name: n, score: s, color: [red(col), green(col), blue(col)] });
+  }
+  allTimeRecords.sort((a, b) => b.score - a.score);
+  allTimeRecords = allTimeRecords.slice(0, 8);
+  localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
 }
 
-function checkSingularitySpawn() {
-  if (bhSpawnTimes.includes(timer) && !blackHole) {
-    let fromLeft = random() < 0.5;
-    blackHole = {
-      x: fromLeft ? -150 : W + 150,
-      y: random(200, H - 450), 
-      startY: 0,
-      targetX: fromLeft ? W + 250 : -250,
-      speed: random(0.8, 1.5),
-      size: random(12, 18), 
-      noiseOffset: random(1000),
-      noiseSpeed: random(0.01, 0.02),
-      wobbleAmp: random(40, 90)
-    };
-    blackHole.startY = blackHole.y;
-    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
-  }
+function updateWinnerColor() {
+  let s = Object.entries(leaderboard).sort((a,b) => b[1].score - a[1].score);
+  winnerColor = s.length > 0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0,0,128);
 }
 
-function handleBlackHole() {
-  if (!blackHole) return;
-  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
-  blackHole.x += blackHole.speed * dir;
-  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
-  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
-  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
-  if (audioStarted) {
-    let centerDist = abs(W/2 - blackHole.x);
-    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
-    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo;
-    bhOsc.amp(vol, 0.1);
-    bhOsc.freq(32 + n * 12);
-  }
-
-  push(); translate(blackHole.x, blackHole.y); noStroke();
-  for(let i=5; i>0; i--) { 
-    fill(10 + i*10, 0, 40 + i*20, 25);
-    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10); 
-    ellipse(0, 0, s); 
-  }
-  fill(0);
-  ellipse(0, 0, jitterSize); pop();
-
-  for (let i = pegs.length - 1; i >= 0; i--) {
-    let p = pegs[i];
-    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
-    if (d < jitterSize * 0.55 && random() < 0.23) { 
-      Matter.Composite.remove(world, p);
-      createExplosion(p.position.x, p.position.y);
-      playExplosionSound(); 
-      pegs.splice(i, 1);
-    }
-  }
-
-  for (let i = balls.length - 1; i >= 0; i--) {
-    let b = balls[i];
-    if (!b.body) continue;
-    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
-    if (d < jitterSize * 0.5) {
-      removeBall(b);
-      continue;
-    }
-    
-    if (d < blackHole.size * 1.87) { 
-      let safeDist = Math.max(d, 30);
-      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
-      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
-      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
-      Matter.Body.applyForce(b.body, b.body.position, force);
-    }
-  }
-
-  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
-      blackHole = null;
-      if (audioStarted) bhOsc.amp(0, 0.5);
-  }
+function updateScore(n, p, c) {
+  if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c };
+  leaderboard[n].score += p;
 }
 
-function resetGame() {
-  currentGravity = random(0.05, 1.95); 
-  currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 181));
-  leaderboard = {}; 
-  totalBallsFired = 0; 
-  roundCount++; 
-  gameState = "PLAYING";
-  resultsTimer = 10;
-  eventOccurredThisRound = false; 
-  currentDestination = generatePlanetName();
-  if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
-  initGame();
-  generateDeepSpaceElements(); 
-  prepareSingularityEvents();
+function generateDeepSpaceElements() {
+  massivePlanets = [];
+  for(let i = 0; i < 3; i++) massivePlanets.push({ x: random(W), y: random(H), size: random(20, 50), color: color(random(30, 80), 100), hasRing: random() < 0.8, ringColor: color(random(80, 150), 80), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01) });
+  spaceDebris = [];
+  for(let i = 0; i < 10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) });
 }
 
 function generatePlanetName() {
@@ -844,8 +775,8 @@ function generatePlanetName() {
 }
 
 function initGame() {
-  if(!engine) { 
-    engine = Matter.Engine.create(); 
+  if(!engine) {
+    engine = Matter.Engine.create();
     world = engine.world;
   }
   world.gravity.y = currentGravity;
@@ -858,40 +789,41 @@ function initGame() {
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
   pegs.push(blocker);
   Matter.World.add(world, blocker);
+
   if (mode.startsWith("SHAPE_")) {
     let shapeName = mode.split("_")[1];
     let shape = SHAPES[shapeName] || SHAPES["HEART"];
     let rows = shape.length;
     let cols = shape[0].length;
-    
-    let spacing = 26; 
+
+    let spacing = 26;
     let startX = (W - (cols * spacing)) / 2;
-    let startY = 220; 
-    
-    for(let i=0; i<15; i++) {
-        let pxL = map(i, 0, 14, 50, startX - 30);
-        let pyL = map(i, 0, 14, 150, startY + 50);
-        let pL = Matter.Bodies.circle(pxL, pyL, 2.5, { isStatic:true, restitution: pegRestitution, collisionFilter: { category: 2 } });
-        pegs.push(pL); Matter.World.add(world, pL);
-        let pxR = map(i, 0, 14, W-50, startX + (cols*spacing) + 30);
-        let pR = Matter.Bodies.circle(pxR, pyL, 2.5, { isStatic:true, restitution: pegRestitution, collisionFilter: { category: 2 } });
-        pegs.push(pR); Matter.World.add(world, pR);
+    let startY = 220;
+
+    for(let i = 0; i < 15; i++) {
+      let pxL = map(i, 0, 14, 50, startX - 30);
+      let pyL = map(i, 0, 14, 150, startY + 50);
+      let pL = Matter.Bodies.circle(pxL, pyL, 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } });
+      pegs.push(pL); Matter.World.add(world, pL);
+      let pxR = map(i, 0, 14, W-50, startX + (cols*spacing) + 30);
+      let pR = Matter.Bodies.circle(pxR, pyL, 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } });
+      pegs.push(pR); Matter.World.add(world, pR);
     }
 
     for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            if (shape[r][c] === '*') {
-                let px = startX + c * spacing + random(-1, 1);
-                let py = startY + r * spacing + random(-1, 1);
-                let peg = Matter.Bodies.circle(px, py, 2.5, { 
-                    isStatic: true, 
-                    restitution: pegRestitution,
-                    collisionFilter: { category: 2 } 
-                });
-                pegs.push(peg);
-                Matter.World.add(world, peg);
-            }
+      for (let c = 0; c < cols; c++) {
+        if (shape[r][c] === '*') {
+          let px = startX + c * spacing + random(-1, 1);
+          let py = startY + r * spacing + random(-1, 1);
+          let peg = Matter.Bodies.circle(px, py, 2.5, {
+            isStatic: true,
+            restitution: pegRestitution,
+            collisionFilter: { category: 2 }
+          });
+          pegs.push(peg);
+          Matter.World.add(world, peg);
         }
+      }
     }
   } else {
     for (let i = 0; i < numPegs; i++) {
@@ -956,7 +888,7 @@ function initGame() {
             px = 100 + hCol * 60 + (hRow % 2) * 30;
             py = 180 + hRow * 50;
             break;
-          default: 
+          default:
             px = random(60, W - 60);
             py = random(140, H - 300);
             break;
@@ -965,20 +897,22 @@ function initGame() {
         if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
           let tooClose = false;
           for(let other of pegs) {
-            if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true;
-            break; }
+            if(dist(px, py, other.position.x, other.position.y) < 22) {
+              tooClose = true;
+              break;
+            }
           }
           if(!tooClose) valid = true;
         } else if (attempts > 45) {
-            break;
+          break;
         }
       }
 
       if (valid) {
-        let peg = Matter.Bodies.circle(px, py, 2.5, { 
-            isStatic: true, 
-            restitution: pegRestitution,
-            collisionFilter: { category: 2 } 
+        let peg = Matter.Bodies.circle(px, py, 2.5, {
+          isStatic: true,
+          restitution: pegRestitution,
+          collisionFilter: { category: 2 }
         });
         pegs.push(peg);
         Matter.World.add(world, peg);
@@ -992,271 +926,632 @@ function initGame() {
   for (let i = 0; i < 21; i++) {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
     zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255) });
-    if (i > 0) { 
-        let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 });
-        walls.push(wall); Matter.World.add(world, wall); 
+    if (i > 0) {
+      let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 });
+      walls.push(wall);
+      Matter.World.add(world, wall);
     }
     curX += zw;
   }
   Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H + 48, W, 100, {isStatic:true, friction: 1})]);
 }
 
-function drawPegs() { 
+function drawPegs() {
   noStroke();
   let pegR = map(currentGravity, 0.05, 1.95, 0, 255);
   let pegG = map(currentGravity, 0.05, 1.95, 255, 100);
   let pegB = map(currentGravity, 0.05, 1.95, 255, 0);
   let pegBaseCol = color(pegR, pegG, pegB);
-  for (let p of pegs) { 
+  for (let p of pegs) {
     p.glow = p.glow || 0;
-    if (p.glow > 0) { 
+    if (p.glow > 0) {
       fill(pegR, pegG + 50, pegB + 50, p.glow);
-      rect(p.position.x - 4, p.position.y - 4, 8, 8); 
-      p.glow -= 20; 
-    } 
+      rect(p.position.x - 4, p.position.y - 4, 8, 8);
+      p.glow -= 20;
+    }
     fill(pegBaseCol);
-    rect(p.position.x - 2, p.position.y - 2, 4, 4); 
-  } 
-}
-
-function drawUI() {
-  push(); 
-  fill(0, 0, 30, 255); 
-  noStroke();
-  rect(0, 0, W, 85); 
-  stroke(0, 255, 255, 100); 
-  strokeWeight(2); 
-  line(0, 83, W, 83);
-
-  let logoX = 20;
-  let logoY = 40;
-  textAlign(LEFT, CENTER);
-  fill(0, 255, 255, 20);
-  textSize(64); 
-  text(GAME_TITLE, logoX + 4, logoY + 4); 
-  fill(255);
-  textSize(64);
-  text(GAME_TITLE, logoX, logoY);
-  fill(0, 255, 255);
-  textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.4.1", logoX + 2, logoY + 34);
-  let dropZoneW = 400;
-  let dropZoneX = W/2 - (dropZoneW / 2);
-  let pulse = sin(frameCount * 0.1) * 3;
-  fill(0, 255, 255, 10 + pulse);
-  rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
-  fill(5, 5, 20, 250);
-  stroke(0, 255, 255, 120 + pulse * 10);
-  strokeWeight(2);
-  rect(dropZoneX, 10, dropZoneW, 64, 12);
-  
-  noStroke();
-  textAlign(CENTER, CENTER);
-  fill(255);
-  textSize(16);
-  text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
-  fill(0, 255, 255);
-  textSize(10);
-  text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 55);
-  fill(0, 255, 255); textAlign(RIGHT); textSize(9); 
-  text(`${currentDestination}`, W - 25, 25);
-  
-  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); 
-  fill(200); textSize(8);
-  text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45); 
-  
-  fill(255, 150, 0); 
-  text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
-  pop();
-  
-  push(); translate(0, 100);
-  fill(100, 100, 150, 100); rect(10, 0, 250, 225); 
-  fill(0, 0, 20, 245); rect(12, 2, 246, 221); 
-  fill(0, 255, 255); textAlign(CENTER);
-  textSize(9); 
-  text("MISSION MILESTONES", 130, 20); 
-  textAlign(LEFT);
-  allTimeRecords.forEach((rec, i) => { 
-    let tSize = (i === 0) ? 12 : (i === 1) ? 10 : 9;
-    textSize(tSize);
-    fill(rec.color[0], rec.color[1], rec.color[2]); 
-    text(`${i+1}. ${rec.name}`, 22, 48 + i * 22); 
-    textAlign(RIGHT);
-    fill(255, 180);
-    text(rec.score, 248, 48 + i * 22);
-    textAlign(LEFT);
-  });
-  translate(0, 235);
-  fill(100, 100, 150, 100); rect(10, 0, 250, 60); 
-  fill(0, 0, 30, 245); rect(12, 2, 246, 56);
-  textSize(8);
-  if (gameState === "PLAYING") { 
-    textAlign(LEFT, CENTER); 
-    fill(timer < 10 ? color(255,0,0) : color(0,255,255));
-    text("WARP-DRIVE: " + timer + "s", 22, 18); 
-    fill(0, 255, 0); 
-    text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42);
-  } else if (gameState === "WAITING") {
-    textAlign(LEFT, CENTER); fill(255, 200, 0);
-    text("COOLING DOWN...", 22, 18);
-    fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
-  }
-  pop();
-  
-  push(); translate(W - 260, 100);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12); 
-  fill(100, 100, 150, 100); rect(0, 0, 250, 285);
-  fill(0, 0, 20, 240); rect(2, 2, 246, 281); 
-  fill(0, 255, 255); 
-  textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20); 
-  textAlign(LEFT); textSize(8);
-  sorted.forEach((e, i) => { 
-    fill(e[1].color); 
-    text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19); 
-    textAlign(RIGHT); fill(255); text(e[1].score, 235, 50 + i * 19); 
-    textAlign(LEFT);
-  });
-  pop();
-}
-
-function mouseClicked() {
-  if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
-    allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
-    localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
-    shakeAmount = 5; 
-    return;
-  }
-  if (mouseY > 0 && mouseY < 85) {
-    spawnBall(random(TEST_BOTS));
-    shakeAmount = 2;
+    rect(p.position.x - 2, p.position.y - 2, 4, 4);
   }
 }
 
-function drawWalls() { 
-  stroke(100); 
-  strokeWeight(2);
-  for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H);
-}
-
-function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01);
-}
-
-function createExplosion(x, y) { for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: color(255, random(100, 255), 0) });
-}
-
-function drawExplosions() { 
-    for (let i = explosions.length - 1; i >= 0; i--) { 
-        let e = explosions[i];
-        fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 4, 4); e.x += e.vx; e.y += e.vy; e.life -= 5;
-        if (e.life <= 0) explosions.splice(i, 1); 
-    } 
-}
-
-function updateComet() { 
-    if (currentComet === null && gameState === "PLAYING" && random() < 0.003) {
-        currentComet = { x: random(W), y: -50, targetX: W + 100, targetY: H + 100, progress: 0, speed: random(0.01, 0.03), size: random(6, 10), color: color(255, 255, 200, 200) };
-    }
-    if (currentComet) { 
-        currentComet.progress += currentComet.speed;
-        let curX = lerp(currentComet.x, currentComet.targetX, currentComet.progress), curY = lerp(currentComet.y, currentComet.targetY, currentComet.progress); 
-        fill(currentComet.color); ellipse(curX, curY, currentComet.size);
-        if (currentComet.progress > 1.2) currentComet = null; 
-    } 
-}
-
-function checkAllTimeRecords(n, s, col) { 
-    let idx = allTimeRecords.findIndex(r => r.name === n);
-    if (idx !== -1) { if (s > allTimeRecords[idx].score) allTimeRecords[idx].score = s;
-    } 
-    else allTimeRecords.push({ name: n, score: s, color: [red(col), green(col), blue(col)] });
-    allTimeRecords.sort((a, b) => b.score - a.score); allTimeRecords = allTimeRecords.slice(0, 8); 
-    localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
-}
-
-function updateWinnerColor() { 
-    let s = Object.entries(leaderboard).sort((a,b) => b[1].score - a[1].score);
-    winnerColor = s.length > 0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0,0,128);
-}
-
-function updateScore(n, p, c) { if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c }; leaderboard[n].score += p;
-}
-
-function generateDeepSpaceElements() { 
-    massivePlanets = [];
-    for(let i=0; i<3; i++) massivePlanets.push({ x: random(W), y: random(H), size: random(20, 50), color: color(random(30, 80), 100), hasRing: random() < 0.8, ringColor: color(random(80, 150), 80), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01) });
-    spaceDebris = []; for(let i=0; i<10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) });
-}
-
-// --- NOVÉ FUNKCE PRO DIVÁKY NA POZADÍ ---
-function onUserJoin(username, imgUrl) {
-    if (viewerSpaceObjects.find(o => o.name === username)) return;
-    let obj = {
-        name: username,
-        x: random(100, W-100),
-        y: random(100, H-300),
-        vx: random(-0.3, 0.3),
-        vy: random(-0.3, 0.3),
-        baseSize: 40,
-        extraSize: 0,
-        color: [random(100, 255), random(100, 255), random(255)],
-        img: null,
-        angle: random(TWO_PI)
-    };
-    if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
-    viewerSpaceObjects.push(obj);
-}
-
-function updateUserLikes(username, count) {
-    let obj = viewerSpaceObjects.find(o => o.name === username);
-    if (obj) {
-        obj.extraSize += count * 2; 
-        if (obj.extraSize > 150) obj.extraSize = 150; 
+function drawZones() {
+  for (let z of zones) {
+    let isJackpot = (z.score >= 5000);
+    let baseCol = isJackpot ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
+    if (z.flash > 0) {
+      fill(z.flashColor);
+      z.flash -= 10;
     } else {
-        onUserJoin(username, null);
-        setTimeout(() => updateUserLikes(username, count), 500);
+      fill(baseCol);
     }
+
+    noStroke();
+    rect(z.x, H - ZONE_H, z.w, ZONE_H);
+
+    push();
+    translate(z.x + z.w/2, H - 15);
+    rotate(-HALF_PI);
+    textAlign(LEFT, CENTER);
+    if (isJackpot) {
+      fill(255, 230, 100);
+      textSize(12);
+      text(z.score, 0, 0);
+    } else {
+      fill(255);
+      textSize(z.w < 30 ? 7 : 10);
+      text(z.score, 0, 0);
+    }
+    pop();
+  }
 }
 
-function onUserQuit(username) {
-    viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username);
+function drawWaitingMessage() {
+  let alpha = map(sin(frameCount * 0.15), -1, 1, 100, 255);
+  push();
+  fill(255, 50, 50, alpha);
+  textAlign(CENTER, CENTER);
+  textSize(30);
+  stroke(0);
+  strokeWeight(4);
+  text("WARNING: CLEANUP", W/2, H/2 - 50);
+  textSize(14);
+  noStroke();
+  fill(255, 200, 0, alpha);
+  text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2);
+  pop();
 }
 
-function drawViewerObjects() {
-    for (let obj of viewerSpaceObjects) {
-        obj.x += obj.vx + sin(frameCount * 0.01) * 0.1;
-        obj.y += obj.vy + cos(frameCount * 0.01) * 0.1;
-        obj.angle += 0.005;
+function drawResultsOverlay() {
+  fill(0, 0, 20, 230);
+  rect(20, 50, W - 40, H - 100, 20);
+  stroke(0, 255, 255, 150);
+  strokeWeight(4);
+  noFill();
+  rect(30, 60, W - 60, H - 120, 15);
 
-        if (obj.x < 50 || obj.x > W-50) obj.vx *= -1;
-        if (obj.y < 50 || obj.y > H-250) obj.vy *= -1;
+  noStroke();
+  fill(0, 255, 255);
+  textAlign(CENTER);
+  textSize(45);
+  text("ROUND COMPLETE", W/2, 140);
 
-        push();
-        translate(obj.x, obj.y);
-        rotate(obj.angle);
-        
-        let totalS = obj.baseSize + obj.extraSize;
-        
-        noStroke();
-        fill(obj.color[0], obj.color[1], obj.color[2], 40);
-        ellipse(0, 0, totalS + 20);
+  fill(255, 215, 0);
+  textSize(22);
+  text(`SECTOR: ${currentDestination}`, W/2, 190);
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
+  for (let i = 0; i < sorted.length; i++) {
+    let entry = sorted[i];
+    let yPos = 300 + i * 90;
 
-        if (obj.img) {
-            imageMode(CENTER);
-            image(obj.img, 0, 0, totalS, totalS);
-        } else {
-            fill(obj.color);
-            ellipse(0, 0, totalS);
-            fill(255);
-            textAlign(CENTER, CENTER);
-            textSize(totalS * 0.3);
-            text(obj.name[0], 0, 0);
-        }
-        
-        rotate(-obj.angle);
-        fill(255, 200);
-        textSize(10);
-        textAlign(CENTER);
-        text(obj.name, 0, totalS/2 + 15);
-        pop();
+    fill(255, 255, 255, 20);
+    rect(60, yPos - 55, W - 120, 80, 10);
+
+    textAlign(LEFT, CENTER);
+    fill(entry[1].color);
+    textSize(35);
+    text(`${i + 1}. ${entry[0]}`, 90, yPos - 15);
+
+    textAlign(RIGHT, CENTER);
+    fill(255);
+    textSize(38);
+    text(entry[1].score.toLocaleString(), W - 90, yPos - 15);
+  }
+
+  textAlign(CENTER);
+  fill(255, 50, 50);
+  textSize(20);
+  text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
+}
+
+function spawnRareLegend() {
+  let legend = random(RARE_POOL);
+  spaceDebris.push({
+    x: random(50, W - 50),
+    y: -100,
+    type: "LEGEND",
+    legendId: legend.id,
+    size: legend.size,
+    color: color(legend.col[0], legend.col[1], legend.col[2]),
+    speed: random(0.8, 1.8),
+    rot: random(TWO_PI),
+    rotSpeed: random(-0.06, 0.06),
+    wobble: random(0.02, 0.08),
+    isRare: true
+  });
+}
+
+function drawGalacticBackground() {
+  fill(255, 120); noStroke();
+  for(let s of stars) {
+    ellipse(s.x, s.y, s.s);
+    s.y += s.speed * currentTravelSpeed * 5;
+    if (s.y > H) { s.y = 0; s.x = random(W); }
+  }
+
+  for(let p of massivePlanets) {
+    push(); translate(p.x, p.y);
+    p.y += p.speed * currentTravelSpeed * 5;
+    p.rot += p.rotSpeed * currentTravelSpeed;
+    rotate(p.rot);
+    if (p.hasRing) {
+      noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.1);
+      ellipse(0, 0, p.size * 2.2, p.size * 0.6);
     }
+    noStroke(); fill(p.color); ellipse(0, 0, p.size);
+    pop();
+    if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); }
+  }
+
+  updateComet();
+
+  for(let i = spaceDebris.length - 1; i >= 0; i--) {
+    let d = spaceDebris[i];
+    push();
+    translate(d.x, d.y);
+    d.y += d.speed * currentTravelSpeed * 2;
+    d.rot += d.rotSpeed * currentTravelSpeed;
+    rotate(d.rot);
+    if (d.type === "LEGEND") {
+      drawLegendShape(d);
+    } else if (d.type === "UFO") {
+      d.x += sin(frameCount * d.wobble) * 2;
+      fill(0, 255, 100, 150); rect(-d.size/2, -d.size/6, d.size, d.size/3, 2); ellipse(0, -d.size/6, d.size/2, d.size/2);
+    } else if (d.type === "SATELLITE") {
+      stroke(200, 200, 255, 120); strokeWeight(1); noFill();
+      rect(-d.size/4, -d.size/4, d.size/2, d.size/2); line(-d.size, 0, d.size, 0); rect(-d.size, -d.size/6, d.size/2, d.size/3); rect(d.size/2, -d.size/6, d.size/2, d.size/3);
+    } else {
+      fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3);
+    }
+    pop();
+
+    if (d.y > H + 150) {
+      if (d.isRare) spaceDebris.splice(i, 1);
+      else { d.y = -100; d.x = random(W); }
+    }
+  }
+
+  if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05);
+  else if (gameState === "WAITING") planetSize = lerp(planetSize, 450, 0.01);
+  if (planetSize > 10) {
+    for(let r = 4; r > 0; r--) {
+      fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4);
+      ellipse(W/2, H + 60, planetSize * (r * 0.6), planetSize * 0.4);
+    }
+  }
+}
+
+function drawLegendShape(d) {
+  noStroke();
+  fill(d.color);
+  let s = d.size;
+  switch(d.legendId) {
+    case "STARMAN": rect(-s/2, -s/4, s, s/2, 5); fill(255);
+      ellipse(-s/4, -s/4, s/5); break;
+    case "HAWKING": fill(100); rect(-s/2, 0, s, s/4); fill(d.color); rect(-s/4, -s/2, s/2, s/2); break;
+    case "LAIKA": fill(150, 100); ellipse(0, 0, s, s); fill(d.color); ellipse(0, -s/6, s/2); break;
+    case "ET": fill(100, 50, 0);
+      rect(-s/2, 0, s, s/2); fill(255); ellipse(0, -s/4, s/2); break;
+    case "NYAN": fill(255, 200, 150); rect(-s/2, -s/3, s, s/1.5, 3); break;
+    case "VOYAGER": fill(180); ellipse(0, 0, s/2); fill(212, 175, 55); ellipse(0, 0, s/3); break;
+    case "OUMUAMUA": fill(60, 40, 30);
+      ellipse(0, 0, s, s/4); break;
+    case "SHUTTLE": fill(255); triangle(-s/2, s/2, s/2, s/2, 0, -s/2); break;
+  }
+}
+
+function drawGravityDust() {
+  let r = map(currentGravity, 0.05, 1.95, 100, 255);
+  let g = map(currentGravity, 0.05, 1.95, 200, 100);
+  let b = map(currentGravity, 0.05, 1.95, 255, 50);
+  fill(r, g, b, 150);
+  noStroke();
+  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
+  for (let d of dust) {
+    d.y += dustSpeed;
+    if (d.y > H) { d.y = 0; d.x = random(W); }
+    rect(d.x, d.y, d.s, d.s);
+  }
+}
+
+function prepareSingularityEvents() {
+  bhSpawnTimes = [];
+  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
+}
+
+function checkSingularitySpawn() {
+  if (bhSpawnTimes.includes(timer) && !blackHole) {
+    let fromLeft = random() < 0.5;
+    blackHole = {
+      x: fromLeft ? -150 : W + 150,
+      y: random(200, H - 450),
+      startY: 0,
+      targetX: fromLeft ? W + 250 : -250,
+      speed: random(0.8, 1.5),
+      size: random(12, 18),
+      noiseOffset: random(1000),
+      noiseSpeed: random(0.01, 0.02),
+      wobbleAmp: random(40, 90)
+    };
+    blackHole.startY = blackHole.y;
+    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
+  }
+}
+
+function handleBlackHole() {
+  if (!blackHole) return;
+  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
+  blackHole.x += blackHole.speed * dir;
+  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
+  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
+  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
+  if (audioStarted) {
+    let centerDist = abs(W/2 - blackHole.x);
+    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
+    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo;
+    bhOsc.amp(vol, 0.1);
+    bhOsc.freq(32 + n * 12);
+  }
+
+  push(); 
+  translate(blackHole.x, blackHole.y); 
+  noStroke();
+  for(let i = 5; i > 0; i--) {
+    fill(10 + i*10, 0, 40 + i*20, 25);
+    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10);
+    ellipse(0, 0, s);
+  }
+  fill(0);
+  ellipse(0, 0, jitterSize); 
+  pop();
+
+  for (let i = pegs.length - 1; i >= 0; i--) {
+    let p = pegs[i];
+    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
+    if (d < jitterSize * 0.55 && random() < 0.23) {
+      Matter.Composite.remove(world, p);
+      createExplosion(p.position.x, p.position.y);
+      playExplosionSound();
+      pegs.splice(i, 1);
+    }
+  }
+
+  for (let i = balls.length - 1; i >= 0; i--) {
+    let b = balls[i];
+    if (!b.body) continue;
+    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
+    if (d < jitterSize * 0.5) {
+      removeBall(b);
+      continue;
+    }
+
+    if (d < blackHole.size * 1.87) {
+      let safeDist = Math.max(d, 30);
+      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
+      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
+      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
+      Matter.Body.applyForce(b.body, b.body.position, force);
+    }
+  }
+
+  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+    blackHole = null;
+    if (audioStarted) bhOsc.amp(0, 0.5);
+  }
+}
+
+function resetGame() {
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100));
+  timer = floor(random(40, 181));
+  leaderboard = {};
+  totalBallsFired = 0;
+  roundCount++;
+  gameState = "PLAYING";
+  resultsTimer = 10;
+  eventOccurredThisRound = false;
+  currentDestination = generatePlanetName();
+  if (world) Matter.World.clear(world, false);
+  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
+  initGame();
+  generateDeepSpaceElements();
+  prepareSingularityEvents();
+}
+
+function drawProceduralHUD() {
+  push();
+  stroke(255, 10);
+  strokeWeight(1);
+  for(let i = 0; i < H; i += 4) {
+    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
+  }
+  fill(0, 255, 0, 150);
+  textSize(8);
+  textAlign(LEFT);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
+  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
+  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
+
+  textAlign(RIGHT);
+  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
+  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
+  pop();
+}
+
+function drawAntiBotOverlay() {
+  push();
+  if (random() < 0.1) {
+    fill(255, 150);
+    noStroke();
+    circle(random(W), random(H), random(1, 3));
+  }
+  if (random() < 0.02) {
+    fill(0, 255, 255, 100);
+    rect(0, random(H), W, random(1, 10));
+  }
+  if (random() < 0.05) {
+    fill(255, 0, 0, 50);
+    rect(random(W), random(H), 20, 20);
+  }
+  pop();
+}
+
+function triggerCosmicEvent() {
+  if (cosmicEvent) return;
+  eventOccurredThisRound = true;
+
+  let fromLeft = random() < 0.5;
+  let size = random(25, 45);
+  let startX = fromLeft ? -100 : W + 100;
+  let targetY = H - ZONE_H - random(20, 120);
+
+  let body = Matter.Bodies.circle(startX, targetY, size/2, {
+    isStatic: false,
+    isSensor: false,
+    density: 0.1,
+    frictionAir: 0,
+    collisionFilter: { mask: 1 }
+  });
+  let isComet = random() < 0.5;
+  cosmicEvent = {
+    body: body,
+    type: isComet ? "COMET" : "METEOR",
+    size: size,
+    color: isComet ? color(150, 200, 255) : color(255, 100, 50),
+    trail: []
+  };
+  Matter.World.add(world, body);
+  Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
+  if (audioStarted) {
+    let osc = new p5.Oscillator('sine');
+    osc.start();
+    osc.freq(random(100, 400));
+    osc.freq(random(800, 1200), 1.5);
+    osc.amp(0.1);
+    osc.amp(0, 1.5);
+    setTimeout(() => osc.stop(), 1600);
+  }
+}
+
+function handleCosmicEvent() {
+  if (!cosmicEvent) return;
+  let pos = cosmicEvent.body.position;
+
+  cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
+  if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
+
+  push();
+  noStroke();
+  for(let i = 0; i < cosmicEvent.trail.length; i++) {
+    let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150);
+    fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha);
+    ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
+  }
+
+  fill(255);
+  ellipse(pos.x, pos.y, cosmicEvent.size);
+  fill(cosmicEvent.color);
+  ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
+  pop();
+  if (pos.x < -300 || pos.x > W + 300) {
+    Matter.World.remove(world, cosmicEvent.body);
+    cosmicEvent = null;
+  }
+}
+
+function drawGravityDust() {
+  let r = map(currentGravity, 0.05, 1.95, 100, 255);
+  let g = map(currentGravity, 0.05, 1.95, 200, 100);
+  let b = map(currentGravity, 0.05, 1.95, 255, 50);
+  fill(r, g, b, 150);
+  noStroke();
+  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
+  for (let d of dust) {
+    d.y += dustSpeed;
+    if (d.y > H) { d.y = 0; d.x = random(W); }
+    rect(d.x, d.y, d.s, d.s);
+  }
+}
+
+function prepareSingularityEvents() {
+  bhSpawnTimes = [];
+  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
+}
+
+function checkSingularitySpawn() {
+  if (bhSpawnTimes.includes(timer) && !blackHole) {
+    let fromLeft = random() < 0.5;
+    blackHole = {
+      x: fromLeft ? -150 : W + 150,
+      y: random(200, H - 450),
+      startY: 0,
+      targetX: fromLeft ? W + 250 : -250,
+      speed: random(0.8, 1.5),
+      size: random(12, 18),
+      noiseOffset: random(1000),
+      noiseSpeed: random(0.01, 0.02),
+      wobbleAmp: random(40, 90)
+    };
+    blackHole.startY = blackHole.y;
+    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
+  }
+}
+
+function handleBlackHole() {
+  if (!blackHole) return;
+  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
+  blackHole.x += blackHole.speed * dir;
+  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
+  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
+  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
+  if (audioStarted) {
+    let centerDist = abs(W/2 - blackHole.x);
+    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
+    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo;
+    bhOsc.amp(vol, 0.1);
+    bhOsc.freq(32 + n * 12);
+  }
+
+  push(); 
+  translate(blackHole.x, blackHole.y); 
+  noStroke();
+  for(let i = 5; i > 0; i--) {
+    fill(10 + i*10, 0, 40 + i*20, 25);
+    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10);
+    ellipse(0, 0, s);
+  }
+  fill(0);
+  ellipse(0, 0, jitterSize); 
+  pop();
+
+  for (let i = pegs.length - 1; i >= 0; i--) {
+    let p = pegs[i];
+    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
+    if (d < jitterSize * 0.55 && random() < 0.23) {
+      Matter.Composite.remove(world, p);
+      createExplosion(p.position.x, p.position.y);
+      playExplosionSound();
+      pegs.splice(i, 1);
+    }
+  }
+
+  for (let i = balls.length - 1; i >= 0; i--) {
+    let b = balls[i];
+    if (!b.body) continue;
+    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
+    if (d < jitterSize * 0.5) {
+      removeBall(b);
+      continue;
+    }
+
+    if (d < blackHole.size * 1.87) {
+      let safeDist = Math.max(d, 30);
+      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
+      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
+      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
+      Matter.Body.applyForce(b.body, b.body.position, force);
+    }
+  }
+
+  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+    blackHole = null;
+    if (audioStarted) bhOsc.amp(0, 0.5);
+  }
+}
+
+function resetGame() {
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100));
+  timer = floor(random(40, 181));
+  leaderboard = {};
+  totalBallsFired = 0;
+  roundCount++;
+  gameState = "PLAYING";
+  resultsTimer = 10;
+  eventOccurredThisRound = false;
+  currentDestination = generatePlanetName();
+  if (world) Matter.World.clear(world, false);
+  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
+  initGame();
+  generateDeepSpaceElements();
+  prepareSingularityEvents();
+}
+
+function drawProceduralHUD() {
+  push();
+  stroke(255, 10);
+  strokeWeight(1);
+  for(let i = 0; i < H; i += 4) {
+    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
+  }
+  fill(0, 255, 0, 150);
+  textSize(8);
+  textAlign(LEFT);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
+  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
+  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
+
+  textAlign(RIGHT);
+  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
+  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
+  pop();
+}
+
+function drawAntiBotOverlay() {
+  push();
+  if (random() < 0.1) {
+    fill(255, 150);
+    noStroke();
+    circle(random(W), random(H), random(1, 3));
+  }
+  if (random() < 0.02) {
+    fill(0, 255, 255, 100);
+    rect(0, random(H), W, random(1, 10));
+  }
+  if (random() < 0.05) {
+    fill(255, 0, 0, 50);
+    rect(random(W), random(H), 20, 20);
+  }
+  pop();
+}
+
+function triggerCosmicEvent() {
+  if (cosmicEvent) return;
+  eventOccurredThisRound = true;
+
+  let fromLeft = random() < 0.5;
+  let size = random(25, 45);
+  let startX = fromLeft ? -100 : W + 100;
+  let targetY = H - ZONE_H - random(20, 120);
+
+  let body = Matter.Bodies.circle(startX, targetY, size/2, {
+    isStatic: false,
+    isSensor: false,
+    density: 0.1,
+    frictionAir: 0,
+    collisionFilter: { mask: 1 }
+  });
+  let isComet = random() < 0.5;
+  cosmicEvent = {
+    body: body,
+    type: isComet ? "COMET" : "METEOR",
+    size: size,
+    color: isComet ? color(150, 200, 255) : color(255, 100, 50),
+    trail: []
+  };
+
+  Matter.World.add(world, body);
+  Matter.Body.setVelocity(body, { 
+    x: fromLeft ? random(12, 18) : random(-12, -18), 
+    y: random(-1, 1) 
+  });
+
+  if (audioStarted) {
+    let osc = new p5.Oscillator('sine');
+    osc.start();
+    osc.freq(random(100, 400));
+    osc.freq(random(800, 1200), 1.5);
+    osc.amp(0.1);
+    osc.amp(0, 1.5);
+    setTimeout(() => osc.stop(), 1600);
+  }
 }
