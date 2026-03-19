@@ -1,4 +1,4 @@
-// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE TIME ---
+// --- GALAXINKO (v5.4.1 - DENSE SHAPE SHIFTER EDITION) + LIVE TIME + SPAWN NA JOIN ---
 
 const GAME_TITLE = "GALAXINKO"; 
 
@@ -54,6 +54,7 @@ function connectTikfinity() {
     
     if (data.event === "join") {
       onUserJoin(name, data.data.profilePictureUrl);
+      spawnBall(name);                    // ← NOVĚ: spawn kuličky při připojení
     }
     if (data.event === "leave" || data.event === "quit") {
       onUserQuit(name);
@@ -112,76 +113,12 @@ let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 1
 
 // --- DENSER PEG SHAPE TEMPLATES ---
 const SHAPES = {
-  "HEART": [
-    "  ***** ***** ",
-    " ******* ******* ",
-    "*****************",
-    "*****************",
-    " *************** ",
-    "  ************* ",
-    "   *********** ",
-    "    ********* ",
-    "      ***** ",
-    "       *** ",
-    "        * "
-  ],
-  "APPLE": [
-    "       *** ",
-    "      **** ",
-    "        ** ",
-    "    ********** ",
-    "  ************** ",
-    " ****************",
-    " ****************",
-    " ****************",
-    "  ************** ",
-    "    ********** "
-  ],
-  "ALIEN": [
-    "      ******* ",
-    "   *********** ",
-    " *************** ",
-    " *** ***** *** ",
-    " *** ***** *** ",
-    " *************** ",
-    "  ************* ",
-    "    *** *** "
-  ],
-  "HOUSE": [
-    "        * ",
-    "       *** ",
-    "      ***** ",
-    "     ******* ",
-    "    ********* ",
-    "   *********** ",
-    "   *********** ",
-    "   *** *** *** ",
-    "   *** *** *** ",
-    "   *********** "
-  ],
-  "SWORD": [
-    "        * ",
-    "       *** ",
-    "       *** ",
-    "       *** ",
-    "       *** ",
-    "       *** ",
-    "  ************* ",
-    "  ************* ",
-    "       *** ",
-    "       *** ",
-    "        * "
-  ],
-  "MUSHROOM": [
-    "      ***** ",
-    "    ********* ",
-    "  ************* ",
-    " *************** ",
-    " *************** ",
-    "    *** *** ",
-    "    ********* ",
-    "    ********* "
-  ]
+  "HEART": ["  ***** ***** "," ******* ******* ","*****************","*****************"," *************** ","  ************* ","   *********** ","    ********* ","      ***** ","       *** ","        * "],
+  "APPLE": ["       *** ","      **** ","        ** ","    ********** ","  ************** "," ****************"," ****************"," ****************","  ************** ","    ********** "],
+  "ALIEN": ["      ******* ","   *********** "," *************** "," *** ***** *** "," *** ***** *** "," *************** ","  ************* ","    *** *** "],
+  "HOUSE": ["        * ","       *** ","      ***** ","     ******* ","    ********* ","   *********** ","   *********** ","   *** *** *** ","   *** *** *** ","   *********** "],
+  "SWORD": ["        * ","       *** ","       *** ","       *** ","       *** ","       *** ","  ************* ","  ************* ","       *** ","       *** ","        * "],
+  "MUSHROOM": ["      ***** ","    ********* ","  ************* "," *************** "," *************** ","    *** *** ","    ********* ","    ********* "]
 };
 
 function preload() {
@@ -378,8 +315,8 @@ function draw() {
     flashEffect--; 
   }
 
-  // === LIVE TIME (jen čas + datum se sekundami – viditelné na horní liště, bez kolize s názvem planety) ===
-  let pragueTime = new Intl.DateTimeFormat('cs-CZ', {
+  // === LIVE TIME (jen čas + datum se sekundami – viditelné na horní liště) ===
+  let liveTime = new Intl.DateTimeFormat('cs-CZ', {
     timeZone: 'Europe/Prague',
     dateStyle: 'short',
     timeStyle: 'medium'
@@ -388,7 +325,7 @@ function draw() {
   fill(255, 60, 60);
   textSize(13);
   textAlign(RIGHT);
-  text("LIVE TIME " + pragueTime, W - 20, 12);   // ← posunuto nahoru na y=12, aby to nezasahovalo do názvu planety
+  text("LIVE TIME " + liveTime, W - 20, 12);
 
   pop();
 }
@@ -703,8 +640,7 @@ function drawGalacticBackground() {
   for(let s of stars) { 
     ellipse(s.x, s.y, s.s);
     s.y += s.speed * currentTravelSpeed * 5; 
-    if (s.y > H) { s.y = 0; s.x = random(W);
-    } 
+    if (s.y > H) { s.y = 0; s.x = random(W); }
   }
   
   for(let p of massivePlanets) {
@@ -718,8 +654,7 @@ function drawGalacticBackground() {
     }
     noStroke(); fill(p.color); ellipse(0, 0, p.size); 
     pop();
-    if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W);
-    }
+    if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); }
   }
   
   updateComet();
@@ -743,19 +678,6 @@ function drawGalacticBackground() {
       fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3);
     }
     pop();
-
-    if (currentComet) {
-      let cometX = lerp(currentComet.x, currentComet.targetX, currentComet.progress);
-      let cometY = lerp(currentComet.y, currentComet.targetY, currentComet.progress);
-      if (dist(d.x, d.y, cometX, cometY) < d.size + currentComet.size) {
-        createExplosion(d.x, d.y);
-        playExplosionSound();
-        shakeAmount = 10;
-        spaceDebris.splice(i, 1);
-        currentComet = null;
-        continue;
-      }
-    }
 
     if (d.y > H + 150) {
       if (d.isRare) spaceDebris.splice(i, 1);
