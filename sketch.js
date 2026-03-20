@@ -1,6 +1,6 @@
 // --- GALAXINKO (v5.6.2 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK) ---
 // Changelog:
-// - v5.6.2: Skrytý TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na "⚙ TUNE" v levém horním rohu.
+// - v5.6.2: Skrytý TUNE panel – nyní jediná ⚙ ikona vpravo nahoře; po rozkliknutí AUTO režim nebo manuální slidery.
 //       	Klik na "TOP CONTRIBUTORS" vpravo vynuluje leaderboard. Okamžitá aplikace hodnot na fyziku/pegy/kuličky.
 // - v5.6.1: RICH SKY PACK – rozmanité pozadí (ROCKET, STATION, DRONE, PROBE, NEBULA + UFO/SATELLITE/ASTEROID/LEGEND).
 // - v5.6.0: 8bit STARSHIP (9%/kolo, kolize s míčky), přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
@@ -335,7 +335,7 @@ const LETTERS5x7 = {
 function buildWordShape(word) {
   word = word.replace(/\s+/g, "");
   const rows = 7;
-  let out = Array(rows).fill("").map(()=> "");
+  let out = Array(rows).fill("").map(() => "");
   for (let i = 0; i < word.length; i++) {
 	const ch = word[i].toUpperCase();
 	const glyph = LETTERS5x7[ch];
@@ -375,8 +375,12 @@ function setup() {
   for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
 
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
+  // === SINGLE GEAR + AUTO ===
+  if (tuneAutoMode) {
+	currentGravity = random(0.05, 1.95);
+	currentBounce = floor(random(1, 100));
+  }
+  // ==========================
 
   timer = floor(random(40, 181));
   roundInitialTime = timer;
@@ -495,12 +499,10 @@ function draw() {
   drawExplosions();
   drawUI();
 
-  // Skrytý TUNE panel (po UI, aby byl nahoře)
-  drawTuneStub();
-  // === TUNE TOGGLE (RIGHT) ===
-  drawTuneToggleButton();
-  // ============================
-  if (debugPanelVisible) drawTunePanel();
+  // === SINGLE GEAR + AUTO ===
+  drawTuneGearIconRight();
+  if (debugPanelVisible) drawTunePanelRight();
+  // ==========================
 
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
@@ -747,12 +749,8 @@ function mouseClicked() {
 	return;
   }
 
-  // Toggle TUNE panelem přes klik na stub (vlevo)
-  if (isMouseOverTuneStub()) { debugPanelVisible = !debugPanelVisible; return; }
-
-  // === TUNE TOGGLE (RIGHT) click ===
-  if (isMouseOverTuneToggle()) { debugPanelVisible = !debugPanelVisible; return; }
-  // ==================================
+  // Jediná ⚙ ikona vpravo – toggle panelu
+  if (isMouseOverTuneGearRight()) { debugPanelVisible = !debugPanelVisible; return; }
 }
 
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
@@ -879,9 +877,9 @@ function initGame() {
       	case "HOURGLASS": { let rowH=floor(i/15), colH=i%15, shrink=abs(rowH-15)*12; px=map(colH,0,15,100+shrink, W-100-shrink); py=160+rowH*25; break; }
       	case "GALAXY": { let aG=random(TWO_PI), radG=pow(random(),0.5)*350; px=W/2+cos(aG)*radG; py=450+sin(aG)*radG*0.8; break; }
       	case "HYPERCUBE": { let side=300, ix=i%10, iy=floor(i/10)%10, iz=floor(i/100); px=W/2-side/2+ix*30+iz*15; py=200+iy*30+iz*15; break; }
-      	case "DNA_HELIX": { let t=i*0.1, sideDNA=(i%2===0)?1:-1; px=W/2+sideDNA*cos(t)*100; py=160+i*4; break; }
+      	case "DNA_HELIX": { let t=i*0.1; let sideDNA=(i%2===0)?1:-1; px=W/2+sideDNA*cos(t)*100; py=160+i*4; break; }
       	case "SATURN_RINGS": { let angleS=random(TWO_PI), distS=(i<numPegs/2)?random(80,120):random(200,250); px=W/2+cos(angleS)*distS; py=400+sin(angleS)*distS*0.4; break; }
-      	case "FRACTAL_TREE": { let level=floor(log(i+1)/log(2)); px=W/2+(i%pow(2,level)-pow(2,level)/2)*(W/pow(2,level)); py=160+level*60; break; }
+      	case "FRACTAL_TREE": { let level=floor(Math.log(i+1)/Math.log(2)); px=W/2+(i%Math.pow(2,level)-Math.pow(2,level)/2)*(W/Math.pow(2,level)); py=160+level*60; break; }
       	case "HEXAGON_GRID": { let hRow=floor(i/12), hCol=i%12; px=100+hCol*60+(hRow%2)*30; py=180+hRow*50; break; }
       	default: { px=random(60, W-60); py=random(140, H-300); }
     	}
@@ -1125,6 +1123,7 @@ function drawGravityDust(){
   for(let d of dust){ d.y+=dustSpeed; if(d.y>H){ d.y=0; d.x=random(W);} rect(d.x,d.y,d.s,d.s); }
 }
 
+// --- Cosmic Events ---
 function prepareSingularityEvents(){ bhSpawnTimes=[]; if(random()<0.4) bhSpawnTimes.push(floor(random(5, timer*0.8))); }
 function checkSingularitySpawn(){
   if (bhSpawnTimes.includes(timer) && !blackHole) {
@@ -1215,8 +1214,12 @@ function handleSpaceship() {
 
 // --- Reset & HUD & Anti-bot ---
 function resetGame() {
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
+  // === SINGLE GEAR + AUTO ===
+  if (tuneAutoMode) {
+	currentGravity = random(0.05, 1.95);
+	currentBounce = floor(random(1, 100));
+  }
+  // ==========================
   timer = floor(random(40, 181));
   roundInitialTime = timer;
   leaderboard = {}; totalBallsFired = 0; roundCount++;
@@ -1248,143 +1251,98 @@ function drawAntiBotOverlay(){
   pop();
 }
 
-// --- Cosmic Events ---
-function triggerCosmicEvent(){
-  if (cosmicEvent) return; eventOccurredThisRound = true;
-  let fromLeft = random()<0.5; let size=random(25,45); let startX = fromLeft? -100 : W+100; let targetY = H - ZONE_H - random(20,120);
-  let body = Matter.Bodies.circle(startX, targetY, size/2, { isStatic:false, isSensor:false, density:0.1, frictionAir:0, collisionFilter:{mask:1} });
-  let isComet = random()<0.5;
-  cosmicEvent = { body, type:isComet?"COMET":"METEOR", size, color:isComet?color(150,200,255):color(255,100,50), trail:[] };
-  Matter.World.add(world, body);
-  Matter.Body.setVelocity(body, { x: fromLeft? random(12,18):random(-18,-12), y: random(-1,1) });
-  if (audioStarted){ let osc=new p5.Oscillator('sine'); osc.start(); osc.freq(random(100,400)); osc.freq(random(800,1200),1.5); osc.amp(0.1); osc.amp(0,1.5); setTimeout(()=>osc.stop(),1600); }
-}
-function handleCosmicEvent(){
-  if (!cosmicEvent) return; let pos = cosmicEvent.body.position;
-  cosmicEvent.trail.push({x:pos.x,y:pos.y,life:255}); if (cosmicEvent.trail.length>20) cosmicEvent.trail.shift();
-  push(); noStroke();
-  for(let i=0;i<cosmicEvent.trail.length;i++){
-	let a = map(i, 0, cosmicEvent.trail.length, 0, 150); fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),a);
-	ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
-  }
-  fill(255); ellipse(pos.x,pos.y,cosmicEvent.size); fill(cosmicEvent.color); ellipse(pos.x,pos.y,cosmicEvent.size*0.8);
-  pop();
-  if (pos.x<-300 || pos.x>W+300) { Matter.World.remove(world, cosmicEvent.body); cosmicEvent = null; }
-}
-
 /* =========================
-   TUNE PANEL (v5.6.2)
+   TUNE PANEL – SINGLE GEAR (right), AUTO/MANUAL
    ========================= */
 let debugPanelVisible = false;
-let draggingSlider = null; // "grav" | "bounce" | null
+let draggingSlider = null; // "Gravity" | "Peg Bounce" | null
+let tuneAutoMode = true;   // TRUE = auto random; FALSE = manuální (slidery)
 
+// Toggle panel klávesou
 function keyPressed() {
   if (key === 't' || key === 'T') debugPanelVisible = !debugPanelVisible;
 }
 
-function isMouseOverTuneStub() {
-  // malý stub vlevo nahoře (pod logem): x 8..86, y 8..28
-  return mouseX >= 8 && mouseX <= 86 && mouseY >= 8 && mouseY <= 28;
-}
-
-function drawTuneStub() {
-  // Pokud panel není vidět, ukaž nenápadný strip (vlevo)
-  const alpha = isMouseOverTuneStub() ? 180 : 120;
-  noStroke();
-  fill(5, 30, 40, 180);
-  rect(8, 8, 78, 20, 10);
-  fill(0, 255, 255, alpha);
-  textAlign(LEFT, CENTER);
-  textSize(10);
-  text("⚙ TUNE", 14, 18);
-}
-
-// === TUNE TOGGLE (RIGHT) – ON/OFF tlačítko vpravo nahoře ===
-function isMouseOverTuneToggle() {
-  // kompaktní tlačítko vpravo nahoře, aby nekolidovalo s texty (y=8, vpravo od okraje)
-  const w = 96, h = 20, pad = 8;
+// ⚙ ikona (vpravo nahoře)
+function isMouseOverTuneGearRight() {
+  const w = 28, h = 28, pad = 8;
   const x = W - w - pad, y = 8;
   return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
 }
-function drawTuneToggleButton() {
-  const w = 96, h = 20, pad = 8;
+function drawTuneGearIconRight() {
+  const w = 28, h = 28, pad = 8;
   const x = W - w - pad, y = 8;
-  const hov = isMouseOverTuneToggle();
+  const hov = isMouseOverTuneGearRight();
   noStroke();
-  fill(5, 30, 40, hov ? 220 : 180);
-  rect(x, y, w, h, 10);
-  stroke(0, 255, 255, hov ? 180 : 110);
+  fill(5, 30, 40, hov ? 230 : 190);
+  rect(x, y, w, h, 8);
+  stroke(0,255,255, hov ? 200 : 120);
   noFill();
-  rect(x, y, w, h, 10);
+  rect(x, y, w, h, 8);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(10);
-  fill(debugPanelVisible ? color(0,255,200) : color(180,220));
-  text(debugPanelVisible ? "⚙ TUNE: ON" : "⚙ TUNE: OFF", x + w / 2, y + h / 2);
+  textSize(16);
+  fill(0,255,255);
+  text("⚙", x + w/2, y + h/2 + 1);
 }
-// ==============================================================================
 
-function drawTunePanel() {
-  // Umístění pod horní lištou vlevo
-  const x = 14, y = 96, w = 240, h = 120;
+// Panel vpravo s AUTO přepínačem a slidery
+function drawTunePanelRight() {
+  const x = W - 260, y = 96, w = 246, h = 140;
+
   // background
-  noStroke();
-  fill(0, 20, 30, 230);
-  rect(x, y, w, h, 12);
-  stroke(0, 255, 255, 120); strokeWeight(2);
-  noFill();
-  rect(x+1, y+1, w-2, h-2, 12);
+  noStroke(); fill(0,20,30,230); rect(x, y, w, h, 12);
+  stroke(0,255,255,120); noFill(); strokeWeight(2); rect(x+1, y+1, w-2, h-2, 12);
 
-  // Title
-  noStroke();
-  fill(0, 255, 255);
-  textAlign(LEFT, CENTER);
-  textSize(12);
-  text("TUNE PANEL", x + 12, y + 18);
-  textSize(9);
-  fill(180);
-  text("T - toggle", x + w - 70, y + 18);
+  // Title + hint
+  noStroke(); fill(0,255,255); textAlign(LEFT, CENTER); textSize(12); text("TUNE", x + 12, y + 18);
+  textSize(9); fill(180); textAlign(RIGHT, CENTER); text("T - toggle", x + w - 12, y + 18);
 
-  // Slidery
-  const trackX = x + 16;
-  let lineY = y + 44;
+  // AUTO switch
+  const swW = 64, swH = 18, swX = x + w - swW - 12, swY = y + 40 - swH/2;
+  const autoHov = (mouseX >= swX && mouseX <= swX+swW && mouseY >= swY && mouseY <= swY+swH);
+  noStroke(); fill(5,30,40, autoHov?220:180); rect(swX, swY, swW, swH, 9);
+  stroke(0,255,255, autoHov?180:110); noFill(); rect(swX, swY, swW, swH, 9);
+  noStroke(); textAlign(CENTER,CENTER); textSize(10);
+  fill(tuneAutoMode ? color(0,255,200) : color(200));
+  text(tuneAutoMode ? "AUTO: ON" : "AUTO: OFF", swX + swW/2, swY + swH/2);
+  textAlign(LEFT, CENTER); fill(200); textSize(10); text("Režim:", x + 12, y + 40);
 
-  // Gravity slider (0.05–1.95)
-  drawSlider("Gravity", trackX, lineY, 200, currentGravity, 0.05, 1.95, (val)=>{
+  // Sliders (disable vizuálně i funkčně při AUTO)
+  const disabled = tuneAutoMode;
+  const trackX = x + 16, trackW = w - 32;
+  let lineY = y + 68;
+
+  drawSlider("Gravity", trackX, lineY, trackW, currentGravity, 0.05, 1.95, (val)=>{
+	if (disabled) return;
 	currentGravity = val;
 	if (world) world.gravity.y = currentGravity;
-  });
+  }, disabled);
   lineY += 40;
 
-  // Peg Bounce slider (1–99)
-  drawSlider("Peg Bounce", trackX, lineY, 200, currentBounce, 1, 99, (val)=>{
+  drawSlider("Peg Bounce", trackX, lineY, trackW, currentBounce, 1, 99, (val)=>{
+	if (disabled) return;
 	currentBounce = Math.round(val);
 	const pegRest = map(currentBounce, 1, 99, 0.1, 1.8);
-	// Aktualizace pegs a balls v běhu
 	for (let p of pegs) p.restitution = pegRest;
 	const ballRest = map(currentBounce, 1, 99, 0.4, 0.9);
 	for (let b of balls) if (b?.body) b.body.restitution = ballRest;
-  });
+  }, disabled);
 
-  // Nápověda
-  fill(150);
-  textSize(8);
-  textAlign(LEFT, TOP);
-  text("Tip: Gravity ovlivní pohyb hned. Peg Bounce upraví odraz pegů a kuliček (živě).", x + 12, y + h - 24);
+  // Tooltip
+  fill(150); textSize(8); textAlign(LEFT, TOP);
+  text("AUTO = náhodně (hned i po resetu). OFF = hodnoty dle sliderů (fixní).", x + 12, y + h - 24);
 }
 
-function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
+function drawSlider(label, sx, sy, w, value, minV, maxV, onChange, disabled=false) {
   // label + číslo
-  noStroke();
-  fill(200);
-  textAlign(LEFT, CENTER);
-  textSize(10);
-  text(label, sx, sy - 10);
+  noStroke(); textAlign(LEFT, CENTER); textSize(10);
+  fill(disabled? 140 : 200); text(label, sx, sy - 10);
   textAlign(RIGHT, CENTER);
   text(nf(value, 1, 2), sx + w, sy - 10);
 
   // track
-  stroke(0, 255, 255, 140);
+  stroke(0, 255, 255, disabled?80:140);
   strokeWeight(3);
   line(sx, sy, sx + w, sy);
 
@@ -1392,11 +1350,11 @@ function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
   const t = map(value, minV, maxV, 0, 1, true);
   const kx = sx + t * w;
   noStroke();
-  fill(0, 255, 255, 220);
+  fill(0, 255, 255, disabled?120:220);
   circle(kx, sy, 10);
 
-  // pokud táhneme, přepočítej
-  if (draggingSlider && draggingSlider.name === label) {
+  // live drag
+  if (!disabled && draggingSlider && draggingSlider.name === label) {
 	const nt = constrain((mouseX - sx) / w, 0, 1);
 	const newVal = minV + nt * (maxV - minV);
 	draggingSlider.val = newVal;
@@ -1405,43 +1363,54 @@ function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
 }
 
 function handleTuneMousePressed() {
-  if (!debugPanelVisible) return;
+  // Klik na AUTO switch (pokud panel otevřen)
+  if (debugPanelVisible) {
+	const x = W - 260, y = 96, w = 246;
+	const swW = 64, swH = 18, swX = x + w - swW - 12, swY = y + 40 - swH/2;
+	if (mouseX >= swX && mouseX <= swX+swW && mouseY >= swY && mouseY <= swY+swH) {
+  	tuneAutoMode = !tuneAutoMode;
+  	if (tuneAutoMode) applyAutoRandomNow(); // okamžitá náhodná aplikace
+  	draggingSlider = null;
+  	return;
+	}
 
-  // zjisti, zda klik je uvnitř panelu a blízko slideru
-  const px = 14, py = 96, pw = 240, ph = 120;
-  if (mouseX < px || mouseX > px+pw || mouseY < py || mouseY > py+ph) { draggingSlider = null; return; }
+	// Drag sliderů jen při AUTO OFF (manual)
+	if (!tuneAutoMode) {
+  	const px = x, py = y, pw = w, ph = 140;
+  	if (mouseX < px || mouseX > px+pw || mouseY < py || mouseY > py+ph) { draggingSlider = null; return; }
 
-  // definuj pozice sliderů
-  const sx = px + 16, w = 200;
-  const gravY = py + 44;
-  const bounceY = py + 84;
+  	const trackX = px + 16, trackW = pw - 32;
+  	const gravY = py + 68;
+  	const bounceY = py + 108;
+  	const rad = 8;
 
-  // pokud je kurzor poblíž knobu, chytneme daný slider
-  const rad = 8;
-  // Gravity
-  let tG = map(currentGravity, 0.05, 1.95, 0, 1, true);
-  let kG = sx + tG * w;
-  if (dist(mouseX, mouseY, kG, gravY) <= rad + 4) {
-	draggingSlider = { name: "Gravity", val: currentGravity };
-	return;
+  	// Gravity
+  	let tG = map(currentGravity, 0.05, 1.95, 0, 1, true);
+  	let kG = trackX + tG * trackW;
+  	if (dist(mouseX, mouseY, kG, gravY) <= rad + 4) { draggingSlider = { name: "Gravity", val: currentGravity }; return; }
+
+  	// Peg Bounce
+  	let tB = map(currentBounce, 1, 99, 0, 1, true);
+  	let kB = trackX + tB * trackW;
+  	if (dist(mouseX, mouseY, kB, bounceY) <= rad + 4) { draggingSlider = { name: "Peg Bounce", val: currentBounce }; return; }
+	}
   }
-  // Peg Bounce
-  let tB = map(currentBounce, 1, 99, 0, 1, true);
-  let kB = sx + tB * w;
-  if (dist(mouseX, mouseY, kB, bounceY) <= rad + 4) {
-	draggingSlider = { name: "Peg Bounce", val: currentBounce };
-	return;
-  }
-  draggingSlider = null;
+
+  // Toggle panel ikonou vpravo
+  if (isMouseOverTuneGearRight()) { debugPanelVisible = !debugPanelVisible; return; }
 }
 
-function mouseDragged() {
-  // průběžně zpracováno v drawSlider (přes draggingSlider)
-}
+function mouseDragged() { /* dragging řeší drawSlider() přes draggingSlider */ }
+function mouseReleased() { draggingSlider = null; }
 
-function mouseReleased() {
-  draggingSlider = null;
+function applyAutoRandomNow() {
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100));
+  if (world) world.gravity.y = currentGravity;
+  const pegRest = map(currentBounce, 1, 99, 0.1, 1.8);
+  for (let p of pegs) p.restitution = pegRest;
+  const ballRest = map(currentBounce, 1, 99, 0.4, 0.9);
+  for (let b of balls) if (b?.body) b.body.restitution = ballRest;
 }
-
-// (Konec TUNE panelu)
+// (Konec TUNE panelu – SINGLE GEAR)
 
