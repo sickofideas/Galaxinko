@@ -1,6 +1,9 @@
-// --- GALAXINKO (v5.4.2 - PET TIMEOUT 60s EDITION) + LIVE TIME + SPAWN NA JOIN & LIKE ---
-// Opraveno pro TikFinity: spawn při eventu "roomUser" (připojení diváka)
-// NOVINKA: pet (obrázek uživatele) zmizí po 60 sekundách bez like (pěkný fade-out)
+// --- GALAXINKO (v5.4.3 - TEST SETTINGS PANEL + PET TIMEOUT 60s) + LIVE TIME + SPAWN NA JOIN & LIKE ---
+// Opraveno pro TikFinity: spawn při eventu "roomUser"
+// NOVINKA: skrytý klíč 🔑 (vlevo dole) → rozklikne panel s posuvníky (gravitace + odskok + spawn per join)
+// AUTO RANDOM tlačítko nastaví hodnoty jako hra normálně
+// posuvníky jdou přes maximum hry (gravitace až 2.0, bounce až 99, spawn až 10)
+// změny gravitace fungují okamžitě, bounce a spawn platí pro nové kuličky/peg
 
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
@@ -24,6 +27,7 @@ let shakeAmount = 0;
 let currentDestination = "";
 let currentGravity = 0.6;
 let currentBounce = 50;
+let spawnPerEvent = 1;                    // ← nová proměnná pro počet kuliček při joinu
 // --- VIEWER INTERACTION ---
 let viewerSpaceObjects = [];
 // --- COLLISION ELEMENT ---
@@ -36,6 +40,10 @@ const TEST_BOTS = ["ALFA_PRO", "CYBER_PUNK", "GALAXY_KID", "NEBULA", "STAR_LORD"
 // --- TIKFINITY WEBSOCKET ---
 let socket;
 const TIKFINITY_URL = "ws://localhost:21213/";
+// --- TEST SETTINGS PANEL (skrytý) ---
+let settingsPanelVisible = false;
+let gravitySlider, bounceSlider, spawnPerEventSlider, autoButton, keyButton;
+
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   socket.onopen = () => {
@@ -207,6 +215,60 @@ function setup() {
   generateDeepSpaceElements();
   prepareSingularityEvents();
   connectTikfinity();
+
+  // === SKRYTÝ TEST PANEL (🔑) ===
+  keyButton = createButton('🔑');
+  keyButton.position(15, H - 45);
+  keyButton.style('font-size', '28px');
+  keyButton.style('background', 'transparent');
+  keyButton.style('border', 'none');
+  keyButton.style('color', 'rgba(255,255,255,0.15)');
+  keyButton.style('cursor', 'pointer');
+  keyButton.mousePressed(toggleSettings);
+
+  gravitySlider = createSlider(0.05, 2.0, currentGravity, 0.01);
+  gravitySlider.position(40, 120);
+  gravitySlider.style('width', '220px');
+  gravitySlider.hide();
+
+  bounceSlider = createSlider(1, 99, currentBounce, 1);
+  bounceSlider.position(40, 170);
+  bounceSlider.style('width', '220px');
+  bounceSlider.hide();
+
+  spawnPerEventSlider = createSlider(1, 10, spawnPerEvent, 1);
+  spawnPerEventSlider.position(40, 220);
+  spawnPerEventSlider.style('width', '220px');
+  spawnPerEventSlider.hide();
+
+  autoButton = createButton('AUTO RANDOM');
+  autoButton.position(40, 270);
+  autoButton.style('width', '220px');
+  autoButton.hide();
+  autoButton.mousePressed(autoRandomSettings);
+}
+function toggleSettings() {
+  settingsPanelVisible = !settingsPanelVisible;
+  if (settingsPanelVisible) {
+    gravitySlider.show();
+    bounceSlider.show();
+    spawnPerEventSlider.show();
+    autoButton.show();
+  } else {
+    gravitySlider.hide();
+    bounceSlider.hide();
+    spawnPerEventSlider.hide();
+    autoButton.hide();
+  }
+}
+function autoRandomSettings() {
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100));
+  spawnPerEvent = floor(random(1, 4));
+  gravitySlider.value(currentGravity);
+  bounceSlider.value(currentBounce);
+  spawnPerEventSlider.value(spawnPerEvent);
+  if (world) world.gravity.y = currentGravity;
 }
 function startSpaceAudio() {
   if (audioStarted) return;
@@ -270,6 +332,15 @@ function updateJukebox() {
 function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
+
+  // === LIVE UPDATE Z POSUVNÍKŮ (jen když je panel otevřený) ===
+  if (settingsPanelVisible) {
+    currentGravity = gravitySlider.value();
+    currentBounce = bounceSlider.value();
+    spawnPerEvent = spawnPerEventSlider.value();
+    if (world) world.gravity.y = currentGravity;
+  }
+
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
   updateJukebox();
@@ -336,6 +407,23 @@ function draw() {
   if (gameState === "RESULTS") drawResultsOverlay();
   drawProceduralHUD();
   drawAntiBotOverlay();
+
+  // === TEST PANEL DRAW ===
+  if (settingsPanelVisible) {
+    push();
+    fill(0, 0, 30, 220);
+    rect(20, 80, 300, 240, 12);
+    fill(0, 255, 255);
+    textSize(14);
+    text("TEST SETTINGS 🔧", 40, 105);
+    textSize(11);
+    fill(255);
+    text("GRAVITY", 40, 145);
+    text("BOUNCE", 40, 195);
+    text("SPAWN PER JOIN", 40, 245);
+    pop();
+  }
+
   if (flashEffect > 0) {
     noStroke();
     fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100));
@@ -446,18 +534,23 @@ function onUserJoin(username, imgUrl) {
     color: [random(100, 255), random(100, 255), random(255)],
     img: null,
     angle: random(TWO_PI),
-    lastActiveTime: millis(),   // ← start 60s timeru
+    lastActiveTime: millis(),
     alpha: 255
   };
   if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
   viewerSpaceObjects.push(obj);
+
+  // === SPAWN PODLE POSUVNÍKU ===
+  for (let i = 0; i < spawnPerEvent; i++) {
+    spawnBall(username);
+  }
 }
 function updateUserLikes(username, count) {
   let obj = viewerSpaceObjects.find(o => o.name === username);
   if (obj) {
     obj.extraSize += count * 2;
     if (obj.extraSize > 150) obj.extraSize = 150;
-    obj.lastActiveTime = millis();   // ← RESET TIMERU při like
+    obj.lastActiveTime = millis();
     obj.alpha = 255;
   } else {
     onUserJoin(username, null);
@@ -468,7 +561,6 @@ function onUserQuit(username) {
   viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username);
 }
 function drawViewerObjects() {
-  // === 60s TIMEOUT + FADE ===
   for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
     let obj = viewerSpaceObjects[i];
     let inactive = millis() - obj.lastActiveTime;
@@ -482,8 +574,6 @@ function drawViewerObjects() {
       obj.alpha = 255;
     }
   }
-
-  // === DRAW ===
   for (let obj of viewerSpaceObjects) {
     obj.x += obj.vx + sin(frameCount * 0.01) * 0.1;
     obj.y += obj.vy + cos(frameCount * 0.01) * 0.1;
@@ -536,7 +626,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.4.2", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.4.3", logoX + 2, logoY + 34);
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
