@@ -1,7 +1,7 @@
 // --- GALAXINKO (v5.6.2 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK) ---
 // Changelog:
 // - v5.6.2: Skrytý TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na "⚙ TUNE" v levém horním rohu.
-//       	Klik na "TOP CONTRIBUTORS" vpravo vynuluje leaderboard. Okamžitá aplikace hodnot na fyziku/pegy/kuličky.
+//       	Klik na "TOP CONTRIBUTORS" vpravo vynuluje leaderboard. Okamžitná aplikace hodnot na fyziku/pegy/kuličky.
 // - v5.6.1: RICH SKY PACK – rozmanité pozadí (ROCKET, STATION, DRONE, PROBE, NEBULA + UFO/SATELLITE/ASTEROID/LEGEND).
 // - v5.6.0: 8bit STARSHIP (9%/kolo, kolize s míčky), přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
 // - v5.5.x: viewer efekty (fade-in/out, pulzy, bubliny, combo), opravy timeru a TikFinity eventů, audio unlock, stabilita.
@@ -497,9 +497,6 @@ function draw() {
 
   // Skrytý TUNE panel (po UI, aby byl nahoře)
   drawTuneStub();
-  // === TUNE TOGGLE (RIGHT) ===
-  drawTuneToggleButton();
-  // ============================
   if (debugPanelVisible) drawTunePanel();
 
   if (gameState === "WAITING") drawWaitingMessage();
@@ -747,12 +744,8 @@ function mouseClicked() {
 	return;
   }
 
-  // Toggle TUNE panelem přes klik na stub (vlevo)
-  if (isMouseOverTuneStub()) { debugPanelVisible = !debugPanelVisible; return; }
-
-  // === TUNE TOGGLE (RIGHT) click ===
-  if (isMouseOverTuneToggle()) { debugPanelVisible = !debugPanelVisible; return; }
-  // ==================================
+  // Toggle TUNE panelem přes klik na stub
+  if (isMouseOverTuneStub()) debugPanelVisible = !debugPanelVisible;
 }
 
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
@@ -1071,7 +1064,6 @@ function drawDebrisRocket(d){
   fill(255,160,0, 220); rect(-s*0.12, s*0.5, s*0.24, fl, 2);
   fill(255,220,0, 180); rect(-s*0.08, s*0.5, s*0.16, fl*0.8, 2);
 }
-
 function drawDebrisStation(d){
   let s = d.size;
   noFill(); stroke(d.colA); strokeWeight(2);
@@ -1288,7 +1280,7 @@ function isMouseOverTuneStub() {
 }
 
 function drawTuneStub() {
-  // Pokud panel není vidět, ukaž nenápadný strip (vlevo)
+  // Pokud panel není vidět, ukaž nenápadný strip
   const alpha = isMouseOverTuneStub() ? 180 : 120;
   noStroke();
   fill(5, 30, 40, 180);
@@ -1298,31 +1290,6 @@ function drawTuneStub() {
   textSize(10);
   text("⚙ TUNE", 14, 18);
 }
-
-// === TUNE TOGGLE (RIGHT) – ON/OFF tlačítko vpravo nahoře ===
-function isMouseOverTuneToggle() {
-  // kompaktní tlačítko vpravo nahoře, aby nekolidovalo s texty (y=8, vpravo od okraje)
-  const w = 96, h = 20, pad = 8;
-  const x = W - w - pad, y = 8;
-  return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-}
-function drawTuneToggleButton() {
-  const w = 96, h = 20, pad = 8;
-  const x = W - w - pad, y = 8;
-  const hov = isMouseOverTuneToggle();
-  noStroke();
-  fill(5, 30, 40, hov ? 220 : 180);
-  rect(x, y, w, h, 10);
-  stroke(0, 255, 255, hov ? 180 : 110);
-  noFill();
-  rect(x, y, w, h, 10);
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textSize(10);
-  fill(debugPanelVisible ? color(0,255,200) : color(180,220));
-  text(debugPanelVisible ? "⚙ TUNE: ON" : "⚙ TUNE: OFF", x + w / 2, y + h / 2);
-}
-// ==============================================================================
 
 function drawTunePanel() {
   // Umístění pod horní lištou vlevo
