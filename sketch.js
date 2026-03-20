@@ -1,12 +1,13 @@
-// --- GALAXINKO (v5.6.2 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK) ---
+// --- GALAXINKO (v5.7.0 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK + VISIBLE PETS) ---
 // Changelog:
+// - v5.7.0: Změna chování diváků na pozadí (Pets) – 100% viditelný profilový obrázek a jméno, konec zašedlých bublin. 
+//           Při připojení na live stream se okamžitě spawne 1 kulička a pet zůstane aktivní 60 vteřin. Pokud nedá like, zmizí.
 // - v5.6.2: TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na ikonu "⚙" vpravo nahoře.
-//       	Klik na "TOP CONTRIBUTORS" vpravo vynuluje leaderboard. Okamžitá aplikace hodnot na fyziku/pegy/kuličky.
-// - v5.6.1: RICH SKY PACK – rozmanité pozadí (ROCKET, STATION, DRONE, PROBE, NEBULA + UFO/SATELLITE/ASTEROID/LEGEND).
-// - v5.6.0: 8bit STARSHIP (9%/kolo, kolize s míčky), přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
-// - v5.5.x: viewer efekty (fade-in/out, pulzy, bubliny, combo), opravy timeru a TikFinity eventů, audio unlock, stabilita.
+// - v5.6.1: RICH SKY PACK – rozmanité pozadí.
+// - v5.6.0: 8bit STARSHIP, přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
+
 const GAME_TITLE = "GALAXINKO";
-const VERSION_TAG = "v5.6.2";
+const VERSION_TAG = "v5.7.0";
 
 let engine, world;
 let balls = [];
@@ -61,11 +62,12 @@ function connectTikfinity() {
   	const rawName = payload?.nickname || payload?.uniqueId || msg?.nickname || msg?.user?.nickname || msg?.uniqueId;
   	const hasName = !!rawName && typeof rawName === "string";
   	const name = hasName ? rawName.toUpperCase().substring(0, 12) : "ANON";
-  	if (evt === "roomUser" && hasName) {
+  	
+    if (evt === "roomUser" && hasName) {
+        // Připojení diváka - spawne objekt a spawne 1 kuličku
     	onUserJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
-    	updateUserLikes(name, 1);
     	setTimeout(() => spawnBall(name), 120);
-    	console.log("→ JOIN SPAWN & LIKE:", name);
+    	console.log("→ JOIN SPAWN:", name);
   	}
 
   	if (evt === "like" && hasName) {
@@ -567,10 +569,10 @@ function onUserJoin(username, imgUrl) {
 	name: username,
 	x: random(100, W-100), y: random(100, H-300),
 	vx: random(-0.5, 0.5), vy: random(-0.5, 0.5),
-	baseSize: 40, extraSize: 0,
+	baseSize: 50, extraSize: 0, // Zvětšeno pro lepší viditelnost
 	color: [random(100,255), random(100,255), random(255)],
 	img: null, angle: random(TWO_PI),
-	fadeAlpha: 0.0, state: "fadingIn", lastActive: now, inactivityLimit: 60,
+	fadeAlpha: 0.0, state: "fadingIn", lastActive: now, inactivityLimit: 60, // 60 sekund limit
 	pulses: [], popups: [], combo: 0, comboTTL: 0, haloPhase: random(TWO_PI),
     hitFlash: 0
   };
@@ -603,12 +605,14 @@ function addViewerScorePopup(username, points, col) {
 }
 
 function drawViewerObjects() {
-  const playTop = 115, playBottom = H - 280;
   for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
 	const obj = viewerSpaceObjects[i];
 	const inactiveSec = (millis() - obj.lastActive) / 1000;
+    
+    // Zmizí po 60 vteřinách neaktivity
 	if (obj.state !== "fadingOut" && inactiveSec > obj.inactivityLimit) obj.state = "fadingOut";
-	if (obj.state === "fadingIn") { obj.fadeAlpha = min(1, obj.fadeAlpha + 0.02); if (obj.fadeAlpha >= 0.999) obj.state = "active"; }
+	
+    if (obj.state === "fadingIn") { obj.fadeAlpha = min(1, obj.fadeAlpha + 0.02); if (obj.fadeAlpha >= 0.999) obj.state = "active"; }
 	else if (obj.state === "fadingOut") { obj.fadeAlpha = max(0, obj.fadeAlpha - 0.01); if (obj.fadeAlpha <= 0.001) { viewerSpaceObjects.splice(i,1); continue; } }
 	else { obj.haloPhase += 0.02; }
 	obj.x += obj.vx + sin(frameCount*0.01)*0.1; obj.y += obj.vy + cos(frameCount*0.01)*0.1; obj.angle += 0.003;
@@ -649,25 +653,28 @@ function drawViewerObjects() {
 
 	obj.extraSize *= 0.995;
 	if (obj.extraSize < 0.05) obj.extraSize = 0; if (obj.comboTTL>0) obj.comboTTL--; else obj.combo = max(0, obj.combo - 0.3);
-	const overlapFactor = (obj.y > playTop && obj.y < playBottom) ? 0.55 : 1.0;
-	const baseAlpha = 120 * obj.fadeAlpha * overlapFactor;
+    
+    // Plná viditelnost profilů, ignorujeme tmavnutí na pozadí
+	const alphaVal = 255 * obj.fadeAlpha; 
 
 	push(); translate(obj.x, obj.y); rotate(obj.angle);
 	const totalS = obj.baseSize + obj.extraSize;
 	const haloPulse = (sin(obj.haloPhase)*0.5 + 0.5); const comboBoost = min(1, obj.combo/50);
 	noStroke();
-	fill(obj.color[0], obj.color[1], obj.color[2], (18 + 40*comboBoost + 12*haloPulse) * obj.fadeAlpha * overlapFactor);
-	ellipse(0,0, totalS + 26 + comboBoost*14);
+    
+    // Výraznější pozadí okolo profilovky
+	fill(obj.color[0], obj.color[1], obj.color[2], (50 + 40*comboBoost + 20*haloPulse) * obj.fadeAlpha);
+	ellipse(0,0, totalS + 15 + comboBoost*10);
     
     if (obj.hitFlash > 0) {
-        fill(255, obj.hitFlash * obj.fadeAlpha * overlapFactor);
+        fill(255, obj.hitFlash * obj.fadeAlpha);
         ellipse(0, 0, totalS + 10);
         obj.hitFlash = max(0, obj.hitFlash - 15);
     }
 
 	for (let k=obj.pulses.length-1; k>=0; k--) {
   	const p = obj.pulses[k]; noFill();
-  	stroke(red(p.col), green(p.col), blue(p.col), p.alpha * overlapFactor * obj.fadeAlpha);
+  	stroke(red(p.col), green(p.col), blue(p.col), p.alpha * obj.fadeAlpha);
   	strokeWeight(2); ellipse(0,0,p.r);
   	p.r += 3.2; p.alpha -= 6; if (p.r > p.maxR || p.alpha <= 0) obj.pulses.splice(k,1);
 	}
@@ -675,23 +682,39 @@ function drawViewerObjects() {
 	for (let s=0;s<sparks;s++) {
   	const a = (frameCount*0.05 + s*(TWO_PI/sparks));
   	const rr = totalS*0.6 + 6 + s*0.6;
-  	noStroke(); fill(255,180,0, (80+80*comboBoost)*obj.fadeAlpha*overlapFactor); ellipse(cos(a)*rr, sin(a*1.1)*rr*0.6, 3,3);
+  	noStroke(); fill(255,180,0, (80+80*comboBoost)*obj.fadeAlpha); ellipse(cos(a)*rr, sin(a*1.1)*rr*0.6, 3,3);
 	}
-	push(); blendMode(SOFT_LIGHT);
-	const imgAlpha = baseAlpha * 0.9;
-	if (obj.img) { push(); imageMode(CENTER); tint(255, imgAlpha); image(obj.img, 0,0, totalS, totalS); pop(); }
-	else { fill(obj.color[0],obj.color[1],obj.color[2], imgAlpha); ellipse(0,0,totalS); fill(255, imgAlpha); textAlign(CENTER,CENTER); textSize(totalS*0.3); text(obj.name[0],0,0); }
+    
+    // Vykreslení 100% viditelného profilového obrázku
+	if (obj.img) { 
+        push(); 
+        imageMode(CENTER); 
+        tint(255, alphaVal); 
+        image(obj.img, 0,0, totalS, totalS); 
+        pop(); 
+    } else { 
+        fill(obj.color[0],obj.color[1],obj.color[2], alphaVal); 
+        ellipse(0,0,totalS); 
+        fill(255, alphaVal); 
+        textAlign(CENTER,CENTER); 
+        textSize(totalS*0.4); 
+        text(obj.name[0],0,0); 
+    }
 	pop();
-	rotate(-obj.angle); fill(255, 200 * obj.fadeAlpha * overlapFactor); textSize(10); textAlign(CENTER);
-	text(obj.name, 0, totalS/2 + 15);
+    
+    // Jméno nad objektem (nerotuje s objektem)
+	fill(255, alphaVal); 
+    textSize(11); 
+    textAlign(CENTER);
+	text(obj.name, obj.x, obj.y + totalS/2 + 18);
+    
 	for (let b=obj.popups.length-1; b>=0; b--) {
-  	const bb = obj.popups[b]; push(); translate(bb.x, bb.y);
+  	const bb = obj.popups[b]; push(); translate(obj.x + bb.x, obj.y + bb.y);
   	noStroke();
-  	fill(red(bb.col), green(bb.col), blue(bb.col), bb.alpha * obj.fadeAlpha * overlapFactor); textAlign(CENTER,CENTER); textSize(12); text(bb.text,0,0);
+  	fill(red(bb.col), green(bb.col), blue(bb.col), bb.alpha * obj.fadeAlpha); textAlign(CENTER,CENTER); textSize(12); text(bb.text,0,0);
   	pop(); bb.y += bb.vy; bb.alpha -= 4;
   	if (bb.alpha <= 0) obj.popups.splice(b,1);
 	}
-	pop();
   }
 }
 
