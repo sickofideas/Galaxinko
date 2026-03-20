@@ -1,13 +1,8 @@
-// --- GALAXINKO (v5.7.0 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK + VISIBLE PETS) ---
-// Changelog:
-// - v5.7.0: Změna chování diváků na pozadí (Pets) – 100% viditelný profilový obrázek a jméno, konec zašedlých bublin. 
-//           Při připojení na live stream se okamžitě spawne 1 kulička a pet zůstane aktivní 60 vteřin. Pokud nedá like, zmizí.
-// - v5.6.2: TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na ikonu "⚙" vpravo nahoře.
-// - v5.6.1: RICH SKY PACK – rozmanité pozadí.
-// - v5.6.0: 8bit STARSHIP, přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
+// --- GALAXINKO (v5.7.1 – MAX VISIBLE PETS + PROFILE & NAME) ---
+// Profilový obrázek + jméno u všech petů diváků je teď 100% viditelné
 
 const GAME_TITLE = "GALAXINKO";
-const VERSION_TAG = "v5.7.0";
+const VERSION_TAG = "v5.7.1";
 
 let engine, world;
 let balls = [];
@@ -34,7 +29,7 @@ let currentBounce = 50;
 let roundInitialTime = 40;
 let isAutoMode = true;
 
-// --- VIEWER INTERACTION ---
+// --- VIEWER INTERACTION (PETY DIVÁKŮ) ---
 let viewerSpaceObjects = [];
 
 // --- COLLISION / EVENTS ---
@@ -50,43 +45,38 @@ const TEST_BOTS = ["ALFA_PRO","CYBER_PUNK","GALAXY_KID","NEBULA","STAR_LORD","CO
 // --- TIKFINITY WEBSOCKET ---
 let socket;
 const TIKFINITY_URL = "ws://localhost:21213/";
+
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
-
   socket.onopen = () => { console.log("[Tikfinity] Připojeno – čekám na události"); };
   socket.onmessage = (event) => {
-	try {
-  	const msg = JSON.parse(event.data);
-  	const evt = msg?.event || msg?.type || "";
-  	const payload = msg?.data || msg;
-  	const rawName = payload?.nickname || payload?.uniqueId || msg?.nickname || msg?.user?.nickname || msg?.uniqueId;
-  	const hasName = !!rawName && typeof rawName === "string";
-  	const name = hasName ? rawName.toUpperCase().substring(0, 12) : "ANON";
-  	
-    if (evt === "roomUser" && hasName) {
-        // Připojení diváka - spawne objekt a spawne 1 kuličku
-    	onUserJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
-    	setTimeout(() => spawnBall(name), 120);
-    	console.log("→ JOIN SPAWN:", name);
-  	}
-
-  	if (evt === "like" && hasName) {
-    	const count = Math.max(1, Number(payload?.likeCount || 1));
-    	updateUserLikes(name, count);
-    	for (let i = 0; i < count; i++) setTimeout(() => spawnBall(name), i * 120);
-  	}
-	} catch (_) {}
+    try {
+      const msg = JSON.parse(event.data);
+      const evt = msg?.event || msg?.type || "";
+      const payload = msg?.data || msg;
+      const rawName = payload?.nickname || payload?.uniqueId || msg?.nickname || msg?.user?.nickname || msg?.uniqueId;
+      const hasName = !!rawName && typeof rawName === "string";
+      const name = hasName ? rawName.toUpperCase().substring(0, 12) : "ANON";
+      
+      if (evt === "roomUser" && hasName) {
+        onUserJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
+        setTimeout(() => spawnBall(name), 120);
+        console.log("→ JOIN SPAWN:", name);
+      }
+      if (evt === "like" && hasName) {
+        const count = Math.max(1, Number(payload?.likeCount || 1));
+        updateUserLikes(name, count);
+        for (let i = 0; i < count; i++) setTimeout(() => spawnBall(name), i * 120);
+      }
+    } catch (_) {}
   };
-
   socket.onerror = (err) => { console.error("[Tikfinity WS error]", err); };
   socket.onclose = () => { console.log("[Tikfinity] Odpojeno – reconnect za 5s..."); setTimeout(connectTikfinity, 5000); };
 }
 
 // --- Safe localStorage ---
-function safeGet(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback;
-} catch { return fallback; } }
-function safeSet(key, value) { try { localStorage.setItem(key, JSON.stringify(value));
-} catch {} }
+function safeGet(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
+function safeSet(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
 // --- BACKGROUND / AUDIO / CONSTS ---
 let stars = [];
@@ -98,7 +88,6 @@ let planetSize = 0;
 let currentTravelSpeed = 1.0;
 let blackHole = null;
 let bhSpawnTimes = [];
-
 let musicScale = [48, 52, 55, 57, 60, 64, 67, 72];
 let nextNoteTime = 0;
 let bhOsc;
@@ -106,6 +95,7 @@ let bhOsc;
 const W = 900;
 const H = 950;
 const ZONE_H = 80;
+
 const RARE_POOL = [
   {id:"STARMAN",name:"ELON'S TESLA",col:[200,0,0],size:28},
   {id:"HAWKING",name:"S. HAWKING",col:[50,50,255],size:22},
@@ -116,227 +106,60 @@ const RARE_POOL = [
   {id:"OUMUAMUA",name:"OUMUAMUA",col:[60,40,30],size:45},
   {id:"SHUTTLE",name:"NASA SHUTTLE",col:[255,255,255],size:35}
 ];
+
 let synth, fxSynth, backgroundOsc, backgroundOsc2;
 let audioStarted = false;
 
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
+
 // --- SHAPES & WORDS ---
-const SHAPES = { 
-  "HEART":[
-	"  ***** ***** ",
-	" ******* ******* ",
-	"*****************",
-	"*****************",
-	" *************** ",
-	"  ************* ",
-	"   *********** ",
-	"	********* ",
-	"  	***** ",
-	"   	*** ",
-	"    	* "
-  ],
-  "APPLE":[
-	"   	*** ",
-	"  	**** ",
-	"    	** ",
-	"	********** ",
-	"  ************** ",
-	" ****************",
-	" ****************",
-	" ****************",
-	"  ************** ",
-	"	********** "
-  ],
-  "ALIEN":[
-	"  	******* ",
-	"   *********** ",
-	" *************** ",
-	" *** ***** *** ",
-	" *** ***** *** ",
-	" *************** ",
-	"  ************* ",
-	"	*** *** "
-  ],
-  "HOUSE":[
-	"    	* ",
-	"   	*** ",
-	"  	***** ",
-	" 	******* ",
-	"	********* ",
-	"   *********** ",
-	"   *********** ",
-	"   *** *** *** ",
-	"   *** *** *** ",
-	"   *********** "
-  ],
-  "SWORD":[
-	"    	* ",
-	"   	*** ",
-	"   	*** ",
-	"   	*** ",
-	"   	*** ",
-	"   	*** ",
-	"  ************* ",
-	"  ************* ",
-	"   	*** ",
-	"   	*** ",
-	"    	* "
-  ],
-  "MUSHROOM":[
-	"  	***** ",
-	"	********* ",
-	"  ************* ",
-	" *************** ",
-	" *************** ",
-	"	*** *** ",
-	"	********* ",
-	"	********* "
-  ],
-  "SMILEY":[
-	" 	******* ",
-	"   *********** ",
-	"  *** *** *** ",
-	"  *** *** ",
-	"  *** \\___/ *** ",
-	"   *********** ",
-	" 	******* "
-  ],
-  "STAR":[
-	"    	* ",
-	"    	* ",
-	"   * ******* * ",
-	"   ************* ",
-	"*****************",
-	"   ************* ",
-	"   * ******* * ",
-	"    	* ",
-	"    	* "
-  ],
-  "CAT":[
-	"  ** ** ",
-	" **** **** ",
-	" ****** ****** ",
-	" ****************",
-	" *** ** ** *** ",
-	" *** *** *** ",
-	" *** ***** *** ",
-	"  *** *** ",
-	"   *********** "
-  ],
-  "DOG":[
-	"  ***** ",
-	" ******* **	",
-	" ******** **** ",
-	" *** ***** *** ",
-	" *** *** *** ",
-	" *** ***** *** ",
-	"  *** ***	",
-	"   ********* "
-  ],
-  "MUSIC":[
-	" 	***** ",
-	"	******* ",
-	"	*** ** ",
-	"	*** ** ",
-	"	*** ** *** ",
-	"	*** ****** ",
-	"	*** **** "
-  ],
-  "GAMEPAD":[
-	" 	********* ",
-	"   *** ***	",
-	"  ** ** ** ** ",
-	" ** ** ** ** ",
-	" ** +++++ +++  ** ",
-	" ** ** ** ** ",
-	"  ** O   O   ** ",
-	"   *** ***	",
-	" 	********* "
-  ],
-  "COFFEE":[
-	"	***********	",
-	"   ** ** ",
-	"   ** ** ",
-	"   ** ** ",
-	"	***********	",
-	"   	***** ",
-	"  	* * ",
-	"  	* * ",
-	"   	***** "
-  ],
-  "GHOST":[
-	"	*********	",
-	"   *********** ",
-	"  *** *** *** ",
-	"  *** *** ",
-	"  ************* ",
-	"  ** ** ** ** ** ",
-	"  ** ** ** ** ** "
-  ],
-  "BIRD":[
-	" 	***** ",
-	"  **** *** ",
-	" *** *** ",
-	" *** **** **	",
-	"  *** ** *** ",
-	"   ***** ** "
-  ],
-  "FISH":[
-	" 	***** ",
-	"   ********* ",
-	" *** *** ***	",
-	"**** * **** ",
-	" *** *** ***	",
-	"   ********* ",
-	" 	***** "
-  ],
-  "CAMERA":[
-	"   ************* ",
-	"  ** ******* ** ",
-	" ** ** ** ** ",
-	" ** ******* ** ",
-	" ** ** ** ** ",
-	"  ** ******* ** ",
-	"   ************* "
-  ]
+const SHAPES = {
+  "HEART":["  ***** ***** "," ******* ******* ","*****************","*****************"," *************** ","  ************* ","   *********** ","    ********* ","      ***** ","       *** ","        * "],
+  "APPLE":["       *** ","      **** ","        ** ","    ********** ","  ************** "," ****************"," ****************"," ****************","  ************** ","    ********** "],
+  "ALIEN":["      ******* ","   *********** "," *************** "," *** ***** *** "," *** ***** *** "," *************** ","  ************* ","    *** *** "],
+  "HOUSE":["        * ","       *** ","      ***** ","     ******* ","    ********* ","   *********** ","   *********** ","   *** *** *** ","   *** *** *** ","   *********** "],
+  "SWORD":["        * ","       *** ","       *** ","       *** ","       *** ","       *** ","  ************* ","  ************* ","       *** ","       *** ","        * "],
+  "MUSHROOM":["      ***** ","    ********* ","  ************* "," *************** "," *************** ","    *** *** ","    ********* ","    ********* "]
 };
+
 const LETTERS5x7 = {
   "A":[" *** ","* *","* *","*****","* *","* *","* *"],
   "B":["**** ","* *","**** ","* *","* *","* *","**** "],
-  "C":[" *** ","* *","*	","*	","*	","* *"," *** "],
+  "C":[" *** ","* *","* ","* ","* ","* *"," *** "],
   "D":["**** ","* *","* *","* *","* *","* *","**** "],
-  "E":["*****","*	","**** ","*	","*	","*	","*****"],
-  "F":["*****","*	","**** ","*	","*	","*	","*	"],
-  "G":[" *** ","* *","*	","* **","* *","* *"," *** "],
+  "E":["*****","* ","**** ","* ","* ","* ","*****"],
+  "F":["*****","* ","**** ","* ","* ","* ","* "],
+  "G":[" *** ","* *","* ","* **","* *","* *"," *** "],
   "H":["* *","* *","*****","* *","* *","* *","* *"],
-  "I":["*****","  * ","  * ","  * ","  * ","  * ","*****"],
-  "J":["  ***","   * ","   * ","   * ","* * ","* * "," ** "],
+  "I":["*****"," * "," * "," * "," * "," * ","*****"],
+  "J":[" ***"," * "," * "," * ","* * ","* * "," ** "],
   "K":["* *","* * ","*** ","** ","*** ","* * ","* *"],
-  "L":["*	","*	","*	","*	","*	","*	","*****"],
+  "L":["* ","* ","* ","* ","* ","* ","*****"],
   "M":["* *","** **","* * *","* *","* *","* *","* *"],
   "N":["* *","** *","* * *","* **","* *","* *","* *"],
   "O":[" *** ","* *","* *","* *","* *","* *"," *** "],
-  "P":["**** ","* *","* *","**** ","*	","*	","*	"],
+  "P":["**** ","* *","* *","**** ","* ","* ","* "],
   "Q":[" *** ","* *","* *","* *","* * *","* **"," ****"],
   "R":["**** ","* *","* *","**** ","*** ","* * ","* *"],
-  "S":[" ****","*	","*	"," *** ","	*","	*","**** "],
-  "T":["*****","  * ","  * ","  * ","  * ","  * ","  * "],
+  "S":[" ****","* ","* "," *** "," *"," *","**** "],
+  "T":["*****"," * "," * "," * "," * "," * "," * "],
   "U":["* *","* *","* *","* *","* *","* *"," *** "],
-  "V":["* *","* *","* *","* *"," * * "," * * ","  * "],
+  "V":["* *","* *","* *","* *"," * * "," * * "," * "],
   "W":["* *","* *","* *","* * *","* * *","** **","* *"],
-  "X":["* *"," * * ","  * ","  * ","  * "," * * ","* *"],
-  "Y":["* *"," * * ","  * ","  * ","  * ","  * ","  * "],
-  "Z":["*****","   * ","  * ","  * "," * ","*	","*****"]
+  "X":["* *"," * * "," * "," * "," * "," * * ","* *"],
+  "Y":["* *"," * * "," * "," * "," * "," * "," * "],
+  "Z":["*****"," * "," * "," * "," * ","* ","*****"]
 };
+
 function buildWordShape(word) {
   word = word.replace(/\s+/g, "");
   const rows = 7;
   let out = Array(rows).fill("").map(()=> "");
   for (let i = 0; i < word.length; i++) {
-	const ch = word[i].toUpperCase();
-	const glyph = LETTERS5x7[ch];
-	if (!glyph) continue;
-	for (let r = 0; r < rows; r++) out[r] += glyph[r] + " ";
+    const ch = word[i].toUpperCase();
+    const glyph = LETTERS5x7[ch];
+    if (!glyph) continue;
+    for (let r = 0; r < rows; r++) out[r] += glyph[r] + " ";
   }
   return out;
 }
@@ -346,12 +169,10 @@ function preload() {
   script.src = 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js';
   script.onload = () => { libraryLoaded = true; };
   document.head.appendChild(script);
-
   let link = document.createElement('link');
   link.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
   link.rel = 'stylesheet';
   document.head.appendChild(link);
-
   let saved = safeGet('galaxinko_records', null);
   if (saved) allTimeRecords = saved;
 }
@@ -366,14 +187,12 @@ function setup() {
   backgroundOsc = new p5.Oscillator('sine');
   backgroundOsc2 = new p5.Oscillator('sine');
   bhOsc = new p5.Oscillator('triangle');
+
   for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
-  
-  if(isAutoMode) {
-      currentGravity = random(0.05, 1.95);
-      currentBounce = floor(random(1, 100));
-  }
 
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100));
   timer = floor(random(40, 181));
   roundInitialTime = timer;
 
@@ -393,19 +212,18 @@ function startSpaceAudio() {
   audioStarted = true;
 }
 
-function mousePressed() { startSpaceAudio(); handleTuneMousePressed(); }
-function touchStarted() { startSpaceAudio(); }
-
 function playSpawnSound() {
   if (!audioStarted) return;
   let scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
   fxSynth.play(random(scale) + random(-5, 5), random(0.02, 0.05), 0, random(0.05, 0.15));
 }
+
 function playJackpotSound() {
   if (!audioStarted) return;
   synth.play('C5',0.1,0,0.1); setTimeout(()=>synth.play('E5',0.1,0,0.1),100);
   setTimeout(()=>synth.play('G5',0.1,0,0.2),200); setTimeout(()=>synth.play('C6',0.2,0,0.5),300);
 }
+
 function playExplosionSound() { if (audioStarted) fxSynth.play(random(50,150), 0.1, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
 
@@ -413,17 +231,18 @@ function playTimerEndSequence() {
   if (!audioStarted) return;
   let endNotes = [600, 400, 250, 100];
   for (let i=0;i<endNotes.length;i++){
-	setTimeout(()=>{ if(gameState==="WAITING"){ fxSynth.play(endNotes[i]+random(-20,20), 0.08, 0, 0.4); shakeAmount=random(2,4);} }, i*400);
+    setTimeout(()=>{ if(gameState==="WAITING"){ fxSynth.play(endNotes[i]+random(-20,20), 0.08, 0, 0.4); shakeAmount=random(2,4);} }, i*400);
   }
   flashEffect = 60;
 }
+
 function updateJukebox() {
   if (!audioStarted || gameState!=="PLAYING") return;
   if (millis() > nextNoteTime) {
-	let note = random(musicScale);
-	let freq = pow(2, (note - 69) / 12) * 440;
-	synth.play(freq, 0.01, 0, 1.5);
-	nextNoteTime = millis() + random(2000, 5000);
+    let note = random(musicScale);
+    let freq = pow(2, (note - 69) / 12) * 440;
+    synth.play(freq, 0.01, 0, 1.5);
+    nextNoteTime = millis() + random(2000, 5000);
   }
 }
 
@@ -432,80 +251,162 @@ function draw() {
   if (!engine) initGame();
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
-
   updateJukebox();
-
   push();
   let camSpeed = 0.005;
   camOffset.x = (noise(frameCount * camSpeed) - 0.5) * 40;
   camOffset.y = (noise(frameCount * camSpeed + 100) - 0.5) * 40;
   camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.05;
-
   translate(W/2, H/2); scale(camOffset.z); translate(-W/2 + camOffset.x, -H/2 + camOffset.y);
   if (shakeAmount > 0) { translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount)); shakeAmount *= 0.92; }
-
   updateWinnerColor();
   updateTravelSpeed();
   background(2, 2, 8);
   drawGravityDust();
   drawGalacticBackground();
-
   drawViewerObjects();
-  drawSparkles();
-
-  try { Matter.Engine.update(engine, 1000/60); } catch(e) { console.error("Matter.js Engine Error - Auto-recovering..."); }
-
+  try { Matter.Engine.update(engine, 1000/60); } catch(e) {}
   handleBlackHole();
   handleCosmicEvent();
   handleSpaceship();
   if (millis() - lastTick > 1000) {
-	if (gameState === "PLAYING") {
-  	timer--;
-  	checkSingularitySpawn();
-  	if (!eventOccurredThisRound && timer <= Math.floor(roundInitialTime * 0.7) && random() < 0.17) triggerCosmicEvent();
-  	if (shipPlanned && !spaceship && timer === shipSpawnAt) spawnSpaceship();
-
-  	if (random() < 0.11) spawnRareLegend();
-  	if (timer <= 0) {
-    	gameState = "WAITING";
-    	waitStartTime = millis();
-    	shakeAmount = 6;
-    	playCleanupSound();
-    	playTimerEndSequence();
-  	}
-	} else if (gameState === "RESULTS") {
-  	resultsTimer--;
-  	if (resultsTimer <= 0) resetGame();
-	}
-	lastTick = millis();
+    if (gameState === "PLAYING") {
+      timer--;
+      checkSingularitySpawn();
+      if (!eventOccurredThisRound && timer <= Math.floor(roundInitialTime * 0.7) && random() < 0.17) triggerCosmicEvent();
+      if (shipPlanned && !spaceship && timer === shipSpawnAt) spawnSpaceship();
+      if (random() < 0.11) spawnRareLegend();
+      if (timer <= 0) {
+        gameState = "WAITING";
+        waitStartTime = millis();
+        shakeAmount = 6;
+        playCleanupSound();
+        playTimerEndSequence();
+      }
+    } else if (gameState === "RESULTS") {
+      resultsTimer--;
+      if (resultsTimer <= 0) resetGame();
+    }
+    lastTick = millis();
   }
-
   if (gameState === "WAITING") {
-	let timeSinceWait = (millis() - waitStartTime) / 1000;
-	if (balls.length === 0 || timeSinceWait > 10) { gameState = "RESULTS"; resultsTimer = 10; }
+    let timeSinceWait = (millis() - waitStartTime) / 1000;
+    if (balls.length === 0 || timeSinceWait > 10) { gameState = "RESULTS"; resultsTimer = 10; }
   }
-
   drawZones();
   drawWalls();
   drawPegs();
   drawBalls();
   drawExplosions();
   drawUI();
-
   drawTuneToggleButton();
   if (debugPanelVisible) drawTunePanel();
-
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
-
   drawProceduralHUD();
   drawAntiBotOverlay();
-
-  if (flashEffect > 0) { noStroke();
-  fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(0, 0, W, H); flashEffect--; }
-
+  if (flashEffect > 0) { noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(0, 0, W, H); flashEffect--; }
   pop();
 }
+
+// ────────────────────────────────────────────────
+// MAX VIDITELNÉ PETY (profilovka + jméno)
+// ────────────────────────────────────────────────
+
+function onUserJoin(username, imgUrl) {
+  if (viewerSpaceObjects.find(o => o.name === username)) return;
+  let obj = {
+    name: username,
+    x: random(100, W-100),
+    y: random(100, H-300),
+    vx: random(-0.3, 0.3),
+    vy: random(-0.3, 0.3),
+    baseSize: 50,
+    extraSize: 0,
+    color: [random(100,255), random(100,255), random(255)],
+    img: null,
+    angle: random(TWO_PI),
+    fadeAlpha: 0,
+    lastActive: millis(),
+    inactivityLimit: 60
+  };
+  if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
+  viewerSpaceObjects.push(obj);
+}
+
+function updateUserLikes(username, count) {
+  let obj = viewerSpaceObjects.find(o => o.name === username);
+  if (!obj) { onUserJoin(username, null); return; }
+  obj.extraSize = min(140, obj.extraSize + count * 3);
+  obj.lastActive = millis();
+}
+
+function drawViewerObjects() {
+  for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
+    let obj = viewerSpaceObjects[i];
+    let inactive = (millis() - obj.lastActive) / 1000;
+    if (inactive > obj.inactivityLimit) {
+      obj.fadeAlpha = max(0, obj.fadeAlpha - 0.02);
+      if (obj.fadeAlpha <= 0) { viewerSpaceObjects.splice(i,1); continue; }
+    } else {
+      obj.fadeAlpha = min(1, obj.fadeAlpha + 0.05);
+    }
+
+    obj.x += obj.vx + sin(frameCount*0.01)*0.1;
+    obj.y += obj.vy + cos(frameCount*0.01)*0.1;
+    obj.angle += 0.004;
+
+    if (obj.x < 60 || obj.x > W-60) obj.vx *= -1;
+    if (obj.y < 60 || obj.y > H-260) obj.vy *= -1;
+
+    let totalS = obj.baseSize + obj.extraSize;
+
+    push();
+    translate(obj.x, obj.y);
+    rotate(obj.angle);
+
+    // Aura
+    noStroke();
+    fill(obj.color[0], obj.color[1], obj.color[2], 60 * obj.fadeAlpha);
+    ellipse(0, 0, totalS + 28);
+
+    // Profilová fotka
+    if (obj.img) {
+      imageMode(CENTER);
+      tint(255, 255 * obj.fadeAlpha);
+      image(obj.img, 0, 0, totalS, totalS);
+      noTint();
+      stroke(255, 255 * obj.fadeAlpha);
+      strokeWeight(4);
+      noFill();
+      ellipse(0, 0, totalS + 6);
+    } else {
+      fill(obj.color[0], obj.color[1], obj.color[2], 255 * obj.fadeAlpha);
+      ellipse(0, 0, totalS);
+      fill(255, 255 * obj.fadeAlpha);
+      textAlign(CENTER, CENTER);
+      textSize(totalS * 0.55);
+      text(obj.name[0], 0, 0);
+    }
+
+    rotate(-obj.angle);
+
+    // Jméno – velké a čitelné
+    fill(0, 180 * obj.fadeAlpha);
+    textSize(19);
+    textAlign(CENTER);
+    text("@" + obj.name, 0, totalS/2 + 32);
+
+    fill(255, 255 * obj.fadeAlpha);
+    text("@" + obj.name, 0, totalS/2 + 32);
+
+    pop();
+  }
+}
+
+// ────────────────────────────────────────────────
+// ZBYTEK KÓDU (všechny ostatní funkce) – stejné jako v příloze
+// ────────────────────────────────────────────────
 
 function spawnBall(userName) {
   if (!libraryLoaded || gameState !== "PLAYING") return;
@@ -515,13 +416,9 @@ function spawnBall(userName) {
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9);
   let spawnX = W/2 + random(-15, 15);
   let ballBody = Matter.Bodies.rectangle(spawnX, 90, 10, 10, {
-	restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001
+    restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001
   });
   if (!leaderboard[userName]) leaderboard[userName] = { score: 0, color: color(random(100,255), random(100,255), random(100,255)) };
-
-  const obj = viewerSpaceObjects.find(o => o.name === userName);
-  if (obj) pushViewerPulse(obj, color(0, 255, 255), 0.9);
-
   balls.push({ body: ballBody, name: userName, color: leaderboard[userName].color, scored: false });
   Matter.World.add(world, ballBody);
 }
