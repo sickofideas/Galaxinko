@@ -1,9 +1,9 @@
-// --- GALAXINKO (v5.4.6 - FIX TIMER RANGE + NICER LIVE TIME) ---
+// --- GALAXINKO (v5.4.7 - TIMER FIX + CLEAN UI) ---
 // Opraveno pro TikFinity: spawn při eventu "roomUser"
-// NOVINKA v5.4.6:
-// • Délka kola teď správně random(40, 181) sekund (bez záporných hodnot)
-// • Text "STABLE SINGULARITY SIMULATION" zmenšený, verze hry větší a viditelnější
-// • LIVE TIME box uprostřed nahoře ještě hezčí – retro styl, lepší barvy, menší, elegantnější
+// NOVINKA v5.4.7:
+// • Timer po každém kole správně random(40, 181) sekund (už žádné záporné hodnoty)
+// • LIVE box uprostřed nahoře už nekoliduje – text pod logem je pryč
+// • Verze hry na jednom řádku, čistější a profesionálnější vzhled
 
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
@@ -210,7 +210,7 @@ function setup() {
   for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   currentGravity = random(0.05, 1.95);
   currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 181));           // ← opraveno – vždy 40 až 181
+  timer = floor(random(40, 181));
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -423,7 +423,7 @@ function draw() {
     rect(0, 0, W, H);
     flashEffect--;
   }
-  // === HEZČÍ RETRO LIVE TIME BOX ===
+  // === HEZČÍ RETRO LIVE TIME BOX (bez kolize) ===
   let liveTime = new Intl.DateTimeFormat('cs-CZ', {
     timeZone: 'Europe/Prague',
     dateStyle: 'short',
@@ -625,10 +625,8 @@ function drawUI() {
   textSize(64);
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
-  textSize(9);                                    // ← zmenšeno
-  text("STABLE SINGULARITY SIMULATION", logoX + 2, logoY + 28);
-  textSize(12);                                   // ← verze větší a výraznější
-  text("v5.4.6", logoX + 2, logoY + 42);
+  textSize(11);
+  text("STABLE SINGULARITY SIMULATION v5.4.7", logoX + 2, logoY + 34);   // jeden řádek
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
@@ -1229,6 +1227,7 @@ function resetGame() {
   resultsTimer = 10;
   eventOccurredThisRound = false;
   currentDestination = generatePlanetName();
+  timer = floor(random(40, 181));                     // ← ZDE JE OPRAVA – timer se vždy resetuje
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
   initGame();
@@ -1327,5 +1326,96 @@ function handleCosmicEvent() {
   if (pos.x < -300 || pos.x > W + 300) {
     Matter.World.remove(world, cosmicEvent.body);
     cosmicEvent = null;
+  }
+}
+function drawGravityDust() {
+  let r = map(currentGravity, 0.05, 1.95, 100, 255);
+  let g = map(currentGravity, 0.05, 1.95, 200, 100);
+  let b = map(currentGravity, 0.05, 1.95, 255, 50);
+  fill(r, g, b, 150);
+  noStroke();
+  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
+  for (let d of dust) {
+    d.y += dustSpeed;
+    if (d.y > H) { d.y = 0; d.x = random(W); }
+    rect(d.x, d.y, d.s, d.s);
+  }
+}
+function prepareSingularityEvents() {
+  bhSpawnTimes = [];
+  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
+}
+function checkSingularitySpawn() {
+  if (bhSpawnTimes.includes(timer) && !blackHole) {
+    let fromLeft = random() < 0.5;
+    blackHole = {
+      x: fromLeft ? -150 : W + 150,
+      y: random(200, H - 450),
+      startY: 0,
+      targetX: fromLeft ? W + 250 : -250,
+      speed: random(0.8, 1.5),
+      size: random(12, 18),
+      noiseOffset: random(1000),
+      noiseSpeed: random(0.01, 0.02),
+      wobbleAmp: random(40, 90)
+    };
+    blackHole.startY = blackHole.y;
+    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
+  }
+}
+function handleBlackHole() {
+  if (!blackHole) return;
+  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
+  blackHole.x += blackHole.speed * dir;
+  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
+  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
+  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
+  if (audioStarted) {
+    let centerDist = abs(W/2 - blackHole.x);
+    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
+    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo;
+    bhOsc.amp(vol, 0.1);
+    bhOsc.freq(32 + n * 12);
+  }
+  push();
+  translate(blackHole.x, blackHole.y);
+  noStroke();
+  for(let i = 5; i > 0; i--) {
+    fill(10 + i*10, 0, 40 + i*20, 25);
+    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10);
+    ellipse(0, 0, s);
+  }
+  fill(0);
+  ellipse(0, 0, jitterSize);
+  pop();
+  for (let i = pegs.length - 1; i >= 0; i--) {
+    let p = pegs[i];
+    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
+    if (d < jitterSize * 0.55 && random() < 0.23) {
+      Matter.Composite.remove(world, p);
+      createExplosion(p.position.x, p.position.y);
+      playExplosionSound();
+      pegs.splice(i, 1);
+    }
+  }
+  for (let i = balls.length - 1; i >= 0; i--) {
+    let b = balls[i];
+    if (!b.body) continue;
+    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
+    if (d < jitterSize * 0.5) {
+      removeBall(b);
+      continue;
+    }
+    if (d < blackHole.size * 1.87) {
+      let safeDist = Math.max(d, 30);
+      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
+      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
+      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
+      Matter.Body.applyForce(b.body, b.body.position, force);
+    }
+  }
+  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+    blackHole = null;
+    if (audioStarted) bhOsc.amp(0, 0.5);
   }
 }
