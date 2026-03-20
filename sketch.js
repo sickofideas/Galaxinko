@@ -1,6 +1,6 @@
 // --- GALAXINKO (v5.6.2 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK) ---
 // Changelog:
-// - v5.6.2: Skrytý TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na "⚙ TUNE" v levém horním rohu.
+// - v5.6.2: TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na ikonu "⚙" vpravo nahoře.
 //       	Klik na "TOP CONTRIBUTORS" vpravo vynuluje leaderboard. Okamžitá aplikace hodnot na fyziku/pegy/kuličky.
 // - v5.6.1: RICH SKY PACK – rozmanité pozadí (ROCKET, STATION, DRONE, PROBE, NEBULA + UFO/SATELLITE/ASTEROID/LEGEND).
 // - v5.6.0: 8bit STARSHIP (9%/kolo, kolize s míčky), přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
@@ -14,7 +14,7 @@ let pegs = [];
 let zones = [];
 let walls = [];
 let explosions = [];
-let sparkles = []; // Pridano pro efekty kolizi divaku
+let sparkles = []; 
 let leaderboard = {};
 let timer = 40;
 let resultsTimer = 10;
@@ -31,6 +31,8 @@ let currentDestination = "";
 let currentGravity = 0.6;
 let currentBounce = 50;
 let roundInitialTime = 40;
+let isAutoMode = true;
+
 // --- VIEWER INTERACTION ---
 let viewerSpaceObjects = [];
 
@@ -61,7 +63,7 @@ function connectTikfinity() {
   	const name = hasName ? rawName.toUpperCase().substring(0, 12) : "ANON";
   	if (evt === "roomUser" && hasName) {
     	onUserJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
-    	updateUserLikes(name, 1); // 1x like pri pripojeni (vizualizace/combo/popups)
+    	updateUserLikes(name, 1);
     	setTimeout(() => spawnBall(name), 120);
     	console.log("→ JOIN SPAWN & LIKE:", name);
   	}
@@ -116,8 +118,8 @@ let synth, fxSynth, backgroundOsc, backgroundOsc2;
 let audioStarted = false;
 
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
-// --- SHAPES & WORDS (pro WORD viz dál) ---
-const SHAPES = { /* zkráceno pro přehlednost – ponech stejné jako v 5.6.1 */
+// --- SHAPES & WORDS ---
+const SHAPES = { 
   "HEART":[
 	"  ***** ***** ",
 	" ******* ******* ",
@@ -296,7 +298,6 @@ const SHAPES = { /* zkráceno pro přehlednost – ponech stejné jako v 5.6.1 *
 	"   ************* "
   ]
 };
-// 5x7 písmo pro WORD režim (A–Z)
 const LETTERS5x7 = {
   "A":[" *** ","* *","* *","*****","* *","* *","* *"],
   "B":["**** ","* *","**** ","* *","* *","* *","**** "],
@@ -365,15 +366,17 @@ function setup() {
   bhOsc = new p5.Oscillator('triangle');
   for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
+  
+  if(isAutoMode) {
+      currentGravity = random(0.05, 1.95);
+      currentBounce = floor(random(1, 100));
+  }
 
   timer = floor(random(40, 181));
   roundInitialTime = timer;
 
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
-  // RICH SKY PACK
   prepareSingularityEvents();
   planSpaceshipForRound();
   connectTikfinity();
@@ -389,8 +392,7 @@ function startSpaceAudio() {
 }
 
 function mousePressed() { startSpaceAudio(); handleTuneMousePressed(); }
-function touchStarted() { startSpaceAudio();
-}
+function touchStarted() { startSpaceAudio(); }
 
 function playSpawnSound() {
   if (!audioStarted) return;
@@ -403,8 +405,8 @@ function playJackpotSound() {
   setTimeout(()=>synth.play('G5',0.1,0,0.2),200); setTimeout(()=>synth.play('C6',0.2,0,0.5),300);
 }
 function playExplosionSound() { if (audioStarted) fxSynth.play(random(50,150), 0.1, 0, 0.2); }
-function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0);
-}
+function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
+
 function playTimerEndSequence() {
   if (!audioStarted) return;
   let endNotes = [600, 400, 250, 100];
@@ -447,7 +449,7 @@ function draw() {
   drawGalacticBackground();
 
   drawViewerObjects();
-  drawSparkles(); // Vykresleni jisker
+  drawSparkles();
 
   try { Matter.Engine.update(engine, 1000/60); } catch(e) { console.error("Matter.js Engine Error - Auto-recovering..."); }
 
@@ -488,11 +490,7 @@ function draw() {
   drawExplosions();
   drawUI();
 
-  // Skrytý TUNE panel (po UI, aby byl nahoře)
-  drawTuneStub();
-  // === TUNE TOGGLE (RIGHT) ===
   drawTuneToggleButton();
-  // ============================
   if (debugPanelVisible) drawTunePanel();
 
   if (gameState === "WAITING") drawWaitingMessage();
@@ -507,7 +505,6 @@ function draw() {
   pop();
 }
 
-// --- Balls ---
 function spawnBall(userName) {
   if (!libraryLoaded || gameState !== "PLAYING") return;
   if (!audioStarted) startSpaceAudio();
@@ -541,7 +538,8 @@ function drawBalls() {
 	rotate(-b.body.angle); fill(b.color); noStroke(); textAlign(CENTER); textSize(8); text(b.name, 0, -12);
 	pop();
 	for (let p of pegs) if (abs(pos.x - p.position.x) < 11 && abs(pos.y - p.position.y) < 11) p.glow = 255;
-	if (pos.y > H - ZONE_H - 10) {
+	
+    if (pos.y > H - ZONE_H - 10) {
   	Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
   	if (!b.scored) {
     	let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
@@ -559,10 +557,9 @@ function drawBalls() {
 	if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) removeBall(b);
   }
 }
-function removeBall(b) { Matter.World.remove(world, b.body); const idx = balls.indexOf(b); if (idx !== -1) balls.splice(idx, 1);
-}
 
-// --- Viewer objekty (pozadí) ---
+function removeBall(b) { Matter.World.remove(world, b.body); const idx = balls.indexOf(b); if (idx !== -1) balls.splice(idx, 1); }
+
 function onUserJoin(username, imgUrl) {
   if (viewerSpaceObjects.find(o => o.name === username)) return;
   let now = millis();
@@ -580,6 +577,7 @@ function onUserJoin(username, imgUrl) {
   if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
   viewerSpaceObjects.push(obj);
 }
+
 function updateUserLikes(username, count) {
   let obj = viewerSpaceObjects.find(o => o.name === username);
   if (!obj) { onUserJoin(username, null);
@@ -590,28 +588,28 @@ function updateUserLikes(username, count) {
   pushViewerPopup(obj, `+${count}`, color(255, 200, 0));
   obj.combo += count; obj.comboTTL = 120;
 }
-function onUserQuit(username) { let o = viewerSpaceObjects.find(v=>v.name===username); if (o) o.state = "fadingOut";
-}
-function pushViewerPulse(obj, col, strength=1.0) { obj.pulses.push({ r:(obj.baseSize+obj.extraSize)*0.6, maxR:(obj.baseSize+obj.extraSize)*(1.8+0.4*strength), alpha:160*strength, col });
-}
-function pushViewerPopup(obj, text, col) { obj.popups.push({ text, x:0, y:-(obj.baseSize+obj.extraSize)/2 - 8, vy:-0.35, alpha:220, col });
-}
+
+function onUserQuit(username) { let o = viewerSpaceObjects.find(v=>v.name===username); if (o) o.state = "fadingOut"; }
+
+function pushViewerPulse(obj, col, strength=1.0) { obj.pulses.push({ r:(obj.baseSize+obj.extraSize)*0.6, maxR:(obj.baseSize+obj.extraSize)*(1.8+0.4*strength), alpha:160*strength, col }); }
+
+function pushViewerPopup(obj, text, col) { obj.popups.push({ text, x:0, y:-(obj.baseSize+obj.extraSize)/2 - 8, vy:-0.35, alpha:220, col }); }
+
 function addViewerScorePopup(username, points, col) {
   const o = viewerSpaceObjects.find(v => v.name === username); if (!o) return;
   pushViewerPopup(o, `+${points}`, col || color(0,255,255));
   pushViewerPulse(o, col || color(0,255,255), 1.1);
   o.lastActive = millis(); o.state = "active";
 }
+
 function drawViewerObjects() {
   const playTop = 115, playBottom = H - 280;
   for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
 	const obj = viewerSpaceObjects[i];
 	const inactiveSec = (millis() - obj.lastActive) / 1000;
 	if (obj.state !== "fadingOut" && inactiveSec > obj.inactivityLimit) obj.state = "fadingOut";
-	if (obj.state === "fadingIn") { obj.fadeAlpha = min(1, obj.fadeAlpha + 0.02); if (obj.fadeAlpha >= 0.999) obj.state = "active";
-	}
-	else if (obj.state === "fadingOut") { obj.fadeAlpha = max(0, obj.fadeAlpha - 0.01); if (obj.fadeAlpha <= 0.001) { viewerSpaceObjects.splice(i,1); continue;
-	} }
+	if (obj.state === "fadingIn") { obj.fadeAlpha = min(1, obj.fadeAlpha + 0.02); if (obj.fadeAlpha >= 0.999) obj.state = "active"; }
+	else if (obj.state === "fadingOut") { obj.fadeAlpha = max(0, obj.fadeAlpha - 0.01); if (obj.fadeAlpha <= 0.001) { viewerSpaceObjects.splice(i,1); continue; } }
 	else { obj.haloPhase += 0.02; }
 	obj.x += obj.vx + sin(frameCount*0.01)*0.1; obj.y += obj.vy + cos(frameCount*0.01)*0.1; obj.angle += 0.003;
     
@@ -619,7 +617,6 @@ function drawViewerObjects() {
 	if (obj.x < r1 || obj.x > W-r1) { obj.vx *= -1; obj.x = constrain(obj.x, r1, W-r1); }
 	if (obj.y < r1 || obj.y > H-250) { obj.vy *= -1; obj.y = constrain(obj.y, r1, H-250); }
     
-    // Kolize mezi diváky
     for (let j = i - 1; j >= 0; j--) {
         let other = viewerSpaceObjects[j];
         if (other.state === "fadingOut" || obj.state === "fadingOut") continue;
@@ -662,7 +659,6 @@ function drawViewerObjects() {
 	fill(obj.color[0], obj.color[1], obj.color[2], (18 + 40*comboBoost + 12*haloPulse) * obj.fadeAlpha * overlapFactor);
 	ellipse(0,0, totalS + 26 + comboBoost*14);
     
-    // Bílý záblesk při kolizi diváků
     if (obj.hitFlash > 0) {
         fill(255, obj.hitFlash * obj.fadeAlpha * overlapFactor);
         ellipse(0, 0, totalS + 10);
@@ -683,8 +679,7 @@ function drawViewerObjects() {
 	}
 	push(); blendMode(SOFT_LIGHT);
 	const imgAlpha = baseAlpha * 0.9;
-	if (obj.img) { push(); imageMode(CENTER); tint(255, imgAlpha); image(obj.img, 0,0, totalS, totalS); pop();
-	}
+	if (obj.img) { push(); imageMode(CENTER); tint(255, imgAlpha); image(obj.img, 0,0, totalS, totalS); pop(); }
 	else { fill(obj.color[0],obj.color[1],obj.color[2], imgAlpha); ellipse(0,0,totalS); fill(255, imgAlpha); textAlign(CENTER,CENTER); textSize(totalS*0.3); text(obj.name[0],0,0); }
 	pop();
 	rotate(-obj.angle); fill(255, 200 * obj.fadeAlpha * overlapFactor); textSize(10); textAlign(CENTER);
@@ -720,7 +715,6 @@ function drawSparkles() {
   }
 }
 
-// --- UI & HUD ---
 function drawLiveClockBadge(centerX, y) {
   const now = new Date();
   const dd = String(now.getDate()).padStart(2,'0'); const mm = String(now.getMonth()+1).padStart(2,'0'); const yyyy = now.getFullYear();
@@ -768,7 +762,6 @@ function drawUI() {
   text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
   pop();
 
-  // levý panel
   push(); translate(0, 100);
   fill(100,100,150,100); rect(10, 0, 250, 225);
   fill(0,0,20,245);
@@ -791,14 +784,13 @@ function drawUI() {
   text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42); }
   pop();
 
-  // pravý panel – leaderboard
   push(); translate(W - 260, 100);
   let sorted = Object.entries(leaderboard).sort((a,b)=>b[1].score - a[1].score).slice(0, 12);
   fill(100,100,150,100); rect(0, 0, 250, 285);
   fill(0,0,20,240); rect(2, 2, 246, 281);
   fill(0,255,255);
   textAlign(CENTER); textSize(10);
-  text("TOP CONTRIBUTORS", 125, 20); // <-- klik na tento nápis vymaže tabulku (viz mouseClicked)
+  text("TOP CONTRIBUTORS", 125, 20); 
   textAlign(LEFT); textSize(8);
   sorted.forEach((e, i) => {
 	fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i*19);
@@ -809,22 +801,17 @@ function drawUI() {
 }
 
 function mouseClicked() {
-  // Reset allTimeRecords (levý panel nahoře)
   if (mouseX>10 && mouseX<260 && mouseY>100 && mouseY<130) {
 	allTimeRecords = Array(8).fill({ name:"NONE", score:0, color:[100,100,100] });
 	safeSet('galaxinko_records', allTimeRecords);
 	shakeAmount = 5; return;
   }
-  // Klik nahoře (spawn test)
   if (mouseY>0 && mouseY<85) { spawnBall(random(TEST_BOTS));
   shakeAmount = 2; }
 
-  // Klik na "TOP CONTRIBUTORS" – vynulovat leaderboard
   const tx = W - 260, ty = 100;
-  // počátek panelu
   const titleX1 = tx, titleX2 = tx + 250;
   const titleY1 = ty + 8, titleY2 = ty + 32;
-  // okno kolem nápisu ve 20 px řádku
   if (mouseX >= titleX1 && mouseX <= titleX2 && mouseY >= titleY1 && mouseY <= titleY2) {
 	leaderboard = {};
 	shakeAmount = 3;
@@ -832,21 +819,12 @@ function mouseClicked() {
 	return;
   }
 
-  // Toggle TUNE panelem přes klik na stub (vlevo)
-  if (isMouseOverTuneStub()) { debugPanelVisible = !debugPanelVisible;
-  return; }
-
-  // === TUNE TOGGLE (RIGHT) click ===
-  if (isMouseOverTuneToggle()) { debugPanelVisible = !debugPanelVisible; return;
-  }
-  // ==================================
+  if (isMouseOverTuneToggle()) { debugPanelVisible = !debugPanelVisible; return; }
 }
 
-function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H);
-}
+function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState==="PLAYING"?1.0:0.2), 0.01); }
-function createExplosion(x,y){ for(let i=0;i<25;i++) explosions.push({x,y,vx:random(-5,5),vy:random(-5,5),life:255,col:color(255,random(100,255),0)});
-}
+function createExplosion(x,y){ for(let i=0;i<25;i++) explosions.push({x,y,vx:random(-5,5),vy:random(-5,5),life:255,col:color(255,random(100,255),0)}); }
 function drawExplosions(){
   for(let i=explosions.length-1;i>=0;i--){
 	let e = explosions[i]; fill(red(e.col),green(e.col),blue(e.col), e.life); rect(e.x,e.y,4,4);
@@ -860,8 +838,7 @@ function updateComet(){ if(currentComet===null && gameState==="PLAYING" && rando
 
 function checkAllTimeRecords(n,s,col){
   let idx = allTimeRecords.findIndex(r=>r.name===n);
-  if(idx!==-1){ if(s>allTimeRecords[idx].score) allTimeRecords[idx].score = s;
-  }
+  if(idx!==-1){ if(s>allTimeRecords[idx].score) allTimeRecords[idx].score = s; }
   else { allTimeRecords.push({ name:n, score:s, color:[red(col),green(col),blue(col)] }); }
   allTimeRecords.sort((a,b)=>b.score - a.score); allTimeRecords = allTimeRecords.slice(0,8); safeSet('galaxinko_records', allTimeRecords);
 }
@@ -872,7 +849,6 @@ function updateWinnerColor() {
 }
 function updateScore(n,p,c){ if(!leaderboard[n]) leaderboard[n]={score:0,color:c}; leaderboard[n].score += p; addViewerScorePopup(n,p,c); }
 
-// --- RICH SKY PACK (pozadí) ---
 function generateDeepSpaceElements(){
   massivePlanets = [];
   for(let i=0;i<3;i++) massivePlanets.push({ x:random(W), y:random(H), size:random(20, 50), color:color(random(30,80), 100), hasRing:random()<0.8, ringColor:color(random(80,150), 80), speed:random(0.005,0.015), rot:random(TWO_PI), rotSpeed:random(-0.01,0.01) });
@@ -936,8 +912,7 @@ function initGame() {
   pegs.push(blocker); Matter.World.add(world, blocker);
   if (mode.startsWith("SHAPE_") || mode === "WORD") {
 	let shape = null, spacing = 26;
-  	if (mode === "WORD") { const words = ["LIKE","TAP","HELLO","WOW","GG","SENCO","GALAXY","STAR","LETSGO"]; shape = buildWordShape(words[floor(random(words.length))]); spacing = 22;
-  	}
+  	if (mode === "WORD") { const words = ["LIKE","TAP","HELLO","WOW","GG","SENCO","GALAXY","STAR","LETSGO"]; shape = buildWordShape(words[floor(random(words.length))]); spacing = 22; }
 	else { const shapeName = mode.split("_")[1]; shape = SHAPES[shapeName] || SHAPES["HEART"]; }
 	let rows = shape.length, cols = shape[0].length;
   	let startX = (W - (cols * spacing)) / 2, startY = 220;
@@ -964,26 +939,16 @@ function initGame() {
   	while(!valid && attempts<50){
     	attempts++;
     	switch(mode){
-      	case "SPIRAL": { let angle=i*0.15, r=15+i*1.5; px=W/2+cos(angle)*r;
-  		py=180+i*1.8; break; }
-      	case "WAVES": { px=map(i%20,0,20,50,W-50); py=160+floor(i/20)*40+sin(i*0.5)*30; break;
-  		}
-      	case "HOURGLASS": { let rowH=floor(i/15), colH=i%15, shrink=abs(rowH-15)*12; px=map(colH,0,15,100+shrink, W-100-shrink); py=160+rowH*25; break;
-  		}
-      	case "GALAXY": { let aG=random(TWO_PI), radG=pow(random(),0.5)*350; px=W/2+cos(aG)*radG; py=450+sin(aG)*radG*0.8; break;
-  		}
-      	case "HYPERCUBE": { let side=300, ix=i%10, iy=floor(i/10)%10, iz=floor(i/100); px=W/2-side/2+ix*30+iz*15; py=200+iy*30+iz*15; break;
-  		}
-      	case "DNA_HELIX": { let t=i*0.1, sideDNA=(i%2===0)?1:-1; px=W/2+sideDNA*cos(t)*100; py=160+i*4; break;
-  		}
-      	case "SATURN_RINGS": { let angleS=random(TWO_PI), distS=(i<numPegs/2)?random(80,120):random(200,250); px=W/2+cos(angleS)*distS; py=400+sin(angleS)*distS*0.4; break;
-  		}
-      	case "FRACTAL_TREE": { let level=floor(log(i+1)/log(2)); px=W/2+(i%pow(2,level)-pow(2,level)/2)*(W/pow(2,level)); py=160+level*60; break;
-  		}
-      	case "HEXAGON_GRID": { let hRow=floor(i/12), hCol=i%12; px=100+hCol*60+(hRow%2)*30; py=180+hRow*50; break;
-  		}
-      	default: { px=random(60, W-60); py=random(140, H-300);
-  		}
+      	case "SPIRAL": { let angle=i*0.15, r=15+i*1.5; px=W/2+cos(angle)*r; py=180+i*1.8; break; }
+      	case "WAVES": { px=map(i%20,0,20,50,W-50); py=160+floor(i/20)*40+sin(i*0.5)*30; break; }
+      	case "HOURGLASS": { let rowH=floor(i/15), colH=i%15, shrink=abs(rowH-15)*12; px=map(colH,0,15,100+shrink, W-100-shrink); py=160+rowH*25; break; }
+      	case "GALAXY": { let aG=random(TWO_PI), radG=pow(random(),0.5)*350; px=W/2+cos(aG)*radG; py=450+sin(aG)*radG*0.8; break; }
+      	case "HYPERCUBE": { let side=300, ix=i%10, iy=floor(i/10)%10, iz=floor(i/100); px=W/2-side/2+ix*30+iz*15; py=200+iy*30+iz*15; break; }
+      	case "DNA_HELIX": { let t=i*0.1, sideDNA=(i%2===0)?1:-1; px=W/2+sideDNA*cos(t)*100; py=160+i*4; break; }
+      	case "SATURN_RINGS": { let angleS=random(TWO_PI), distS=(i<numPegs/2)?random(80,120):random(200,250); px=W/2+cos(angleS)*distS; py=400+sin(angleS)*distS*0.4; break; }
+      	case "FRACTAL_TREE": { let level=floor(log(i+1)/log(2)); px=W/2+(i%pow(2,level)-pow(2,level)/2)*(W/pow(2,level)); py=160+level*60; break; }
+      	case "HEXAGON_GRID": { let hRow=floor(i/12), hCol=i%12; px=100+hCol*60+(hRow%2)*30; py=180+hRow*50; break; }
+      	default: { px=random(60, W-60); py=random(140, H-300); }
     	}
     	if (py>115 && py<H-280 && px>40 && px<W-40) {
       	let tooClose=false;
@@ -997,7 +962,6 @@ function initGame() {
 	}
   }
 
-  // Scoring zóny
   let sV = [5000,1000,500,200,100,50,20,10,5,2,1,2,5,10,20,50,100,200,500,1000,5000];
   let curX = 0; zones = [];
   for (let i=0;i<21;i++){
@@ -1025,14 +989,12 @@ function drawPegs() {
 function drawZones(){
   for (let z of zones) {
 	let isJackpot = (z.score >= 5000);
-	let baseCol = isJackpot ?
-  	color(50,45,15,180) : color(10,10,40,180);
+	let baseCol = isJackpot ? color(50,45,15,180) : color(10,10,40,180);
 	if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else fill(baseCol);
 	noStroke();
   	rect(z.x, H - ZONE_H, z.w, ZONE_H);
 	push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER);
-	if (isJackpot) { fill(255,230,100);
-  	textSize(12); text(z.score, 0, 0); }
+	if (isJackpot) { fill(255,230,100); textSize(12); text(z.score, 0, 0); }
 	else { fill(255); textSize(z.w<30?7:10); text(z.score, 0, 0); }
 	pop();
   }
@@ -1044,7 +1006,6 @@ function drawWaitingMessage(){
   textSize(14); noStroke(); fill(255,200,0,alpha); text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2); pop();
 }
 
-// --- RESULTS scoreboard ---
 function drawResultsOverlay() {
   fill(0, 0, 20, 235);
   rect(20, 50, W - 40, H - 100, 20);
@@ -1090,7 +1051,6 @@ function drawResultsOverlay() {
   text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
 }
 
-// --- RARE debris ---
 function spawnRareLegend() {
   let legend = random(RARE_POOL);
   spaceDebris.push({
@@ -1126,10 +1086,7 @@ function drawGalacticBackground() {
   	d.x += drift * 0.2;
 	d.rot += d.rotSpeed * currentTravelSpeed;
 
-	push();
-	translate(d.x, d.y);
-	rotate(d.rot);
-
+	push(); translate(d.x, d.y); rotate(d.rot);
 	switch(d.type){
   	case "LEGEND": drawLegendShape(d); break;
   	case "UFO": drawDebrisUFO(d); break;
@@ -1145,110 +1102,75 @@ function drawGalacticBackground() {
 	pop();
   	if (d.y > H + 160) {
   	if (d.isRare) spaceDebris.splice(i,1);
-  	else { d.y = -random(40, 200); d.x = random(W);
-  		d.rotSpeed = random(-0.03, 0.03); }
+  	else { d.y = -random(40, 200); d.x = random(W); d.rotSpeed = random(-0.03, 0.03); }
 	}
   }
 
   if (gameState==="PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1)*350, 0.05);
   else if (gameState==="WAITING") planetSize = lerp(planetSize, 450, 0.01);
-  if (planetSize>10) for(let r=4;r>0;r--){ fill(red(winnerColor),green(winnerColor),blue(winnerColor),4); ellipse(W/2, H+60, planetSize*(r*0.6), planetSize*0.4);
-  }
+  if (planetSize>10) for(let r=4;r>0;r--){ fill(red(winnerColor),green(winnerColor),blue(winnerColor),4); ellipse(W/2, H+60, planetSize*(r*0.6), planetSize*0.4); }
 }
 
 function drawDebrisUFO(d){
-  let s = d.size;
-  noStroke();
-  fill(0, 255, 120, 160); rect(-s/2, -s/6, s, s/3, 2);
-  fill(180, 220);
-  ellipse(0, -s/6, s*0.55, s*0.55);
-  fill(255, 220); for (let k=-2;k<=2;k++){ circle(k*(s*0.18), s*0.02, 3); }
+  let s = d.size; noStroke();
+  fill(0, 255, 120, 160); rect(-s/2, -s/6, s, s/3, 2); fill(180, 220); ellipse(0, -s/6, s*0.55, s*0.55);
+  fill(255, 220); for (let k=-2;k<=2;k++) circle(k*(s*0.18), s*0.02, 3);
 }
 function drawDebrisSatellite(d){
-  let s = d.size;
-  stroke(200, 200, 255, 150); strokeWeight(1); noFill();
-  rect(-s/4, -s/4, s/2, s/2);
-  line(-s, 0, s, 0);
-  rect(-s, -s/6, s/2, s/3);
-  rect(s/2, -s/6, s/2, s/3);
+  let s = d.size; stroke(200, 200, 255, 150); strokeWeight(1); noFill();
+  rect(-s/4, -s/4, s/2, s/2); line(-s, 0, s, 0); rect(-s, -s/6, s/2, s/3); rect(s/2, -s/6, s/2, s/3);
 }
 function drawDebrisAsteroid(d){
-  let s = d.size;
-  noStroke(); fill(120, 120, 140, 180);
-  rect(-s/2, -s/2, s*0.6, s*0.6, 2);
-  rect(-s*0.1, -s*0.3, s*0.4, s*0.4, 2);
+  let s = d.size; noStroke(); fill(120, 120, 140, 180);
+  rect(-s/2, -s/2, s*0.6, s*0.6, 2); rect(-s*0.1, -s*0.3, s*0.4, s*0.4, 2);
   fill(160, 160, 180, 120); rect(0, 0, s*0.3, s*0.3, 2);
 }
 function drawDebrisRocket(d){
-  let s = d.size;
-  noStroke();
-  fill(d.colA); rect(-s*0.25, -s*0.5, s*0.5, s, 3);
-  fill(255, 255, 255, 200);
-  triangle(0, -s*0.65, -s*0.18, -s*0.45, s*0.18, -s*0.45);
+  let s = d.size; noStroke();
+  fill(d.colA); rect(-s*0.25, -s*0.5, s*0.5, s, 3); fill(255, 255, 255, 200); triangle(0, -s*0.65, -s*0.18, -s*0.45, s*0.18, -s*0.45);
   fill(d.colB); rect(-s*0.4, s*0.1, s*0.25, s*0.18); rect(s*0.15, s*0.1, s*0.25, s*0.18);
-  let fl = 4 + sin(frameCount*0.4)*2;
-  fill(255,160,0, 220); rect(-s*0.12, s*0.5, s*0.24, fl, 2);
+  let fl = 4 + sin(frameCount*0.4)*2; fill(255,160,0, 220); rect(-s*0.12, s*0.5, s*0.24, fl, 2);
   fill(255,220,0, 180); rect(-s*0.08, s*0.5, s*0.16, fl*0.8, 2);
 }
-
 function drawDebrisStation(d){
-  let s = d.size;
-  noFill(); stroke(d.colA); strokeWeight(2);
-  ellipse(0, 0, s*1.6, s*0.7);
-  ellipse(0, 0, s*0.9, s*0.4);
-  noStroke(); fill(d.colB);
-  rect(-s*0.25, -s*0.15, s*0.5, s*0.3, 3);
+  let s = d.size; noFill(); stroke(d.colA); strokeWeight(2);
+  ellipse(0, 0, s*1.6, s*0.7); ellipse(0, 0, s*0.9, s*0.4);
+  noStroke(); fill(d.colB); rect(-s*0.25, -s*0.15, s*0.5, s*0.3, 3);
   fill(200, 220); rect(-s*0.6, -s*0.08, s*0.2, s*0.16); rect(s*0.4, -s*0.08, s*0.2, s*0.16);
 }
 function drawDebrisDrone(d){
-  let s = d.size;
-  let blink = (sin(frameCount*0.2 + d.blink) * 0.5 + 0.5);
-  noStroke();
-  fill(180, 200);
-  rect(-s*0.25, -s*0.12, s*0.5, s*0.24, 2);
+  let s = d.size; let blink = (sin(frameCount*0.2 + d.blink) * 0.5 + 0.5); noStroke();
+  fill(180, 200); rect(-s*0.25, -s*0.12, s*0.5, s*0.24, 2);
   fill(0, 255, 180, 120 + blink*80); circle(-s*0.15, 0, 4); circle(0, 0, 4); circle(s*0.15, 0, 4);
 }
 function drawDebrisProbe(d){
-  let s = d.size;
-  noStroke();
-  fill(200, 220); rect(-s*0.2, -s*0.2, s*0.4, s*0.4, 2);
-  fill(150, 200);
-  triangle(-s*0.25, -s*0.3, s*0.25, -s*0.3, 0, -s*0.6);
-  fill(0, 255, 255, 160); circle(0, -s*0.38, 4);
+  let s = d.size; noStroke(); fill(200, 220); rect(-s*0.2, -s*0.2, s*0.4, s*0.4, 2);
+  fill(150, 200); triangle(-s*0.25, -s*0.3, s*0.25, -s*0.3, 0, -s*0.6); fill(0, 255, 255, 160); circle(0, -s*0.38, 4);
 }
 function drawDebrisNebula(d){
-  noStroke();
-  let s = d.size;
-  fill(red(d.colA), green(d.colA), blue(d.colA), alpha(d.colA));
-  ellipse(0, 0, s*1.1, s*0.6);
-  fill(red(d.colB), green(d.colB), blue(d.colB), alpha(d.colB));
-  ellipse(-s*0.2, -s*0.1, s*0.7, s*0.4);
-  ellipse(s*0.25,  s*0.05, s*0.6, s*0.35);
+  noStroke(); let s = d.size; fill(red(d.colA), green(d.colA), blue(d.colA), alpha(d.colA)); ellipse(0, 0, s*1.1, s*0.6);
+  fill(red(d.colB), green(d.colB), blue(d.colB), alpha(d.colB)); ellipse(-s*0.2, -s*0.1, s*0.7, s*0.4); ellipse(s*0.25,  s*0.05, s*0.6, s*0.35);
 }
-
 function drawLegendShape(d){
   noStroke(); fill(d.color); let s=d.size;
   switch(d.legendId){
 	case "STARMAN": rect(-s/2,-s/4,s,s/2,5); fill(255); ellipse(-s/4,-s/4,s/5); break;
   	case "HAWKING": fill(100); rect(-s/2,0,s,s/4); fill(d.color); rect(-s/4,-s/2,s/2,s/2); break;
 	case "LAIKA": fill(150,100); ellipse(0,0,s,s); fill(d.color); ellipse(0,-s/6,s/2); break;
-	case "ET": fill(100,50,0); rect(-s/2,0,s,s/2); fill(255); ellipse(0,-s/4,s/2);
-  	break;
+	case "ET": fill(100,50,0); rect(-s/2,0,s,s/2); fill(255); ellipse(0,-s/4,s/2); break;
 	case "NYAN": fill(255,200,150); rect(-s/2,-s/3,s,s/1.5,3); break;
 	case "VOYAGER": fill(180); ellipse(0,0,s/2); fill(212,175,55); ellipse(0,0,s/3); break;
 	case "OUMUAMUA": fill(60,40,30); ellipse(0,0,s,s/4); break;
   	case "SHUTTLE": fill(255); triangle(-s/2,s/2, s/2,s/2, 0,-s/2); break;
   }
 }
-
 function drawGravityDust(){
   let r=map(currentGravity,0.05,1.95,100,255), g=map(currentGravity,0.05,1.95,200,100), b=map(currentGravity,0.05,1.95,255,50);
   fill(r,g,b,150); noStroke(); let dustSpeed=currentGravity*3*currentTravelSpeed;
   for(let d of dust){ d.y+=dustSpeed; if(d.y>H){ d.y=0; d.x=random(W);} rect(d.x,d.y,d.s,d.s); }
 }
 
-function prepareSingularityEvents(){ bhSpawnTimes=[]; if(random()<0.4) bhSpawnTimes.push(floor(random(5, timer*0.8)));
-}
+function prepareSingularityEvents(){ bhSpawnTimes=[]; if(random()<0.4) bhSpawnTimes.push(floor(random(5, timer*0.8))); }
 function checkSingularitySpawn(){
   if (bhSpawnTimes.includes(timer) && !blackHole) {
 	let fromLeft = random()<0.5;
@@ -1262,8 +1184,7 @@ function handleBlackHole(){
   let n=noise(frameCount*blackHole.noiseSpeed+blackHole.noiseOffset); blackHole.y = blackHole.startY + (n-0.5)*blackHole.wobbleAmp*2;
   let jitterSize = blackHole.size*(1+(n-0.5)*0.15);
   if (audioStarted){ let centerDist=abs(W/2 - blackHole.x); let tremolo=map(sin(frameCount*0.2),-1,1,0.8,1.0); let vol=map(centerDist,W,0,0,0.08)*tremolo; bhOsc.amp(vol,0.1); bhOsc.freq(32+n*12); }
-  push(); translate(blackHole.x,blackHole.y);
-  noStroke();
+  push(); translate(blackHole.x,blackHole.y); noStroke();
   for(let i=5;i>0;i--){ fill(10+i*10,0,40+i*20,25); let s=jitterSize+i*(blackHole.size*0.15)+(n*10); ellipse(0,0,s); }
   fill(0); ellipse(0,0,jitterSize); pop();
 
@@ -1278,73 +1199,36 @@ function handleBlackHole(){
   	let strength=(blackHole.size*0.00018)/(safeDist/80); let force=Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength); Matter.Body.applyForce(b.body,b.body.position, force);
   	}
   }
-  if ((dir===1 && blackHole.x>blackHole.targetX) || (dir===-1 && blackHole.x<blackHole.targetX)) { blackHole=null; if(audioStarted) bhOsc.amp(0,0.5);
-  }
+  if ((dir===1 && blackHole.x>blackHole.targetX) || (dir===-1 && blackHole.x<blackHole.targetX)) { blackHole=null; if(audioStarted) bhOsc.amp(0,0.5); }
 }
 
-// --- 8bit SPACESHIP ---
-let spaceship = null;
-let shipPlanned = false;
-let shipSpawnAt = -1;
+let spaceship = null, shipPlanned = false, shipSpawnAt = -1;
 function planSpaceshipForRound() {
   shipPlanned = (random() < 0.09);
   shipSpawnAt = shipPlanned ? floor(random(max(3, floor(roundInitialTime*0.3)), max(5, floor(roundInitialTime*0.8)))) : -1;
 }
-
 function spawnSpaceship() {
-  const leftToRight = random() < 0.5;
-  const y = random(H - ZONE_H - 220, H - ZONE_H - 110);
-  const startX = leftToRight ?
-  	-120 : W + 120;
+  const leftToRight = random() < 0.5; const y = random(H - ZONE_H - 220, H - ZONE_H - 110);
+  const startX = leftToRight ? -120 : W + 120;
   const shipW = 82, shipH = 26;
-  const body = Matter.Bodies.rectangle(startX, y, shipW, shipH, {
-	isStatic: true,
-	restitution: 0.9,
-	friction: 0.2,
-	frictionAir: 0,
-	collisionFilter: { category: 4, mask: 1 }
-  });
+  const body = Matter.Bodies.rectangle(startX, y, shipW, shipH, { isStatic: true, restitution: 0.9, friction: 0.2, frictionAir: 0, collisionFilter: { category: 4, mask: 1 } });
   Matter.World.add(world, body);
-
   const base = color(random(80,200), random(80,200), random(200,255));
   const accent = color(red(base)*0.6, green(base)*0.6, blue(base)*0.9);
-
-  spaceship = {
-	body,
-	dir: leftToRight ?
-  	1 : -1,
-	speed: random(1.0, 2.2),
-	w: shipW,
-	h: shipH,
-	colA: base,
-	colB: accent,
-	y
-  };
+  spaceship = { body, dir: leftToRight ? 1 : -1, speed: random(1.0, 2.2), w: shipW, h: shipH, colA: base, colB: accent, y };
 }
-
 function handleSpaceship() {
   if (!spaceship) return;
-  const pos = spaceship.body.position;
-  const nx = pos.x + spaceship.speed * spaceship.dir;
+  const pos = spaceship.body.position; const nx = pos.x + spaceship.speed * spaceship.dir;
   Matter.Body.setPosition(spaceship.body, { x: nx, y: spaceship.y });
-
-  push();
-  translate(nx, spaceship.y);
-  noStroke(); fill(spaceship.colA); rect(-34, -8, 68, 16, 2);
-  fill(spaceship.colB); rect(-6, -10, 20, 10, 2);
-  fill(255, 255, 255, 160);
-  rect(-42, -4, 10, 8); rect(32, -4, 10, 8);
+  push(); translate(nx, spaceship.y); noStroke(); fill(spaceship.colA); rect(-34, -8, 68, 16, 2);
+  fill(spaceship.colB); rect(-6, -10, 20, 10, 2); fill(255, 255, 255, 160); rect(-42, -4, 10, 8); rect(32, -4, 10, 8);
   fill(255,140,0, 200); rect(-32, 6, 8, 4); rect(24, 6, 8, 4);
-  const flame = 3 + sin(frameCount*0.3)*2; fill(255,200,0, 180); rect(-32, 10, 8, flame); rect(24, 10, 8, flame);
-  pop();
-  if (nx < -150 || nx > W + 150) { Matter.World.remove(world, spaceship.body); spaceship = null;
-  }
+  const flame = 3 + sin(frameCount*0.3)*2; fill(255,200,0, 180); rect(-32, 10, 8, flame); rect(24, 10, 8, flame); pop();
+  if (nx < -150 || nx > W + 150) { Matter.World.remove(world, spaceship.body); spaceship = null; }
 }
 
-// --- Reset & HUD & Anti-bot ---
 function resetGame() {
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
   timer = floor(random(40, 181));
   roundInitialTime = timer;
   leaderboard = {}; totalBallsFired = 0; roundCount++;
@@ -1353,8 +1237,13 @@ function resetGame() {
   currentDestination = generatePlanetName();
   if (world) Matter.World.clear(world, false);
   pegs=[]; walls=[]; balls=[]; blackHole=null; cosmicEvent=null;
-  spaceship = null;
-  shipPlanned = false; shipSpawnAt = -1;
+  spaceship = null; shipPlanned = false; shipSpawnAt = -1;
+
+  if (isAutoMode) {
+      currentGravity = random(0.05, 1.95);
+      currentBounce = floor(random(1, 100));
+  }
+
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound();
 }
 
@@ -1362,36 +1251,27 @@ function drawProceduralHUD(){
   push(); stroke(255,10); strokeWeight(1);
   for(let i=0;i<H;i+=4) line(0, i+(frameCount%4), W, i+(frameCount%4));
   fill(0,255,0,150); textSize(8); textAlign(LEFT);
-  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H-40);
-  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H-30);
-  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H-20);
-  textAlign(RIGHT);
-  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W-20, H-30);
-  text(`BUFFER_LOAD: ${balls.length * 2}%`, W-20, H-20);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H-40); text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H-30); text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H-20);
+  textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W-20, H-30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W-20, H-20);
   pop();
 }
 function drawAntiBotOverlay(){
   push();
   if (random()<0.1){ fill(255,150); noStroke(); circle(random(W),random(H),random(1,3)); }
-  if (random()<0.02){ fill(0,255,255,100); rect(0, random(H), W, random(1,10));
-  }
+  if (random()<0.02){ fill(0,255,255,100); rect(0, random(H), W, random(1,10)); }
   if (random()<0.05){ fill(255,0,0,50); rect(random(W),random(H),20,20); }
   pop();
 }
 
-// --- Cosmic Events ---
 function triggerCosmicEvent(){
-  if (cosmicEvent) return;
-  eventOccurredThisRound = true;
+  if (cosmicEvent) return; eventOccurredThisRound = true;
   let fromLeft = random()<0.5; let size=random(25,45); let startX = fromLeft? -100 : W+100;
   let targetY = H - ZONE_H - random(20,120);
   let body = Matter.Bodies.circle(startX, targetY, size/2, { isStatic:false, isSensor:false, density:0.1, frictionAir:0, collisionFilter:{mask:1} });
   let isComet = random()<0.5;
   cosmicEvent = { body, type:isComet?"COMET":"METEOR", size, color:isComet?color(150,200,255):color(255,100,50), trail:[] };
-  Matter.World.add(world, body);
-  Matter.Body.setVelocity(body, { x: fromLeft? random(12,18):random(-18,-12), y: random(-1,1) });
-  if (audioStarted){ let osc=new p5.Oscillator('sine'); osc.start(); osc.freq(random(100,400)); osc.freq(random(800,1200),1.5); osc.amp(0.1); osc.amp(0,1.5); setTimeout(()=>osc.stop(),1600);
-  }
+  Matter.World.add(world, body); Matter.Body.setVelocity(body, { x: fromLeft? random(12,18):random(-18,-12), y: random(-1,1) });
+  if (audioStarted){ let osc=new p5.Oscillator('sine'); osc.start(); osc.freq(random(100,400)); osc.freq(random(800,1200),1.5); osc.amp(0.1); osc.amp(0,1.5); setTimeout(()=>osc.stop(),1600); }
 }
 function handleCosmicEvent(){
   if (!cosmicEvent) return; let pos = cosmicEvent.body.position;
@@ -1401,79 +1281,47 @@ function handleCosmicEvent(){
 	let a = map(i, 0, cosmicEvent.trail.length, 0, 150); fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),a);
 	ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
   }
-  fill(255); ellipse(pos.x,pos.y,cosmicEvent.size); fill(cosmicEvent.color);
-  ellipse(pos.x,pos.y,cosmicEvent.size*0.8);
-  pop();
-  if (pos.x<-300 || pos.x>W+300) { Matter.World.remove(world, cosmicEvent.body); cosmicEvent = null;
-  }
+  fill(255); ellipse(pos.x,pos.y,cosmicEvent.size); fill(cosmicEvent.color); ellipse(pos.x,pos.y,cosmicEvent.size*0.8); pop();
+  if (pos.x<-300 || pos.x>W+300) { Matter.World.remove(world, cosmicEvent.body); cosmicEvent = null; }
 }
 
-/* =========================
-   TUNE PANEL (v5.6.2)
-   ========================= */
 let debugPanelVisible = false;
 let draggingSlider = null;
-// "grav" | "bounce" | null
 
-function keyPressed() {
-  if (key === 't' || key === 'T') debugPanelVisible = !debugPanelVisible;
-}
+function keyPressed() { if (key === 't' || key === 'T') debugPanelVisible = !debugPanelVisible; }
 
-function isMouseOverTuneStub() {
-  // malý stub vlevo nahoře (pod logem): x 8..86, y 8..28
-  return mouseX >= 8 && mouseX <= 86 && mouseY >= 8 && mouseY <= 28;
-}
-
-function drawTuneStub() {
-  // Pokud panel není vidět, ukaž nenápadný strip (vlevo)
-  const alpha = isMouseOverTuneStub() ?
-  180 : 120;
-  noStroke();
-  fill(5, 30, 40, 180);
-  rect(8, 8, 78, 20, 10);
-  fill(0, 255, 255, alpha);
-  textAlign(LEFT, CENTER);
-  textSize(10);
-  text("⚙ TUNE", 14, 18);
-}
-
-// === TUNE TOGGLE (RIGHT) – ON/OFF tlačítko vpravo nahoře ===
 function isMouseOverTuneToggle() {
-  // kompaktní tlačítko vpravo nahoře, aby nekolidovalo s texty (y=8, vpravo od okraje)
-  const w = 96, h = 20, pad = 8;
-  const x = W - w - pad, y = 8;
+  const w = 40, h = 40;
+  const x = W - w - 10, y = 10;
   return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
 }
 function drawTuneToggleButton() {
-  const w = 96, h = 20, pad = 8;
-  const x = W - w - pad, y = 8;
+  const w = 40, h = 40;
+  const x = W - w - 10, y = 10;
   const hov = isMouseOverTuneToggle();
   noStroke();
   fill(5, 30, 40, hov ? 220 : 180);
-  rect(x, y, w, h, 10);
-  stroke(0, 255, 255, hov ? 180 : 110);
+  rect(x, y, w, h, 8);
+  stroke(0, 255, 255, hov ? 255 : 100);
+  strokeWeight(2);
   noFill();
-  rect(x, y, w, h, 10);
+  rect(x, y, w, h, 8);
   noStroke();
+  fill(debugPanelVisible ? color(0,255,200) : color(255));
   textAlign(CENTER, CENTER);
-  textSize(10);
-  fill(debugPanelVisible ? color(0,255,200) : color(180,220));
-  text(debugPanelVisible ? "⚙ TUNE: ON" : "⚙ TUNE: OFF", x + w / 2, y + h / 2);
+  textSize(24);
+  text("⚙", x + w / 2, y + h / 2);
 }
-// ==============================================================================
 
 function drawTunePanel() {
-  // Umístění pod horní lištou vlevo
-  const x = 14, y = 96, w = 240, h = 120;
-  // background
+  const x = W - 260, y = 60, w = 250, h = 140;
   noStroke();
-  fill(0, 20, 30, 230);
+  fill(0, 20, 30, 240);
   rect(x, y, w, h, 12);
   stroke(0, 255, 255, 120); strokeWeight(2);
   noFill();
   rect(x+1, y+1, w-2, h-2, 12);
 
-  // Title
   noStroke();
   fill(0, 255, 255);
   textAlign(LEFT, CENTER);
@@ -1483,54 +1331,41 @@ function drawTunePanel() {
   fill(180);
   text("T - toggle", x + w - 70, y + 18);
 
-  // Slidery
   const trackX = x + 16;
   let lineY = y + 44;
 
-  // Gravity slider (0.05–1.95)
-  drawSlider("Gravity", trackX, lineY, 200, currentGravity, 0.05, 1.95, (val)=>{
+  drawSlider("Gravity", trackX, lineY, 210, currentGravity, 0.05, 1.95, (val)=>{
 	currentGravity = val;
 	if (world) world.gravity.y = currentGravity;
+    isAutoMode = false;
   });
   lineY += 40;
 
-  // Peg Bounce slider (1–99)
-  drawSlider("Peg Bounce", trackX, lineY, 200, currentBounce, 1, 99, (val)=>{
+  drawSlider("Peg Bounce", trackX, lineY, 210, currentBounce, 1, 99, (val)=>{
 	currentBounce = Math.round(val);
 	const pegRest = map(currentBounce, 1, 99, 0.1, 1.8);
-	// Aktualizace pegs a balls v běhu
 	for (let p of pegs) p.restitution = pegRest;
 	const ballRest = map(currentBounce, 1, 99, 0.4, 0.9);
 	for (let b of balls) if (b?.body) b.body.restitution = ballRest;
+    isAutoMode = false;
   });
-  // Nápověda
-  fill(150);
-  textSize(8);
-  textAlign(LEFT, TOP);
-  text("Tip: Gravity ovlivní pohyb hned. Peg Bounce upraví odraz pegů a kuliček (živě).", x + 12, y + h - 24);
+
+  let btnX = x + 25, btnY = y + h - 35, btnW = 200, btnH = 25;
+  fill(isAutoMode ? color(0, 150, 0) : color(150, 0, 0));
+  rect(btnX, btnY, btnW, btnH, 5);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(10);
+  text(isAutoMode ? "MODE: AUTO" : "MODE: MANUAL", btnX + btnW/2, btnY + btnH/2);
 }
 
 function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
-  // label + číslo
-  noStroke();
-  fill(200);
-  textAlign(LEFT, CENTER);
-  textSize(10);
-  text(label, sx, sy - 10);
-  textAlign(RIGHT, CENTER);
-  text(nf(value, 1, 2), sx + w, sy - 10);
-  // track
-  stroke(0, 255, 255, 140);
-  strokeWeight(3);
-  line(sx, sy, sx + w, sy);
-  // knob
-  const t = map(value, minV, maxV, 0, 1, true);
-  const kx = sx + t * w;
-  noStroke();
-  fill(0, 255, 255, 220);
-  circle(kx, sy, 10);
+  noStroke(); fill(200); textAlign(LEFT, CENTER); textSize(10); text(label, sx, sy - 10);
+  textAlign(RIGHT, CENTER); text(nf(value, 1, 2), sx + w, sy - 10);
+  stroke(0, 255, 255, 140); strokeWeight(3); line(sx, sy, sx + w, sy);
+  const t = map(value, minV, maxV, 0, 1, true); const kx = sx + t * w;
+  noStroke(); fill(0, 255, 255, 220); circle(kx, sy, 10);
 
-  // pokud táhneme, přepočítej
   if (draggingSlider && draggingSlider.name === label) {
 	const nt = constrain((mouseX - sx) / w, 0, 1);
   	const newVal = minV + nt * (maxV - minV);
@@ -1542,38 +1377,27 @@ function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
 function handleTuneMousePressed() {
   if (!debugPanelVisible) return;
 
-  // zjisti, zda klik je uvnitř panelu a blízko slideru
-  const px = 14, py = 96, pw = 240, ph = 120;
-  if (mouseX < px || mouseX > px+pw || mouseY < py || mouseY > py+ph) { draggingSlider = null;
-  return; }
+  const px = W - 260, py = 60, pw = 250, ph = 140;
+  if (mouseX < px || mouseX > px+pw || mouseY < py || mouseY > py+ph) { draggingSlider = null; return; }
 
-  // definuj pozice sliderů
-  const sx = px + 16, w = 200;
+  let btnX = px + 25, btnY = py + ph - 35, btnW = 200, btnH = 25;
+  if (mouseX >= btnX && mouseX <= btnX+btnW && mouseY >= btnY && mouseY <= btnY+btnH) {
+      isAutoMode = !isAutoMode;
+      return;
+  }
+
+  const sx = px + 16, w = 210;
   const gravY = py + 44;
   const bounceY = py + 84;
-  // pokud je kurzor poblíž knobu, chytneme daný slider
   const rad = 8;
-  // Gravity
-  let tG = map(currentGravity, 0.05, 1.95, 0, 1, true);
-  let kG = sx + tG * w;
-  if (dist(mouseX, mouseY, kG, gravY) <= rad + 4) {
-	draggingSlider = { name: "Gravity", val: currentGravity };
-	return;
-  }
-  // Peg Bounce
-  let tB = map(currentBounce, 1, 99, 0, 1, true);
-  let kB = sx + tB * w;
-  if (dist(mouseX, mouseY, kB, bounceY) <= rad + 4) {
-	draggingSlider = { name: "Peg Bounce", val: currentBounce };
-  	return;
-  }
+  
+  let tG = map(currentGravity, 0.05, 1.95, 0, 1, true); let kG = sx + tG * w;
+  if (dist(mouseX, mouseY, kG, gravY) <= rad + 6) { draggingSlider = { name: "Gravity", val: currentGravity }; return; }
+
+  let tB = map(currentBounce, 1, 99, 0, 1, true); let kB = sx + tB * w;
+  if (dist(mouseX, mouseY, kB, bounceY) <= rad + 6) { draggingSlider = { name: "Peg Bounce", val: currentBounce }; return; }
   draggingSlider = null;
 }
 
-function mouseDragged() {
-  // průběžně zpracováno v drawSlider (přes draggingSlider)
-}
-
-function mouseReleased() {
-  draggingSlider = null;
-}
+function mouseDragged() { }
+function mouseReleased() { draggingSlider = null; }
