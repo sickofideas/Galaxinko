@@ -1,14 +1,12 @@
 // --- GALAXINKO (v5.7.0 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK + VISIBLE PETS) ---
 // Changelog:
 // - v5.7.0: Změna chování diváků na pozadí (Pets) – 100% viditelný profilový obrázek a jméno, konec zašedlých bublin.
-//           Při připojení na live stream se okamžitě spawne 1 kulička a pet zůstane aktivní 60 vteřin. Pokud nedá like, zmizí.
+// Při připojení na live stream se okamžitě spawne 1 kulička a pet zůstane aktivní 60 vteřin. Pokud nedá like, zmizí.
 // - v5.6.2: TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na ikonu "⚙" vpravo nahoře.
 // - v5.6.1: RICH SKY PACK – rozmanité pozadí.
 // - v5.6.0: 8bit STARSHIP, přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
-
 const GAME_TITLE = "GALAXINKO";
 const VERSION_TAG = "v5.7.0";
-
 let engine, world;
 let balls = [];
 let pegs = [];
@@ -33,24 +31,18 @@ let currentGravity = 0.6;
 let currentBounce = 50;
 let roundInitialTime = 40;
 let isAutoMode = true;
-
 // --- VIEWER INTERACTION ---
 let viewerSpaceObjects = [];
-
 // --- COLLISION / EVENTS ---
 let cosmicEvent = null;
 let eventOccurredThisRound = false;
-
 // --- CAMERA/ANTI-BOT ---
 let camOffset = { x: 0, y: 0, z: 1.0 };
 let targetFPS = 60;
-
 const TEST_BOTS = ["ALFA_PRO","CYBER_PUNK","GALAXY_KID","NEBULA","STAR_LORD","COMET_99","VOID_WALKER","ORBITAL","Z-AXIS","QUASAR","METEOR","SOLARIS","NOVA","ECLIPSE","ZENITH","COSMOS"];
-
 // --- TIKFINITY WEBSOCKET ---
 let socket;
 const TIKFINITY_URL = "ws://localhost:21213/";
-
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   socket.onopen = () => { console.log("[Tikfinity] Připojeno – čekám na události"); };
@@ -62,11 +54,11 @@ function connectTikfinity() {
       const rawName = payload?.nickname || payload?.uniqueId || msg?.nickname || msg?.user?.nickname || msg?.uniqueId;
       const hasName = !!rawName && typeof rawName === "string";
       const name = hasName ? rawName.toUpperCase().substring(0, 12) : "ANON";
-      
+     
       if (evt === "roomUser" && hasName) {
         onUserJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
-        setTimeout(() => spawnBall(name), 120);
-        console.log("→ JOIN SPAWN:", name);
+        spawnBall(name);                    // IHNED bez setTimeout
+        console.log("→ JOIN + PET + BALL:", name);
       }
       if (evt === "like" && hasName) {
         const count = Math.max(1, Number(payload?.likeCount || 1));
@@ -78,11 +70,9 @@ function connectTikfinity() {
   socket.onerror = (err) => { console.error("[Tikfinity WS error]", err); };
   socket.onclose = () => { console.log("[Tikfinity] Odpojeno – reconnect za 5s..."); setTimeout(connectTikfinity, 5000); };
 }
-
 // --- Safe localStorage ---
 function safeGet(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
 function safeSet(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
-
 // --- BACKGROUND / AUDIO / CONSTS ---
 let stars = [];
 let dust = [];
@@ -96,11 +86,9 @@ let bhSpawnTimes = [];
 let musicScale = [48, 52, 55, 57, 60, 64, 67, 72];
 let nextNoteTime = 0;
 let bhOsc;
-
 const W = 900;
 const H = 950;
 const ZONE_H = 80;
-
 const RARE_POOL = [
   {id:"STARMAN",name:"ELON'S TESLA",col:[200,0,0],size:28},
   {id:"HAWKING",name:"S. HAWKING",col:[50,50,255],size:22},
@@ -111,20 +99,17 @@ const RARE_POOL = [
   {id:"OUMUAMUA",name:"OUMUAMUA",col:[60,40,30],size:45},
   {id:"SHUTTLE",name:"NASA SHUTTLE",col:[255,255,255],size:35}
 ];
-
 let synth, fxSynth, backgroundOsc, backgroundOsc2;
 let audioStarted = false;
-
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
-
 // --- SHAPES & WORDS ---
 const SHAPES = {
-  "HEART":["  ***** ***** "," ******* ******* ","*****************","*****************"," *************** ","  ************* ","   *********** ","    ********* ","      ***** ","       *** ","        * "],
-  "APPLE":["       *** ","      **** ","        ** ","    ********** ","  ************** "," ****************"," ****************"," ****************","  ************** ","    ********** "],
-  "ALIEN":["      ******* ","   *********** "," *************** "," *** ***** *** "," *** ***** *** "," *************** ","  ************* ","    *** *** "],
-  "HOUSE":["        * ","       *** ","      ***** ","     ******* ","    ********* ","   *********** ","   *********** ","   *** *** *** ","   *** *** *** ","   *********** "],
-  "SWORD":["        * ","       *** ","       *** ","       *** ","       *** ","       *** ","  ************* ","  ************* ","       *** ","       *** ","        * "],
-  "MUSHROOM":["      ***** ","    ********* ","  ************* "," *************** "," *************** ","    *** *** ","    ********* ","    ********* "],
+  "HEART":[" ***** ***** "," ******* ******* ","*****************","*****************"," *************** "," ************* "," *********** "," ********* "," ***** "," *** "," * "],
+  "APPLE":[" *** "," **** "," ** "," ********** "," ************** "," ****************"," ****************"," ****************"," ************** "," ********** "],
+  "ALIEN":[" ******* "," *********** "," *************** "," *** ***** *** "," *** ***** *** "," *************** "," ************* "," *** *** "],
+  "HOUSE":[" * "," *** "," ***** "," ******* "," ********* "," *********** "," *********** "," *** *** *** "," *** *** *** "," *********** "],
+  "SWORD":[" * "," *** "," *** "," *** "," *** "," *** "," ************* "," ************* "," *** "," *** "," * "],
+  "MUSHROOM":[" ***** "," ********* "," ************* "," *************** "," *************** "," *** *** "," ********* "," ********* "],
   "SMILEY":[" ******* "," *********** "," *** *** *** "," *** *** "," *** \\___/ *** "," *********** "," ******* "],
   "STAR":[" * "," * "," * ******* * "," ************* ","*****************"," ************* "," * ******* * "," * "," * "],
   "CAT":[" ** ** "," **** **** "," ****** ****** "," ****************"," *** ** ** *** "," *** *** *** "," *** ***** *** "," *** *** "," *********** "],
@@ -137,7 +122,6 @@ const SHAPES = {
   "FISH":[" ***** "," ********* "," *** *** *** ","**** * **** "," *** *** *** "," ********* "," ***** "],
   "CAMERA":[" ************* "," ** ******* ** "," ** ** ** ** "," ** ******* ** "," ** ** ** ** "," ** ******* ** "," ************* "]
 };
-
 const LETTERS5x7 = {
   "A":[" *** ","* *","* *","*****","* *","* *","* *"],
   "B":["**** ","* *","**** ","* *","* *","* *","**** "],
@@ -166,7 +150,6 @@ const LETTERS5x7 = {
   "Y":["* *"," * * "," * "," * "," * "," * "," * "],
   "Z":["*****"," * "," * "," * "," * ","* ","*****"]
 };
-
 function buildWordShape(word) {
   word = word.replace(/\s+/g, "");
   const rows = 7;
@@ -179,22 +162,18 @@ function buildWordShape(word) {
   }
   return out;
 }
-
 function preload() {
   let script = document.createElement('script');
   script.src = 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js';
   script.onload = () => { libraryLoaded = true; };
   document.head.appendChild(script);
-
   let link = document.createElement('link');
   link.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
   link.rel = 'stylesheet';
   document.head.appendChild(link);
-
   let saved = safeGet('galaxinko_records', null);
   if (saved) allTimeRecords = saved;
 }
-
 function setup() {
   createCanvas(W, H);
   noSmooth();
@@ -205,24 +184,20 @@ function setup() {
   backgroundOsc = new p5.Oscillator('sine');
   backgroundOsc2 = new p5.Oscillator('sine');
   bhOsc = new p5.Oscillator('triangle');
-
   for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
-
   if(isAutoMode) {
     currentGravity = random(0.05, 1.95);
     currentBounce = floor(random(1, 100));
   }
   timer = floor(random(40, 181));
   roundInitialTime = timer;
-
   currentDestination = generatePlanetName();
   generateDeepSpaceElements();
   prepareSingularityEvents();
   planSpaceshipForRound();
   connectTikfinity();
 }
-
 function startSpaceAudio() {
   if (audioStarted) return;
   userStartAudio();
@@ -231,25 +206,20 @@ function startSpaceAudio() {
   bhOsc.start(); bhOsc.amp(0);
   audioStarted = true;
 }
-
 function mousePressed() { startSpaceAudio(); handleTuneMousePressed(); }
 function touchStarted() { startSpaceAudio(); }
-
 function playSpawnSound() {
   if (!audioStarted) return;
   let scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
   fxSynth.play(random(scale) + random(-5, 5), random(0.02, 0.05), 0, random(0.05, 0.15));
 }
-
 function playJackpotSound() {
   if (!audioStarted) return;
   synth.play('C5',0.1,0,0.1); setTimeout(()=>synth.play('E5',0.1,0,0.1),100);
   setTimeout(()=>synth.play('G5',0.1,0,0.2),200); setTimeout(()=>synth.play('C6',0.2,0,0.5),300);
 }
-
 function playExplosionSound() { if (audioStarted) fxSynth.play(random(50,150), 0.1, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
-
 function playTimerEndSequence() {
   if (!audioStarted) return;
   let endNotes = [600, 400, 250, 100];
@@ -258,7 +228,6 @@ function playTimerEndSequence() {
   }
   flashEffect = 60;
 }
-
 function updateJukebox() {
   if (!audioStarted || gameState!=="PLAYING") return;
   if (millis() > nextNoteTime) {
@@ -268,7 +237,6 @@ function updateJukebox() {
     nextNoteTime = millis() + random(2000, 5000);
   }
 }
-
 function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
@@ -332,7 +300,6 @@ function draw() {
   if (flashEffect > 0) { noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(0, 0, W, H); flashEffect--; }
   pop();
 }
-
 function spawnBall(userName) {
   if (!libraryLoaded || gameState !== "PLAYING") return;
   if (!audioStarted) startSpaceAudio();
@@ -344,12 +311,9 @@ function spawnBall(userName) {
     restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001
   });
   if (!leaderboard[userName]) leaderboard[userName] = { score: 0, color: color(random(100,255), random(100,255), random(100,255)) };
-  const obj = viewerSpaceObjects.find(o => o.name === userName);
-  if (obj) pushViewerPulse(obj, color(0, 255, 255), 0.9);
   balls.push({ body: ballBody, name: userName, color: leaderboard[userName].color, scored: false });
   Matter.World.add(world, ballBody);
 }
-
 function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
@@ -380,9 +344,7 @@ function drawBalls() {
     if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) removeBall(b);
   }
 }
-
 function removeBall(b) { Matter.World.remove(world, b.body); const idx = balls.indexOf(b); if (idx !== -1) balls.splice(idx, 1); }
-
 function onUserJoin(username, imgUrl) {
   if (viewerSpaceObjects.find(o => o.name === username)) return;
   let now = millis();
@@ -400,7 +362,6 @@ function onUserJoin(username, imgUrl) {
   if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
   viewerSpaceObjects.push(obj);
 }
-
 function updateUserLikes(username, count) {
   let obj = viewerSpaceObjects.find(o => o.name === username);
   if (!obj) { onUserJoin(username, null); setTimeout(() => updateUserLikes(username, count), 300); return; }
@@ -410,37 +371,27 @@ function updateUserLikes(username, count) {
   pushViewerPopup(obj, `+${count}`, color(255, 200, 0));
   obj.combo += count; obj.comboTTL = 120;
 }
-
 function onUserQuit(username) { let o = viewerSpaceObjects.find(v=>v.name===username); if (o) o.state = "fadingOut"; }
-
 function pushViewerPulse(obj, col, strength=1.0) { obj.pulses.push({ r:(obj.baseSize+obj.extraSize)*0.6, maxR:(obj.baseSize+obj.extraSize)*(1.8+0.4*strength), alpha:160*strength, col }); }
-
 function pushViewerPopup(obj, text, col) { obj.popups.push({ text, x:0, y:-(obj.baseSize+obj.extraSize)/2 - 8, vy:-0.35, alpha:220, col }); }
-
 function addViewerScorePopup(username, points, col) {
   const o = viewerSpaceObjects.find(v => v.name === username); if (!o) return;
   pushViewerPopup(o, `+${points}`, col || color(0,255,255));
   pushViewerPulse(o, col || color(0,255,255), 1.1);
   o.lastActive = millis(); o.state = "active";
 }
-
 function drawViewerObjects() {
   for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
     const obj = viewerSpaceObjects[i];
     const inactiveSec = (millis() - obj.lastActive) / 1000;
-    
-    // Zmizí po 60 vteřinách neaktivity
     if (obj.state !== "fadingOut" && inactiveSec > obj.inactivityLimit) obj.state = "fadingOut";
     if (obj.state === "fadingIn") { obj.fadeAlpha = min(1, obj.fadeAlpha + 0.02); if (obj.fadeAlpha >= 0.999) obj.state = "active"; }
     else if (obj.state === "fadingOut") { obj.fadeAlpha = max(0, obj.fadeAlpha - 0.01); if (obj.fadeAlpha <= 0.001) { viewerSpaceObjects.splice(i,1); continue; } }
     else { obj.haloPhase += 0.02; }
-
     obj.x += obj.vx + sin(frameCount*0.01)*0.1; obj.y += obj.vy + cos(frameCount*0.01)*0.1; obj.angle += 0.003;
-    
     let r1 = (obj.baseSize + obj.extraSize) / 2;
     if (obj.x < r1 || obj.x > W-r1) { obj.vx *= -1; obj.x = constrain(obj.x, r1, W-r1); }
     if (obj.y < r1 || obj.y > H-250) { obj.vy *= -1; obj.y = constrain(obj.y, r1, H-250); }
-    
     for (let j = i - 1; j >= 0; j--) {
       let other = viewerSpaceObjects[j];
       if (other.state === "fadingOut" || obj.state === "fadingOut") continue;
@@ -468,18 +419,13 @@ function drawViewerObjects() {
     }
     obj.extraSize *= 0.995;
     if (obj.extraSize < 0.05) obj.extraSize = 0; if (obj.comboTTL>0) obj.comboTTL--; else obj.combo = max(0, obj.combo - 0.3);
-    
-    // Plná viditelnost profilů, ignorujeme tmavnutí na pozadí
     const alphaVal = 255 * obj.fadeAlpha;
     push(); translate(obj.x, obj.y); rotate(obj.angle);
     const totalS = obj.baseSize + obj.extraSize;
     const haloPulse = (sin(obj.haloPhase)*0.5 + 0.5); const comboBoost = min(1, obj.combo/50);
     noStroke();
-    
-    // Výraznější pozadí okolo profilovky
     fill(obj.color[0], obj.color[1], obj.color[2], (50 + 40*comboBoost + 20*haloPulse) * obj.fadeAlpha);
     ellipse(0,0, totalS + 15 + comboBoost*10);
-    
     if (obj.hitFlash > 0) {
       fill(255, obj.hitFlash * obj.fadeAlpha);
       ellipse(0, 0, totalS + 10);
@@ -497,8 +443,6 @@ function drawViewerObjects() {
       const rr = totalS*0.6 + 6 + s*0.6;
       noStroke(); fill(255,180,0, (80+80*comboBoost)*obj.fadeAlpha); ellipse(cos(a)*rr, sin(a*1.1)*rr*0.6, 3,3);
     }
-    
-    // Vykreslení 100% viditelného profilového obrázku
     if (obj.img) {
       push();
       imageMode(CENTER);
@@ -514,13 +458,10 @@ function drawViewerObjects() {
       text(obj.name[0],0,0);
     }
     pop();
-    
-    // Jméno nad objektem (nerotuje s objektem)
     fill(255, alphaVal);
     textSize(11);
     textAlign(CENTER);
     text(obj.name, obj.x, obj.y + totalS/2 + 18);
-    
     for (let b=obj.popups.length-1; b>=0; b--) {
       const bb = obj.popups[b]; push(); translate(obj.x + bb.x, obj.y + bb.y);
       noStroke();
@@ -530,7 +471,6 @@ function drawViewerObjects() {
     }
   }
 }
-
 function createSparkle(x, y, col) {
   for(let i=0; i<6; i++) {
     sparkles.push({
@@ -540,7 +480,6 @@ function createSparkle(x, y, col) {
     });
   }
 }
-
 function drawSparkles() {
   for(let i=sparkles.length-1; i>=0; i--) {
     let s = sparkles[i];
@@ -550,7 +489,6 @@ function drawSparkles() {
     if(s.life <= 0) sparkles.splice(i, 1);
   }
 }
-
 function drawLiveClockBadge(centerX, y) {
   const now = new Date();
   const dd = String(now.getDate()).padStart(2,'0'); const mm = String(now.getMonth()+1).padStart(2,'0'); const yyyy = now.getFullYear();
@@ -569,7 +507,6 @@ function drawLiveClockBadge(centerX, y) {
   fill(220);
   text(timeStr, rx + pad + wLabel + gap, y);
 }
-
 function drawUI() {
   push();
   fill(0, 0, 30, 255); noStroke();
@@ -630,7 +567,6 @@ function drawUI() {
   });
   pop();
 }
-
 function mouseClicked() {
   if (mouseX>10 && mouseX<260 && mouseY>100 && mouseY<130) {
     allTimeRecords = Array(8).fill({ name:"NONE", score:0, color:[100,100,100] });
@@ -650,39 +586,30 @@ function mouseClicked() {
   }
   if (isMouseOverTuneToggle()) { debugPanelVisible = !debugPanelVisible; return; }
 }
-
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
-
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState==="PLAYING"?1.0:0.2), 0.01); }
-
 function createExplosion(x,y){ for(let i=0;i<25;i++) explosions.push({x,y,vx:random(-5,5),vy:random(-5,5),life:255,col:color(255,random(100,255),0)}); }
-
 function drawExplosions(){
   for(let i=explosions.length-1;i>=0;i--){
     let e = explosions[i]; fill(red(e.col),green(e.col),blue(e.col), e.life); rect(e.x,e.y,4,4);
     e.x+=e.vx; e.y+=e.vy; e.life-=5; if(e.life<=0) explosions.splice(i,1);
   }
 }
-
 function updateComet(){ if(currentComet===null && gameState==="PLAYING" && random()<0.003){ currentComet={x:random(W),y:-50,targetX:W+100,targetY:H+100,progress:0,speed:random(0.01,0.03),size:random(6,10),color:color(255,255,200,200)}; }
   if(currentComet){ currentComet.progress+=currentComet.speed; let curX=lerp(currentComet.x,currentComet.targetX,currentComet.progress); let curY=lerp(currentComet.y,currentComet.targetY,currentComet.progress);
 fill(currentComet.color); ellipse(curX,curY,currentComet.size); if(currentComet.progress>1.2) currentComet=null;
   } }
-
 function checkAllTimeRecords(n,s,col){
   let idx = allTimeRecords.findIndex(r=>r.name===n);
   if(idx!==-1){ if(s>allTimeRecords[idx].score) allTimeRecords[idx].score = s; }
   else { allTimeRecords.push({ name:n, score:s, color:[red(col),green(col),blue(col)] }); }
   allTimeRecords.sort((a,b)=>b.score - a.score); allTimeRecords = allTimeRecords.slice(0,8); safeSet('galaxinko_records', allTimeRecords);
 }
-
 function updateWinnerColor() {
   let s = Object.entries(leaderboard).sort((a,b)=>b[1].score - a[1].score);
   winnerColor = s.length>0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0,0,128);
 }
-
 function updateScore(n,p,c){ if(!leaderboard[n]) leaderboard[n]={score:0,color:c}; leaderboard[n].score += p; addViewerScorePopup(n,p,c); }
-
 function generateDeepSpaceElements(){
   massivePlanets = [];
   for(let i=0;i<3;i++) massivePlanets.push({ x:random(W), y:random(H), size:random(20, 50), color:color(random(30,80), 100), hasRing:random()<0.8, ringColor:color(random(80,150), 80), speed:random(0.005,0.015), rot:random(TWO_PI), rotSpeed:random(-0.01,0.01) });
@@ -723,13 +650,11 @@ function generateDeepSpaceElements(){
     });
   }
 }
-
 function generatePlanetName(){
   const names = ["XERON","KEPLER","ZENON","AETHER","NIBIRU","PANDORA","CYGNUS","TITAN","VULCAN","ARRAKIS","SOLARIS","ZION","EDEN"];
   const types = ["PRIME","STATION","SYSTEM","REACH","BETA","MAJOR","MINOR","VOID","CLUSTER","GATE"];
   return random(names)+" "+random(types);
 }
-
 function initGame() {
   if(!engine){ engine = Matter.Engine.create(); world = engine.world; }
   world.gravity.y = currentGravity;
@@ -802,7 +727,6 @@ function initGame() {
   }
   Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H+48, W, 100, {isStatic:true, friction:1})]);
 }
-
 function drawPegs() {
   noStroke();
   let pegR = map(currentGravity, 0.05, 1.95, 0, 255);
@@ -816,7 +740,6 @@ function drawPegs() {
     fill(pegBaseCol); rect(p.position.x - 2, p.position.y - 2, 4, 4);
   }
 }
-
 function drawZones(){
   for (let z of zones) {
     let isJackpot = (z.score >= 5000);
@@ -830,14 +753,12 @@ function drawZones(){
     pop();
   }
 }
-
 function drawWaitingMessage(){
   let alpha = map(sin(frameCount*0.15), -1, 1, 100, 255);
   push(); fill(255,50,50,alpha); textAlign(CENTER,CENTER); textSize(30); stroke(0); strokeWeight(4);
   text("WARNING: CLEANUP", W/2, H/2 - 50);
   textSize(14); noStroke(); fill(255,200,0,alpha); text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2); pop();
 }
-
 function drawResultsOverlay() {
   fill(0, 0, 20, 235);
   rect(20, 50, W - 40, H - 100, 20);
@@ -876,7 +797,6 @@ function drawResultsOverlay() {
   textAlign(CENTER); fill(255, 80, 80); textSize(20);
   text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
 }
-
 function spawnRareLegend() {
   let legend = random(RARE_POOL);
   spaceDebris.push({
@@ -886,7 +806,6 @@ function spawnRareLegend() {
     wobble:random(0.02,0.08), isRare:true, layer:1.0, colA:null, colB:null, blink:0
   });
 }
-
 function drawGalacticBackground() {
   fill(255,120); noStroke();
   for(let s of stars){ ellipse(s.x,s.y,s.s); s.y += s.speed * currentTravelSpeed * 5;
@@ -931,24 +850,20 @@ function drawGalacticBackground() {
   else if (gameState==="WAITING") planetSize = lerp(planetSize, 450, 0.01);
   if (planetSize>10) for(let r=4;r>0;r--){ fill(red(winnerColor),green(winnerColor),blue(winnerColor),4); ellipse(W/2, H+60, planetSize*(r*0.6), planetSize*0.4); }
 }
-
 function drawDebrisUFO(d){
   let s = d.size; noStroke();
   fill(0, 255, 120, 160); rect(-s/2, -s/6, s, s/3, 2); fill(180, 220); ellipse(0, -s/6, s*0.55, s*0.55);
   fill(255, 220); for (let k=-2;k<=2;k++) circle(k*(s*0.18), s*0.02, 3);
 }
-
 function drawDebrisSatellite(d){
   let s = d.size; stroke(200, 200, 255, 150); strokeWeight(1); noFill();
   rect(-s/4, -s/4, s/2, s/2); line(-s, 0, s, 0); rect(-s, -s/6, s/2, s/3); rect(s/2, -s/6, s/2, s/3);
 }
-
 function drawDebrisAsteroid(d){
   let s = d.size; noStroke(); fill(120, 120, 140, 180);
   rect(-s/2, -s/2, s*0.6, s*0.6, 2); rect(-s*0.1, -s*0.3, s*0.4, s*0.4, 2);
   fill(160, 160, 180, 120); rect(0, 0, s*0.3, s*0.3, 2);
 }
-
 function drawDebrisRocket(d){
   let s = d.size; noStroke();
   fill(d.colA); rect(-s*0.25, -s*0.5, s*0.5, s, 3); fill(255, 255, 255, 200); triangle(0, -s*0.65, -s*0.18, -s*0.45, s*0.18, -s*0.45);
@@ -956,30 +871,25 @@ function drawDebrisRocket(d){
   let fl = 4 + sin(frameCount*0.4)*2; fill(255,160,0, 220); rect(-s*0.12, s*0.5, s*0.24, fl, 2);
   fill(255,220,0, 180); rect(-s*0.08, s*0.5, s*0.16, fl*0.8, 2);
 }
-
 function drawDebrisStation(d){
   let s = d.size; noFill(); stroke(d.colA); strokeWeight(2);
   ellipse(0, 0, s*1.6, s*0.7); ellipse(0, 0, s*0.9, s*0.4);
   noStroke(); fill(d.colB); rect(-s*0.25, -s*0.15, s*0.5, s*0.3, 3);
   fill(200, 220); rect(-s*0.6, -s*0.08, s*0.2, s*0.16); rect(s*0.4, -s*0.08, s*0.2, s*0.16);
 }
-
 function drawDebrisDrone(d){
   let s = d.size; let blink = (sin(frameCount*0.2 + d.blink) * 0.5 + 0.5); noStroke();
   fill(180, 200); rect(-s*0.25, -s*0.12, s*0.5, s*0.24, 2);
   fill(0, 255, 180, 120 + blink*80); circle(-s*0.15, 0, 4); circle(0, 0, 4); circle(s*0.15, 0, 4);
 }
-
 function drawDebrisProbe(d){
   let s = d.size; noStroke(); fill(200, 220); rect(-s*0.2, -s*0.2, s*0.4, s*0.4, 2);
   fill(150, 200); triangle(-s*0.25, -s*0.3, s*0.25, -s*0.3, 0, -s*0.6); fill(0, 255, 255, 160); circle(0, -s*0.38, 4);
 }
-
 function drawDebrisNebula(d){
   noStroke(); let s = d.size; fill(red(d.colA), green(d.colA), blue(d.colA), alpha(d.colA)); ellipse(0, 0, s*1.1, s*0.6);
   fill(red(d.colB), green(d.colB), blue(d.colB), alpha(d.colB)); ellipse(-s*0.2, -s*0.1, s*0.7, s*0.4); ellipse(s*0.25, s*0.05, s*0.6, s*0.35);
 }
-
 function drawLegendShape(d){
   noStroke(); fill(d.color); let s=d.size;
   switch(d.legendId){
@@ -993,15 +903,12 @@ function drawLegendShape(d){
     case "SHUTTLE": fill(255); triangle(-s/2,s/2, s/2,s/2, 0,-s/2); break;
   }
 }
-
 function drawGravityDust(){
   let r=map(currentGravity,0.05,1.95,100,255), g=map(currentGravity,0.05,1.95,200,100), b=map(currentGravity,0.05,1.95,255,50);
   fill(r,g,b,150); noStroke(); let dustSpeed=currentGravity*3*currentTravelSpeed;
   for(let d of dust){ d.y+=dustSpeed; if(d.y>H){ d.y=0; d.x=random(W);} rect(d.x,d.y,d.s,d.s); }
 }
-
 function prepareSingularityEvents(){ bhSpawnTimes=[]; if(random()<0.4) bhSpawnTimes.push(floor(random(5, timer*0.8))); }
-
 function checkSingularitySpawn(){
   if (bhSpawnTimes.includes(timer) && !blackHole) {
     let fromLeft = random()<0.5;
@@ -1009,7 +916,6 @@ function checkSingularitySpawn(){
     blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t=>t!==timer);
   }
 }
-
 function handleBlackHole(){
   if (!blackHole) return;
   let dir = blackHole.targetX>blackHole.x?1:-1; blackHole.x += blackHole.speed*dir;
@@ -1031,13 +937,11 @@ function handleBlackHole(){
   }
   if ((dir===1 && blackHole.x>blackHole.targetX) || (dir===-1 && blackHole.x<blackHole.targetX)) { blackHole=null; if(audioStarted) bhOsc.amp(0,0.5); }
 }
-
 let spaceship = null, shipPlanned = false, shipSpawnAt = -1;
 function planSpaceshipForRound() {
   shipPlanned = (random() < 0.09);
   shipSpawnAt = shipPlanned ? floor(random(max(3, floor(roundInitialTime*0.3)), max(5, floor(roundInitialTime*0.8)))) : -1;
 }
-
 function spawnSpaceship() {
   const leftToRight = random() < 0.5; const y = random(H - ZONE_H - 220, H - ZONE_H - 110);
   const startX = leftToRight ? -120 : W + 120;
@@ -1048,7 +952,6 @@ function spawnSpaceship() {
   const accent = color(red(base)*0.6, green(base)*0.6, blue(base)*0.9);
   spaceship = { body, dir: leftToRight ? 1 : -1, speed: random(1.0, 2.2), w: shipW, h: shipH, colA: base, colB: accent, y };
 }
-
 function handleSpaceship() {
   if (!spaceship) return;
   const pos = spaceship.body.position; const nx = pos.x + spaceship.speed * spaceship.dir;
@@ -1059,7 +962,6 @@ function handleSpaceship() {
   const flame = 3 + sin(frameCount*0.3)*2; fill(255,200,0, 180); rect(-32, 10, 8, flame); rect(24, 10, 8, flame); pop();
   if (nx < -150 || nx > W + 150) { Matter.World.remove(world, spaceship.body); spaceship = null; }
 }
-
 function resetGame() {
   timer = floor(random(40, 181));
   roundInitialTime = timer;
@@ -1076,7 +978,6 @@ function resetGame() {
   }
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound();
 }
-
 function drawProceduralHUD(){
   push(); stroke(255,10); strokeWeight(1);
   for(let i=0;i<H;i+=4) line(0, i+(frameCount%4), W, i+(frameCount%4));
@@ -1085,7 +986,6 @@ function drawProceduralHUD(){
   textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W-20, H-30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W-20, H-20);
   pop();
 }
-
 function drawAntiBotOverlay(){
   push();
   if (random()<0.1){ fill(255,150); noStroke(); circle(random(W),random(H),random(1,3)); }
@@ -1093,7 +993,6 @@ function drawAntiBotOverlay(){
   if (random()<0.05){ fill(255,0,0,50); rect(random(W),random(H),20,20); }
   pop();
 }
-
 function triggerCosmicEvent(){
   if (cosmicEvent) return; eventOccurredThisRound = true;
   let fromLeft = random()<0.5; let size=random(25,45); let startX = fromLeft? -100 : W+100;
@@ -1104,7 +1003,6 @@ function triggerCosmicEvent(){
   Matter.World.add(world, body); Matter.Body.setVelocity(body, { x: fromLeft? random(12,18):random(-18,-12), y: random(-1,1) });
   if (audioStarted){ let osc=new p5.Oscillator('sine'); osc.start(); osc.freq(random(100,400)); osc.freq(random(800,1200),1.5); osc.amp(0.1); osc.amp(0,1.5); setTimeout(()=>osc.stop(),1600); }
 }
-
 function handleCosmicEvent(){
   if (!cosmicEvent) return; let pos = cosmicEvent.body.position;
   cosmicEvent.trail.push({x:pos.x,y:pos.y,life:255}); if (cosmicEvent.trail.length>20) cosmicEvent.trail.shift();
@@ -1116,18 +1014,14 @@ function handleCosmicEvent(){
   fill(255); ellipse(pos.x,pos.y,cosmicEvent.size); fill(cosmicEvent.color); ellipse(pos.x,pos.y,cosmicEvent.size*0.8); pop();
   if (pos.x<-300 || pos.x>W+300) { Matter.World.remove(world, cosmicEvent.body); cosmicEvent = null; }
 }
-
 let debugPanelVisible = false;
 let draggingSlider = null;
-
 function keyPressed() { if (key === 't' || key === 'T') debugPanelVisible = !debugPanelVisible; }
-
 function isMouseOverTuneToggle() {
   const w = 40, h = 40;
   const x = W - w - 10, y = 10;
   return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
 }
-
 function drawTuneToggleButton() {
   const w = 40, h = 40;
   const x = W - w - 10, y = 10;
@@ -1145,7 +1039,6 @@ function drawTuneToggleButton() {
   textSize(24);
   text("⚙", x + w / 2, y + h / 2);
 }
-
 function drawTunePanel() {
   const x = W - 260, y = 60, w = 250, h = 140;
   noStroke();
@@ -1186,14 +1079,12 @@ function drawTunePanel() {
   textSize(10);
   text(isAutoMode ? "MODE: AUTO" : "MODE: MANUAL", btnX + btnW/2, btnY + btnH/2);
 }
-
 function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
   noStroke(); fill(200); textAlign(LEFT, CENTER); textSize(10); text(label, sx, sy - 10);
   textAlign(RIGHT, CENTER); text(nf(value, 1, 2), sx + w, sy - 10);
   stroke(0, 255, 255, 140); strokeWeight(3); line(sx, sy, sx + w, sy);
   const t = map(value, minV, maxV, 0, 1, true); const kx = sx + t * w;
   noStroke(); fill(0, 255, 255, 220); circle(kx, sy, 10);
-
   if (draggingSlider && draggingSlider.name === label) {
     const nt = constrain((mouseX - sx) / w, 0, 1);
     const newVal = minV + nt * (maxV - minV);
@@ -1201,32 +1092,25 @@ function drawSlider(label, sx, sy, w, value, minV, maxV, onChange) {
     onChange(newVal);
   }
 }
-
 function handleTuneMousePressed() {
   if (!debugPanelVisible) return;
-
   const px = W - 260, py = 60, pw = 250, ph = 140;
   if (mouseX < px || mouseX > px+pw || mouseY < py || mouseY > py+ph) { draggingSlider = null; return; }
-
   let btnX = px + 25, btnY = py + ph - 35, btnW = 200, btnH = 25;
   if (mouseX >= btnX && mouseX <= btnX+btnW && mouseY >= btnY && mouseY <= btnY+btnH) {
       isAutoMode = !isAutoMode;
       return;
   }
-
   const sx = px + 16, w = 210;
   const gravY = py + 44;
   const bounceY = py + 84;
   const rad = 8;
-  
+ 
   let tG = map(currentGravity, 0.05, 1.95, 0, 1, true); let kG = sx + tG * w;
   if (dist(mouseX, mouseY, kG, gravY) <= rad + 6) { draggingSlider = { name: "Gravity", val: currentGravity }; return; }
-
   let tB = map(currentBounce, 1, 99, 0, 1, true); let kB = sx + tB * w;
   if (dist(mouseX, mouseY, kB, bounceY) <= rad + 6) { draggingSlider = { name: "Peg Bounce", val: currentBounce }; return; }
   draggingSlider = null;
 }
-
 function mouseDragged() { }
 function mouseReleased() { draggingSlider = null; }
-
