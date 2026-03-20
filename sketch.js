@@ -1,9 +1,9 @@
-// --- GALAXINKO (v5.4.3 - TEST SETTINGS PANEL + PET TIMEOUT 60s) + LIVE TIME + SPAWN NA JOIN & LIKE ---
+// --- GALAXINKO (v5.4.4 - GEOMETRIC PEGS + CENTERED LIVE TIME) + LIVE TIME + SPAWN NA JOIN & LIKE ---
 // Opraveno pro TikFinity: spawn při eventu "roomUser"
-// NOVINKA: skrytý klíč 🔑 (vlevo dole) → rozklikne panel s posuvníky (gravitace + odskok + spawn per join)
-// AUTO RANDOM tlačítko nastaví hodnoty jako hra normálně
-// posuvníky jdou přes maximum hry (gravitace až 2.0, bounce až 99, spawn až 10)
-// změny gravitace fungují okamžitě, bounce a spawn platí pro nové kuličky/peg
+// NOVINKA: 
+// • LIVE TIME přesunut doprostřed nahoře (hezky, ne příliš velké)
+// • Verze hry jasně viditelná ("v5.4.4")
+// • Pegs teď více geometrické/symmetrické (pyramidy, diamanty, spirály, hexagon grid, saturn rings atd.) – více kusů, méně chaosu
 
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
@@ -27,7 +27,7 @@ let shakeAmount = 0;
 let currentDestination = "";
 let currentGravity = 0.6;
 let currentBounce = 50;
-let spawnPerEvent = 1;                    // ← nová proměnná pro počet kuliček při joinu
+let spawnPerEvent = 1;
 // --- VIEWER INTERACTION ---
 let viewerSpaceObjects = [];
 // --- COLLISION ELEMENT ---
@@ -216,7 +216,6 @@ function setup() {
   prepareSingularityEvents();
   connectTikfinity();
 
-  // === SKRYTÝ TEST PANEL (🔑) ===
   keyButton = createButton('🔑');
   keyButton.position(15, H - 45);
   keyButton.style('font-size', '28px');
@@ -332,15 +331,12 @@ function updateJukebox() {
 function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
-
-  // === LIVE UPDATE Z POSUVNÍKŮ (jen když je panel otevřený) ===
   if (settingsPanelVisible) {
     currentGravity = gravitySlider.value();
     currentBounce = bounceSlider.value();
     spawnPerEvent = spawnPerEventSlider.value();
     if (world) world.gravity.y = currentGravity;
   }
-
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
   updateJukebox();
@@ -407,8 +403,6 @@ function draw() {
   if (gameState === "RESULTS") drawResultsOverlay();
   drawProceduralHUD();
   drawAntiBotOverlay();
-
-  // === TEST PANEL DRAW ===
   if (settingsPanelVisible) {
     push();
     fill(0, 0, 30, 220);
@@ -423,7 +417,6 @@ function draw() {
     text("SPAWN PER JOIN", 40, 245);
     pop();
   }
-
   if (flashEffect > 0) {
     noStroke();
     fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100));
@@ -435,10 +428,10 @@ function draw() {
     dateStyle: 'short',
     timeStyle: 'medium'
   }).format(new Date());
-  fill(255, 60, 60);
-  textSize(13);
-  textAlign(RIGHT);
-  text("LIVE TIME " + liveTime, W - 20, 12);
+  fill(255, 80, 80);
+  textSize(14);
+  textAlign(CENTER);
+  text("LIVE " + liveTime, W/2, 22);
   pop();
 }
 function spawnBall(userName) {
@@ -539,8 +532,6 @@ function onUserJoin(username, imgUrl) {
   };
   if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
   viewerSpaceObjects.push(obj);
-
-  // === SPAWN PODLE POSUVNÍKU ===
   for (let i = 0; i < spawnPerEvent; i++) {
     spawnBall(username);
   }
@@ -625,8 +616,8 @@ function drawUI() {
   textSize(64);
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
-  textSize(10);
-  text("STABLE SINGULARITY SIMULATION v5.4.3", logoX + 2, logoY + 34);
+  textSize(11);
+  text("STABLE SINGULARITY SIMULATION v5.4.4", logoX + 2, logoY + 34);
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
@@ -783,9 +774,9 @@ function initGame() {
     world = engine.world;
   }
   world.gravity.y = currentGravity;
-  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "CHAOS", "FIELDS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "FRACTAL_TREE", "HEXAGON_GRID", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN", "SHAPE_HOUSE", "SHAPE_SWORD", "SHAPE_MUSHROOM"];
+  const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "HEXAGON_GRID", "PYRAMID", "FRACTAL_TREE", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN", "SHAPE_HOUSE", "SHAPE_SWORD", "SHAPE_MUSHROOM"];
   const mode = random(patterns);
-  let numPegs = floor(random(300, 500));
+  let numPegs = floor(random(450, 650));
   let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution });
   pegs.push(blocker);
@@ -853,6 +844,18 @@ function initGame() {
             px = W/2 + cos(aG) * radG;
             py = 450 + sin(aG) * radG * 0.8;
             break;
+          case "DIAMOND":
+            let rowD = floor(i / 18);
+            let colD = i % 18;
+            px = W/2 + (colD - 9) * 22;
+            py = 180 + rowD * 28 + abs(colD-9)*8;
+            break;
+          case "PYRAMID":
+            let levelP = floor(i / 20);
+            let posInLevel = i % 20;
+            px = W/2 + (posInLevel - 10) * (22 - levelP*1.5);
+            py = 160 + levelP * 26;
+            break;
           case "HYPERCUBE":
             let side = 300;
             let ix = i % 10;
@@ -873,16 +876,16 @@ function initGame() {
             px = W/2 + cos(angleS) * distS;
             py = 400 + sin(angleS) * distS * 0.4;
             break;
-          case "FRACTAL_TREE":
-            let level = floor(log(i + 1) / log(2));
-            px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level));
-            py = 160 + level * 60;
-            break;
           case "HEXAGON_GRID":
             let hRow = floor(i / 12);
             let hCol = i % 12;
             px = 100 + hCol * 60 + (hRow % 2) * 30;
             py = 180 + hRow * 50;
+            break;
+          case "FRACTAL_TREE":
+            let level = floor(log(i + 1) / log(2));
+            px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level));
+            py = 160 + level * 60;
             break;
           default:
             px = random(60, W - 60);
@@ -1109,6 +1112,208 @@ function drawLegendShape(d) {
     case "OUMUAMUA": fill(60, 40, 30);
       ellipse(0, 0, s, s/4); break;
     case "SHUTTLE": fill(255); triangle(-s/2, s/2, s/2, s/2, 0, -s/2); break;
+  }
+}
+function drawGravityDust() {
+  let r = map(currentGravity, 0.05, 1.95, 100, 255);
+  let g = map(currentGravity, 0.05, 1.95, 200, 100);
+  let b = map(currentGravity, 0.05, 1.95, 255, 50);
+  fill(r, g, b, 150);
+  noStroke();
+  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
+  for (let d of dust) {
+    d.y += dustSpeed;
+    if (d.y > H) { d.y = 0; d.x = random(W); }
+    rect(d.x, d.y, d.s, d.s);
+  }
+}
+function prepareSingularityEvents() {
+  bhSpawnTimes = [];
+  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
+}
+function checkSingularitySpawn() {
+  if (bhSpawnTimes.includes(timer) && !blackHole) {
+    let fromLeft = random() < 0.5;
+    blackHole = {
+      x: fromLeft ? -150 : W + 150,
+      y: random(200, H - 450),
+      startY: 0,
+      targetX: fromLeft ? W + 250 : -250,
+      speed: random(0.8, 1.5),
+      size: random(12, 18),
+      noiseOffset: random(1000),
+      noiseSpeed: random(0.01, 0.02),
+      wobbleAmp: random(40, 90)
+    };
+    blackHole.startY = blackHole.y;
+    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
+  }
+}
+function handleBlackHole() {
+  if (!blackHole) return;
+  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
+  blackHole.x += blackHole.speed * dir;
+  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
+  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
+  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
+  if (audioStarted) {
+    let centerDist = abs(W/2 - blackHole.x);
+    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
+    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo;
+    bhOsc.amp(vol, 0.1);
+    bhOsc.freq(32 + n * 12);
+  }
+  push();
+  translate(blackHole.x, blackHole.y);
+  noStroke();
+  for(let i = 5; i > 0; i--) {
+    fill(10 + i*10, 0, 40 + i*20, 25);
+    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10);
+    ellipse(0, 0, s);
+  }
+  fill(0);
+  ellipse(0, 0, jitterSize);
+  pop();
+  for (let i = pegs.length - 1; i >= 0; i--) {
+    let p = pegs[i];
+    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
+    if (d < jitterSize * 0.55 && random() < 0.23) {
+      Matter.Composite.remove(world, p);
+      createExplosion(p.position.x, p.position.y);
+      playExplosionSound();
+      pegs.splice(i, 1);
+    }
+  }
+  for (let i = balls.length - 1; i >= 0; i--) {
+    let b = balls[i];
+    if (!b.body) continue;
+    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
+    if (d < jitterSize * 0.5) {
+      removeBall(b);
+      continue;
+    }
+    if (d < blackHole.size * 1.87) {
+      let safeDist = Math.max(d, 30);
+      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
+      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
+      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
+      Matter.Body.applyForce(b.body, b.body.position, force);
+    }
+  }
+  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
+    blackHole = null;
+    if (audioStarted) bhOsc.amp(0, 0.5);
+  }
+}
+function resetGame() {
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(1, 100));
+  timer = floor(random(40, 181));
+  leaderboard = {};
+  totalBallsFired = 0;
+  roundCount++;
+  gameState = "PLAYING";
+  resultsTimer = 10;
+  eventOccurredThisRound = false;
+  currentDestination = generatePlanetName();
+  if (world) Matter.World.clear(world, false);
+  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
+  initGame();
+  generateDeepSpaceElements();
+  prepareSingularityEvents();
+}
+function drawProceduralHUD() {
+  push();
+  stroke(255, 10);
+  strokeWeight(1);
+  for(let i = 0; i < H; i += 4) {
+    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
+  }
+  fill(0, 255, 0, 150);
+  textSize(8);
+  textAlign(LEFT);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
+  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
+  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
+  textAlign(RIGHT);
+  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
+  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
+  pop();
+}
+function drawAntiBotOverlay() {
+  push();
+  if (random() < 0.1) {
+    fill(255, 150);
+    noStroke();
+    circle(random(W), random(H), random(1, 3));
+  }
+  if (random() < 0.02) {
+    fill(0, 255, 255, 100);
+    rect(0, random(H), W, random(1, 10));
+  }
+  if (random() < 0.05) {
+    fill(255, 0, 0, 50);
+    rect(random(W), random(H), 20, 20);
+  }
+  pop();
+}
+function triggerCosmicEvent() {
+  if (cosmicEvent) return;
+  eventOccurredThisRound = true;
+  let fromLeft = random() < 0.5;
+  let size = random(25, 45);
+  let startX = fromLeft ? -100 : W + 100;
+  let targetY = H - ZONE_H - random(20, 120);
+  let body = Matter.Bodies.circle(startX, targetY, size/2, {
+    isStatic: false,
+    isSensor: false,
+    density: 0.1,
+    frictionAir: 0,
+    collisionFilter: { mask: 1 }
+  });
+  let isComet = random() < 0.5;
+  cosmicEvent = {
+    body: body,
+    type: isComet ? "COMET" : "METEOR",
+    size: size,
+    color: isComet ? color(150, 200, 255) : color(255, 100, 50),
+    trail: []
+  };
+  Matter.World.add(world, body);
+  Matter.Body.setVelocity(body, {
+    x: fromLeft ? random(12, 18) : random(-12, -18),
+    y: random(-1, 1)
+  });
+  if (audioStarted) {
+    let osc = new p5.Oscillator('sine');
+    osc.start();
+    osc.freq(random(100, 400));
+    osc.freq(random(800, 1200), 1.5);
+    osc.amp(0.1);
+    osc.amp(0, 1.5);
+    setTimeout(() => osc.stop(), 1600);
+  }
+}
+function handleCosmicEvent() {
+  if (!cosmicEvent) return;
+  let pos = cosmicEvent.body.position;
+  cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
+  if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
+  push();
+  noStroke();
+  for(let i = 0; i < cosmicEvent.trail.length; i++) {
+    let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150);
+    fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha);
+    ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
+  }
+  fill(255);
+  ellipse(pos.x, pos.y, cosmicEvent.size);
+  fill(cosmicEvent.color);
+  ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
+  pop();
+  if (pos.x < -300 || pos.x > W + 300) {
+    Matter.World.remove(world, cosmicEvent.body);
+    cosmicEvent = null;
   }
 }
 function drawGravityDust() {
