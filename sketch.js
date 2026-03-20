@@ -1,12 +1,9 @@
-// --- GALAXINKO (v5.7.0 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK + VISIBLE PETS) ---
+// --- GALAXINKO (v5.7.1 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK + KOULE S HRÁČEM) ---
 // Changelog:
-// - v5.7.0: Změna chování diváků na pozadí (Pets) – 100% viditelný profilový obrázek a jméno, konec zašedlých bublin.
-// Při připojení na live stream se okamžitě spawne 1 kulička a pet zůstane aktivní 60 vteřin. Pokud nedá like, zmizí.
-// - v5.6.2: TUNE panel (Gravity, Peg Bounce) – toggle klávesou 'T' nebo klikem na ikonu "⚙" vpravo nahoře.
-// - v5.6.1: RICH SKY PACK – rozmanité pozadí.
-// - v5.6.0: 8bit STARSHIP, přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
+// - v5.7.1: Koule s hráčem na pozadí – při připojení do live chatu se ihned zjeví koule s profilovým obrázkem + jménem, spawne 1 kuličku.
+//           Pokud žádná interakce (like/chat), koule za 60 sekund zmizí. Koule kolidují jen mezi sebou a lehce se odstrkují.
 const GAME_TITLE = "GALAXINKO";
-const VERSION_TAG = "v5.7.0";
+const VERSION_TAG = "v5.7.1";
 let engine, world;
 let balls = [];
 let pegs = [];
@@ -31,8 +28,8 @@ let currentGravity = 0.6;
 let currentBounce = 50;
 let roundInitialTime = 40;
 let isAutoMode = true;
-// --- VIEWER INTERACTION ---
-let viewerSpaceObjects = [];
+// --- KOULE S HRÁČEM ---
+let viewerKoules = [];
 // --- COLLISION / EVENTS ---
 let cosmicEvent = null;
 let eventOccurredThisRound = false;
@@ -56,13 +53,13 @@ function connectTikfinity() {
       const name = hasName ? rawName.toUpperCase().substring(0, 12) : "ANON";
      
       if (evt === "roomUser" && hasName) {
-        onUserJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
-        spawnBall(name);                    // IHNED bez setTimeout
-        console.log("→ JOIN + PET + BALL:", name);
+        onPlayerJoin(name, payload?.profilePictureUrl || msg?.profilePictureUrl || "");
+        spawnBall(name);
+        console.log("→ JOIN + KOULE S HRÁČEM + BALL:", name);
       }
       if (evt === "like" && hasName) {
         const count = Math.max(1, Number(payload?.likeCount || 1));
-        updateUserLikes(name, count);
+        updatePlayerLikes(name, count);
         for (let i = 0; i < count; i++) setTimeout(() => spawnBall(name), i * 120);
       }
     } catch (_) {}
@@ -255,7 +252,7 @@ function draw() {
   background(2, 2, 8);
   drawGravityDust();
   drawGalacticBackground();
-  drawViewerObjects();
+  drawPlayerKoules();
   drawSparkles();
   try { Matter.Engine.update(engine, 1000/60); } catch(e) { console.error("Matter.js Engine Error - Auto-recovering..."); }
   handleBlackHole();
@@ -345,130 +342,69 @@ function drawBalls() {
   }
 }
 function removeBall(b) { Matter.World.remove(world, b.body); const idx = balls.indexOf(b); if (idx !== -1) balls.splice(idx, 1); }
-function onUserJoin(username, imgUrl) {
-  if (viewerSpaceObjects.find(o => o.name === username)) return;
-  let now = millis();
+function onPlayerJoin(username, imgUrl) {
+  if (viewerKoules.find(o => o.name === username)) return;
   let obj = {
     name: username,
-    x: random(100, W-100), y: random(100, H-300),
-    vx: random(-0.5, 0.5), vy: random(-0.5, 0.5),
-    baseSize: 50, extraSize: 0,
-    color: [random(100,255), random(100,255), random(255)],
+    x: random(80, W-80), y: random(80, H-280),
+    vx: random(-0.6, 0.6), vy: random(-0.6, 0.6),
+    baseSize: 52, extraSize: 0,
+    color: [random(90,255), random(90,255), random(255)],
     img: null, angle: random(TWO_PI),
-    fadeAlpha: 0.0, state: "fadingIn", lastActive: now, inactivityLimit: 60,
-    pulses: [], popups: [], combo: 0, comboTTL: 0, haloPhase: random(TWO_PI),
-    hitFlash: 0
+    fadeAlpha: 0.0, lastActive: millis(), inactivityLimit: 60
   };
   if (imgUrl) loadImage(imgUrl, loaded => { obj.img = loaded; });
-  viewerSpaceObjects.push(obj);
+  viewerKoules.push(obj);
 }
-function updateUserLikes(username, count) {
-  let obj = viewerSpaceObjects.find(o => o.name === username);
-  if (!obj) { onUserJoin(username, null); setTimeout(() => updateUserLikes(username, count), 300); return; }
-  obj.lastActive = millis(); obj.state = "active";
-  obj.extraSize = min(150, obj.extraSize + count * 2);
-  pushViewerPulse(obj, color(255, 180, 0), 1.0);
-  pushViewerPopup(obj, `+${count}`, color(255, 200, 0));
-  obj.combo += count; obj.comboTTL = 120;
+function updatePlayerLikes(username, count) {
+  let obj = viewerKoules.find(o => o.name === username);
+  if (!obj) { onPlayerJoin(username, null); return; }
+  obj.lastActive = millis();
+  obj.extraSize = Math.min(170, obj.extraSize + count * 3);
 }
-function onUserQuit(username) { let o = viewerSpaceObjects.find(v=>v.name===username); if (o) o.state = "fadingOut"; }
-function pushViewerPulse(obj, col, strength=1.0) { obj.pulses.push({ r:(obj.baseSize+obj.extraSize)*0.6, maxR:(obj.baseSize+obj.extraSize)*(1.8+0.4*strength), alpha:160*strength, col }); }
-function pushViewerPopup(obj, text, col) { obj.popups.push({ text, x:0, y:-(obj.baseSize+obj.extraSize)/2 - 8, vy:-0.35, alpha:220, col }); }
-function addViewerScorePopup(username, points, col) {
-  const o = viewerSpaceObjects.find(v => v.name === username); if (!o) return;
-  pushViewerPopup(o, `+${points}`, col || color(0,255,255));
-  pushViewerPulse(o, col || color(0,255,255), 1.1);
-  o.lastActive = millis(); o.state = "active";
-}
-function drawViewerObjects() {
-  for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
-    const obj = viewerSpaceObjects[i];
+function drawPlayerKoules() {
+  for (let i = viewerKoules.length - 1; i >= 0; i--) {
+    let obj = viewerKoules[i];
     const inactiveSec = (millis() - obj.lastActive) / 1000;
-    if (obj.state !== "fadingOut" && inactiveSec > obj.inactivityLimit) obj.state = "fadingOut";
-    if (obj.state === "fadingIn") { obj.fadeAlpha = min(1, obj.fadeAlpha + 0.02); if (obj.fadeAlpha >= 0.999) obj.state = "active"; }
-    else if (obj.state === "fadingOut") { obj.fadeAlpha = max(0, obj.fadeAlpha - 0.01); if (obj.fadeAlpha <= 0.001) { viewerSpaceObjects.splice(i,1); continue; } }
-    else { obj.haloPhase += 0.02; }
-    obj.x += obj.vx + sin(frameCount*0.01)*0.1; obj.y += obj.vy + cos(frameCount*0.01)*0.1; obj.angle += 0.003;
-    let r1 = (obj.baseSize + obj.extraSize) / 2;
-    if (obj.x < r1 || obj.x > W-r1) { obj.vx *= -1; obj.x = constrain(obj.x, r1, W-r1); }
-    if (obj.y < r1 || obj.y > H-250) { obj.vy *= -1; obj.y = constrain(obj.y, r1, H-250); }
-    for (let j = i - 1; j >= 0; j--) {
-      let other = viewerSpaceObjects[j];
-      if (other.state === "fadingOut" || obj.state === "fadingOut") continue;
-      let r2 = (other.baseSize + other.extraSize) / 2;
-      let dx = other.x - obj.x;
-      let dy = other.y - obj.y;
-      let distSq = dx*dx + dy*dy;
-      let minDist = r1 + r2;
-      if (distSq < minDist * minDist && distSq > 0) {
-        let distance = sqrt(distSq);
-        let overlap = minDist - distance;
-        let nx = dx / distance;
-        let ny = dy / distance;
-        obj.x -= nx * overlap * 0.5;
-        obj.y -= ny * overlap * 0.5;
-        other.x += nx * overlap * 0.5;
-        other.y += ny * overlap * 0.5;
-        let tx = obj.vx; let ty = obj.vy;
-        obj.vx = other.vx; obj.vy = other.vy;
-        other.vx = tx; other.vy = ty;
-        obj.hitFlash = 255;
-        other.hitFlash = 255;
-        createSparkle((obj.x + other.x)/2, (obj.y + other.y)/2, obj.color);
+    if (inactiveSec > obj.inactivityLimit) {
+      obj.fadeAlpha = Math.max(0, obj.fadeAlpha - 0.025);
+      if (obj.fadeAlpha <= 0) { viewerKoules.splice(i,1); continue; }
+    } else {
+      obj.fadeAlpha = Math.min(1, obj.fadeAlpha + 0.04);
+    }
+    obj.x += obj.vx; obj.y += obj.vy; obj.angle += 0.005;
+    if (obj.x < 60 || obj.x > W-60) obj.vx *= -1;
+    if (obj.y < 80 || obj.y > H-220) obj.vy *= -1;
+    for (let j = i-1; j >= 0; j--) {
+      let other = viewerKoules[j];
+      let dx = other.x - obj.x; let dy = other.y - obj.y;
+      let d = Math.sqrt(dx*dx + dy*dy);
+      let minD = (obj.baseSize + obj.extraSize + other.baseSize + other.extraSize)/2;
+      if (d < minD && d > 0) {
+        let overlap = minD - d;
+        let nx = dx/d; let ny = dy/d;
+        obj.x -= nx * overlap * 0.5; obj.y -= ny * overlap * 0.5;
+        other.x += nx * overlap * 0.5; other.y += ny * overlap * 0.5;
+        let tx = obj.vx; obj.vx = other.vx*0.8; other.vx = tx*0.8;
+        let ty = obj.vy; obj.vy = other.vy*0.8; other.vy = ty*0.8;
       }
     }
-    obj.extraSize *= 0.995;
-    if (obj.extraSize < 0.05) obj.extraSize = 0; if (obj.comboTTL>0) obj.comboTTL--; else obj.combo = max(0, obj.combo - 0.3);
-    const alphaVal = 255 * obj.fadeAlpha;
+    let totalS = obj.baseSize + obj.extraSize;
     push(); translate(obj.x, obj.y); rotate(obj.angle);
-    const totalS = obj.baseSize + obj.extraSize;
-    const haloPulse = (sin(obj.haloPhase)*0.5 + 0.5); const comboBoost = min(1, obj.combo/50);
     noStroke();
-    fill(obj.color[0], obj.color[1], obj.color[2], (50 + 40*comboBoost + 20*haloPulse) * obj.fadeAlpha);
-    ellipse(0,0, totalS + 15 + comboBoost*10);
-    if (obj.hitFlash > 0) {
-      fill(255, obj.hitFlash * obj.fadeAlpha);
-      ellipse(0, 0, totalS + 10);
-      obj.hitFlash = max(0, obj.hitFlash - 15);
-    }
-    for (let k=obj.pulses.length-1; k>=0; k--) {
-      const p = obj.pulses[k]; noFill();
-      stroke(red(p.col), green(p.col), blue(p.col), p.alpha * obj.fadeAlpha);
-      strokeWeight(2); ellipse(0,0,p.r);
-      p.r += 3.2; p.alpha -= 6; if (p.r > p.maxR || p.alpha <= 0) obj.pulses.splice(k,1);
-    }
-    const sparks = min(10, 1 + floor(obj.combo/8));
-    for (let s=0;s<sparks;s++) {
-      const a = (frameCount*0.05 + s*(TWO_PI/sparks));
-      const rr = totalS*0.6 + 6 + s*0.6;
-      noStroke(); fill(255,180,0, (80+80*comboBoost)*obj.fadeAlpha); ellipse(cos(a)*rr, sin(a*1.1)*rr*0.6, 3,3);
-    }
+    fill(255, 255, 255, 30 * obj.fadeAlpha); ellipse(0, 0, totalS + 18);
     if (obj.img) {
-      push();
       imageMode(CENTER);
-      tint(255, alphaVal);
-      image(obj.img, 0,0, totalS, totalS);
-      pop();
+      tint(255, 255 * obj.fadeAlpha);
+      image(obj.img, 0, 0, totalS, totalS);
     } else {
-      fill(obj.color[0],obj.color[1],obj.color[2], alphaVal);
-      ellipse(0,0,totalS);
-      fill(255, alphaVal);
-      textAlign(CENTER,CENTER);
-      textSize(totalS*0.4);
-      text(obj.name[0],0,0);
+      fill(obj.color[0], obj.color[1], obj.color[2], 255 * obj.fadeAlpha);
+      ellipse(0, 0, totalS);
     }
     pop();
-    fill(255, alphaVal);
-    textSize(11);
-    textAlign(CENTER);
-    text(obj.name, obj.x, obj.y + totalS/2 + 18);
-    for (let b=obj.popups.length-1; b>=0; b--) {
-      const bb = obj.popups[b]; push(); translate(obj.x + bb.x, obj.y + bb.y);
-      noStroke();
-      fill(red(bb.col), green(bb.col), blue(bb.col), bb.alpha * obj.fadeAlpha); textAlign(CENTER,CENTER); textSize(12); text(bb.text,0,0);
-      pop(); bb.y += bb.vy; bb.alpha -= 4;
-      if (bb.alpha <= 0) obj.popups.splice(b,1);
-    }
+    fill(255, 255 * obj.fadeAlpha);
+    textSize(11); textAlign(CENTER);
+    text(obj.name, obj.x, obj.y + totalS/2 + 20);
   }
 }
 function createSparkle(x, y, col) {
@@ -609,7 +545,7 @@ function updateWinnerColor() {
   let s = Object.entries(leaderboard).sort((a,b)=>b[1].score - a[1].score);
   winnerColor = s.length>0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0,0,128);
 }
-function updateScore(n,p,c){ if(!leaderboard[n]) leaderboard[n]={score:0,color:c}; leaderboard[n].score += p; addViewerScorePopup(n,p,c); }
+function updateScore(n,p,c){ if(!leaderboard[n]) leaderboard[n]={score:0,color:c}; leaderboard[n].score += p; }
 function generateDeepSpaceElements(){
   massivePlanets = [];
   for(let i=0;i<3;i++) massivePlanets.push({ x:random(W), y:random(H), size:random(20, 50), color:color(random(30,80), 100), hasRing:random()<0.8, ringColor:color(random(80,150), 80), speed:random(0.005,0.015), rot:random(TWO_PI), rotSpeed:random(-0.01,0.01) });
@@ -1105,7 +1041,6 @@ function handleTuneMousePressed() {
   const gravY = py + 44;
   const bounceY = py + 84;
   const rad = 8;
- 
   let tG = map(currentGravity, 0.05, 1.95, 0, 1, true); let kG = sx + tG * w;
   if (dist(mouseX, mouseY, kG, gravY) <= rad + 6) { draggingSlider = { name: "Gravity", val: currentGravity }; return; }
   let tB = map(currentBounce, 1, 99, 0, 1, true); let kB = sx + tB * w;
