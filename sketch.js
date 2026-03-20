@@ -1,6 +1,6 @@
 // --- GALAXINKO (v5.6.2 – TUNE sliders + clear leaderboard + STARSHIP + SCOREBOARD+ + LIVE + SHAPE/WORD + RICH SKY PACK) ---
 // Changelog:
-// - v5.6.2: Skrytý TUNE panel – nyní jediná ⚙ ikona vpravo nahoře; po rozkliknutí AUTO režim nebo manuální slidery.
+// - v5.6.2: Skrytý TUNE panel – nyní jediná ⚙ ikona vpravo nahoře; po rozkliknutí volba AUTO nebo manuální slidery.
 //       	Klik na "TOP CONTRIBUTORS" vpravo vynuluje leaderboard. Okamžitá aplikace hodnot na fyziku/pegy/kuličky.
 // - v5.6.1: RICH SKY PACK – rozmanité pozadí (ROCKET, STATION, DRONE, PROBE, NEBULA + UFO/SATELLITE/ASTEROID/LEGEND).
 // - v5.6.0: 8bit STARSHIP (9%/kolo, kolize s míčky), přestavěný RESULTS scoreboard, LIVE badge uprostřed, SHAPES+WORD.
@@ -122,7 +122,7 @@ let audioStarted = false;
 let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
 // --- SHAPES & WORDS (pro WORD viz dál) ---
-const SHAPES = { /* zkráceno pro přehlednost – ponech stejné jako v 5.6.1 */
+const SHAPES = {
   "HEART":[
 	"  ***** ***** ",
 	" ******* ******* ",
@@ -375,18 +375,18 @@ function setup() {
   for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
 
-  // === SINGLE GEAR + AUTO ===
+  // === RIGHT TUNE (auto/manual) ===
   if (tuneAutoMode) {
 	currentGravity = random(0.05, 1.95);
 	currentBounce = floor(random(1, 100));
   }
-  // ==========================
+  // ================================
 
   timer = floor(random(40, 181));
   roundInitialTime = timer;
 
   currentDestination = generatePlanetName();
-  generateDeepSpaceElements();   // RICH SKY PACK
+  generateDeepSpaceElements();
   prepareSingularityEvents();
   planSpaceshipForRound();
   connectTikfinity();
@@ -499,10 +499,10 @@ function draw() {
   drawExplosions();
   drawUI();
 
-  // === SINGLE GEAR + AUTO ===
+  // === RIGHT TUNE (auto/manual) ===
   drawTuneGearIconRight();
   if (debugPanelVisible) drawTunePanelRight();
-  // ==========================
+  // ================================
 
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
@@ -719,7 +719,7 @@ function drawUI() {
   fill(100,100,150,100); rect(0, 0, 250, 285);
   fill(0,0,20,240); rect(2, 2, 246, 281);
   fill(0,255,255);
-  textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20); // <-- klik na tento nápis vymaže tabulku (viz mouseClicked)
+  textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20); // <-- klik na tento nápis vymaže tabulku
   textAlign(LEFT); textSize(8);
   sorted.forEach((e, i) => {
 	fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i*19);
@@ -739,9 +739,9 @@ function mouseClicked() {
   if (mouseY>0 && mouseY<85) { spawnBall(random(TEST_BOTS)); shakeAmount = 2; }
 
   // Klik na "TOP CONTRIBUTORS" – vynulovat leaderboard
-  const tx = W - 260, ty = 100; // počátek panelu
+  const tx = W - 260, ty = 100;
   const titleX1 = tx, titleX2 = tx + 250;
-  const titleY1 = ty + 8, titleY2 = ty + 32; // okno kolem nápisu ve 20 px řádku
+  const titleY1 = ty + 8, titleY2 = ty + 32;
   if (mouseX >= titleX1 && mouseX <= titleX2 && mouseY >= titleY1 && mouseY <= titleY2) {
 	leaderboard = {};
 	shakeAmount = 3;
@@ -749,7 +749,7 @@ function mouseClicked() {
 	return;
   }
 
-  // Jediná ⚙ ikona vpravo – toggle panelu
+  // Toggle pravého TUNE panelu přes ⚙
   if (isMouseOverTuneGearRight()) { debugPanelVisible = !debugPanelVisible; return; }
 }
 
@@ -877,9 +877,9 @@ function initGame() {
       	case "HOURGLASS": { let rowH=floor(i/15), colH=i%15, shrink=abs(rowH-15)*12; px=map(colH,0,15,100+shrink, W-100-shrink); py=160+rowH*25; break; }
       	case "GALAXY": { let aG=random(TWO_PI), radG=pow(random(),0.5)*350; px=W/2+cos(aG)*radG; py=450+sin(aG)*radG*0.8; break; }
       	case "HYPERCUBE": { let side=300, ix=i%10, iy=floor(i/10)%10, iz=floor(i/100); px=W/2-side/2+ix*30+iz*15; py=200+iy*30+iz*15; break; }
-      	case "DNA_HELIX": { let t=i*0.1; let sideDNA=(i%2===0)?1:-1; px=W/2+sideDNA*cos(t)*100; py=160+i*4; break; }
+      	case "DNA_HELIX": { let t=i*0.1, sideDNA=(i%2===0)?1:-1; px=W/2+sideDNA*cos(t)*100; py=160+i*4; break; }
       	case "SATURN_RINGS": { let angleS=random(TWO_PI), distS=(i<numPegs/2)?random(80,120):random(200,250); px=W/2+cos(angleS)*distS; py=400+sin(angleS)*distS*0.4; break; }
-      	case "FRACTAL_TREE": { let level=floor(Math.log(i+1)/Math.log(2)); px=W/2+(i%Math.pow(2,level)-Math.pow(2,level)/2)*(W/Math.pow(2,level)); py=160+level*60; break; }
+      	case "FRACTAL_TREE": { let level=floor(log(i+1)/log(2)); px=W/2+(i%pow(2,level)-pow(2,level)/2)*(W/pow(2,level)); py=160+level*60; break; }
       	case "HEXAGON_GRID": { let hRow=floor(i/12), hCol=i%12; px=100+hCol*60+(hRow%2)*30; py=180+hRow*50; break; }
       	default: { px=random(60, W-60); py=random(140, H-300); }
     	}
@@ -1069,7 +1069,6 @@ function drawDebrisRocket(d){
   fill(255,160,0, 220); rect(-s*0.12, s*0.5, s*0.24, fl, 2);
   fill(255,220,0, 180); rect(-s*0.08, s*0.5, s*0.16, fl*0.8, 2);
 }
-
 function drawDebrisStation(d){
   let s = d.size;
   noFill(); stroke(d.colA); strokeWeight(2);
@@ -1214,12 +1213,12 @@ function handleSpaceship() {
 
 // --- Reset & HUD & Anti-bot ---
 function resetGame() {
-  // === SINGLE GEAR + AUTO ===
+  // === RIGHT TUNE: AUTO vs MANUAL ===
   if (tuneAutoMode) {
 	currentGravity = random(0.05, 1.95);
 	currentBounce = floor(random(1, 100));
   }
-  // ==========================
+  // ==================================
   timer = floor(random(40, 181));
   roundInitialTime = timer;
   leaderboard = {}; totalBallsFired = 0; roundCount++;
@@ -1252,18 +1251,17 @@ function drawAntiBotOverlay(){
 }
 
 /* =========================
-   TUNE PANEL – SINGLE GEAR (right), AUTO/MANUAL
+   TUNE PANEL – RIGHT (single gear, auto/manual)
    ========================= */
 let debugPanelVisible = false;
 let draggingSlider = null; // "Gravity" | "Peg Bounce" | null
-let tuneAutoMode = true;   // TRUE = auto random; FALSE = manuální (slidery)
+let tuneAutoMode = true;   // TRUE = auto random; FALSE = manuální fixní
 
-// Toggle panel klávesou
 function keyPressed() {
   if (key === 't' || key === 'T') debugPanelVisible = !debugPanelVisible;
 }
 
-// ⚙ ikona (vpravo nahoře)
+// --- Gear icon (right, top) ---
 function isMouseOverTuneGearRight() {
   const w = 28, h = 28, pad = 8;
   const x = W - w - pad, y = 8;
@@ -1286,11 +1284,11 @@ function drawTuneGearIconRight() {
   text("⚙", x + w/2, y + h/2 + 1);
 }
 
-// Panel vpravo s AUTO přepínačem a slidery
+// --- Right-side TUNE panel with AUTO + sliders ---
 function drawTunePanelRight() {
   const x = W - 260, y = 96, w = 246, h = 140;
 
-  // background
+  // Background
   noStroke(); fill(0,20,30,230); rect(x, y, w, h, 12);
   stroke(0,255,255,120); noFill(); strokeWeight(2); rect(x+1, y+1, w-2, h-2, 12);
 
@@ -1306,9 +1304,12 @@ function drawTunePanelRight() {
   noStroke(); textAlign(CENTER,CENTER); textSize(10);
   fill(tuneAutoMode ? color(0,255,200) : color(200));
   text(tuneAutoMode ? "AUTO: ON" : "AUTO: OFF", swX + swW/2, swY + swH/2);
-  textAlign(LEFT, CENTER); fill(200); textSize(10); text("Režim:", x + 12, y + 40);
 
-  // Sliders (disable vizuálně i funkčně při AUTO)
+  // Labels
+  textAlign(LEFT, CENTER); fill(200); textSize(10);
+  text("Režim:", x + 12, y + 40);
+
+  // Sliders (disabled vizuálně při AUTO)
   const disabled = tuneAutoMode;
   const trackX = x + 16, trackW = w - 32;
   let lineY = y + 68;
@@ -1331,7 +1332,7 @@ function drawTunePanelRight() {
 
   // Tooltip
   fill(150); textSize(8); textAlign(LEFT, TOP);
-  text("AUTO = náhodně (hned i po resetu). OFF = hodnoty dle sliderů (fixní).", x + 12, y + h - 24);
+  text("AUTO = náhodně jako dřív (i po resetu kola). OFF = hodnoty dle sliderů (fixní).", x + 12, y + h - 24);
 }
 
 function drawSlider(label, sx, sy, w, value, minV, maxV, onChange, disabled=false) {
@@ -1353,7 +1354,7 @@ function drawSlider(label, sx, sy, w, value, minV, maxV, onChange, disabled=fals
   fill(0, 255, 255, disabled?120:220);
   circle(kx, sy, 10);
 
-  // live drag
+  // drag live
   if (!disabled && draggingSlider && draggingSlider.name === label) {
 	const nt = constrain((mouseX - sx) / w, 0, 1);
 	const newVal = minV + nt * (maxV - minV);
@@ -1363,18 +1364,18 @@ function drawSlider(label, sx, sy, w, value, minV, maxV, onChange, disabled=fals
 }
 
 function handleTuneMousePressed() {
-  // Klik na AUTO switch (pokud panel otevřen)
+  // Toggle auto switch (pokud panel otevřen)
   if (debugPanelVisible) {
 	const x = W - 260, y = 96, w = 246;
 	const swW = 64, swH = 18, swX = x + w - swW - 12, swY = y + 40 - swH/2;
 	if (mouseX >= swX && mouseX <= swX+swW && mouseY >= swY && mouseY <= swY+swH) {
   	tuneAutoMode = !tuneAutoMode;
-  	if (tuneAutoMode) applyAutoRandomNow(); // okamžitá náhodná aplikace
+  	if (tuneAutoMode) applyAutoRandomNow(); // okamžitě přepnout na náhodné chování
   	draggingSlider = null;
   	return;
 	}
 
-	// Drag sliderů jen při AUTO OFF (manual)
+	// Drag sliderů jen pokud AUTO OFF (manual)
 	if (!tuneAutoMode) {
   	const px = x, py = y, pw = w, ph = 140;
   	if (mouseX < px || mouseX > px+pw || mouseY < py || mouseY > py+ph) { draggingSlider = null; return; }
@@ -1382,17 +1383,23 @@ function handleTuneMousePressed() {
   	const trackX = px + 16, trackW = pw - 32;
   	const gravY = py + 68;
   	const bounceY = py + 108;
+
   	const rad = 8;
 
   	// Gravity
   	let tG = map(currentGravity, 0.05, 1.95, 0, 1, true);
   	let kG = trackX + tG * trackW;
-  	if (dist(mouseX, mouseY, kG, gravY) <= rad + 4) { draggingSlider = { name: "Gravity", val: currentGravity }; return; }
-
+  	if (dist(mouseX, mouseY, kG, gravY) <= rad + 4) {
+    	draggingSlider = { name: "Gravity", val: currentGravity };
+    	return;
+  	}
   	// Peg Bounce
   	let tB = map(currentBounce, 1, 99, 0, 1, true);
   	let kB = trackX + tB * trackW;
-  	if (dist(mouseX, mouseY, kB, bounceY) <= rad + 4) { draggingSlider = { name: "Peg Bounce", val: currentBounce }; return; }
+  	if (dist(mouseX, mouseY, kB, bounceY) <= rad + 4) {
+    	draggingSlider = { name: "Peg Bounce", val: currentBounce };
+    	return;
+  	}
 	}
   }
 
@@ -1412,5 +1419,6 @@ function applyAutoRandomNow() {
   const ballRest = map(currentBounce, 1, 99, 0.4, 0.9);
   for (let b of balls) if (b?.body) b.body.restitution = ballRest;
 }
-// (Konec TUNE panelu – SINGLE GEAR)
+// (Konec TUNE panelu – RIGHT)
+``
 
