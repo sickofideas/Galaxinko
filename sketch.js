@@ -1,9 +1,9 @@
-// --- GALAXINKO (v5.4.4 - GEOMETRIC PEGS + CENTERED LIVE TIME) + LIVE TIME + SPAWN NA JOIN & LIKE ---
+// --- GALAXINKO (v5.4.5 - SETTINGS PERSIST + RETRO LIVE TIME + TOP RESET) + LIVE TIME + SPAWN NA JOIN & LIKE ---
 // Opraveno pro TikFinity: spawn při eventu "roomUser"
-// NOVINKA: 
-// • LIVE TIME přesunut doprostřed nahoře (hezky, ne příliš velké)
-// • Verze hry jasně viditelná ("v5.4.4")
-// • Pegs teď více geometrické/symmetrické (pyramidy, diamanty, spirály, hexagon grid, saturn rings atd.) – více kusů, méně chaosu
+// NOVINKA:
+// • Nastavení z klíče (gravitace, bounce, spawn) přetrvává přes všechna kola (dokud neklikneš AUTO RANDOM)
+// • Klik na "TOP CONTRIBUTORS" resetuje tabulku leaderboardu
+// • LIVE TIME je teď hezký retro 8-bit box uprostřed nahoře (jako v klasické hře)
 
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
@@ -423,15 +423,23 @@ function draw() {
     rect(0, 0, W, H);
     flashEffect--;
   }
+  // === RETRO 8-BIT LIVE TIME BOX (hezčí než dřív) ===
   let liveTime = new Intl.DateTimeFormat('cs-CZ', {
     timeZone: 'Europe/Prague',
     dateStyle: 'short',
     timeStyle: 'medium'
   }).format(new Date());
-  fill(255, 80, 80);
-  textSize(14);
-  textAlign(CENTER);
-  text("LIVE " + liveTime, W/2, 22);
+  push();
+  fill(0, 0, 30, 220);
+  rect(W/2 - 155, 8, 310, 30, 6);
+  stroke(0, 255, 255, 90);
+  strokeWeight(3);
+  rect(W/2 - 155, 8, 310, 30, 6);
+  fill(255, 100, 100);
+  textSize(15);
+  textAlign(CENTER, CENTER);
+  text("LIVE " + liveTime, W/2, 23);
+  pop();
   pop();
 }
 function spawnBall(userName) {
@@ -617,7 +625,7 @@ function drawUI() {
   text(GAME_TITLE, logoX, logoY);
   fill(0, 255, 255);
   textSize(11);
-  text("STABLE SINGULARITY SIMULATION v5.4.4", logoX + 2, logoY + 34);
+  text("STABLE SINGULARITY SIMULATION v5.4.5", logoX + 2, logoY + 34);
   let dropZoneW = 400;
   let dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
@@ -692,6 +700,12 @@ function drawUI() {
   pop();
 }
 function mouseClicked() {
+  // === RESET TOP CONTRIBUTORS při kliku na sekci ===
+  if (mouseX > W-260 && mouseX < W && mouseY > 100 && mouseY < 385) {
+    leaderboard = {};
+    shakeAmount = 4;
+    return;
+  }
   if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
@@ -1206,211 +1220,7 @@ function handleBlackHole() {
   }
 }
 function resetGame() {
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 181));
-  leaderboard = {};
-  totalBallsFired = 0;
-  roundCount++;
-  gameState = "PLAYING";
-  resultsTimer = 10;
-  eventOccurredThisRound = false;
-  currentDestination = generatePlanetName();
-  if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
-  initGame();
-  generateDeepSpaceElements();
-  prepareSingularityEvents();
-}
-function drawProceduralHUD() {
-  push();
-  stroke(255, 10);
-  strokeWeight(1);
-  for(let i = 0; i < H; i += 4) {
-    line(0, i + (frameCount % 4), W, i + (frameCount % 4));
-  }
-  fill(0, 255, 0, 150);
-  textSize(8);
-  textAlign(LEFT);
-  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40);
-  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30);
-  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
-  textAlign(RIGHT);
-  text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30);
-  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
-  pop();
-}
-function drawAntiBotOverlay() {
-  push();
-  if (random() < 0.1) {
-    fill(255, 150);
-    noStroke();
-    circle(random(W), random(H), random(1, 3));
-  }
-  if (random() < 0.02) {
-    fill(0, 255, 255, 100);
-    rect(0, random(H), W, random(1, 10));
-  }
-  if (random() < 0.05) {
-    fill(255, 0, 0, 50);
-    rect(random(W), random(H), 20, 20);
-  }
-  pop();
-}
-function triggerCosmicEvent() {
-  if (cosmicEvent) return;
-  eventOccurredThisRound = true;
-  let fromLeft = random() < 0.5;
-  let size = random(25, 45);
-  let startX = fromLeft ? -100 : W + 100;
-  let targetY = H - ZONE_H - random(20, 120);
-  let body = Matter.Bodies.circle(startX, targetY, size/2, {
-    isStatic: false,
-    isSensor: false,
-    density: 0.1,
-    frictionAir: 0,
-    collisionFilter: { mask: 1 }
-  });
-  let isComet = random() < 0.5;
-  cosmicEvent = {
-    body: body,
-    type: isComet ? "COMET" : "METEOR",
-    size: size,
-    color: isComet ? color(150, 200, 255) : color(255, 100, 50),
-    trail: []
-  };
-  Matter.World.add(world, body);
-  Matter.Body.setVelocity(body, {
-    x: fromLeft ? random(12, 18) : random(-12, -18),
-    y: random(-1, 1)
-  });
-  if (audioStarted) {
-    let osc = new p5.Oscillator('sine');
-    osc.start();
-    osc.freq(random(100, 400));
-    osc.freq(random(800, 1200), 1.5);
-    osc.amp(0.1);
-    osc.amp(0, 1.5);
-    setTimeout(() => osc.stop(), 1600);
-  }
-}
-function handleCosmicEvent() {
-  if (!cosmicEvent) return;
-  let pos = cosmicEvent.body.position;
-  cosmicEvent.trail.push({x: pos.x, y: pos.y, life: 255});
-  if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift();
-  push();
-  noStroke();
-  for(let i = 0; i < cosmicEvent.trail.length; i++) {
-    let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150);
-    fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha);
-    ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i/cosmicEvent.trail.length));
-  }
-  fill(255);
-  ellipse(pos.x, pos.y, cosmicEvent.size);
-  fill(cosmicEvent.color);
-  ellipse(pos.x, pos.y, cosmicEvent.size * 0.8);
-  pop();
-  if (pos.x < -300 || pos.x > W + 300) {
-    Matter.World.remove(world, cosmicEvent.body);
-    cosmicEvent = null;
-  }
-}
-function drawGravityDust() {
-  let r = map(currentGravity, 0.05, 1.95, 100, 255);
-  let g = map(currentGravity, 0.05, 1.95, 200, 100);
-  let b = map(currentGravity, 0.05, 1.95, 255, 50);
-  fill(r, g, b, 150);
-  noStroke();
-  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
-  for (let d of dust) {
-    d.y += dustSpeed;
-    if (d.y > H) { d.y = 0; d.x = random(W); }
-    rect(d.x, d.y, d.s, d.s);
-  }
-}
-function prepareSingularityEvents() {
-  bhSpawnTimes = [];
-  if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8)));
-}
-function checkSingularitySpawn() {
-  if (bhSpawnTimes.includes(timer) && !blackHole) {
-    let fromLeft = random() < 0.5;
-    blackHole = {
-      x: fromLeft ? -150 : W + 150,
-      y: random(200, H - 450),
-      startY: 0,
-      targetX: fromLeft ? W + 250 : -250,
-      speed: random(0.8, 1.5),
-      size: random(12, 18),
-      noiseOffset: random(1000),
-      noiseSpeed: random(0.01, 0.02),
-      wobbleAmp: random(40, 90)
-    };
-    blackHole.startY = blackHole.y;
-    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
-  }
-}
-function handleBlackHole() {
-  if (!blackHole) return;
-  let dir = blackHole.targetX > blackHole.x ? 1 : -1;
-  blackHole.x += blackHole.speed * dir;
-  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
-  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
-  let jitterSize = blackHole.size * (1 + (n - 0.5) * 0.15);
-  if (audioStarted) {
-    let centerDist = abs(W/2 - blackHole.x);
-    let tremolo = map(sin(frameCount * 0.2), -1, 1, 0.8, 1.0);
-    let vol = map(centerDist, W, 0, 0, 0.08) * tremolo;
-    bhOsc.amp(vol, 0.1);
-    bhOsc.freq(32 + n * 12);
-  }
-  push();
-  translate(blackHole.x, blackHole.y);
-  noStroke();
-  for(let i = 5; i > 0; i--) {
-    fill(10 + i*10, 0, 40 + i*20, 25);
-    let s = jitterSize + i * (blackHole.size * 0.15) + (n * 10);
-    ellipse(0, 0, s);
-  }
-  fill(0);
-  ellipse(0, 0, jitterSize);
-  pop();
-  for (let i = pegs.length - 1; i >= 0; i--) {
-    let p = pegs[i];
-    let d = dist(blackHole.x, blackHole.y, p.position.x, p.position.y);
-    if (d < jitterSize * 0.55 && random() < 0.23) {
-      Matter.Composite.remove(world, p);
-      createExplosion(p.position.x, p.position.y);
-      playExplosionSound();
-      pegs.splice(i, 1);
-    }
-  }
-  for (let i = balls.length - 1; i >= 0; i--) {
-    let b = balls[i];
-    if (!b.body) continue;
-    let d = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
-    if (d < jitterSize * 0.5) {
-      removeBall(b);
-      continue;
-    }
-    if (d < blackHole.size * 1.87) {
-      let safeDist = Math.max(d, 30);
-      let forceDir = Matter.Vector.sub({x: blackHole.x, y: blackHole.y}, b.body.position);
-      let strength = (blackHole.size * 0.00018) / (safeDist / 80);
-      let force = Matter.Vector.mult(Matter.Vector.normalise(forceDir), strength);
-      Matter.Body.applyForce(b.body, b.body.position, force);
-    }
-  }
-  if ((dir === 1 && blackHole.x > blackHole.targetX) || (dir === -1 && blackHole.x < blackHole.targetX)) {
-    blackHole = null;
-    if (audioStarted) bhOsc.amp(0, 0.5);
-  }
-}
-function resetGame() {
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(1, 100));
-  timer = floor(random(40, 181));
+  // === NASTAVENÍ Z KLÍČE ZŮSTÁVÁ PŘES KOLE (jen leaderboard se resetuje) ===
   leaderboard = {};
   totalBallsFired = 0;
   roundCount++;
