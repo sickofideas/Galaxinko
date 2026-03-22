@@ -1,13 +1,11 @@
-// --- GALAXINKO (v7.3.3 - SPAWN QUEUE FIX) ---
+// --- GALAXINKO (v8.0.0 - ULTIMATE STABLE RELEASE) ---
 const GAME_TITLE="GALAXINKO";
 let engine,world,balls=[],pegs=[],zones=[],walls=[],explosions=[],leaderboard={};
 let timer=40,resultsTimer=10,lastTick=0,waitStartTime=0,totalBallsFired=0,roundCount=1;
 let gameState="PLAYING",libraryLoaded=false,winnerColor,flashEffect=0,shakeAmount=0;
 let currentDestination="",currentGravity=0.6,currentBounce=80,spawnPerEvent=1,currentShipChance=30;
 
-// Fronta pro kuličky, které přijdou během zobrazování výsledků
-let spawnQueue = [];
-
+let spawnQueue=[], portals=[], floatingTexts=[], shockwaves=[];
 const UI_THEMES=[[0,255,255],[255,50,255],[50,255,50],[255,200,0],[255,100,50],[150,100,255]];
 let currentTheme=UI_THEMES[0],starship=null,shipPlanned=false,shipSpawnAt=-1,viewerSpaceObjects=[],cosmicEvent=null,eventOccurredThisRound=false;
 let followEvents=[],availableVoices=[],lastSpokeTime=0;
@@ -15,7 +13,7 @@ const badWordsRegex=/(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]n
 
 function initTTS(){if('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged=()=>availableVoices=window.speechSynthesis.getVoices().filter(v=>v.lang.includes('en'));}
 function sanitizeText(t){if(!t)return"Commander";return t.replace(badWordsRegex,"Bleep").replace(/[^a-zA-Z0-9 ]/g,"").replace(/(.)\1{3,}/g,"$1$1").trim()||"Commander";}
-function getHoustonStory(p){const i=["Houston here. ","Command center to live feed. ","Galactic broadcast is online. "],a=[`Astronaut Dave spilled coffee because of ${p}. `,`Detecting massive energy surge from ${p}. `,`Check the live feed, ${p} is doing crazy maneuvers. `],o=["Keep it up!","Awaiting instructions.","Over and out.","May the space force be with you."];return random(i)+random(a)+random(o);}
+function getHoustonStory(p){const i=["Houston here. ","Command center. ","Galactic broadcast online. "],a=[`Dave spilled coffee because of ${p}. `,`Energy surge from ${p}. `,`${p} is doing maneuvers. `],o=["Keep it up!","Over and out."];return random(i)+random(a)+random(o);}
 function speakAnnouncer(p,pri=0){if(!audioStarted||!('speechSynthesis' in window)||window.speechSynthesis.speaking&&pri<1||window.speechSynthesis.pending&&pri<2)return;let u=new SpeechSynthesisUtterance(p);u.lang='en-US';if(availableVoices.length>0)u.voice=random(availableVoices);u.pitch=random(0.5,0.8);u.rate=random(0.9,1.1);u.volume=random(0.7,1.0);window.speechSynthesis.speak(u);}
 
 let camOffset={x:0,y:0,z:1.0},targetFPS=60,socket;
@@ -59,7 +57,7 @@ function preload(){let s=document.createElement('script');s.src='https://cdnjs.c
 function setup(){
   createCanvas(W,H);smooth();textFont('Press Start 2P');winnerColor=color(0,0,128);
   synth=new p5.PolySynth();fxSynth=new p5.PolySynth();backgroundOsc=new p5.Oscillator('sine');backgroundOsc2=new p5.Oscillator('sine');bhOsc=new p5.Oscillator('triangle');
-  for(let i=0; i<150; i++)stars.push({x:random(W),y:random(H),s:random(1,2.5),speed:random(0.1,0.4)});
+  for(let i=0; i<100; i++)stars.push({x:random(W),y:random(H),s:random(1,2.5),speed:random(0.1,0.4)});
   for(let i=0; i<300; i++)dust.push({x:random(W),y:random(H),s:random(0.5,1.5)});
   currentGravity=random(0.05,1.95);currentBounce=floor(random(60,100));timer=floor(random(40,181));currentDestination=generatePlanetName();currentTheme=random(UI_THEMES);
   generateDeepSpaceElements();prepareSingularityEvents();planSpaceshipForRound();initTTS();connectTikfinity();
@@ -74,7 +72,6 @@ function setup(){
 function toggleSettings(){settingsPanelVisible=!settingsPanelVisible;if(settingsPanelVisible){gravitySlider.show();bounceSlider.show();spawnPerEventSlider.show();shipChanceSlider.show();autoButton.show();}else{gravitySlider.hide();bounceSlider.hide();spawnPerEventSlider.hide();shipChanceSlider.hide();autoButton.hide();}}
 function toggleAutoMode(){isAutoMode=!isAutoMode;if(isAutoMode){autoButton.html('AUTO: ON');autoButton.style('background-color','#4CAF50');autoRandomSettings();}else{autoButton.html('AUTO: OFF');autoButton.style('background-color','');}}
 function autoRandomSettings(){currentGravity=random(0.05,1.95);currentBounce=floor(random(60,100));spawnPerEvent=floor(random(1,4));currentShipChance=floor(random(0,101));gravitySlider.value(currentGravity);bounceSlider.value(currentBounce);spawnPerEventSlider.value(spawnPerEvent);shipChanceSlider.value(currentShipChance);if(world)world.gravity.y=currentGravity;}
-
 function planSpaceshipForRound(){shipPlanned=(random(100)<currentShipChance);shipSpawnAt=shipPlanned?floor(random(10,timer-10)):-1;}
 
 function spawnSpaceship(){
@@ -148,15 +145,64 @@ function handleFollowEvents(){
   }
 }
 
+function addFloatingText(txt, x, y, col, isJackpot=false) {
+    floatingTexts.push({text: txt, x: x, y: y, life: 255, color: col, scale: isJackpot ? 1.5 : 1, vy: isJackpot ? -2 : -1});
+}
+
+function handleFloatingTexts() {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        let ft = floatingTexts[i];
+        push(); translate(ft.x, ft.y);
+        textAlign(CENTER, CENTER); textSize(14 * ft.scale);
+        drawingContext.shadowBlur = 10; drawingContext.shadowColor = ft.color;
+        fill(red(ft.color), green(ft.color), blue(ft.color), ft.life);
+        text(ft.text, 0, 0); drawingContext.shadowBlur = 0; pop();
+        ft.y += ft.vy; ft.life -= 4;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+}
+
+function createShockwave(x, y) { shockwaves.push({ x: x, y: y, radius: 0, maxRadius: 300, life: 255 }); }
+function handleShockwaves() {
+    noFill(); strokeWeight(4);
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        let sw = shockwaves[i]; stroke(255, 255, 255, sw.life); ellipse(sw.x, sw.y, sw.radius * 2);
+        sw.radius += 10; sw.life -= 8; if (sw.life <= 0) shockwaves.splice(i, 1);
+    }
+}
+
+function drawPortals(){
+    if(portals.length < 2) return;
+    for(let i=0; i<portals.length; i++){
+        let pt = portals[i];
+        push(); translate(pt.x, pt.y); rotate(frameCount * 0.05 * (i===0?1:-1));
+        fill(i===0 ? color(0,150,255,150) : color(255,150,0,150)); noStroke();
+        ellipse(0,0,50 + sin(frameCount*0.1)*10); fill(0); ellipse(0,0,25); pop();
+    }
+}
+
+function generatePlanetName(){const n=["XERON","KEPLER","ZENON","AETHER","NIBIRU","PANDORA","CYGNUS","TITAN","VULCAN","ARRAKIS","SOLARIS","ZION","EDEN"],t=["PRIME","STATION","SYSTEM","REACH","BETA","MAJOR","MINOR","VOID","CLUSTER","GATE"];return random(n)+" "+random(t);}
+function prepareSingularityEvents(){bhSpawnTimes=[];if(random()<0.4)bhSpawnTimes.push(floor(random(5,timer*0.8)));}
+function checkSingularitySpawn(){if(bhSpawnTimes.includes(timer)&&!blackHole){let fL=random()<0.5;blackHole={x:fL?-150:W+150,y:random(200,H-450),startY:0,targetX:fL?W+250:-250,speed:random(0.8,1.5),size:random(12,18),noiseOffset:random(1000),noiseSpeed:random(0.01,0.02),wobbleAmp:random(40,90)};blackHole.startY=blackHole.y;bhSpawnTimes=bhSpawnTimes.filter(t=>t!==timer);speakAnnouncer("Warning! Black hole singularity forming!",1);}}
+function handleBlackHole(){if(!blackHole)return;let d=blackHole.targetX>blackHole.x?1:-1;blackHole.x+=blackHole.speed*d;let n=noise(frameCount*blackHole.noiseSpeed+blackHole.noiseOffset);blackHole.y=blackHole.startY+(n-0.5)*blackHole.wobbleAmp*2;let jS=blackHole.size*(1+(n-0.5)*0.15);if(audioStarted){let cD=abs(W/2-blackHole.x),tr=map(sin(frameCount*0.2),-1,1,0.8,1.0);bhOsc.amp(map(cD,W,0,0,0.08)*tr,0.1);bhOsc.freq(32+n*12);}push();translate(blackHole.x,blackHole.y);noStroke();for(let i=5;i>0;i--){fill(10+i*10,0,40+i*20,25);ellipse(0,0,jS+i*(blackHole.size*0.15)+(n*10));}fill(0);ellipse(0,0,jS);pop();for(let i=pegs.length-1;i>=0;i--){let p=pegs[i];if(dist(blackHole.x,blackHole.y,p.position.x,p.position.y)<jS*0.55&&random()<0.23){Matter.Composite.remove(world,p);createExplosion(p.position.x,p.position.y);playExplosionSound();pegs.splice(i,1);}}for(let i=balls.length-1;i>=0;i--){let b=balls[i];if(!b.body)continue;let ds=dist(blackHole.x,blackHole.y,b.body.position.x,b.body.position.y);if(ds<jS*0.5){removeBall(b);continue;}if(ds<blackHole.size*1.87){let sD=Math.max(ds,30);Matter.Body.applyForce(b.body,b.body.position,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({x:blackHole.x,y:blackHole.y},b.body.position)),(blackHole.size*0.00018)/(sD/80)));}}if((d===1&&blackHole.x>blackHole.targetX)||(d===-1&&blackHole.x<blackHole.targetX)){blackHole=null;if(audioStarted)bhOsc.amp(0,0.5);}}
+function triggerCosmicEvent(){if(cosmicEvent)return;eventOccurredThisRound=true;let fL=random()<0.5,s=random(25,45),sx=fL?-100:W+100,ty=H-ZONE_H-random(20,120),b=Matter.Bodies.circle(sx,ty,s/2,{isStatic:false,isSensor:false,density:0.1,frictionAir:0,collisionFilter:{mask:1}}),iC=random()<0.5;cosmicEvent={body:b,type:iC?"COMET":"METEOR",size:s,color:iC?color(150,200,255):color(255,100,50),trail:[]};Matter.World.add(world,b);Matter.Body.setVelocity(b,{x:fL?random(12,18):random(-12,-18),y:random(-1,1)});if(audioStarted){let o=new p5.Oscillator('sine');o.start();o.freq(random(100,400));o.freq(random(800,1200),1.5);o.amp(0.1);o.amp(0,1.5);setTimeout(()=>o.stop(),1600);}speakAnnouncer("Warning! Cosmic anomaly detected.",1);}
+function handleCosmicEvent(){if(!cosmicEvent)return;let p=cosmicEvent.body.position;cosmicEvent.trail.push({x:p.x,y:p.y,life:255});if(cosmicEvent.trail.length>20)cosmicEvent.trail.shift();push();noStroke();for(let i=0;i<cosmicEvent.trail.length;i++){let alpha=map(i,0,cosmicEvent.trail.length,0,150);fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),alpha);ellipse(cosmicEvent.trail[i].x,cosmicEvent.trail[i].y,cosmicEvent.size*(i/cosmicEvent.trail.length));}fill(255);ellipse(p.x,p.y,cosmicEvent.size);fill(cosmicEvent.color);ellipse(p.x,p.y,cosmicEvent.size*0.8);pop();if(p.x<-300||p.x>W+300){Matter.World.remove(world,cosmicEvent.body);cosmicEvent=null;}}
+function spawnRareLegend(){let l=random(RARE_POOL);spaceDebris.push({x:random(50,W-50),y:-100,type:"LEGEND",legendId:l.id,size:l.size,color:color(l.col[0],l.col[1],l.col[2]),speed:random(0.8,1.8),vx:random(-0.5,0.5),rot:random(TWO_PI),rotSpeed:random(-0.06,0.06),wobble:random(0.02,0.08),isRare:true});}
+function generateDeepSpaceElements(){nebulas=[];for(let i=0;i<6;i++)nebulas.push({x:random(W),y:random(H),s:random(200,600),col:color(random(50,255),random(50,150),random(200,255),15)});massivePlanets=[];for(let i=0;i<3;i++)massivePlanets.push({x:random(W),y:random(H),size:random(20,50),color:color(random(30,80),100),hasRing:random()<0.8,ringColor:color(random(80,150),80),speed:random(0.005,0.015),rot:random(TWO_PI),rotSpeed:random(-0.01,0.01)});spaceDebris=[];for(let i=0;i<10;i++)spaceDebris.push({x:random(W),y:random(H),type:random(["UFO","SATELLITE","ASTEROID"]),size:random(10,25),speed:random(0.3,1.2),vx:random(-0.5,0.5),wobble:random(0.02,0.05),rot:random(TWO_PI),rotSpeed:random(-0.05,0.05)});}
+
 function draw(){
   if(!libraryLoaded)return;if(!engine)initGame();
   if(settingsPanelVisible){if(gravitySlider.value()!==currentGravity||bounceSlider.value()!==currentBounce||spawnPerEventSlider.value()!==spawnPerEvent||shipChanceSlider.value()!==currentShipChance){if(isAutoMode)toggleAutoMode();currentGravity=gravitySlider.value();currentBounce=bounceSlider.value();spawnPerEvent=spawnPerEventSlider.value();currentShipChance=shipChanceSlider.value();if(world)world.gravity.y=currentGravity;}}
+  
   if(frameCount%60===0)targetFPS=random(57,60);frameRate(targetFPS);updateJukebox();push();
   camOffset.x=(noise(frameCount*0.005)-0.5)*40;camOffset.y=(noise(frameCount*0.005+100)-0.5)*40;camOffset.z=1.0+(noise(frameCount*0.002)-0.5)*0.05;
   translate(W/2,H/2);scale(camOffset.z);translate(-W/2+camOffset.x,-H/2+camOffset.y);
   if(shakeAmount>0){translate(random(-shakeAmount,shakeAmount),random(-shakeAmount,shakeAmount));shakeAmount*=0.92;}
+  
   updateWinnerColor();updateTravelSpeed();background(2,2,8);drawGravityDust();drawGalacticBackground();drawViewerObjects();
-  try{Matter.Engine.update(engine,1000/60);}catch(e){}
+  
+  try{Matter.Engine.update(engine,1000/60);}catch(e){console.error("Engine Error");}
+  
   handleBlackHole();handleCosmicEvent();handleSpaceship();
   
   if(millis()-lastTick>1000){
@@ -166,61 +212,82 @@ function draw(){
       if(!eventOccurredThisRound&&timer<(timer*0.7)&&random()<0.17)triggerCosmicEvent();
       if(random()<0.11)spawnRareLegend();
       if(timer===10)speakAnnouncer("10 seconds remaining.",1);
-      if(timer<=0){gameState="WAITING";waitStartTime=millis();shakeAmount=6;playCleanupSound();playTimerEndSequence();speakAnnouncer("Sector operations complete. Returning units to base.",2);}
-    }else if(gameState==="RESULTS"){resultsTimer--;if(resultsTimer<=0)resetGame();}
+      if(timer<=0){
+        gameState="WAITING";waitStartTime=millis();shakeAmount=6;playCleanupSound();playTimerEndSequence();
+        speakAnnouncer("Sector operations complete. Returning units to base.",2);
+      }
+    }else if(gameState==="RESULTS"){
+      resultsTimer--;if(resultsTimer<=0)resetGame();
+    }
     lastTick=millis();
   }
   
-  if(gameState==="WAITING"){if(balls.length===0||(millis()-waitStartTime)/1000>10){gameState="RESULTS";resultsTimer=10;let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score);speakAnnouncer(s.length>0?`Round over! Ultimate commander is ${sanitizeText(s[0][0])}.`:`Round over. No active commanders.`,2);}}
+  if(gameState==="WAITING"){
+      if(balls.length===0||(millis()-waitStartTime)/1000>10){
+          gameState="RESULTS";resultsTimer=10;let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score);
+          speakAnnouncer(s.length>0?`Round over! The ultimate commander is ${sanitizeText(s[0][0])}.`:`Round over.`,2);
+      }
+  }
   
-  drawZones();drawWalls();drawPegs();drawBalls();drawExplosions();handleFollowEvents();drawUI();
+  drawPortals(); drawZones();drawWalls();drawPegs();drawBalls();drawExplosions();handleFollowEvents();
+  handleShockwaves(); handleFloatingTexts(); 
+  
+  drawUI();
   if(gameState==="WAITING")drawWaitingMessage();if(gameState==="RESULTS")drawResultsOverlay();
   drawProceduralHUD();drawAntiBotOverlay();
-  if(settingsPanelVisible){push();fill(0,0,30,220);rect(20,100,300,290,12);fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(14);text("TEST SETTINGS 🔧",40,125);textSize(11);fill(255);text(`GRAVITY (${currentGravity.toFixed(2)})`,40,165);text(`BOUNCE (${currentBounce})`,40,215);text(`SPAWN PER JOIN (${spawnPerEvent})`,40,265);text(`SHIP SPAWN % (${currentShipChance})`,40,315);pop();}
-  if(flashEffect>0){noStroke();fill(20,40,100,map(flashEffect,0,60,0,100));rect(0,0,W,H);flashEffect--;}pop();
+  
+  if(settingsPanelVisible){
+    push();fill(0,0,30,220);rect(20,100,300,290,12);fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(14);text("TEST SETTINGS 🔧",40,125);textSize(11);fill(255);
+    text(`GRAVITY (${currentGravity.toFixed(2)})`,40,165);text(`BOUNCE (${currentBounce})`,40,215);text(`SPAWN PER JOIN (${spawnPerEvent})`,40,265);text(`SHIP SPAWN % (${currentShipChance})`,40,315);pop();
+  }
+  if(flashEffect>0){noStroke();fill(20,40,100,map(flashEffect,0,60,0,100));rect(0,0,W,H);flashEffect--;}
+  pop();
 }
 
 function spawnBall(userName){
   if(!libraryLoaded)return;
-  
-  // ZARAZENI DO FRONTY POKUD SE NEHRAJE
-  if(gameState!=="PLAYING"){
-      spawnQueue.push(userName);
-      return;
-  }
-  
-  // LIMIT 200 KULIČEK
-  if(balls.length > 250) return;
-
+  if(gameState!=="PLAYING"){spawnQueue.push(userName);return;}
+  if(balls.length>250)return; 
   if(!audioStarted)startSpaceAudio();
+  
   let isR=random()<0.03;if(isR)playRainbowSound();else playSpawnSound();
   totalBallsFired++;
+  
   let ballRestitution=map(currentBounce,1,99,0.65,1.05);let spawnX=W/2+random(-15,15);
   let ballBody=Matter.Bodies.rectangle(spawnX,100,14,14,{restitution:ballRestitution,friction:0.2,frictionAir:0.04,density:0.001});
   if(!leaderboard[userName])leaderboard[userName]={score:0,color:color(random(100,255),random(100,255),random(100,255))};
-  balls.push({body:ballBody,name:userName,color:leaderboard[userName].color,scored:false,combo:0,lastHitTime:0,lastShipHit:0,spawnTime:millis(),isRainbow:isR,trail:[],rainbowExplodeTime:null});
+  balls.push({body:ballBody,name:userName,color:leaderboard[userName].color,scored:false,combo:0,lastHitTime:0,lastShipHit:0,spawnTime:millis(),isRainbow:isR,trail:[],rainbowExplodeTime:null, portalCooldown: 0});
   Matter.World.add(world,ballBody);
 }
 
 function drawBalls(){
   if (balls.length > 200) { removeBall(balls[0]); }
-
   for(let i=balls.length-1;i>=0;i--){
     let b=balls[i];if(!b.body){balls.splice(i,1);continue;}
     let pos=b.body.position;if(isNaN(pos.x)||isNaN(pos.y)){removeBall(b);continue;}
-
+    
     if(b.scored && b.body.velocity.y < -2 && pos.y < H-ZONE_H-50) { b.scored = false; }
-
+    if(b.portalCooldown > 0) b.portalCooldown--;
+    
+    if(portals.length === 2 && b.portalCooldown <= 0 && dist(pos.x, pos.y, portals[0].x, portals[0].y) < 30) {
+        Matter.Body.setPosition(b.body, {x: portals[1].x, y: portals[1].y});
+        Matter.Body.setVelocity(b.body, {x: random(-5,5), y: random(2,5)});
+        b.portalCooldown = 60; playSpawnSound();
+    }
+    
     if(b.isRainbow){
         b.trail.push({x:pos.x,y:pos.y});if(b.trail.length>40)b.trail.shift();
         push();noStroke();colorMode(HSB);for(let t=0;t<b.trail.length;t++){fill((frameCount*5+t*15)%360,200,255,map(t,0,b.trail.length,0,1));ellipse(b.trail[t].x,b.trail[t].y,map(t,0,b.trail.length,4,16));}colorMode(RGB);pop();
     }
+    
     push();translate(pos.x,pos.y);rotate(b.body.angle);
     if(b.combo>2){fill(255);noStroke();rect(-9,-9,18,18);}
     if(b.isRainbow){colorMode(HSB);fill((frameCount*10)%360,255,255);colorMode(RGB);}else{fill(b.color);}
     stroke(255);strokeWeight(1);rect(-7,-7,14,14);rotate(-b.body.angle);
-    if((millis()-b.spawnTime)<3000||b.scored){fill(0,150);noStroke();textAlign(CENTER);textSize(12);text(b.name,1,-16);fill(b.isRainbow?color(255):b.color);text(b.name,0,-17);}
+    let age=millis()-b.spawnTime;let showName=age<3000||b.scored;
+    if(showName){fill(0,150);noStroke();textAlign(CENTER);textSize(12);text(b.name,1,-16);fill(b.isRainbow?color(255):b.color);text(b.name,0,-17);}
     if(b.combo>0){fill(0,150);textSize(14);text("x"+b.combo,1,-30);fill(255,200,0);text("x"+b.combo,0,-31);}pop();
+    
     if(b.combo>0&&millis()-b.lastHitTime>2000)b.combo=0;
 
     if(starship&&starship.state==="ACTIVE"&&abs(pos.x-starship.body.position.x)<starship.w/2+10&&abs(pos.y-starship.y)<starship.h/2+10){
@@ -228,6 +295,8 @@ function drawBalls(){
             b.lastShipHit=millis();b.combo+=2;b.lastHitTime=millis();updateScore(b.name,100,b.color);
             createExplosion(pos.x,pos.y,b.color);playExplosionSound();
             Matter.Body.applyForce(b.body,pos,{x:(pos.x-starship.body.position.x)*0.0001,y:-0.025});
+            addFloatingText("+100", pos.x, pos.y, b.color);
+            if(random()<0.3)speakAnnouncer(random([`Great assist for ${sanitizeText(b.name)}!`,`Arkanoid saved ${sanitizeText(b.name)}!`]),0);
         }
     }
     
@@ -235,7 +304,8 @@ function drawBalls(){
       let p=pegs[j];
       if(dist(pos.x,pos.y,p.position.x,p.position.y)<18){
           p.glow=255;b.combo+=1;b.lastHitTime=millis();
-          if(p.isExplosive){createExplosion(p.position.x,p.position.y,color(255,150,0));playExplosionSound();Matter.Body.applyForce(b.body,pos,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub(pos,p.position)),0.025));Matter.World.remove(world,p);pegs.splice(j,1);}
+          if(p.isExplosive){createExplosion(p.position.x,p.position.y,color(255,150,0));playExplosionSound();let forceDir=Matter.Vector.sub(pos,p.position);Matter.Body.applyForce(b.body,pos,Matter.Vector.mult(Matter.Vector.normalise(forceDir),0.025));Matter.World.remove(world,p);pegs.splice(j,1);}
+          else if(p.isRepulsor){b.body.velocity.y=0;Matter.Body.applyForce(b.body,pos,{x:(pos.x-p.position.x)*0.002,y:-0.04});createExplosion(p.position.x,p.position.y,color(255,50,200));playSpawnSound();}
       }
     }
     
@@ -245,13 +315,16 @@ function drawBalls(){
           b.scored=true;
           let fs=floor(cz.score*(1+(b.combo*0.1)));
           if(b.isRainbow){fs*=2;b.rainbowExplodeTime=millis()+2500;}
-          updateScore(b.name,fs,b.color);cz.flash=255;cz.flashColor=b.isRainbow?color(255):b.color;
-          if(fs>=5000){shakeAmount=8;playJackpotSound();checkAllTimeRecords(b.name,leaderboard[b.name].score,b.color);}
+          updateScore(b.name,fs,b.color);cz.flash=255;cz.flashColor=b.isRainbow?color(255,255,255):b.color;
+          let isJp = fs >= 5000;
+          addFloatingText("+" + fs, pos.x, pos.y, isJp ? color(255,215,0) : color(100,255,100), isJp);
+          if(isJp){shakeAmount=8;playJackpotSound();checkAllTimeRecords(b.name,leaderboard[b.name].score,b.color);}
         }
     }
     
     if(b.isRainbow && b.rainbowExplodeTime && millis()>b.rainbowExplodeTime){
         createExplosion(pos.x,pos.y,color(255));
+        createShockwave(pos.x, pos.y); 
         playExplosionSound();shakeAmount=10;
         for(let ob of balls){
             if(ob===b)continue;
@@ -261,8 +334,7 @@ function drawBalls(){
                 Matter.Body.applyForce(ob.body,ob.body.position,Matter.Vector.mult(forceDir,0.055));
             }
         }
-        b.rainbowExplodeTime=null;
-        removeBall(b); continue;
+        b.rainbowExplodeTime=null;removeBall(b);continue;
     }
     if(pos.y>H+150||pos.x<-150||pos.x>W+150)removeBall(b);
   }
@@ -271,6 +343,7 @@ function drawBalls(){
 function removeBall(b){if(!b)return;Matter.World.remove(world,b.body);let i=balls.indexOf(b);if(i!==-1)balls.splice(i,1);}
 function onUserJoin(u,img){if(viewerSpaceObjects.find(o=>o.name===u))return;let obj={name:u,x:random(100,W-100),y:random(150,H-300),vx:random(-0.3,0.3),vy:random(-0.3,0.3),baseSize:40,extraSize:0,color:[random(100,255),random(100,255),random(255)],img:null,angle:random(TWO_PI),lastActiveTime:millis(),alpha:255};if(img)loadImage(img,l=>obj.img=l);viewerSpaceObjects.push(obj);}
 function updateUserLikes(u,c){let o=viewerSpaceObjects.find(ob=>ob.name===u);if(o){o.extraSize=min(150,o.extraSize+c*2);o.lastActiveTime=millis();o.alpha=255;}else{onUserJoin(u,null);setTimeout(()=>updateUserLikes(u,c),500);}}
+function onUserQuit(username){viewerSpaceObjects=viewerSpaceObjects.filter(o=>o.name!==username);}
 function drawViewerObjects(){
   for(let i=viewerSpaceObjects.length-1;i>=0;i--){let o=viewerSpaceObjects[i],ia=millis()-o.lastActiveTime;if(ia>60000){viewerSpaceObjects.splice(i,1);continue;}o.alpha=ia>50000?map(ia,50000,60000,255,0):255;}
   for(let o of viewerSpaceObjects){
@@ -283,12 +356,12 @@ function drawViewerObjects(){
 
 function drawUI(){
   push();fill(5,5,15,240);noStroke();rect(0,0,W,70);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120);strokeWeight(2);line(0,70,W,70);
-  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v7.3.3",lX+2,54);
+  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v7.6.1",lX+2,54);
   let dW=360,dX=W/2-(dW/2),p=sin(frameCount*0.1)*3;
   fill(currentTheme[0],currentTheme[1],currentTheme[2],10+p);rect(dX,8,dW,54,8);fill(5,5,20,250);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120+p*10);strokeWeight(2);rect(dX,8,dW,54,8);
   noStroke();let lT=new Intl.DateTimeFormat('cs-CZ',{timeStyle:'medium'}).format(new Date());
   textAlign(LEFT,CENTER);fill(255,60,60);textSize(12);text("🔴 LIVE "+lT,dX+15,24);textAlign(RIGHT,CENTER);fill(50,255,50);textSize(12);text("SYSTEM: ONLINE",dX+dW-15,24);textAlign(CENTER,CENTER);fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(10);text("GEOMETRY: PROCEDURAL | DATA: SYNCED",dX+dW/2,45);
-  textAlign(RIGHT,CENTER);fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(12);text(`${currentDestination}`,W-15,20);fill(200);textSize(10);text(`G-FORCE: ${floor(map(currentGravity,0.05,1.95,1,99))} [R-${roundCount}]`,W-15,38);fill(255,150,0);text(`BOUNCE-X: ${currentBounce}`,W-15,56);pop();
+  textAlign(RIGHT,CENTER);fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(12);text(`${currentDestination}`,W-15,20);let gDisp=floor(map(currentGravity,0.05,1.95,1,99));fill(200);textSize(10);text(`G-FORCE: ${gDisp} [R-${roundCount}]`,W-15,38);fill(255,150,0);text(`BOUNCE-X: ${currentBounce}`,W-15,56);pop();
   
   push();translate(10,85);let ml=allTimeRecords.slice(0,5),lH=45+max(1,ml.length)*26;
   fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,lH,8);noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(12);text("MISSION MILESTONES",120,25);stroke(255,30);strokeWeight(1);line(10,40,230,40);noStroke();textAlign(LEFT);
@@ -296,9 +369,9 @@ function drawUI(){
   translate(0,lH+15);fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,60,8);noStroke();textSize(11);
   if(gameState==="PLAYING"){textAlign(LEFT,CENTER);fill(timer<10?color(255,50,50):color(currentTheme[0],currentTheme[1],currentTheme[2]));text("WARP-DRIVE: "+timer+"s",15,20);fill(50,255,50);text(`ACTIVE UNITS: ${balls.length}`,15,40);}else if(gameState==="WAITING"){textAlign(LEFT,CENTER);fill(255,200,0);text("COOLING DOWN...",15,20);fill(50,255,50);text(`TOTAL UNITS: ${balls.length}`,15,40);}pop();
   
-  push();translate(W-250,85);let sl=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,30),rH=45+max(1,sl.length)*22;
+  push();translate(W-250,85);let sorted=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,30),rH=45+max(1,sorted.length)*22;
   fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,rH,8);noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(12);text("TOP CONTRIBUTORS",120,25);stroke(255,30);strokeWeight(1);line(10,40,230,40);noStroke();textAlign(LEFT);
-  sl.forEach((e,i)=>{textSize(i<3?13:10);let y=65+i*22;fill(e[1].color);text(`${i===0?'👑 ':''}${nf(i+1,2)}. ${e[0]}`,15,y);textAlign(RIGHT);fill(255);text(e[1].score,225,y);textAlign(LEFT);});pop();
+  sorted.forEach((e,i)=>{textSize(i<3?13:10);let y=65+i*22;fill(e[1].color);text(`${i===0?'👑 ':''}${nf(i+1,2)}. ${e[0]}`,15,y);textAlign(RIGHT);fill(255);text(e[1].score,225,y);textAlign(LEFT);});pop();
 }
 
 function mouseClicked(){if(!audioStarted)startSpaceAudio();if(mouseX<100&&mouseY<100&&audioStarted){triggerFollowEvent(random(TEST_BOTS));return;}if(mouseX>W-280&&mouseX<W&&mouseY>85&&mouseY<405){leaderboard={};shakeAmount=4;return;}if(mouseX>10&&mouseX<280&&mouseY>85&&mouseY<345){allTimeRecords=[];localStorage.setItem('galaxinko_records',JSON.stringify(allTimeRecords));shakeAmount=5;return;}if(mouseY>0&&mouseY<70){spawnBall(random(TEST_BOTS));shakeAmount=2;}}
@@ -309,8 +382,28 @@ function drawExplosions(){for(let i=explosions.length-1;i>=0;i--){let e=explosio
 function checkAllTimeRecords(n,s,c){let i=allTimeRecords.findIndex(r=>r.name===n);if(i!==-1){if(s>allTimeRecords[i].score)allTimeRecords[i].score=s;}else{allTimeRecords.push({name:n,score:s,color:[red(c),green(c),blue(c)]});}allTimeRecords.sort((a,b)=>b.score-a.score);allTimeRecords=allTimeRecords.slice(0,5);localStorage.setItem('galaxinko_records',JSON.stringify(allTimeRecords));}
 function updateWinnerColor(){let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score);winnerColor=s.length>0?lerpColor(winnerColor,s[0][1].color,0.005):color(0,0,128);}
 function updateScore(n,p,c){if(!leaderboard[n])leaderboard[n]={score:0,color:c};leaderboard[n].score+=p;}
-function generateDeepSpaceElements(){nebulas=[];for(let i=0;i<6;i++)nebulas.push({x:random(W),y:random(H),s:random(200,600),col:color(random(50,255),random(50,150),random(200,255),15)});massivePlanets=[];for(let i=0;i<3;i++)massivePlanets.push({x:random(W),y:random(H),size:random(20,50),color:color(random(30,80),100),hasRing:random()<0.8,ringColor:color(random(80,150),80),speed:random(0.005,0.015),rot:random(TWO_PI),rotSpeed:random(-0.01,0.01)});spaceDebris=[];for(let i=0;i<10;i++)spaceDebris.push({x:random(W),y:random(H),type:random(["UFO","SATELLITE","ASTEROID"]),size:random(10,25),speed:random(0.3,1.2),vx:random(-0.5,0.5),wobble:random(0.02,0.05),rot:random(TWO_PI),rotSpeed:random(-0.05,0.05)});}
-function generatePlanetName(){const n=["XERON","KEPLER","ZENON","AETHER","NIBIRU","PANDORA","CYGNUS","TITAN","VULCAN","ARRAKIS","SOLARIS","ZION","EDEN"],t=["PRIME","STATION","SYSTEM","REACH","BETA","MAJOR","MINOR","VOID","CLUSTER","GATE"];return random(n)+" "+random(t);}
+
+function drawGalacticBackground(){
+  noStroke();for(let n of nebulas){n.y+=0.2*currentTravelSpeed;if(n.y>H+n.s)n.y=-n.s;fill(n.col);ellipse(n.x,n.y,n.s,n.s*0.6);}
+  fill(255,120);for(let s of stars){s.y+=s.speed*currentTravelSpeed*5;if(s.y>H){s.y=0;s.x=random(W);}ellipse(s.x,s.y,s.s);}
+  for(let p of massivePlanets){push();translate(p.x,p.y);p.y+=p.speed*currentTravelSpeed*5;p.rot+=p.rotSpeed*currentTravelSpeed;rotate(p.rot);if(p.hasRing){noFill();stroke(p.ringColor);strokeWeight(p.size*0.1);ellipse(0,0,p.size*2.2,p.size*0.6);}noStroke();fill(p.color);ellipse(0,0,p.size);pop();if(p.y>H+p.size*2){p.y=-p.size*2;p.x=random(W);}}
+  if(gameState==="PLAYING"&&random()<0.08)shootingStars.push({x:random(W),y:random(-50,H/2),vx:random(10,25),vy:random(10,25),life:255,len:random(20,100)});
+  for(let i=shootingStars.length-1;i>=0;i--){let s=shootingStars[i];stroke(255,s.life);strokeWeight(1.5);line(s.x,s.y,s.x-s.vx*(s.len/20),s.y-s.vy*(s.len/20));s.x+=s.vx;s.y+=s.vy;s.life-=10;if(s.life<=0)shootingStars.splice(i,1);noStroke();}
+  if(gameState==="PLAYING"&&random()<0.06){let fL=random()<0.5;ambientComets.push({x:fL?-50:W+50,y:random(-100,H/2),vx:fL?random(2,5):random(-5,-2),vy:random(2,4),s:random(4,8),life:255,col:color(random(150,255),random(200,255),255)});}
+  for(let i=ambientComets.length-1;i>=0;i--){let c=ambientComets[i];c.x+=c.vx*currentTravelSpeed;c.y+=c.vy*currentTravelSpeed;c.life-=1.5;fill(c.col);ellipse(c.x,c.y,c.s);fill(red(c.col),green(c.col),blue(c.col),80);ellipse(c.x-c.vx*3,c.y-c.vy*3,c.s*1.5);if(c.y>H+50||c.life<=0)ambientComets.splice(i,1);}
+  for(let i=0;i<spaceDebris.length;i++){for(let j=i+1;j<spaceDebris.length;j++){let d1=spaceDebris[i],d2=spaceDebris[j],ds=(d1.x-d2.x)**2+(d1.y-d2.y)**2,md=(d1.size+d2.size)/2;if(ds<md*md){let tVx=d1.vx;d1.vx=d2.vx;d2.vx=tVx;let tVy=d1.speed;d1.speed=d2.speed;d2.speed=tVy;d1.x+=d1.vx*2;d1.y+=d1.speed*2;createExplosion(d1.x,d1.y,color(255,200,100));}}}
+  for(let i=spaceDebris.length-1;i>=0;i--){let d=spaceDebris[i];push();translate(d.x,d.y);d.x+=d.vx*currentTravelSpeed;d.y+=d.speed*currentTravelSpeed*2;d.rot+=d.rotSpeed*currentTravelSpeed;rotate(d.rot);if(d.type==="LEGEND"){drawLegendShape(d);}else if(d.type==="UFO"){d.x+=sin(frameCount*d.wobble)*2;fill(0,255,100,150);rect(-d.size/2,-d.size/6,d.size,d.size/3,2);ellipse(0,-d.size/6,d.size/2,d.size/2);}else if(d.type==="SATELLITE"){stroke(200,200,255,120);strokeWeight(1);noFill();rect(-d.size/4,-d.size/4,d.size/2,d.size/2);line(-d.size,0,d.size,0);rect(-d.size,-d.size/6,d.size/2,d.size/3);rect(d.size/2,-d.size/6,d.size/2,d.size/3);}else{fill(80,150);noStroke();rect(-d.size/2,-d.size/2,d.size,d.size,3);}pop();if(d.y>H+150){if(d.isRare)spaceDebris.splice(i,1);else{d.y=-100;d.x=random(W);}}}
+  if(gameState==="PLAYING")planetSize=lerp(planetSize,120+map(timer,40,0,0,1)*350,0.05);else if(gameState==="WAITING")planetSize=lerp(planetSize,450,0.01);
+  if(planetSize>10){for(let r=4;r>0;r--){fill(red(winnerColor),green(winnerColor),blue(winnerColor),4);ellipse(W/2,H+60,planetSize*(r*0.6),planetSize*0.4);}}
+}
+function drawLegendShape(d){noStroke();fill(d.color);let s=d.size;switch(d.legendId){case "STARMAN":rect(-s/2,-s/4,s,s/2,5);fill(255);ellipse(-s/4,-s/4,s/5);break;case "HAWKING":fill(100);rect(-s/2,0,s,s/4);fill(d.color);rect(-s/4,-s/2,s/2,s/2);break;case "LAIKA":fill(150,100);ellipse(0,0,s,s);fill(d.color);ellipse(0,-s/6,s/2);break;case "ET":fill(100,50,0);rect(-s/2,0,s,s/2);fill(255);ellipse(0,-s/4,s/2);break;case "NYAN":fill(255,200,150);rect(-s/2,-s/3,s,s/1.5,3);break;case "VOYAGER":fill(180);ellipse(0,0,s/2);fill(212,175,55);ellipse(0,0,s/3);break;case "OUMUAMUA":fill(60,40,30);ellipse(0,0,s,s/4);break;case "SHUTTLE":fill(255);triangle(-s/2,s/2,s/2,s/2,0,-s/2);break;}}
+function drawGravityDust(){let r=map(currentGravity,0.05,1.95,100,255),g=map(currentGravity,0.05,1.95,200,100),b=map(currentGravity,0.05,1.95,255,50);fill(r,g,b,150);noStroke();let dustSpeed=currentGravity*3*currentTravelSpeed;for(let d of dust){d.y+=dustSpeed;if(d.y>H){d.y=0;d.x=random(W);}rect(d.x,d.y,d.s,d.s);}}
+function drawZones(){for(let z of zones){if(z.flash>0){fill(z.flashColor);z.flash-=10;}else{fill(z.baseColor);}noStroke();rect(z.x,H-ZONE_H,z.w,ZONE_H);push();translate(z.x+z.w/2,H-20);rotate(-HALF_PI);textAlign(LEFT,CENTER);if(z.score>=5000){fill(255,230,100);textSize(18);}else{fill(255);textSize(z.w<30?10:15);}text(z.score,0,0);pop();}}
+function drawWaitingMessage(){let a=map(sin(frameCount*0.15),-1,1,100,255);push();fill(255,50,50,a);textAlign(CENTER,CENTER);textSize(30);stroke(0);strokeWeight(4);text("WARNING: CLEANUP",W/2,H/2-50);textSize(14);noStroke();fill(255,200,0,a);text("REMAINING UNITS RETURNING TO BASE...",W/2,H/2);pop();}
+function drawResultsOverlay(){fill(0,0,20,230);rect(20,50,W-40,H-100,20);drawingContext.shadowBlur=20;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);stroke(currentTheme[0],currentTheme[1],currentTheme[2],255);strokeWeight(4);fill(10,10,30,240);rect(40,80,W-80,H-160,15);drawingContext.shadowBlur=0;noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(50);text("ROUND COMPLETE",W/2,160);fill(255,215,0);textSize(22);text(`SECTOR: ${currentDestination}`,W/2,210);let sorted=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,5);for(let i=0;i<sorted.length;i++){let entry=sorted[i];let yPos=320+i*90;fill(i%2===0?color(255,255,255,20):color(255,255,255,5));rect(80,yPos-45,W-160,80,10);textAlign(LEFT,CENTER);fill(entry[1].color);textSize(i===0?45:35);text(`${i===0?"👑 ":i+1+". "}${entry[0]}`,100,yPos-5);textAlign(RIGHT,CENTER);fill(255);textSize(i===0?45:38);text(entry[1].score.toLocaleString(),W-100,yPos-5);}textAlign(CENTER);fill(255,50,50);textSize(24);text(`NEXT ROUND IN: ${resultsTimer}s`,W/2,H-120);}
+function drawProceduralHUD(){push();stroke(255,10);strokeWeight(1);for(let i=0;i<H;i+=4){line(0,i+(frameCount%4),W,i+(frameCount%4));}fill(0,255,0,150);textSize(8);textAlign(LEFT);text(`POS_X: ${camOffset.x.toFixed(4)}`,20,H-40);text(`POS_Y: ${camOffset.y.toFixed(4)}`,20,H-30);text(`ZOOM: ${camOffset.z.toFixed(4)}`,20,H-20);textAlign(RIGHT);text(`SENS_TEMP: ${(24+noise(frameCount*0.01)*5).toFixed(1)}°C`,W-20,H-30);text(`BUFFER_LOAD: ${balls.length*2}%`,W-20,H-20);pop();}
+function drawAntiBotOverlay(){push();if(random()<0.1){fill(255,150);noStroke();circle(random(W),random(H),random(1,3));}if(random()<0.02){fill(currentTheme[0],currentTheme[1],currentTheme[2],100);rect(0,random(H),W,random(1,10));}if(random()<0.05){fill(255,0,0,50);rect(random(W),random(H),20,20);}pop();}
+function drawPegs(){noStroke();let pR=map(currentGravity,0.05,1.95,0,255),pG=map(currentGravity,0.05,1.95,255,100),pB=map(currentGravity,0.05,1.95,255,0),pC=color(pR,pG,pB);for(let p of pegs){p.glow=p.glow||0;if(p.glow>0){fill(pR,pG+50,pB+50,p.glow);rect(p.position.x-6,p.position.y-6,12,12);p.glow-=20;}if(p.isExplosive){fill(255,100,0);rect(p.position.x-4,p.position.y-4,8,8);}else if(p.isRepulsor){fill(255,50,200);ellipse(p.position.x,p.position.y,12+sin(frameCount*0.2)*3);}else{fill(pC);rect(p.position.x-4,p.position.y-4,8,8);}}}
 
 function initGame(){
   if(!engine){engine=Matter.Engine.create();world=engine.world;}world.gravity.y=currentGravity;
@@ -319,87 +412,57 @@ function initGame(){
   const p=["SPIRAL","WAVES","HOURGLASS","GALAXY","DIAMOND","HYPERCUBE","DNA_HELIX","SATURN_RINGS","HEXAGON_GRID","PYRAMID","FRACTAL_TREE","SHAPE_HEART","SHAPE_APPLE","SHAPE_ALIEN"];
   const mode=random(p);let nP=floor(random(300,450)),pR=map(currentBounce,1,99,0.1,1.8);
   let blocker=Matter.Bodies.circle(W/2,130,4,{isStatic:true,restitution:pR});pegs.push(blocker);Matter.World.add(world,blocker);
+  
+  if(random()<0.2) { portals=[{x:random(100,W-100),y:random(200,H/2-100)},{x:random(100,W-100),y:random(H/2+100,H-250)}]; }
+  
   if(mode.startsWith("SHAPE_")){
     let sh=SHAPES[mode.split("_")[1]]||SHAPES["HEART"],rws=sh.length,cls=sh[0].length,sp=38,sx=(W-(cls*sp))/2,sy=250;
     for(let i=0;i<20;i++){pegs.push(Matter.Bodies.circle(map(i,0,19,40,sx-40),map(i,0,19,150,800),4,{isStatic:true,restitution:pR,collisionFilter:{category:2}}));Matter.World.add(world,pegs[pegs.length-1]);pegs.push(Matter.Bodies.circle(map(i,0,19,W-40,sx+(cls*sp)+40),map(i,0,19,150,800),4,{isStatic:true,restitution:pR,collisionFilter:{category:2}}));Matter.World.add(world,pegs[pegs.length-1]);}
-    for(let r=0;r<rws;r++){for(let c=0;c<cls;c++){if(sh[r][c]==='*'){let pg=Matter.Bodies.circle(sx+c*sp+random(-1,1),sy+r*sp+random(-1,1),4,{isStatic:true,restitution:pR,collisionFilter:{category:2}});pg.isExplosive=random()<0.05;pegs.push(pg);Matter.World.add(world,pg);}}}
+    for(let r=0;r<rws;r++){for(let c=0;c<cls;c++){if(sh[r][c]==='*'){let pg=Matter.Bodies.circle(sx+c*sp+random(-1,1),sy+r*sp+random(-1,1),4,{isStatic:true,restitution:pR,collisionFilter:{category:2}});pg.isExplosive=random()<0.04;pg.isRepulsor=!pg.isExplosive&&random()<0.04;pegs.push(pg);Matter.World.add(world,pg);}}}
   }else{
     for(let i=0;i<nP;i++){
       let px,py,v=false,a=0;
       while(!v&&a<50){
         a++;
         switch(mode){
-          case "SPIRAL":px=W/2+cos(i*0.15)*(15+i*2.0);py=200+i*2.5;break;
+          case "SPIRAL":let an=i*0.15,r=15+i*2.0;px=W/2+cos(an)*r;py=200+i*2.5;break;
           case "WAVES":px=map(i%20,0,20,50,W-50);py=220+floor(i/20)*60+sin(i*0.5)*40;break;
-          case "HOURGLASS":px=map(i%15,0,15,100+abs(floor(i/15)-15)*12,W-100-abs(floor(i/15)-15)*12);py=200+floor(i/15)*40;break;
-          case "GALAXY":let ag=random(TWO_PI),rd=pow(random(),0.5)*400;px=W/2+cos(ag)*rd;py=500+sin(ag)*rd;break;
-          case "DIAMOND":px=W/2+((i%18)-9)*22;py=200+floor(i/18)*40+abs((i%18)-9)*12;break;
-          case "PYRAMID":px=W/2+((i%20)-10)*(22-floor(i/20)*1.5);py=200+floor(i/20)*40;break;
-          case "HYPERCUBE":px=W/2-200+(i%10)*40+floor(i/100)*20;py=250+(floor(i/10)%10)*40+floor(i/100)*20;break;
-          case "DNA_HELIX":px=W/2+(i%2===0?1:-1)*cos(i*0.1)*150;py=200+i*6;break;
-          case "SATURN_RINGS":let an=random(TWO_PI),ds=i<nP/2?random(80,150):random(250,350);px=W/2+cos(an)*ds;py=500+sin(an)*ds*0.4;break;
-          case "HEXAGON_GRID":px=100+(i%12)*60+(floor(i/12)%2)*30;py=200+floor(i/12)*60;break;
+          case "HOURGLASS":let rH=floor(i/15),cH=i%15,shk=abs(rH-15)*12;px=map(cH,0,15,100+shk,W-100-shk);py=200+rH*40;break;
+          case "GALAXY":let aG=random(TWO_PI),rd=pow(random(),0.5)*400;px=W/2+cos(aG)*rd;py=500+sin(aG)*rd;break;
+          case "DIAMOND":let rD=floor(i/18),cD=i%18;px=W/2+(cD-9)*22;py=200+rD*40+abs(cD-9)*12;break;
+          case "PYRAMID":let lP=floor(i/20),pL=i%20;px=W/2+(pL-10)*(22-lP*1.5);py=200+lP*40;break;
+          case "HYPERCUBE":let ix=i%10,iy=floor(i/10)%10,iz=floor(i/100);px=W/2-200+ix*40+iz*20;py=250+iy*40+iz*20;break;
+          case "DNA_HELIX":let t=i*0.1,sD=(i%2===0)?1:-1;px=W/2+sD*cos(t)*150;py=200+i*6;break;
+          case "SATURN_RINGS":let aS=random(TWO_PI),dS=(i<nP/2)?random(80,150):random(250,350);px=W/2+cos(aS)*dS;py=500+sin(aS)*dS*0.4;break;
+          case "HEXAGON_GRID":let hR=floor(i/12),hC=i%12;px=100+hC*60+(hR%2)*30;py=200+hR*60;break;
           case "FRACTAL_TREE":let lv=floor(log(i+1)/log(2));px=W/2+(i%pow(2,lv)-pow(2,lv)/2)*(W/pow(2,lv));py=200+lv*80;break;
           default:px=random(60,W-60);py=random(180,H-220);break;
         }
         if(py>150&&py<H-150&&px>40&&px<W-40){let tc=false;for(let ot of pegs){if(dist(px,py,ot.position.x,ot.position.y)<35){tc=true;break;}}if(!tc)v=true;}else if(a>45)break;
       }
-      if(v){let pg=Matter.Bodies.circle(px,py,4,{isStatic:true,restitution:pR,collisionFilter:{category:2}});pg.isExplosive=random()<0.05;pegs.push(pg);Matter.World.add(world,pg);}
+      if(v){let pg=Matter.Bodies.circle(px,py,4,{isStatic:true,restitution:pR,collisionFilter:{category:2}});pg.isExplosive=random()<0.04;pg.isRepulsor=!pg.isExplosive&&random()<0.04;pegs.push(pg);Matter.World.add(world,pg);}
     }
   }
-  for(let i=0;i<150;i++){
-    let px=random(60,W-60),py=random(180,H-200),v=true;for(let ot of pegs){if(dist(px,py,ot.position.x,ot.position.y)<35){v=false;break;}}
-    if(v){let pg=Matter.Bodies.circle(px,py,4,{isStatic:true,restitution:pR,collisionFilter:{category:2}});pg.isExplosive=random()<0.05;pegs.push(pg);Matter.World.add(world,pg);}
-  }
+  for(let i=0;i<150;i++){let px=random(60,W-60),py=random(180,H-200),v=true;for(let ot of pegs){if(dist(px,py,ot.position.x,ot.position.y)<35){v=false;break;}}if(v){let pg=Matter.Bodies.circle(px,py,4,{isStatic:true,restitution:pR,collisionFilter:{category:2}});pg.isExplosive=random()<0.04;pg.isRepulsor=!pg.isExplosive&&random()<0.04;pegs.push(pg);Matter.World.add(world,pg);}}
+  
   let sV=[5000,1000,500,200,100,50,20,10,5,2,1,2,5,10,20,50,100,200,500,1000,5000],cX=0;zones=[];
   for(let i=0;i<21;i++){
-    let zW=(map(abs(i-10),0,10,2.5,1.0)/36.1)*W,zC=sV[i]>=5000?color(50,45,15,180):color(10,10,40,180);
-    zones.push({x:cX,w:zW,score:sV[i],flash:0,flashColor:color(255),baseColor:zC});
+    let zW=(map(abs(i-10),0,10,2.5,1.0)/36.1)*W,val=sV[i];
+    zones.push({x:cX,w:zW,score:val,flash:0,flashColor:color(255),baseColor:val>=5000?color(50,45,15,180):color(10,10,40,180)});
     if(i>0){let wl=Matter.Bodies.rectangle(cX,H-(ZONE_H/2),6,ZONE_H,{isStatic:true,friction:0.5});walls.push(wl);Matter.World.add(world,wl);}cX+=zW;
   }
   Matter.World.add(world,[Matter.Bodies.rectangle(W/2,H+48,W,100,{isStatic:true,friction:1})]);
 }
 
-function drawPegs(){noStroke();let pR=map(currentGravity,0.05,1.95,0,255),pG=map(currentGravity,0.05,1.95,255,100),pB=map(currentGravity,0.05,1.95,255,0),pC=color(pR,pG,pB);for(let p of pegs){p.glow=p.glow||0;if(p.glow>0){fill(pR,pG+50,pB+50,p.glow);rect(p.position.x-6,p.position.y-6,12,12);p.glow-=20;}if(p.isExplosive){fill(255,100,0);rect(p.position.x-4,p.position.y-4,8,8);}else{fill(pC);rect(p.position.x-4,p.position.y-4,8,8);}}}
-function drawZones(){for(let z of zones){if(z.flash>0){fill(z.flashColor);z.flash-=10;}else{fill(z.baseColor);}noStroke();rect(z.x,H-ZONE_H,z.w,ZONE_H);push();translate(z.x+z.w/2,H-20);rotate(-HALF_PI);textAlign(LEFT,CENTER);if(z.score>=5000){fill(255,230,100);textSize(18);}else{fill(255);textSize(z.w<30?10:15);}text(z.score,0,0);pop();}}
-function drawWaitingMessage(){let a=map(sin(frameCount*0.15),-1,1,100,255);push();fill(255,50,50,a);textAlign(CENTER,CENTER);textSize(30);stroke(0);strokeWeight(4);text("WARNING: CLEANUP",W/2,H/2-50);textSize(14);noStroke();fill(255,200,0,a);text("REMAINING UNITS RETURNING TO BASE...",W/2,H/2);pop();}
-function drawResultsOverlay(){fill(0,0,20,230);rect(20,50,W-40,H-100,20);drawingContext.shadowBlur=20;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);stroke(currentTheme[0],currentTheme[1],currentTheme[2],255);strokeWeight(4);fill(10,10,30,240);rect(40,80,W-80,H-160,15);drawingContext.shadowBlur=0;noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(50);text("ROUND COMPLETE",W/2,160);fill(255,215,0);textSize(22);text(`SECTOR: ${currentDestination}`,W/2,210);let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,5);for(let i=0;i<s.length;i++){let e=s[i],y=320+i*90;fill(i%2===0?color(255,255,255,20):color(255,255,255,5));rect(80,y-45,W-160,80,10);textAlign(LEFT,CENTER);fill(e[1].color);textSize(i===0?45:35);text(`${i===0?"👑 ":i+1+". "}${e[0]}`,100,y-5);textAlign(RIGHT,CENTER);fill(255);textSize(i===0?45:38);text(e[1].score.toLocaleString(),W-100,y-5);}textAlign(CENTER);fill(255,50,50);textSize(24);text(`NEXT ROUND IN: ${resultsTimer}s`,W/2,H-120);}
-function drawProceduralHUD(){push();stroke(255,10);strokeWeight(1);for(let i=0;i<H;i+=4)line(0,i+(frameCount%4),W,i+(frameCount%4));fill(0,255,0,150);textSize(8);textAlign(LEFT);text(`POS_X: ${camOffset.x.toFixed(4)}`,20,H-40);text(`POS_Y: ${camOffset.y.toFixed(4)}`,20,H-30);text(`ZOOM: ${camOffset.z.toFixed(4)}`,20,H-20);textAlign(RIGHT);text(`SENS_TEMP: ${(24+noise(frameCount*0.01)*5).toFixed(1)}°C`,W-20,H-30);text(`BUFFER_LOAD: ${balls.length*2}%`,W-20,H-20);pop();}
-function drawAntiBotOverlay(){push();if(random()<0.1){fill(255,150);noStroke();circle(random(W),random(H),random(1,3));}if(random()<0.02){fill(currentTheme[0],currentTheme[1],currentTheme[2],100);rect(0,random(H),W,random(1,10));}if(random()<0.05){fill(255,0,0,50);rect(random(W),random(H),20,20);}pop();}
-function triggerCosmicEvent(){if(cosmicEvent)return;eventOccurredThisRound=true;let fL=random()<0.5,s=random(25,45),sx=fL?-100:W+100,ty=H-ZONE_H-random(20,120),b=Matter.Bodies.circle(sx,ty,s/2,{isStatic:false,isSensor:false,density:0.1,frictionAir:0,collisionFilter:{mask:1}}),iC=random()<0.5;cosmicEvent={body:b,type:iC?"COMET":"METEOR",size:s,color:iC?color(150,200,255):color(255,100,50),trail:[]};Matter.World.add(world,b);Matter.Body.setVelocity(b,{x:fL?random(12,18):random(-12,-18),y:random(-1,1)});if(audioStarted){let o=new p5.Oscillator('sine');o.start();o.freq(random(100,400));o.freq(random(800,1200),1.5);o.amp(0.1);o.amp(0,1.5);setTimeout(()=>o.stop(),1600);}speakAnnouncer("Warning! Cosmic anomaly detected in the sector.",1);}
-function handleCosmicEvent(){if(!cosmicEvent)return;let p=cosmicEvent.body.position;cosmicEvent.trail.push({x:p.x,y:p.y,life:255});if(cosmicEvent.trail.length>20)cosmicEvent.trail.shift();push();noStroke();for(let i=0;i<cosmicEvent.trail.length;i++){fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),map(i,0,cosmicEvent.trail.length,0,150));ellipse(cosmicEvent.trail[i].x,cosmicEvent.trail[i].y,cosmicEvent.size*(i/cosmicEvent.trail.length));}fill(255);ellipse(p.x,p.y,cosmicEvent.size);fill(cosmicEvent.color);ellipse(p.x,p.y,cosmicEvent.size*0.8);pop();if(p.x<-300||p.x>W+300){Matter.World.remove(world,cosmicEvent.body);cosmicEvent=null;}}
-function spawnRareLegend(){let l=random(RARE_POOL);spaceDebris.push({x:random(50,W-50),y:-100,type:"LEGEND",legendId:l.id,size:l.size,color:color(l.col[0],l.col[1],l.col[2]),speed:random(0.8,1.8),vx:random(-0.5,0.5),rot:random(TWO_PI),rotSpeed:random(-0.06,0.06),wobble:random(0.02,0.08),isRare:true});}
-
-function drawGalacticBackground(){
-  noStroke();for(let n of nebulas){n.y+=0.2*currentTravelSpeed;if(n.y>H+n.s)n.y=-n.s;fill(n.col);ellipse(n.x,n.y,n.s,n.s*0.6);}fill(255,120);for(let s of stars){s.y+=s.speed*currentTravelSpeed*5;if(s.y>H){s.y=0;s.x=random(W);}ellipse(s.x,s.y,s.s);}
-  for(let p of massivePlanets){push();translate(p.x,p.y);p.y+=p.speed*currentTravelSpeed*5;p.rot+=p.rotSpeed*currentTravelSpeed;rotate(p.rot);if(p.hasRing){noFill();stroke(p.ringColor);strokeWeight(p.size*0.1);ellipse(0,0,p.size*2.2,p.size*0.6);}noStroke();fill(p.color);ellipse(0,0,p.size);pop();if(p.y>H+p.size*2){p.y=-p.size*2;p.x=random(W);}}
-  if(gameState==="PLAYING"&&random()<0.08)shootingStars.push({x:random(W),y:random(-50,H/2),vx:random(10,25),vy:random(10,25),life:255,len:random(20,100)});
-  for(let i=shootingStars.length-1;i>=0;i--){let s=shootingStars[i];stroke(255,s.life);strokeWeight(1.5);line(s.x,s.y,s.x-s.vx*(s.len/20),s.y-s.vy*(s.len/20));s.x+=s.vx;s.y+=s.vy;s.life-=10;if(s.life<=0)shootingStars.splice(i,1);noStroke();}
-  if(gameState==="PLAYING"&&random()<0.06){let fL=random()<0.5;ambientComets.push({x:fL?-50:W+50,y:random(-100,H/2),vx:fL?random(2,5):random(-5,-2),vy:random(2,4),s:random(4,8),life:255,col:color(random(150,255),random(200,255),255)});}
-  for(let i=ambientComets.length-1;i>=0;i--){let c=ambientComets[i];c.x+=c.vx*currentTravelSpeed;c.y+=c.vy*currentTravelSpeed;c.life-=1.5;fill(c.col);ellipse(c.x,c.y,c.s);fill(red(c.col),green(c.col),blue(c.col),80);ellipse(c.x-c.vx*3,c.y-c.vy*3,c.s*1.5);if(c.y>H+50||c.life<=0)ambientComets.splice(i,1);}
-  for(let i=0;i<spaceDebris.length;i++){for(let j=i+1;j<spaceDebris.length;j++){let d1=spaceDebris[i],d2=spaceDebris[j],ds=(d1.x-d2.x)**2+(d1.y-d2.y)**2,md=(d1.size+d2.size)/2;if(ds<md*md){let tx=d1.vx;d1.vx=d2.vx;d2.vx=tx;let ty=d1.speed;d1.speed=d2.speed;d2.speed=ty;d1.x+=d1.vx*2;d1.y+=d1.speed*2;createExplosion(d1.x,d1.y,color(255,200,100));}}}
-  for(let i=spaceDebris.length-1;i>=0;i--){let d=spaceDebris[i];push();translate(d.x,d.y);d.x+=d.vx*currentTravelSpeed;d.y+=d.speed*currentTravelSpeed*2;d.rot+=d.rotSpeed*currentTravelSpeed;rotate(d.rot);if(d.type==="LEGEND"){drawLegendShape(d);}else if(d.type==="UFO"){d.x+=sin(frameCount*d.wobble)*2;fill(0,255,100,150);rect(-d.size/2,-d.size/6,d.size,d.size/3,2);ellipse(0,-d.size/6,d.size/2,d.size/2);}else if(d.type==="SATELLITE"){stroke(200,200,255,120);strokeWeight(1);noFill();rect(-d.size/4,-d.size/4,d.size/2,d.size/2);line(-d.size,0,d.size,0);rect(-d.size,-d.size/6,d.size/2,d.size/3);rect(d.size/2,-d.size/6,d.size/2,d.size/3);}else{fill(80,150);noStroke();rect(-d.size/2,-d.size/2,d.size,d.size,3);}pop();if(d.y>H+150){if(d.isRare)spaceDebris.splice(i,1);else{d.y=-100;d.x=random(W);}}}
-  if(gameState==="PLAYING")planetSize=lerp(planetSize,120+map(timer,40,0,0,1)*350,0.05);else if(gameState==="WAITING")planetSize=lerp(planetSize,450,0.01);
-  if(planetSize>10){for(let r=4;r>0;r--){fill(red(winnerColor),green(winnerColor),blue(winnerColor),4);ellipse(W/2,H+60,planetSize*(r*0.6),planetSize*0.4);}}
-}
-
-function drawLegendShape(d){noStroke();fill(d.color);let s=d.size;switch(d.legendId){case "STARMAN":rect(-s/2,-s/4,s,s/2,5);fill(255);ellipse(-s/4,-s/4,s/5);break;case "HAWKING":fill(100);rect(-s/2,0,s,s/4);fill(d.color);rect(-s/4,-s/2,s/2,s/2);break;case "LAIKA":fill(150,100);ellipse(0,0,s,s);fill(d.color);ellipse(0,-s/6,s/2);break;case "ET":fill(100,50,0);rect(-s/2,0,s,s/2);fill(255);ellipse(0,-s/4,s/2);break;case "NYAN":fill(255,200,150);rect(-s/2,-s/3,s,s/1.5,3);break;case "VOYAGER":fill(180);ellipse(0,0,s/2);fill(212,175,55);ellipse(0,0,s/3);break;case "OUMUAMUA":fill(60,40,30);ellipse(0,0,s,s/4);break;case "SHUTTLE":fill(255);triangle(-s/2,s/2,s/2,s/2,0,-s/2);break;}}
-function drawGravityDust(){let r=map(currentGravity,0.05,1.95,100,255),g=map(currentGravity,0.05,1.95,200,100),b=map(currentGravity,0.05,1.95,255,50);fill(r,g,b,150);noStroke();let dustSpeed=currentGravity*3*currentTravelSpeed;for(let d of dust){d.y+=dustSpeed;if(d.y>H){d.y=0;d.x=random(W);}rect(d.x,d.y,d.s,d.s);}}
-function prepareSingularityEvents(){bhSpawnTimes=[];if(random()<0.4)bhSpawnTimes.push(floor(random(5,timer*0.8)));}
-function checkSingularitySpawn(){if(bhSpawnTimes.includes(timer)&&!blackHole){let fL=random()<0.5;blackHole={x:fL?-150:W+150,y:random(200,H-450),startY:0,targetX:fL?W+250:-250,speed:random(0.8,1.5),size:random(12,18),noiseOffset:random(1000),noiseSpeed:random(0.01,0.02),wobbleAmp:random(40,90)};blackHole.startY=blackHole.y;bhSpawnTimes=bhSpawnTimes.filter(t=>t!==timer);speakAnnouncer("Warning! Black hole singularity forming!",1);}}
-function handleBlackHole(){if(!blackHole)return;let d=blackHole.targetX>blackHole.x?1:-1;blackHole.x+=blackHole.speed*d;let n=noise(frameCount*blackHole.noiseSpeed+blackHole.noiseOffset);blackHole.y=blackHole.startY+(n-0.5)*blackHole.wobbleAmp*2;let jS=blackHole.size*(1+(n-0.5)*0.15);if(audioStarted){let cD=abs(W/2-blackHole.x),tr=map(sin(frameCount*0.2),-1,1,0.8,1.0);bhOsc.amp(map(cD,W,0,0,0.08)*tr,0.1);bhOsc.freq(32+n*12);}push();translate(blackHole.x,blackHole.y);noStroke();for(let i=5;i>0;i--){fill(10+i*10,0,40+i*20,25);ellipse(0,0,jS+i*(blackHole.size*0.15)+(n*10));}fill(0);ellipse(0,0,jS);pop();for(let i=pegs.length-1;i>=0;i--){let p=pegs[i];if(dist(blackHole.x,blackHole.y,p.position.x,p.position.y)<jS*0.55&&random()<0.23){Matter.Composite.remove(world,p);createExplosion(p.position.x,p.position.y);playExplosionSound();pegs.splice(i,1);}}for(let i=balls.length-1;i>=0;i--){let b=balls[i];if(!b.body)continue;let ds=dist(blackHole.x,blackHole.y,b.body.position.x,b.body.position.y);if(ds<jS*0.5){removeBall(b);continue;}if(ds<blackHole.size*1.87){let sD=Math.max(ds,30);Matter.Body.applyForce(b.body,b.body.position,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({x:blackHole.x,y:blackHole.y},b.body.position)),(blackHole.size*0.00018)/(sD/80)));}}if((d===1&&blackHole.x>blackHole.targetX)||(d===-1&&blackHole.x<blackHole.targetX)){blackHole=null;if(audioStarted)bhOsc.amp(0,0.5);}}
-
 function resetGame(){
   leaderboard={};totalBallsFired=0;roundCount++;gameState="PLAYING";resultsTimer=10;eventOccurredThisRound=false;currentDestination=generatePlanetName();timer=floor(random(40,181));currentTheme=random(UI_THEMES);
-  if(isAutoMode)autoRandomSettings();if(world)Matter.World.clear(world,false);pegs=[];walls=[];balls=[];blackHole=null;cosmicEvent=null;shootingStars=[];ambientComets=[];
+  if(isAutoMode){autoRandomSettings();}if(world)Matter.World.clear(world,false);pegs=[];walls=[];balls=[];blackHole=null;cosmicEvent=null;shootingStars=[];ambientComets=[];portals=[];floatingTexts=[];shockwaves=[];
   initGame();generateDeepSpaceElements();prepareSingularityEvents();planSpaceshipForRound();
-  
   let delay = 0;
   while(spawnQueue.length > 0) {
-    let u = spawnQueue.shift();
-    setTimeout(() => spawnBall(u), delay * 100);
-    delay++;
+      let u = spawnQueue.shift();
+      setTimeout(() => spawnBall(u), delay * 100);
+      delay++;
   }
-  
   speakAnnouncer(`Welcome to sector ${currentDestination}. The dropping phase has started.`,1);
 }
