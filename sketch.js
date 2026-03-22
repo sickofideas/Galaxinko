@@ -1,9 +1,4 @@
-// --- GALAXINKO (v6.2.0 - BIG UI & WINNER ANNOUNCEMENT) ---
-// NOVINKY v6.2.0:
-// • Zvětšené texty (kuličky, jména, tabulky, zóny) pro lepší čitelnost na mobilu.
-// • Vyhlášení vítěze: Houston přečte jméno vítěze na konci každého kola.
-// • Lepší kontrast textů nad kuličkami.
-
+// --- GALAXINKO (v7.0.0 - VERTICAL TIKTOK & CLEAN UI) ---
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
 let balls = [];
@@ -29,6 +24,12 @@ let currentBounce = 50;
 let spawnPerEvent = 1;
 let currentShipChance = 30;
 
+// --- ROZLIŠENÍ & TIKTOK SAFE ZONE ---
+const W = 900;
+const H = 1600; // 9:16 vertikální rozlišení
+const SAFE_ZONE_H = 350; // Spodní prostor vyhrazený pro TikTok chat
+const ZONE_H = 100;
+
 const UI_THEMES = [
   [0, 255, 255], [255, 50, 255], [50, 255, 50], 
   [255, 200, 0], [255, 100, 50], [150, 100, 255]
@@ -42,7 +43,7 @@ let viewerSpaceObjects = [];
 let cosmicEvent = null;
 let eventOccurredThisRound = false;
 
-// --- AI ANNOUNCER (HOUSTON TEXT-TO-SPEECH) ---
+// --- AI ANNOUNCER ---
 let availableVoices = [];
 let lastSpokeTime = 0;
 
@@ -184,9 +185,7 @@ let bhSpawnTimes = [];
 let musicScale = [48, 52, 55, 57, 60, 64, 67, 72];
 let nextNoteTime = 0;
 let bhOsc;
-const W = 900;
-const H = 950;
-const ZONE_H = 100; // ZVĚTŠENO PRO LEPŠÍ ČITELNOST SKÓRE
+
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28},
   {id: "HAWKING", name: "S. HAWKING", col: [50, 50, 255], size: 22},
@@ -234,8 +233,8 @@ function setup() {
   backgroundOsc = new p5.Oscillator('sine');
   backgroundOsc2 = new p5.Oscillator('sine');
   bhOsc = new p5.Oscillator('triangle');
-  for(let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
-  for(let i = 0; i < 400; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
+  for(let i = 0; i < 150; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
+  for(let i = 0; i < 500; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   currentGravity = random(0.05, 1.95);
   currentBounce = floor(random(1, 100));
   timer = floor(random(40, 181));
@@ -249,7 +248,7 @@ function setup() {
   connectTikfinity();
   
   keyButton = createButton('🔑');
-  keyButton.position(15, H - 45);
+  keyButton.position(15, 15);
   keyButton.style('font-size', '28px');
   keyButton.style('background', 'transparent');
   keyButton.style('border', 'none');
@@ -257,27 +256,27 @@ function setup() {
   keyButton.style('cursor', 'pointer');
   keyButton.mousePressed(toggleSettings);
   gravitySlider = createSlider(0.01, 5.0, currentGravity, 0.01);
-  gravitySlider.position(40, 120);
+  gravitySlider.position(40, 60);
   gravitySlider.style('width', '220px');
   gravitySlider.hide();
 
   bounceSlider = createSlider(1, 200, currentBounce, 1);
-  bounceSlider.position(40, 170);
+  bounceSlider.position(40, 110);
   bounceSlider.style('width', '220px');
   bounceSlider.hide();
 
   spawnPerEventSlider = createSlider(1, 50, spawnPerEvent, 1);
-  spawnPerEventSlider.position(40, 220);
+  spawnPerEventSlider.position(40, 160);
   spawnPerEventSlider.style('width', '220px');
   spawnPerEventSlider.hide();
   
   shipChanceSlider = createSlider(0, 100, currentShipChance, 1);
-  shipChanceSlider.position(40, 270);
+  shipChanceSlider.position(40, 210);
   shipChanceSlider.style('width', '220px');
   shipChanceSlider.hide();
 
   autoButton = createButton('AUTO RANDOM: OFF');
-  autoButton.position(40, 320);
+  autoButton.position(40, 260);
   autoButton.style('width', '220px');
   autoButton.hide();
   autoButton.mousePressed(toggleAutoMode);
@@ -323,7 +322,7 @@ function planSpaceshipForRound() {
 }
 
 function spawnSpaceship() {
-    let shipW = 140; let shipH = 25; let shipY = H - ZONE_H - 150;
+    let shipW = 140; let shipH = 25; let shipY = H - SAFE_ZONE_H - ZONE_H - 150;
     let body = Matter.Bodies.rectangle(-200, shipY, shipW, shipH, { isStatic: true, restitution: 1.5, friction: 0 });
     Matter.World.add(world, body);
     starship = { body: body, w: shipW, h: shipH, y: shipY, targetX: W/2, speed: 6, activeFrames: 0, maxFrames: 60 * 25, state: "ENTERING" };
@@ -453,6 +452,11 @@ function draw() {
   background(2, 2, 8);
   drawGravityDust();
   drawGalacticBackground();
+  
+  // Ztmavení plochy pro lepší kontrast
+  fill(0, 150);
+  rect(0, 0, W, H);
+  
   drawViewerObjects();
   
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) { console.error("Engine Error"); }
@@ -494,7 +498,6 @@ function draw() {
       gameState = "RESULTS";
       resultsTimer = 10;
       
-      // VYHLÁŠENÍ VÍTĚZE KOLA
       let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
       if (sorted.length > 0) {
           let winnerName = sanitizeText(sorted[0][0]);
@@ -535,13 +538,6 @@ function draw() {
     rect(0, 0, W, H); flashEffect--;
   }
 
-  let liveTime = new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', dateStyle: 'short', timeStyle: 'medium' }).format(new Date());
-  push();
-  fill(10, 10, 40, 220); rect(W/2 - 140, 6, 280, 28, 8);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 140); strokeWeight(2); rect(W/2 - 140, 6, 280, 28, 8);
-  noStroke(); fill(220, 80, 80); textSize(13); textAlign(CENTER, CENTER);
-  text("LIVE " + liveTime, W/2, 20);
-  pop();
   pop();
 }
 
@@ -559,7 +555,7 @@ function spawnBall(userName) {
     leaderboard[userName] = { score: 0, color: color(random(100,255), random(100,255), random(100,255)) };
   }
   balls.push({
-    body: ballBody, name: userName, color: leaderboard[userName].color, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0
+    body: ballBody, name: userName, color: leaderboard[userName].color, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, spawnTime: millis()
   });
   Matter.World.add(world, ballBody);
 }
@@ -579,12 +575,17 @@ function drawBalls() {
     fill(b.color); stroke(255); strokeWeight(1); rect(-5, -5, 10, 10);
     rotate(-b.body.angle);
     
-    // ZVĚTŠENÉ JMÉNO A COMBO NAD KULIČKOU (s lehkým stínem pro čitelnost)
-    fill(0, 150); noStroke(); textAlign(CENTER); textSize(11); text(b.name, 1, -13); // Stín
-    fill(b.color); text(b.name, 0, -14);
+    // OMEZENÍ TEXTOVÉHO SMOGU (zmizí po 3 sec, objeví se dole u skórování)
+    let age = millis() - b.spawnTime;
+    let showName = age < 3000 || b.scored;
+
+    if (showName) {
+        fill(0, 150); noStroke(); textAlign(CENTER); textSize(11); text(b.name, 1, -13);
+        fill(b.color); text(b.name, 0, -14);
+    }
     
     if (b.combo > 0) { 
-        fill(0, 150); textSize(13); text("x" + b.combo, 1, -25); // Stín
+        fill(0, 150); textSize(13); text("x" + b.combo, 1, -25);
         fill(255, 200, 0); text("x" + b.combo, 0, -26); 
     }
     pop();
@@ -620,7 +621,7 @@ function drawBalls() {
       }
     }
     
-    if (pos.y > H - ZONE_H - 10) {
+    if (pos.y > H - SAFE_ZONE_H - ZONE_H - 10) {
       Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
       if (!b.scored) {
         let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
@@ -648,7 +649,7 @@ function removeBall(b) { Matter.World.remove(world, b.body); let idx = balls.ind
 function onUserJoin(username, imgUrl) {
   if (viewerSpaceObjects.find(o => o.name === username)) return;
   let obj = {
-    name: username, x: random(100, W-100), y: random(100, H-300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3),
+    name: username, x: random(100, W-100), y: random(100, H-SAFE_ZONE_H-300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3),
     baseSize: 40, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: null,
     angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255
   };
@@ -672,7 +673,7 @@ function drawViewerObjects() {
   }
   for (let obj of viewerSpaceObjects) {
     obj.x += obj.vx + sin(frameCount * 0.01) * 0.1; obj.y += obj.vy + cos(frameCount * 0.01) * 0.1; obj.angle += 0.005;
-    if (obj.x < 50 || obj.x > W-50) obj.vx *= -1; if (obj.y < 50 || obj.y > H-250) obj.vy *= -1;
+    if (obj.x < 50 || obj.x > W-50) obj.vx *= -1; if (obj.y < 50 || obj.y > H-SAFE_ZONE_H-250) obj.vy *= -1;
     push(); translate(obj.x, obj.y); rotate(obj.angle);
     let totalS = obj.baseSize + obj.extraSize;
     noStroke(); fill(obj.color[0], obj.color[1], obj.color[2], 40 * (obj.alpha/255)); ellipse(0, 0, totalS + 20);
@@ -684,28 +685,30 @@ function drawViewerObjects() {
 }
 
 function drawUI() {
+  // PŘEDĚLANÝ HORNÍ HUD
   push();
-  // Větší výška horního panelu
-  fill(0, 0, 30, 255); noStroke(); rect(0, 0, W, 100);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 100); strokeWeight(2); line(0, 98, W, 98);
-  let logoX = 20, logoY = 45;
-  textAlign(LEFT, CENTER); fill(currentTheme[0], currentTheme[1], currentTheme[2], 20); textSize(70); text(GAME_TITLE, logoX + 4, logoY + 4);
-  fill(255); textSize(70); text(GAME_TITLE, logoX, logoY);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(14); text("STABLE SINGULARITY SIMULATION v6.2.0", logoX + 2, logoY + 38);
-  
-  let dropZoneW = 450, dropZoneX = W/2 - (dropZoneW / 2);
+  let dropZoneW = 460, dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
-  fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); rect(dropZoneX - 10, 6, dropZoneW + 20, 85, 15);
-  fill(5, 5, 20, 250); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120 + pulse * 10); strokeWeight(2); rect(dropZoneX, 10, dropZoneW, 75, 12);
-  noStroke(); textAlign(CENTER, CENTER); fill(255); textSize(18); text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 35);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(12); text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 65);
   
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(RIGHT); textSize(11); text(`${currentDestination}`, W - 25, 30);
-  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); fill(200); textSize(10); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 50);
-  fill(255, 150, 0); text(`BOUNCE-X: ${currentBounce}`, W - 25, 68);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); 
+  rect(dropZoneX, 10, dropZoneW, 90, 15);
+  fill(5, 5, 20, 230); 
+  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150 + pulse * 10); 
+  strokeWeight(2); 
+  rect(dropZoneX, 10, dropZoneW, 90, 15);
+  
+  noStroke(); textAlign(CENTER, CENTER); 
+  fill(255); textSize(20); text("GALACTIC TELEMETRY", W/2, 35);
+  
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); 
+  textSize(12); text("STATUS: ONLINE | GEOMETRY: PROCEDURAL", W/2, 60);
+
+  let liveTime = new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', dateStyle: 'short', timeStyle: 'medium' }).format(new Date());
+  fill(255, 50, 50); textSize(14);
+  text("🔴 LIVE " + liveTime, W/2, 80);
   pop();
   
-  // ZVĚTŠENÝ LEVÝ PANEL
+  // LEVÝ PANEL
   push(); translate(0, 115);
   fill(100, 100, 150, 100); rect(10, 0, 280, 260); fill(0, 0, 20, 245); rect(12, 2, 276, 256);
   fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(12); text("MISSION MILESTONES", 150, 22);
@@ -725,7 +728,7 @@ function drawUI() {
   }
   pop();
   
-  // ZVĚTŠENÝ PRAVÝ PANEL
+  // PRAVÝ PANEL
   push(); translate(W - 290, 115);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12);
   fill(100, 100, 150, 100); rect(0, 0, 280, 320); fill(0, 0, 20, 240); rect(2, 2, 276, 316);
@@ -736,10 +739,18 @@ function drawUI() {
     textAlign(RIGHT); fill(255); text(e[1].score, 265, 55 + i * 22); textAlign(LEFT);
   });
   pop();
+  
+  // NÁPIS PRO SAFE ZONU
+  push();
+  fill(10, 10, 15, 200);
+  rect(0, H - SAFE_ZONE_H, W, SAFE_ZONE_H);
+  fill(255, 50); textAlign(CENTER, CENTER); textSize(20);
+  text("TIKTOK CHAT SAFE ZONE", W/2, H - SAFE_ZONE_H / 2);
+  pop();
 }
 
 function mouseClicked() {
-  if (!audioStarted) startSpaceAudio(); // Vynutí spuštění zvuku při prvním kliknutí
+  if (!audioStarted) startSpaceAudio();
   if (mouseX > W-260 && mouseX < W && mouseY > 100 && mouseY < 385) { leaderboard = {}; shakeAmount = 4; return; }
   if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
@@ -748,7 +759,7 @@ function mouseClicked() {
   if (mouseY > 0 && mouseY < 85) { spawnBall(random(TEST_BOTS)); shakeAmount = 2; }
 }
 
-function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
+function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - SAFE_ZONE_H - ZONE_H, w.position.x, H - SAFE_ZONE_H); }
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 
 function createExplosion(x, y, c) {
@@ -843,7 +854,7 @@ function initGame() {
     }
     
     for (let i = 0; i < 200; i++) {
-      let px = random(60, W - 60); let py = random(140, H - 300); let valid = true;
+      let px = random(60, W - 60); let py = random(140, H - SAFE_ZONE_H - 300); let valid = true;
       for (let other of pegs) { if (dist(px, py, other.position.x, other.position.y) < 22) { valid = false; break; } }
       if (valid) {
         let isExplosive = random() < 0.05;
@@ -869,9 +880,9 @@ function initGame() {
           case "SATURN_RINGS": let angleS = random(TWO_PI); let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250); px = W/2 + cos(angleS) * distS; py = 400 + sin(angleS) * distS * 0.4; break;
           case "HEXAGON_GRID": let hRow = floor(i / 12); let hCol = i % 12; px = 100 + hCol * 60 + (hRow % 2) * 30; py = 180 + hRow * 50; break;
           case "FRACTAL_TREE": let level = floor(log(i + 1) / log(2)); px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level)); py = 160 + level * 60; break;
-          default: px = random(60, W - 60); py = random(140, H - 300); break;
+          default: px = random(60, W - 60); py = random(140, H - SAFE_ZONE_H - 300); break;
         }
-        if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
+        if (py > 115 && py < H - SAFE_ZONE_H - 250 && px > 40 && px < W - 40) {
           let tooClose = false;
           for(let other of pegs) { if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; } }
           if(!tooClose) valid = true;
@@ -889,14 +900,24 @@ function initGame() {
   let curX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
-    zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255) });
+    
+    // BAREVNÉ ODLIŠENÍ ZÓN
+    let val = sV[i];
+    let zColor;
+    if (val === 5000) zColor = color(255, 215, 0, 200); // Gold
+    else if (val >= 500) zColor = color(255, 140, 0, 200); // Orange
+    else if (val >= 50) zColor = color(0, 150, 255, 200); // Blue
+    else if (val >= 10) zColor = color(0, 255, 100, 200); // Green
+    else zColor = color(100, 100, 100, 200); // Grey
+    
+    zones.push({ x: curX, w: zw, score: val, flash: 0, flashColor: color(255), baseColor: zColor });
     if (i > 0) {
-      let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 });
+      let wall = Matter.Bodies.rectangle(curX, H - SAFE_ZONE_H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 });
       walls.push(wall); Matter.World.add(world, wall);
     }
     curX += zw;
   }
-  Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H + 48, W, 100, {isStatic:true, friction: 1})]);
+  Matter.World.add(world, [Matter.Bodies.rectangle(W/2, H - SAFE_ZONE_H + 48, W, 100, {isStatic:true, friction: 1})]);
 }
 
 function drawPegs() {
@@ -915,28 +936,28 @@ function drawPegs() {
 
 function drawZones() {
   for (let z of zones) {
-    let isJackpot = (z.score >= 5000);
-    let baseCol = isJackpot ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
-    if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(baseCol); }
-    noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
-    push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER);
-    // ZVĚTŠENÉ TEXTY V ZÓNÁCH
-    if (isJackpot) { fill(255, 230, 100); textSize(16); text(z.score, 0, 0); }
-    else { fill(255); textSize(z.w < 30 ? 10 : 14); text(z.score, 0, 0); }
+    if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } 
+    else { fill(z.baseColor); }
+    noStroke(); rect(z.x, H - SAFE_ZONE_H - ZONE_H, z.w, ZONE_H);
+    push(); translate(z.x + z.w/2, H - SAFE_ZONE_H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER);
+    
+    if (z.score === 5000) { fill(255, 255, 0); textSize(18); }
+    else { fill(255); textSize(z.w < 30 ? 10 : 14); }
+    
+    text(z.score, 0, 0);
     pop();
   }
 }
 
 function drawWaitingMessage() {
   let alpha = map(sin(frameCount * 0.15), -1, 1, 100, 255);
-  push(); fill(255, 50, 50, alpha); textAlign(CENTER, CENTER); textSize(30); stroke(0); strokeWeight(4); text("WARNING: CLEANUP", W/2, H/2 - 50);
-  textSize(14); noStroke(); fill(255, 200, 0, alpha); text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2); pop();
+  push(); fill(255, 50, 50, alpha); textAlign(CENTER, CENTER); textSize(30); stroke(0); strokeWeight(4); text("WARNING: CLEANUP", W/2, H/2 - 100);
+  textSize(14); noStroke(); fill(255, 200, 0, alpha); text("REMAINING UNITS RETURNING TO BASE...", W/2, H/2 - 50); pop();
 }
 
 function drawResultsOverlay() {
-  fill(0, 0, 20, 230); rect(20, 50, W - 40, H - 100, 20);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(4); noFill(); rect(30, 60, W - 60, H - 120, 15);
-  // ZVĚTŠENÉ TEXTY NA VÝSLEDKOVÉ OBRAZOVCE
+  fill(0, 0, 20, 230); rect(20, 50, W - 40, H - SAFE_ZONE_H - 100, 20);
+  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(4); noFill(); rect(30, 60, W - 60, H - SAFE_ZONE_H - 120, 15);
   noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(55); text("ROUND COMPLETE", W/2, 140);
   fill(255, 215, 0); textSize(26); text(`SECTOR: ${currentDestination}`, W/2, 200);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
@@ -946,15 +967,15 @@ function drawResultsOverlay() {
     textAlign(LEFT, CENTER); fill(entry[1].color); textSize(40); text(`${i + 1}. ${entry[0]}`, 90, yPos - 15);
     textAlign(RIGHT, CENTER); fill(255); textSize(42); text(entry[1].score.toLocaleString(), W - 90, yPos - 15);
   }
-  textAlign(CENTER); fill(255, 50, 50); textSize(24); text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
+  textAlign(CENTER); fill(255, 50, 50); textSize(24); text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - SAFE_ZONE_H - 60);
 }
 
 function drawProceduralHUD() {
   push(); stroke(255, 10); strokeWeight(1);
   for(let i = 0; i < H; i += 4) { line(0, i + (frameCount % 4), W, i + (frameCount % 4)); }
   fill(0, 255, 0, 150); textSize(8); textAlign(LEFT);
-  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40); text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30); text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
-  textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - 30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - SAFE_ZONE_H - 40); text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - SAFE_ZONE_H - 30); text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - SAFE_ZONE_H - 20);
+  textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount*0.01)*5).toFixed(1)}°C`, W - 20, H - SAFE_ZONE_H - 30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - SAFE_ZONE_H - 20);
   pop();
 }
 
@@ -969,7 +990,7 @@ function drawAntiBotOverlay() {
 function triggerCosmicEvent() {
   if (cosmicEvent) return;
   eventOccurredThisRound = true; let fromLeft = random() < 0.5;
-  let size = random(25, 45); let startX = fromLeft ? -100 : W + 100; let targetY = H - ZONE_H - random(20, 120);
+  let size = random(25, 45); let startX = fromLeft ? -100 : W + 100; let targetY = H - SAFE_ZONE_H - ZONE_H - random(20, 120);
   let body = Matter.Bodies.circle(startX, targetY, size/2, { isStatic: false, isSensor: false, density: 0.1, frictionAir: 0, collisionFilter: { mask: 1 } });
   let isComet = random() < 0.5;
   cosmicEvent = { body: body, type: isComet ? "COMET" : "METEOR", size: size, color: isComet ? color(150, 200, 255) : color(255, 100, 50), trail: [] };
@@ -1019,7 +1040,7 @@ function drawGalacticBackground() {
   }
   if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05);
   else if (gameState === "WAITING") planetSize = lerp(planetSize, 450, 0.01);
-  if (planetSize > 10) { for(let r = 4; r > 0; r--) { fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4); ellipse(W/2, H + 60, planetSize * (r * 0.6), planetSize * 0.4); } }
+  if (planetSize > 10) { for(let r = 4; r > 0; r--) { fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4); ellipse(W/2, H - SAFE_ZONE_H + 60, planetSize * (r * 0.6), planetSize * 0.4); } }
 }
 
 function drawLegendShape(d) {
@@ -1052,7 +1073,7 @@ function checkSingularitySpawn() {
   if (bhSpawnTimes.includes(timer) && !blackHole) {
     let fromLeft = random() < 0.5;
     blackHole = {
-      x: fromLeft ? -150 : W + 150, y: random(200, H - 450), startY: 0, targetX: fromLeft ? W + 250 : -250,
+      x: fromLeft ? -150 : W + 150, y: random(200, H - SAFE_ZONE_H - 450), startY: 0, targetX: fromLeft ? W + 250 : -250,
       speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90)
     };
     blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
@@ -1102,7 +1123,7 @@ function resetGame() {
   resultsTimer = 10; eventOccurredThisRound = false;
   currentDestination = generatePlanetName();
   timer = floor(random(40, 181));
-  currentTheme = random(UI_THEMES); // ZMĚNA BARVY NA NOVÉ KOLO
+  currentTheme = random(UI_THEMES); 
   if (isAutoMode) { autoRandomSettings(); }
   
   if (world) Matter.World.clear(world, false);
