@@ -1,4 +1,4 @@
-// --- GALAXINKO (v8.4.1 - 100% COMPLETE & ANTI-BAN FIX) ---
+// --- GALAXINKO (v8.5.0 - ANTI-BAN AVATAR & NEON UI) ---
 const GAME_TITLE="GALAXINKO";
 let engine,world,balls=[],pegs=[],zones=[],walls=[],explosions=[],leaderboard={};
 let timer=40,resultsTimer=10,lastTick=0,waitStartTime=0,totalBallsFired=0,roundCount=1;
@@ -48,7 +48,7 @@ function preload(){let s=document.createElement('script');s.src='https://cdnjs.c
 function setup(){
   let cvs = createCanvas(W,H);
   cvs.style('image-rendering', 'pixelated');
-  smooth(); // Vráceno pro čitelnost
+  smooth();
   
   textFont('Press Start 2P');winnerColor=color(0,0,128);
   synth=new p5.PolySynth();fxSynth=new p5.PolySynth();backgroundOsc=new p5.Oscillator('sine');backgroundOsc2=new p5.Oscillator('sine');bhOsc=new p5.Oscillator('triangle');
@@ -356,7 +356,7 @@ function drawViewerObjects(){
 
 function drawUI(){
   push();fill(5,5,15,240);noStroke();rect(0,0,W,70);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120);strokeWeight(2);line(0,70,W,70);
-  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v8.4.1",lX+2,54);
+  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v8.5.0",lX+2,54);
   let dW=360,dX=W/2-(dW/2),p=sin(frameCount*0.1)*3;
   fill(currentTheme[0],currentTheme[1],currentTheme[2],10+p);rect(dX,8,dW,54,8);fill(5,5,20,250);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120+p*10);strokeWeight(2);rect(dX,8,dW,54,8);
   noStroke();let lT=new Intl.DateTimeFormat('cs-CZ',{timeStyle:'medium'}).format(new Date());
@@ -451,6 +451,24 @@ function drawGalacticBackground(){
 
 function drawLegendShape(d){noStroke();fill(d.color);let s=d.size;switch(d.legendId){case "STARMAN":rect(-s/2,-s/4,s,s/2,5);fill(255);ellipse(-s/4,-s/4,s/5);break;case "HAWKING":fill(100);rect(-s/2,0,s,s/4);fill(d.color);rect(-s/4,-s/2,s/2,s/2);break;case "LAIKA":fill(150,100);ellipse(0,0,s,s);fill(d.color);ellipse(0,-s/6,s/2);break;case "ET":fill(100,50,0);rect(-s/2,0,s,s/2);fill(255);ellipse(0,-s/4,s/2);break;case "NYAN":fill(255,200,150);rect(-s/2,-s/3,s,s/1.5,3);break;case "VOYAGER":fill(180);ellipse(0,0,s/2);fill(212,175,55);ellipse(0,0,s/3);break;case "OUMUAMUA":fill(60,40,30);ellipse(0,0,s,s/4);break;case "SHUTTLE":fill(255);triangle(-s/2,s/2,s/2,s/2,0,-s/2);break;}}
 function drawGravityDust(){let r=map(currentGravity,0.05,1.95,100,255),g=map(currentGravity,0.05,1.95,200,100),b=map(currentGravity,0.05,1.95,255,50);fill(r,g,b,150);noStroke();let dustSpeed=currentGravity*3*currentTravelSpeed;for(let d of dust){d.y+=dustSpeed;if(d.y>H){d.y=0;d.x=random(W);}rect(d.x,d.y,d.s,d.s);}}
+function prepareSingularityEvents(){bhSpawnTimes=[];if(random()<0.4)bhSpawnTimes.push(floor(random(5,timer*0.8)));}
+function checkSingularitySpawn(){if(bhSpawnTimes.includes(timer)&&!blackHole){let fL=random()<0.5;blackHole={x:fL?-150:W+150,y:random(200,H-450),startY:0,targetX:fL?W+250:-250,speed:random(0.8,1.5),size:random(12,18),noiseOffset:random(1000),noiseSpeed:random(0.01,0.02),wobbleAmp:random(40,90)};blackHole.startY=blackHole.y;bhSpawnTimes=bhSpawnTimes.filter(t=>t!==timer);speakAnnouncer("Warning! Black hole singularity forming!",1);}}
+function handleBlackHole(){if(!blackHole)return;let d=blackHole.targetX>blackHole.x?1:-1;blackHole.x+=blackHole.speed*d;let n=noise(frameCount*blackHole.noiseSpeed+blackHole.noiseOffset);blackHole.y=blackHole.startY+(n-0.5)*blackHole.wobbleAmp*2;let jS=blackHole.size*(1+(n-0.5)*0.15);if(audioStarted){let cD=abs(W/2-blackHole.x),tr=map(sin(frameCount*0.2),-1,1,0.8,1.0);bhOsc.amp(map(cD,W,0,0,0.08)*tr,0.1);bhOsc.freq(32+n*12);}push();translate(blackHole.x,blackHole.y);noStroke();for(let i=5;i>0;i--){fill(10+i*10,0,40+i*20,25);ellipse(0,0,jS+i*(blackHole.size*0.15)+(n*10));}fill(0);ellipse(0,0,jS);pop();for(let i=pegs.length-1;i>=0;i--){let p=pegs[i];if(dist(blackHole.x,blackHole.y,p.position.x,p.position.y)<jS*0.55&&random()<0.23){Matter.Composite.remove(world,p);createExplosion(p.position.x,p.position.y);playExplosionSound();pegs.splice(i,1);}}for(let i=balls.length-1;i>=0;i--){let b=balls[i];if(!b.body)continue;let ds=dist(blackHole.x,blackHole.y,b.body.position.x,b.body.position.y);if(ds<jS*0.5){removeBall(b);continue;}if(ds<blackHole.size*1.87){let sD=Math.max(ds,30);Matter.Body.applyForce(b.body,b.body.position,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({x:blackHole.x,y:blackHole.y},b.body.position)),(blackHole.size*0.00018)/(sD/80)));}}if((d===1&&blackHole.x>blackHole.targetX)||(d===-1&&blackHole.x<blackHole.targetX)){blackHole=null;if(audioStarted)bhOsc.amp(0,0.5);}}
+function triggerCosmicEvent(){if(cosmicEvent)return;eventOccurredThisRound=true;let fL=random()<0.5,s=random(25,45),sx=fL?-100:W+100,ty=H-ZONE_H-random(20,120),b=Matter.Bodies.circle(sx,ty,s/2,{isStatic:false,isSensor:false,density:0.1,frictionAir:0,collisionFilter:{mask:1}}),iC=random()<0.5;cosmicEvent={body:b,type:iC?"COMET":"METEOR",size:s,color:iC?color(150,200,255):color(255,100,50),trail:[]};Matter.World.add(world,b);Matter.Body.setVelocity(b,{x:fL?random(12,18):random(-12,-18),y:random(-1,1)});if(audioStarted){let o=new p5.Oscillator('sine');o.start();o.freq(random(100,400));o.freq(random(800,1200),1.5);o.amp(0.1);o.amp(0,1.5);setTimeout(()=>o.stop(),1600);}speakAnnouncer("Warning! Cosmic anomaly detected.",1);}
+function handleCosmicEvent(){if(!cosmicEvent)return;let p=cosmicEvent.body.position;cosmicEvent.trail.push({x:p.x,y:p.y,life:255});if(cosmicEvent.trail.length>20)cosmicEvent.trail.shift();push();noStroke();for(let i=0;i<cosmicEvent.trail.length;i++){let alpha=map(i,0,cosmicEvent.trail.length,0,150);fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),alpha);ellipse(cosmicEvent.trail[i].x,cosmicEvent.trail[i].y,cosmicEvent.size*(i/cosmicEvent.trail.length));}fill(255);ellipse(p.x,p.y,cosmicEvent.size);fill(cosmicEvent.color);ellipse(p.x,p.y,cosmicEvent.size*0.8);pop();if(p.x<-300||p.x>W+300){Matter.World.remove(world,cosmicEvent.body);cosmicEvent=null;}}
+function spawnRareLegend(){let l=random(RARE_POOL);spaceDebris.push({x:random(50,W-50),y:-100,type:"LEGEND",legendId:l.id,size:l.size,color:color(l.col[0],l.col[1],l.col[2]),speed:random(0.8,1.8),vx:random(-0.5,0.5),rot:random(TWO_PI),rotSpeed:random(-0.06,0.06),wobble:random(0.02,0.08),isRare:true});}
+function generatePlanetName(){const n=["XERON","KEPLER","ZENON","AETHER","NIBIRU","PANDORA","CYGNUS","TITAN","VULCAN","ARRAKIS","SOLARIS","ZION","EDEN"],t=["PRIME","STATION","SYSTEM","REACH","BETA","MAJOR","MINOR","VOID","CLUSTER","GATE"];return random(n)+" "+random(t);}
+
+function drawPegs(){
+    noStroke();let pR=map(currentGravity,0.05,1.95,0,255),pG=map(currentGravity,0.05,1.95,255,100),pB=map(currentGravity,0.05,1.95,255,0),pC=color(pR,pG,pB);
+    for(let p of pegs){
+        p.glow=p.glow||0;if(p.glow>0){fill(pR,pG+50,pB+50,p.glow);rect(p.position.x-6,p.position.y-6,12,12);p.glow-=20;}
+        if(p.isExplosive){fill(255,100,0);rect(p.position.x-4,p.position.y-4,8,8);}
+        else if(p.isRepulsor){fill(255,50,200);ellipse(p.position.x,p.position.y,12+sin(frameCount*0.2)*3);}
+        else{fill(pC);rect(p.position.x-4,p.position.y-4,8,8);}
+    }
+}
+
 function drawZones(){for(let z of zones){if(z.flash>0){fill(z.flashColor);z.flash-=10;}else{fill(z.baseColor);}noStroke();rect(z.x,H-ZONE_H,z.w,ZONE_H);push();translate(z.x+z.w/2,H-20);rotate(-HALF_PI);textAlign(LEFT,CENTER);if(z.score>=5000){fill(255,230,100);textSize(18);}else{fill(255);textSize(z.w<30?10:15);}text(z.score.toLocaleString(),0,0);pop();}}
 function drawWaitingMessage(){let a=map(sin(frameCount*0.15),-1,1,100,255);push();fill(255,50,50,a);textAlign(CENTER,CENTER);textSize(30);stroke(0);strokeWeight(4);text("WARNING: CLEANUP",W/2,H/2-50);textSize(14);noStroke();fill(255,200,0,a);text("REMAINING UNITS RETURNING TO BASE...",W/2,H/2);pop();}
 
@@ -471,34 +489,76 @@ function drawResultsOverlay(){
 
 function drawProceduralHUD(){push();stroke(255,10);strokeWeight(1);for(let i=0;i<H;i+=4){line(0,i+(frameCount%4),W,i+(frameCount%4));}fill(0,255,0,150);textSize(8);textAlign(LEFT);text(`POS_X: ${camOffset.x.toFixed(4)}`,20,H-40);text(`POS_Y: ${camOffset.y.toFixed(4)}`,20,H-30);text(`ZOOM: ${camOffset.z.toFixed(4)}`,20,H-20);textAlign(RIGHT);text(`SENS_TEMP: ${(24+noise(frameCount*0.01)*5).toFixed(1)}°C`,W-20,H-30);text(`BUFFER_LOAD: ${balls.length*2}%`,W-20,H-20);pop();}
 
+function drawPixelAvatar(x, y, w, h) {
+  push(); translate(x, y); noStroke();
+  let vlasy = color(240, 220, 110); let kuze = color(245, 200, 170);
+  let triko = color(currentTheme[0], currentTheme[1], currentTheme[2]);
+  let stin = color(0, 0, 0, 50); let oci = color(40);
+  let pw = w / 20; let ph = h / 15;
+  let sway = sin(frameCount * 0.05) * 2;
+  let handMove = sin(frameCount * 0.2) * 4;
+  let eyesOpen = (frameCount % 120 > 5);
+  
+  fill(triko); rect(pw*5 + sway, ph*7, pw*10, ph*8, 2);
+  fill(stin); rect(pw*7 + sway, ph*7, pw*6, ph*1);
+  
+  let headSway = sway * 0.5;
+  fill(kuze); rect(pw*6 + headSway, ph*2, pw*8, ph*6, 3);
+  
+  fill(vlasy);
+  rect(pw*5 + headSway, ph*1, pw*10, ph*3, 2);
+  rect(pw*5 + headSway, ph*3, pw*2, ph*7, 2);
+  rect(pw*13 + headSway, ph*3, pw*2, ph*7, 2);
+  
+  if (eyesOpen) {
+    fill(oci); rect(pw*8 + headSway, ph*4, pw*1, ph*2); rect(pw*11 + headSway, ph*4, pw*1, ph*2);
+  } else {
+    fill(stin); rect(pw*8 + headSway, ph*5, pw*1, ph*1); rect(pw*11 + headSway, ph*5, pw*1, ph*1);
+  }
+  fill(color(200, 100, 100)); rect(pw*9 + headSway, ph*7, pw*2, ph*1);
+  
+  fill(kuze);
+  rect(pw*3, ph*8 + handMove, pw*3, ph*4, 2);
+  rect(pw*14, ph*8 - handMove, pw*3, ph*4, 2);
+  pop();
+}
+
 function drawAntiBotOverlay(){
   push();
   stroke(0, 15); strokeWeight(1); let offset = frameCount % 4;
   for(let i = 0; i < H; i += 4){ line(0, i + offset, W, i + offset); }
+  
   noStroke();
   for(let i=0; i<20; i++) { fill(255, random(5, 25)); rect(random(W), random(H), random(1, 3), random(1, 3)); }
   for(let i=0; i<10; i++) { fill(currentTheme[0], currentTheme[1], currentTheme[2], random(5, 15)); rect(random(W), random(H), random(1, 4), random(1, 4)); }
   if(random()<0.08){fill(currentTheme[0],currentTheme[1],currentTheme[2],30);rect(0,random(H),W,random(1,6));}
+  
+  let camX = W - 110; let camY = H - 115;
+  fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5);
+  
+  drawPixelAvatar(camX + 5, camY + 5, 90, 65);
+  
+  noStroke();
+  for(let cx = 0; cx < 100; cx += 5) {
+      for(let cy = 0; cy < 75; cy += 5) {
+          let n = noise(cx * 0.1, cy * 0.1, frameCount * 0.1);
+          if (n > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); }
+      }
+  }
+  
+  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); 
+  text("LIVE_PLAYER", camX + 5, camY + 5);
+  
+  if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
+  textFont('Press Start 2P'); textStyle(NORMAL);
+
+  let marqueeText = `🚀 LIVE SECTOR: ${currentDestination} --- ACTIVE UNITS: ${balls.length} --- SEND LIKES TO POWER UP Shields! --- `;
+  let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText))); 
+  fill(5, 5, 15, 230); noStroke(); rect(0, H - 25, W, 25);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(11); textAlign(LEFT, CENTER);
+  text(marqueeText + marqueeText, scrollX, H - 12);
   pop();
 }
-
-function drawPegs(){
-    noStroke();let pR=map(currentGravity,0.05,1.95,0,255),pG=map(currentGravity,0.05,1.95,255,100),pB=map(currentGravity,0.05,1.95,255,0),pC=color(pR,pG,pB);
-    for(let p of pegs){
-        p.glow=p.glow||0;if(p.glow>0){fill(pR,pG+50,pB+50,p.glow);rect(p.position.x-6,p.position.y-6,12,12);p.glow-=20;}
-        if(p.isExplosive){fill(255,100,0);rect(p.position.x-4,p.position.y-4,8,8);}
-        else if(p.isRepulsor){fill(255,50,200);ellipse(p.position.x,p.position.y,12+sin(frameCount*0.2)*3);}
-        else{fill(pC);rect(p.position.x-4,p.position.y-4,8,8);}
-    }
-}
-
-function generatePlanetName(){const n=["XERON","KEPLER","ZENON","AETHER","NIBIRU","PANDORA","CYGNUS","TITAN","VULCAN","ARRAKIS","SOLARIS","ZION","EDEN"],t=["PRIME","STATION","SYSTEM","REACH","BETA","MAJOR","MINOR","VOID","CLUSTER","GATE"];return random(n)+" "+random(t);}
-function prepareSingularityEvents(){bhSpawnTimes=[];if(random()<0.4)bhSpawnTimes.push(floor(random(5,timer*0.8)));}
-function checkSingularitySpawn(){if(bhSpawnTimes.includes(timer)&&!blackHole){let fL=random()<0.5;blackHole={x:fL?-150:W+150,y:random(200,H-450),startY:0,targetX:fL?W+250:-250,speed:random(0.8,1.5),size:random(12,18),noiseOffset:random(1000),noiseSpeed:random(0.01,0.02),wobbleAmp:random(40,90)};blackHole.startY=blackHole.y;bhSpawnTimes=bhSpawnTimes.filter(t=>t!==timer);speakAnnouncer("Warning! Black hole singularity forming!",1);}}
-function handleBlackHole(){if(!blackHole)return;let d=blackHole.targetX>blackHole.x?1:-1;blackHole.x+=blackHole.speed*d;let n=noise(frameCount*blackHole.noiseSpeed+blackHole.noiseOffset);blackHole.y=blackHole.startY+(n-0.5)*blackHole.wobbleAmp*2;let jS=blackHole.size*(1+(n-0.5)*0.15);if(audioStarted){let cD=abs(W/2-blackHole.x),tr=map(sin(frameCount*0.2),-1,1,0.8,1.0);bhOsc.amp(map(cD,W,0,0,0.08)*tr,0.1);bhOsc.freq(32+n*12);}push();translate(blackHole.x,blackHole.y);noStroke();for(let i=5;i>0;i--){fill(10+i*10,0,40+i*20,25);ellipse(0,0,jS+i*(blackHole.size*0.15)+(n*10));}fill(0);ellipse(0,0,jS);pop();for(let i=pegs.length-1;i>=0;i--){let p=pegs[i];if(dist(blackHole.x,blackHole.y,p.position.x,p.position.y)<jS*0.55&&random()<0.23){Matter.Composite.remove(world,p);createExplosion(p.position.x,p.position.y);playExplosionSound();pegs.splice(i,1);}}for(let i=balls.length-1;i>=0;i--){let b=balls[i];if(!b.body)continue;let ds=dist(blackHole.x,blackHole.y,b.body.position.x,b.body.position.y);if(ds<jS*0.5){removeBall(b);continue;}if(ds<blackHole.size*1.87){let sD=Math.max(ds,30);Matter.Body.applyForce(b.body,b.body.position,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({x:blackHole.x,y:blackHole.y},b.body.position)),(blackHole.size*0.00018)/(sD/80)));}}if((d===1&&blackHole.x>blackHole.targetX)||(d===-1&&blackHole.x<blackHole.targetX)){blackHole=null;if(audioStarted)bhOsc.amp(0,0.5);}}
-function triggerCosmicEvent(){if(cosmicEvent)return;eventOccurredThisRound=true;let fL=random()<0.5,s=random(25,45),sx=fL?-100:W+100,ty=H-ZONE_H-random(20,120),b=Matter.Bodies.circle(sx,ty,s/2,{isStatic:false,isSensor:false,density:0.1,frictionAir:0,collisionFilter:{mask:1}}),iC=random()<0.5;cosmicEvent={body:b,type:iC?"COMET":"METEOR",size:s,color:iC?color(150,200,255):color(255,100,50),trail:[]};Matter.World.add(world,b);Matter.Body.setVelocity(b,{x:fL?random(12,18):random(-12,-18),y:random(-1,1)});if(audioStarted){let o=new p5.Oscillator('sine');o.start();o.freq(random(100,400));o.freq(random(800,1200),1.5);o.amp(0.1);o.amp(0,1.5);setTimeout(()=>o.stop(),1600);}speakAnnouncer("Warning! Cosmic anomaly detected.",1);}
-function handleCosmicEvent(){if(!cosmicEvent)return;let p=cosmicEvent.body.position;cosmicEvent.trail.push({x:p.x,y:p.y,life:255});if(cosmicEvent.trail.length>20)cosmicEvent.trail.shift();push();noStroke();for(let i=0;i<cosmicEvent.trail.length;i++){let alpha=map(i,0,cosmicEvent.trail.length,0,150);fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),alpha);ellipse(cosmicEvent.trail[i].x,cosmicEvent.trail[i].y,cosmicEvent.size*(i/cosmicEvent.trail.length));}fill(255);ellipse(p.x,p.y,cosmicEvent.size);fill(cosmicEvent.color);ellipse(p.x,p.y,cosmicEvent.size*0.8);pop();if(p.x<-300||p.x>W+300){Matter.World.remove(world,cosmicEvent.body);cosmicEvent=null;}}
-function spawnRareLegend(){let l=random(RARE_POOL);spaceDebris.push({x:random(50,W-50),y:-100,type:"LEGEND",legendId:l.id,size:l.size,color:color(l.col[0],l.col[1],l.col[2]),speed:random(0.8,1.8),vx:random(-0.5,0.5),rot:random(TWO_PI),rotSpeed:random(-0.06,0.06),wobble:random(0.02,0.08),isRare:true});}
 
 function initGame(){
   if(!engine){engine=Matter.Engine.create();world=engine.world;}world.gravity.y=currentGravity;
