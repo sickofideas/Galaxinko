@@ -1,4 +1,4 @@
-// --- GALAXINKO (v6.4.0 - DEEP SPACE VISUALS & 9:11 HUD) ---
+// --- GALAXINKO (v7.0.0 - PRO BROADCAST 9:10) ---
 const GAME_TITLE = "GALAXINKO";
 let engine, world, balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {};
 let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFired = 0, roundCount = 1;
@@ -69,9 +69,11 @@ function connectTikfinity() {
   socket.onclose = () => { setTimeout(connectTikfinity, 5000); };
 }
 
-let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [], planetSize = 0, currentTravelSpeed = 1.0;
+let stars = [], dust = [], massivePlanets = [], spaceDebris = [], currentComet = null, planetSize = 0, currentTravelSpeed = 1.0;
 let blackHole = null, bhSpawnTimes = [], musicScale = [48, 52, 55, 57, 60, 64, 67, 72], nextNoteTime = 0, bhOsc;
-const W = 900, H = 1100, ZONE_H = 80;
+
+// --- POMĚR 9:10 (900x1000) ---
+const W = 900, H = 1000, ZONE_H = 100;
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28}, {id: "HAWKING", name: "S. HAWKING", col: [50, 50, 255], size: 22},
   {id: "LAIKA", name: "LAIKA DOG", col: [200, 180, 150], size: 18}, {id: "ET", name: "E.T. PHONE HOME", col: [150, 120, 80], size: 24},
@@ -103,8 +105,8 @@ function setup() {
   createCanvas(W, H); noSmooth(); textFont('Press Start 2P'); winnerColor = color(0, 0, 128);
   synth = new p5.PolySynth(); fxSynth = new p5.PolySynth();
   backgroundOsc = new p5.Oscillator('sine'); backgroundOsc2 = new p5.Oscillator('sine'); bhOsc = new p5.Oscillator('triangle');
-  for(let i=0; i<150; i++) stars.push({x:random(W), y:random(H), s:random(1,2.5), speed:random(0.1,0.4)});
-  for(let i=0; i<400; i++) dust.push({x:random(W), y:random(H), s:random(0.5,1.5)});
+  for(let i=0; i<100; i++) stars.push({x:random(W), y:random(H), s:random(1,2.5), speed:random(0.1,0.4)});
+  for(let i=0; i<300; i++) dust.push({x:random(W), y:random(H), s:random(0.5,1.5)});
   currentGravity = random(0.05, 1.95); currentBounce = floor(random(1, 100)); timer = floor(random(40, 181));
   currentDestination = generatePlanetName(); currentTheme = random(UI_THEMES);
   
@@ -140,7 +142,7 @@ function planSpaceshipForRound() {
 }
 
 function spawnSpaceship() {
-    let shipW = 140, shipH = 25, shipY = H - ZONE_H - 150;
+    let shipW = 160, shipH = 30, shipY = H - ZONE_H - 150;
     let body = Matter.Bodies.rectangle(-200, shipY, shipW, shipH, { isStatic: true, restitution: 1.5, friction: 0 });
     Matter.World.add(world, body);
     starship = { body: body, w: shipW, h: shipH, y: shipY, targetX: W/2, speed: 6, activeFrames: 0, maxFrames: 60 * 25, state: "ENTERING" };
@@ -163,8 +165,7 @@ function handleSpaceship() {
     if (abs(dx) > starship.speed) moveX = dx > 0 ? starship.speed : -starship.speed;
     Matter.Body.setPosition(starship.body, { x: pos.x + moveX, y: starship.y });
 
-    push(); translate(pos.x, starship.y); noStroke();
-    fill(20, 20, 50); rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 12);
+    push(); translate(pos.x, starship.y); noStroke(); fill(20, 20, 50); rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 12);
     stroke(currentTheme[0], currentTheme[1], currentTheme[2], 200 + sin(frameCount * 0.2) * 55); strokeWeight(3); noFill(); rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 12);
     noStroke(); fill(255, 50, 200, 180 + sin(frameCount * 0.4) * 75); ellipse(0, 0, starship.w * 0.4, starship.h * 0.4);
     fill(currentTheme[0], currentTheme[1], currentTheme[2], 150); triangle(-starship.w/2 + 10, starship.h/2, -starship.w/2 + 25, starship.h/2 + 20, -starship.w/2 + 40, starship.h/2); triangle(starship.w/2 - 40, starship.h/2, starship.w/2 - 25, starship.h/2 + 20, starship.w/2 - 10, starship.h/2);
@@ -209,10 +210,7 @@ function draw() {
   translate(W/2, H/2); scale(camOffset.z); translate(-W/2 + camOffset.x, -H/2 + camOffset.y);
   if (shakeAmount > 0) { translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount)); shakeAmount *= 0.92; }
   
-  updateWinnerColor(); updateTravelSpeed(); background(2, 2, 8); drawGravityDust(); drawGalacticBackground();
-  
-  drawViewerObjects();
-  
+  updateWinnerColor(); updateTravelSpeed(); background(2, 2, 8); drawGravityDust(); drawGalacticBackground(); drawViewerObjects();
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) { console.error("Engine Error"); }
   
   handleBlackHole(); handleCosmicEvent(); handleSpaceship();
@@ -261,7 +259,8 @@ function spawnBall(userName) {
   if (!libraryLoaded || gameState !== "PLAYING") return;
   if (!audioStarted) startSpaceAudio(); playSpawnSound(); totalBallsFired++;
   let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9); let spawnX = W/2 + random(-15, 15);
-  let ballBody = Matter.Bodies.rectangle(spawnX, 100, 10, 10, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001 });
+  // Zvětšená kulička na 14x14
+  let ballBody = Matter.Bodies.rectangle(spawnX, 85, 14, 14, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001 });
   if (!leaderboard[userName]) leaderboard[userName] = { score: 0, color: color(random(100,255), random(100,255), random(100,255)) };
   balls.push({ body: ballBody, name: userName, color: leaderboard[userName].color, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, spawnTime: millis() });
   Matter.World.add(world, ballBody);
@@ -272,11 +271,11 @@ function drawBalls() {
     let b = balls[i]; if (!b.body) { balls.splice(i, 1); continue; }
     let pos = b.body.position; if (isNaN(pos.x) || isNaN(pos.y)) { removeBall(b); continue; }
     push(); translate(pos.x, pos.y); rotate(b.body.angle);
-    if (b.combo > 2) { fill(255); noStroke(); rect(-7, -7, 14, 14); }
-    fill(b.color); stroke(255); strokeWeight(1); rect(-5, -5, 10, 10); rotate(-b.body.angle);
+    if (b.combo > 2) { fill(255); noStroke(); rect(-9, -9, 18, 18); }
+    fill(b.color); stroke(255); strokeWeight(1); rect(-7, -7, 14, 14); rotate(-b.body.angle); // VĚTŠÍ KULIČKA 14x14
     let age = millis() - b.spawnTime; let showName = age < 3000 || b.scored;
-    if (showName) { fill(0, 150); noStroke(); textAlign(CENTER); textSize(11); text(b.name, 1, -13); fill(b.color); text(b.name, 0, -14); }
-    if (b.combo > 0) { fill(0, 150); textSize(13); text("x" + b.combo, 1, -25); fill(255, 200, 0); text("x" + b.combo, 0, -26); }
+    if (showName) { fill(0, 150); noStroke(); textAlign(CENTER); textSize(12); text(b.name, 1, -16); fill(b.color); text(b.name, 0, -17); }
+    if (b.combo > 0) { fill(0, 150); textSize(14); text("x" + b.combo, 1, -30); fill(255, 200, 0); text("x" + b.combo, 0, -31); }
     pop();
     if (b.combo > 0 && millis() - b.lastHitTime > 2000) b.combo = 0;
     if (starship && starship.state === "ACTIVE") {
@@ -284,23 +283,24 @@ function drawBalls() {
             if (millis() - (b.lastShipHit || 0) > 500) {
                 b.lastShipHit = millis(); b.combo += 2; b.lastHitTime = millis(); updateScore(b.name, 100, b.color);
                 createExplosion(pos.x, pos.y, b.color); playExplosionSound();
-                Matter.Body.applyForce(b.body, pos, { x: (pos.x - starship.body.position.x) * 0.0001, y: -0.015 });
+                Matter.Body.applyForce(b.body, pos, { x: (pos.x - starship.body.position.x) * 0.0001, y: -0.020 });
                 if (random() < 0.2) speakAnnouncer(random([`A live collision recorded from ${sanitizeText(b.name)}!`, `Vessel hit by ${sanitizeText(b.name)}!`]), 0);
             }
         }
     }
     for (let j = pegs.length - 1; j >= 0; j--) {
       let p = pegs[j];
-      if (dist(pos.x, pos.y, p.position.x, p.position.y) < 14) {
+      // Větší hit-box kvůli větším kuličkám a kolíčkům (18 místo 14)
+      if (dist(pos.x, pos.y, p.position.x, p.position.y) < 18) {
           p.glow = 255; b.combo += 1; b.lastHitTime = millis();
           if (p.isExplosive) {
               createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
-              let forceDir = Matter.Vector.sub(pos, p.position); Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise(forceDir), 0.02));
+              let forceDir = Matter.Vector.sub(pos, p.position); Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise(forceDir), 0.025));
               Matter.World.remove(world, p); pegs.splice(j, 1);
           }
       }
     }
-    if (pos.y > H - ZONE_H - 10) {
+    if (pos.y > H - ZONE_H - 15) {
       Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
       if (!b.scored) {
         let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
@@ -350,12 +350,15 @@ function drawViewerObjects() {
 }
 
 function drawUI() {
-  push(); fill(5, 5, 15, 240); noStroke(); rect(0, 0, W, 70); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120); strokeWeight(2); line(0, 70, W, 70);
+  push();
+  // UŽŠÍ A PROFI HORNÍ LIŠTA
+  fill(5, 5, 15, 240); noStroke(); rect(0, 0, W, 70);
+  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120); strokeWeight(2); line(0, 70, W, 70);
   let logoX = 15, logoY = 30; textAlign(LEFT, CENTER);
   drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(currentTheme[0], currentTheme[1], currentTheme[2]);
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); textSize(45); text(GAME_TITLE, logoX + 2, logoY + 2);
   fill(255); textSize(45); text(GAME_TITLE, logoX, logoY); drawingContext.shadowBlur = 0; 
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(9); text("STABLE SINGULARITY SIMULATION v6.4.0", logoX + 2, 54);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(9); text("STABLE SINGULARITY SIMULATION v7.0.0", logoX + 2, 54);
   
   let dropZoneW = 360, dropZoneX = W/2 - (dropZoneW / 2), pulse = sin(frameCount * 0.1) * 3;
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); rect(dropZoneX, 8, dropZoneW, 54, 8);
@@ -370,7 +373,8 @@ function drawUI() {
   fill(255, 150, 0); text(`BOUNCE-X: ${currentBounce}`, W - 15, 56);
   pop();
   
-  push(); translate(10, 85); fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 270, 260, 8);
+  push(); translate(10, 85);
+  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 270, 260, 8);
   noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(13); text("MISSION MILESTONES", 135, 25);
   stroke(255, 30); strokeWeight(1); line(10, 40, 260, 40); noStroke(); textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { let tSize = (i === 0) ? 13 : 11; textSize(tSize); let yPos = 65 + i * 26; fill(rec.color[0], rec.color[1], rec.color[2]); text(`${i+1}. ${rec.name}`, 15, yPos); textAlign(RIGHT); fill(255, 220); text(rec.score, 255, yPos); textAlign(LEFT); });
@@ -397,8 +401,14 @@ function mouseClicked() {
 
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
+
 function createExplosion(x, y, c) { let col = c || color(255, random(100, 255), 0); for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: col }); }
-function drawExplosions() { for (let i = explosions.length - 1; i >= 0; i--) { let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 4, 4); e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1); } }
+function drawExplosions() { for (let i = explosions.length - 1; i >= 0; i--) { let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 6, 6); e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1); } }
+
+function updateComet() {
+  if (currentComet === null && gameState === "PLAYING" && random() < 0.003) { currentComet = { x: random(W), y: -50, targetX: W + 100, targetY: H + 100, progress: 0, speed: random(0.01, 0.03), size: random(6, 10), color: color(255, 255, 200, 200) }; }
+  if (currentComet) { currentComet.progress += currentComet.speed; let curX = lerp(currentComet.x, currentComet.targetX, currentComet.progress); let curY = lerp(currentComet.y, currentComet.targetY, currentComet.progress); fill(currentComet.color); ellipse(curX, curY, currentComet.size); if (currentComet.progress > 1.2) currentComet = null; }
+}
 
 function checkAllTimeRecords(n, s, col) {
   let idx = allTimeRecords.findIndex(r => r.name === n);
@@ -410,9 +420,8 @@ function updateWinnerColor() { let s = Object.entries(leaderboard).sort((a,b) =>
 function updateScore(n, p, c) { if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c }; leaderboard[n].score += p; }
 
 function generateDeepSpaceElements() {
-  nebulas = []; for(let i=0; i<6; i++) nebulas.push({x: random(W), y: random(H), s: random(200,600), col: color(random(50,255), random(50,150), random(200,255), 15)});
   massivePlanets = []; for(let i = 0; i < 3; i++) massivePlanets.push({ x: random(W), y: random(H), size: random(20, 50), color: color(random(30, 80), 100), hasRing: random() < 0.8, ringColor: color(random(80, 150), 80), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01) });
-  spaceDebris = []; for(let i = 0; i < 10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), vx: random(-0.5, 0.5), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) });
+  spaceDebris = []; for(let i = 0; i < 10; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) });
 }
 
 function generatePlanetName() { const names = ["XERON", "KEPLER", "ZENON", "AETHER", "NIBIRU", "PANDORA", "CYGNUS", "TITAN", "VULCAN", "ARRAKIS", "SOLARIS", "ZION", "EDEN"]; const types = ["PRIME", "STATION", "SYSTEM", "REACH", "BETA", "MAJOR", "MINOR", "VOID", "CLUSTER", "GATE"]; return random(names) + " " + random(types); }
@@ -425,43 +434,51 @@ function initGame() {
   
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "HEXAGON_GRID", "PYRAMID", "FRACTAL_TREE", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN", "SHAPE_HOUSE", "SHAPE_SWORD", "SHAPE_MUSHROOM"];
   const mode = random(patterns);
-  let numPegs = floor(random(450, 650)); let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
+  // ZVĚTŠENÍ ROZESTUPŮ, ABY KOLÍČKY VYPLNILY CELÝ 9:10 PROSTOR AŽ DOLŮ
+  let numPegs = floor(random(300, 450)); let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
   let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution }); pegs.push(blocker); Matter.World.add(world, blocker);
   
   if (mode.startsWith("SHAPE_")) {
     let shapeName = mode.split("_")[1]; let shape = SHAPES[shapeName] || SHAPES["HEART"];
-    let rows = shape.length; let cols = shape[0].length; let spacing = 26; let startX = (W - (cols * spacing)) / 2; let startY = 220;
-    for(let i = 0; i < 15; i++) {
-      pegs.push(Matter.Bodies.circle(map(i, 0, 14, 50, startX - 30), map(i, 0, 14, 150, startY + 50), 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
-      pegs.push(Matter.Bodies.circle(map(i, 0, 14, W-50, startX + (cols*spacing) + 30), map(i, 0, 14, 150, startY + 50), 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
+    let rows = shape.length; let cols = shape[0].length; let spacing = 38; let startX = (W - (cols * spacing)) / 2; let startY = 250;
+    for(let i = 0; i < 20; i++) {
+      pegs.push(Matter.Bodies.circle(map(i, 0, 19, 40, startX - 40), map(i, 0, 19, 150, 800), 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
+      pegs.push(Matter.Bodies.circle(map(i, 0, 19, W-40, startX + (cols*spacing) + 40), map(i, 0, 19, 150, 800), 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
     }
-    for (let r = 0; r < rows; r++) { for (let c = 0; c < cols; c++) { if (shape[r][c] === '*') { let peg = Matter.Bodies.circle(startX + c * spacing + random(-1, 1), startY + r * spacing + random(-1, 1), 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); } } }
+    for (let r = 0; r < rows; r++) { for (let c = 0; c < cols; c++) { if (shape[r][c] === '*') { let peg = Matter.Bodies.circle(startX + c * spacing + random(-1, 1), startY + r * spacing + random(-1, 1), 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); } } }
   } else {
     for (let i = 0; i < numPegs; i++) {
       let px, py; let valid = false; let attempts = 0;
       while (!valid && attempts < 50) {
         attempts++;
         switch(mode) {
-          case "SPIRAL": let angle = i * 0.15; let r = 15 + i * 1.5; px = W/2 + cos(angle) * r; py = 180 + i * 1.8; break;
-          case "WAVES": px = map(i % 20, 0, 20, 50, W-50); py = 160 + floor(i/20) * 40 + sin(i * 0.5) * 30; break;
-          case "HOURGLASS": let rowH = floor(i / 15); let colH = i % 15; let shrink = abs(rowH - 15) * 12; px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink); py = 160 + rowH * 25; break;
-          case "GALAXY": let aG = random(TWO_PI); let radG = pow(random(), 0.5) * 350; px = W/2 + cos(aG) * radG; py = 450 + sin(aG) * radG * 0.8; break;
-          case "DIAMOND": let rowD = floor(i / 18); let colD = i % 18; px = W/2 + (colD - 9) * 22; py = 180 + rowD * 28 + abs(colD-9)*8; break;
-          case "PYRAMID": let levelP = floor(i / 20); let posInLevel = i % 20; px = W/2 + (posInLevel - 10) * (22 - levelP*1.5); py = 160 + levelP * 26; break;
-          case "HYPERCUBE": let side = 300; let ix = i % 10; let iy = floor(i / 10) % 10; let iz = floor(i / 100); px = W/2 - side/2 + ix * 30 + iz * 15; py = 200 + iy * 30 + iz * 15; break;
-          case "DNA_HELIX": let t = i * 0.1; let sideDNA = (i % 2 === 0) ? 1 : -1; px = W/2 + sideDNA * cos(t) * 100; py = 160 + i * 4; break;
-          case "SATURN_RINGS": let angleS = random(TWO_PI); let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250); px = W/2 + cos(angleS) * distS; py = 400 + sin(angleS) * distS * 0.4; break;
-          case "HEXAGON_GRID": let hRow = floor(i / 12); let hCol = i % 12; px = 100 + hCol * 60 + (hRow % 2) * 30; py = 180 + hRow * 50; break;
-          case "FRACTAL_TREE": let level = floor(log(i + 1) / log(2)); px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level)); py = 160 + level * 60; break;
-          default: px = random(60, W - 60); py = random(140, H - 300); break;
+          case "SPIRAL": let angle = i * 0.15; let r = 15 + i * 2.0; px = W/2 + cos(angle) * r; py = 200 + i * 2.5; break;
+          case "WAVES": px = map(i % 20, 0, 20, 50, W-50); py = 220 + floor(i/20) * 60 + sin(i * 0.5) * 40; break;
+          case "HOURGLASS": let rowH = floor(i / 15); let colH = i % 15; let shrink = abs(rowH - 15) * 12; px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink); py = 200 + rowH * 40; break;
+          case "GALAXY": let aG = random(TWO_PI); let radG = pow(random(), 0.5) * 400; px = W/2 + cos(aG) * radG; py = 500 + sin(aG) * radG; break;
+          case "DIAMOND": let rowD = floor(i / 18); let colD = i % 18; px = W/2 + (colD - 9) * 22; py = 200 + rowD * 40 + abs(colD-9)*12; break;
+          case "PYRAMID": let levelP = floor(i / 20); let posInLevel = i % 20; px = W/2 + (posInLevel - 10) * (22 - levelP*1.5); py = 200 + levelP * 40; break;
+          case "HYPERCUBE": let side = 400; let ix = i % 10; let iy = floor(i / 10) % 10; let iz = floor(i / 100); px = W/2 - side/2 + ix * 40 + iz * 20; py = 250 + iy * 40 + iz * 20; break;
+          case "DNA_HELIX": let t = i * 0.1; let sideDNA = (i % 2 === 0) ? 1 : -1; px = W/2 + sideDNA * cos(t) * 150; py = 200 + i * 6; break;
+          case "SATURN_RINGS": let angleS = random(TWO_PI); let distS = (i < numPegs/2) ? random(80, 150) : random(250, 350); px = W/2 + cos(angleS) * distS; py = 500 + sin(angleS) * distS * 0.4; break;
+          case "HEXAGON_GRID": let hRow = floor(i / 12); let hCol = i % 12; px = 100 + hCol * 60 + (hRow % 2) * 30; py = 200 + hRow * 60; break;
+          case "FRACTAL_TREE": let level = floor(log(i + 1) / log(2)); px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level)); py = 200 + level * 80; break;
+          default: px = random(60, W - 60); py = random(180, H - 220); break;
         }
-        if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
-          let tooClose = false; for(let other of pegs) { if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; } }
+        if (py > 150 && py < H - 150 && px > 40 && px < W - 40) {
+          let tooClose = false; for(let other of pegs) { if(dist(px, py, other.position.x, other.position.y) < 35) { tooClose = true; break; } }
           if(!tooClose) valid = true;
         } else if (attempts > 45) { break; }
       }
-      if (valid) { let peg = Matter.Bodies.circle(px, py, 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); }
+      if (valid) { let peg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); }
     }
+  }
+  
+  // Rovnoměrné vyplnění zbylých prázdných míst velkými kolíky
+  for (let i = 0; i < 150; i++) {
+    let px = random(60, W - 60); let py = random(180, H - 200); let valid = true;
+    for (let other of pegs) { if (dist(px, py, other.position.x, other.position.y) < 35) { valid = false; break; } }
+    if (valid) { let isExplosive = random() < 0.05; let peg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = isExplosive; pegs.push(peg); Matter.World.add(world, peg); }
   }
   
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
@@ -479,8 +496,9 @@ function drawPegs() {
   noStroke(); let pegR = map(currentGravity, 0.05, 1.95, 0, 255); let pegG = map(currentGravity, 0.05, 1.95, 255, 100); let pegB = map(currentGravity, 0.05, 1.95, 255, 0); let pegBaseCol = color(pegR, pegG, pegB);
   for (let p of pegs) {
     p.glow = p.glow || 0;
-    if (p.glow > 0) { fill(pegR, pegG + 50, pegB + 50, p.glow); rect(p.position.x - 4, p.position.y - 4, 8, 8); p.glow -= 20; }
-    if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 3, p.position.y - 3, 6, 6); } else { fill(pegBaseCol); rect(p.position.x - 2, p.position.y - 2, 4, 4); }
+    if (p.glow > 0) { fill(pegR, pegG + 50, pegB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; }
+    // ZVĚTŠENÉ KRESLENÍ KOLÍČKŮ
+    if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } else { fill(pegBaseCol); rect(p.position.x - 4, p.position.y - 4, 8, 8); }
   }
 }
 
@@ -489,8 +507,8 @@ function drawZones() {
     let isJackpot = (z.score >= 5000); let baseCol = isJackpot ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
     if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(baseCol); }
     noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
-    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER);
-    if (isJackpot) { fill(255, 230, 100); textSize(12); text(z.score, 0, 0); } else { fill(255); textSize(z.w < 30 ? 7 : 10); text(z.score, 0, 0); }
+    push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER);
+    if (isJackpot) { fill(255, 230, 100); textSize(18); text(z.score, 0, 0); } else { fill(255); textSize(z.w < 30 ? 10 : 15); text(z.score, 0, 0); }
     pop();
   }
 }
@@ -524,7 +542,6 @@ function triggerCosmicEvent() {
   let isComet = random() < 0.5; cosmicEvent = { body: body, type: isComet ? "COMET" : "METEOR", size: size, color: isComet ? color(150, 200, 255) : color(255, 100, 50), trail: [] };
   Matter.World.add(world, body); Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
   if (audioStarted) { let osc = new p5.Oscillator('sine'); osc.start(); osc.freq(random(100, 400)); osc.freq(random(800, 1200), 1.5); osc.amp(0.1); osc.amp(0, 1.5); setTimeout(() => osc.stop(), 1600); }
-  speakAnnouncer("Warning! Cosmic anomaly detected in the sector.", 1);
 }
 
 function handleCosmicEvent() {
@@ -536,38 +553,16 @@ function handleCosmicEvent() {
 
 function spawnRareLegend() {
   let legend = random(RARE_POOL);
-  spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: legend.id, size: legend.size, color: color(legend.col[0], legend.col[1], legend.col[2]), speed: random(0.8, 1.8), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true });
+  spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: legend.id, size: legend.size, color: color(legend.col[0], legend.col[1], legend.col[2]), speed: random(0.8, 1.8), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true });
 }
 
 function drawGalacticBackground() {
-  noStroke();
-  // Vykreslení mlhovin (deepest layer)
-  for (let n of nebulas) { n.y += 0.2 * currentTravelSpeed; if (n.y > H + n.s) n.y = -n.s; fill(n.col); ellipse(n.x, n.y, n.s, n.s*0.6); }
-  
-  fill(255, 120);
+  fill(255, 120); noStroke();
   for(let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
   for(let p of massivePlanets) { push(); translate(p.x, p.y); p.y += p.speed * currentTravelSpeed * 5; p.rot += p.rotSpeed * currentTravelSpeed; rotate(p.rot); if (p.hasRing) { noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.1); ellipse(0, 0, p.size * 2.2, p.size * 0.6); } noStroke(); fill(p.color); ellipse(0, 0, p.size); pop(); if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); } }
-  
-  // Meteorický roj (shooting stars)
-  if (gameState === "PLAYING" && random() < 0.03) shootingStars.push({ x: random(W), y: random(-50, H/2), vx: random(10, 25), vy: random(10, 25), life: 255, len: random(20, 100) });
-  for (let i = shootingStars.length - 1; i >= 0; i--) {
-      let ss = shootingStars[i]; stroke(255, ss.life); strokeWeight(1.5); line(ss.x, ss.y, ss.x - ss.vx*(ss.len/20), ss.y - ss.vy*(ss.len/20));
-      ss.x += ss.vx; ss.y += ss.vy; ss.life -= 10; if (ss.life <= 0) shootingStars.splice(i, 1); noStroke();
-  }
-
-  // Ambient komety létající z více směrů
-  if (gameState === "PLAYING" && random() < 0.015) {
-      let fromLeft = random() < 0.5;
-      ambientComets.push({ x: fromLeft ? -50 : W + 50, y: random(-100, H/2), vx: fromLeft ? random(2, 5) : random(-5, -2), vy: random(2, 4), s: random(4, 8), life: 255, col: color(random(150, 255), random(200, 255), 255) });
-  }
-  for (let i = ambientComets.length - 1; i >= 0; i--) {
-      let c = ambientComets[i]; c.x += c.vx * currentTravelSpeed; c.y += c.vy * currentTravelSpeed; c.life -= 1.5;
-      fill(c.col); ellipse(c.x, c.y, c.s); fill(red(c.col), green(c.col), blue(c.col), 80); ellipse(c.x - c.vx*3, c.y - c.vy*3, c.s*1.5);
-      if (c.y > H + 50 || c.life <= 0) ambientComets.splice(i, 1);
-  }
-  
+  updateComet();
   for(let i = spaceDebris.length - 1; i >= 0; i--) {
-    let d = spaceDebris[i]; push(); translate(d.x, d.y); d.x += d.vx * currentTravelSpeed; d.y += d.speed * currentTravelSpeed * 2; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
+    let d = spaceDebris[i]; push(); translate(d.x, d.y); d.y += d.speed * currentTravelSpeed * 2; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
     if (d.type === "LEGEND") { drawLegendShape(d); } else if (d.type === "UFO") { d.x += sin(frameCount * d.wobble) * 2; fill(0, 255, 100, 150); rect(-d.size/2, -d.size/6, d.size, d.size/3, 2); ellipse(0, -d.size/6, d.size/2, d.size/2); } else if (d.type === "SATELLITE") { stroke(200, 200, 255, 120); strokeWeight(1); noFill(); rect(-d.size/4, -d.size/4, d.size/2, d.size/2); line(-d.size, 0, d.size, 0); rect(-d.size, -d.size/6, d.size/2, d.size/3); rect(d.size/2, -d.size/6, d.size/2, d.size/3); } else { fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3); } pop();
     if (d.y > H + 150) { if (d.isRare) spaceDebris.splice(i, 1); else { d.y = -100; d.x = random(W); } }
   }
@@ -592,8 +587,8 @@ function prepareSingularityEvents() { bhSpawnTimes = []; if (random() < 0.4) bhS
 function checkSingularitySpawn() {
   if (bhSpawnTimes.includes(timer) && !blackHole) {
     let fromLeft = random() < 0.5;
-    blackHole = { x: fromLeft ? -150 : W + 150, y: random(200, H - 450), startY: 0, targetX: fromLeft ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) };
-    blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); speakAnnouncer("Warning! Black hole singularity forming on the live feed!", 1);
+    blackHole = { x: fromLeft ? -150 : W + 150, y: random(300, H - 450), startY: 0, targetX: fromLeft ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) };
+    blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
   }
 }
 
@@ -614,7 +609,7 @@ function handleBlackHole() {
 function resetGame() {
   leaderboard = {}; totalBallsFired = 0; roundCount++; gameState = "PLAYING"; resultsTimer = 10; eventOccurredThisRound = false; currentDestination = generatePlanetName(); timer = floor(random(40, 181)); currentTheme = random(UI_THEMES);
   if (isAutoMode) { autoRandomSettings(); }
-  if (world) Matter.World.clear(world, false); pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; ambientComets = []; shootingStars = [];
+  if (world) Matter.World.clear(world, false); pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound();
   speakAnnouncer(`Welcome to sector ${currentDestination}. The live dropping phase has started.`, 1);
 }
