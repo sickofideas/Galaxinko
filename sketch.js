@@ -144,9 +144,9 @@ function handleFloatingTexts() {
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
         let ft = floatingTexts[i];
         push(); translate(ft.x, ft.y); textAlign(CENTER, CENTER); textSize(14 * ft.scale);
-        drawingContext.shadowBlur = 10; drawingContext.shadowColor = ft.color;
+        stroke(0, ft.life); strokeWeight(3); // Obrys i pro odlétající čísla
         fill(red(ft.color), green(ft.color), blue(ft.color), ft.life);
-        text(ft.text, 0, 0); drawingContext.shadowBlur = 0; pop();
+        text(ft.text, 0, 0); pop();
         ft.y += ft.vy; ft.life -= 4; if (ft.life <= 0) floatingTexts.splice(i, 1);
     }
 }
@@ -368,7 +368,7 @@ function drawViewerObjects(){
 
 function drawUI(){
   push();fill(5,5,15,240);noStroke();rect(0,0,W,70);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120);strokeWeight(2);line(0,70,W,70);
-  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v8.3.1",lX+2,54);
+  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v8.3.0",lX+2,54);
   let dW=360,dX=W/2-(dW/2),p=sin(frameCount*0.1)*3;
   fill(currentTheme[0],currentTheme[1],currentTheme[2],10+p);rect(dX,8,dW,54,8);fill(5,5,20,250);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120+p*10);strokeWeight(2);rect(dX,8,dW,54,8);
   noStroke();let lT=new Intl.DateTimeFormat('cs-CZ',{timeStyle:'medium'}).format(new Date());
@@ -377,13 +377,24 @@ function drawUI(){
   
   push();translate(10,85);let ml=allTimeRecords.slice(0,5),lH=45+max(1,ml.length)*26;
   fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,lH,8);noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(12);text("MISSION MILESTONES",120,25);stroke(255,30);strokeWeight(1);line(10,40,230,40);noStroke();textAlign(LEFT);
-  ml.forEach((r,i)=>{textSize(i<3?13:10);let y=65+i*26;fill(r.color[0],r.color[1],r.color[2]);text(`${i===0?'👑 ':''}${i+1}. ${r.name}`,15,y);textAlign(RIGHT);fill(255,220);text(r.score.toLocaleString(),225,y);textAlign(LEFT);});
+  ml.forEach((r,i)=>{
+    textSize(i<3?13:10);let y=65+i*26;
+    stroke(0); strokeWeight(3); fill(r.color[0],r.color[1],r.color[2]); // Černý obrys pro neon
+    text(`${i===0?'👑 ':''}${i+1}. ${r.name}`,15,y);
+    noStroke(); textAlign(RIGHT);fill(255,220);text(r.score.toLocaleString(),225,y);textAlign(LEFT);
+  });
   translate(0,lH+15);fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,60,8);noStroke();textSize(11);
   if(gameState==="PLAYING"){textAlign(LEFT,CENTER);fill(timer<10?color(255,50,50):color(currentTheme[0],currentTheme[1],currentTheme[2]));text("WARP-DRIVE: "+timer+"s",15,20);fill(50,255,50);text(`ACTIVE UNITS: ${balls.length}`,15,40);}else if(gameState==="WAITING"){textAlign(LEFT,CENTER);fill(255,200,0);text("COOLING DOWN...",15,20);fill(50,255,50);text(`TOTAL UNITS: ${balls.length}`,15,40);}pop();
   
   push();translate(W-250,85);let sorted=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,30),rH=45+max(1,sorted.length)*22;
   fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,rH,8);noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(12);text("TOP CONTRIBUTORS",120,25);stroke(255,30);strokeWeight(1);line(10,40,230,40);noStroke();textAlign(LEFT);
-  sorted.forEach((e,i)=>{textSize(i<3?13:10);let y=65+i*22;fill(e[1].color);text(`${i===0?'👑 ':''}${nf(i+1,2)}. ${e[0]}`,15,y);textAlign(RIGHT);fill(255);text(e[1].score.toLocaleString(),225,y);textAlign(LEFT);});pop();
+  sorted.forEach((e,i)=>{
+    textSize(i<3?13:10);let y=65+i*22;
+    stroke(0); strokeWeight(3); fill(e[1].color); // Černý obrys pro neon
+    text(`${i===0?'👑 ':''}${nf(i+1,2)}. ${e[0]}`,15,y);
+    noStroke(); textAlign(RIGHT);fill(255);text(e[1].score.toLocaleString(),225,y);textAlign(LEFT);
+  });
+  pop();
 }
 
 function mouseClicked(){if(!audioStarted)startSpaceAudio();if(mouseX<100&&mouseY<100&&audioStarted){triggerFollowEvent(random(TEST_BOTS));return;}if(mouseX>W-280&&mouseX<W&&mouseY>85&&mouseY<405){leaderboard={};shakeAmount=4;return;}if(mouseX>10&&mouseX<280&&mouseY>85&&mouseY<345){allTimeRecords=[];localStorage.setItem('galaxinko_records',JSON.stringify(allTimeRecords));shakeAmount=5;return;}if(mouseY>0&&mouseY<70){spawnBall(random(TEST_BOTS));shakeAmount=2;}}
@@ -454,7 +465,19 @@ function drawLegendShape(d){noStroke();fill(d.color);let s=d.size;switch(d.legen
 function drawGravityDust(){let r=map(currentGravity,0.05,1.95,100,255),g=map(currentGravity,0.05,1.95,200,100),b=map(currentGravity,0.05,1.95,255,50);fill(r,g,b,150);noStroke();let dustSpeed=currentGravity*3*currentTravelSpeed;for(let d of dust){d.y+=dustSpeed;if(d.y>H){d.y=0;d.x=random(W);}rect(d.x,d.y,d.s,d.s);}}
 function drawZones(){for(let z of zones){if(z.flash>0){fill(z.flashColor);z.flash-=10;}else{fill(z.baseColor);}noStroke();rect(z.x,H-ZONE_H,z.w,ZONE_H);push();translate(z.x+z.w/2,H-20);rotate(-HALF_PI);textAlign(LEFT,CENTER);if(z.score>=5000){fill(255,230,100);textSize(18);}else{fill(255);textSize(z.w<30?10:15);}text(z.score.toLocaleString(),0,0);pop();}}
 function drawWaitingMessage(){let a=map(sin(frameCount*0.15),-1,1,100,255);push();fill(255,50,50,a);textAlign(CENTER,CENTER);textSize(30);stroke(0);strokeWeight(4);text("WARNING: CLEANUP",W/2,H/2-50);textSize(14);noStroke();fill(255,200,0,a);text("REMAINING UNITS RETURNING TO BASE...",W/2,H/2);pop();}
-function drawResultsOverlay(){fill(0,0,20,230);rect(20,50,W-40,H-100,20);drawingContext.shadowBlur=20;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);stroke(currentTheme[0],currentTheme[1],currentTheme[2],255);strokeWeight(4);fill(10,10,30,240);rect(40,80,W-80,H-160,15);drawingContext.shadowBlur=0;noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(50);text("ROUND COMPLETE",W/2,160);fill(255,215,0);textSize(22);text(`SECTOR: ${currentDestination}`,W/2,210);let sorted=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,5);for(let i=0;i<sorted.length;i++){let entry=sorted[i];let yPos=320+i*90;fill(i%2===0?color(255,255,255,20):color(255,255,255,5));rect(80,yPos-45,W-160,80,10);textAlign(LEFT,CENTER);fill(entry[1].color);textSize(i===0?45:35);text(`${i===0?"👑 ":i+1+". "}${entry[0]}`,100,yPos-5);textAlign(RIGHT,CENTER);fill(255);textSize(i===0?45:38);text(entry[1].score.toLocaleString(),W-100,yPos-5);}textAlign(CENTER);fill(255,50,50);textSize(24);text(`NEXT ROUND IN: ${resultsTimer}s`,W/2,H-120);}
+function drawResultsOverlay(){
+  fill(0,0,20,230);rect(20,50,W-40,H-100,20);drawingContext.shadowBlur=20;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);stroke(currentTheme[0],currentTheme[1],currentTheme[2],255);strokeWeight(4);fill(10,10,30,240);rect(40,80,W-80,H-160,15);drawingContext.shadowBlur=0;noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(50);text("ROUND COMPLETE",W/2,160);fill(255,215,0);textSize(22);text(`SECTOR: ${currentDestination}`,W/2,210);
+  let sorted=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,5);
+  for(let i=0;i<sorted.length;i++){
+    let entry=sorted[i];let yPos=320+i*90;
+    fill(i%2===0?color(255,255,255,20):color(255,255,255,5));rect(80,yPos-45,W-160,80,10);
+    textAlign(LEFT,CENTER);
+    stroke(0); strokeWeight(5); fill(entry[1].color); // Tlustý černý obrys pro velká jména
+    textSize(i===0?45:35);text(`${i===0?"👑 ":i+1+". "}${entry[0]}`,100,yPos-5);
+    noStroke(); textAlign(RIGHT,CENTER);fill(255);textSize(i===0?45:38);text(entry[1].score.toLocaleString(),W-100,yPos-5);
+  }
+  textAlign(CENTER);fill(255,50,50);textSize(24);text(`NEXT ROUND IN: ${resultsTimer}s`,W/2,H-120);
+}
 function drawProceduralHUD(){push();stroke(255,10);strokeWeight(1);for(let i=0;i<H;i+=4){line(0,i+(frameCount%4),W,i+(frameCount%4));}fill(0,255,0,150);textSize(8);textAlign(LEFT);text(`POS_X: ${camOffset.x.toFixed(4)}`,20,H-40);text(`POS_Y: ${camOffset.y.toFixed(4)}`,20,H-30);text(`ZOOM: ${camOffset.z.toFixed(4)}`,20,H-20);textAlign(RIGHT);text(`SENS_TEMP: ${(24+noise(frameCount*0.01)*5).toFixed(1)}°C`,W-20,H-30);text(`BUFFER_LOAD: ${balls.length*2}%`,W-20,H-20);pop();}
 function drawAntiBotOverlay(){push();if(random()<0.1){fill(255,150);noStroke();circle(random(W),random(H),random(1,3));}if(random()<0.02){fill(currentTheme[0],currentTheme[1],currentTheme[2],100);rect(0,random(H),W,random(1,10));}if(random()<0.05){fill(255,0,0,50);rect(random(W),random(H),20,20);}pop();}
 function drawPegs(){noStroke();let pR=map(currentGravity,0.05,1.95,0,255),pG=map(currentGravity,0.05,1.95,255,100),pB=map(currentGravity,0.05,1.95,255,0),pC=color(pR,pG,pB);for(let p of pegs){p.glow=p.glow||0;if(p.glow>0){fill(pR,pG+50,pB+50,p.glow);rect(p.position.x-6,p.position.y-6,12,12);p.glow-=20;}if(p.isExplosive){fill(255,100,0);rect(p.position.x-4,p.position.y-4,8,8);}else if(p.isRepulsor){fill(255,50,200);ellipse(p.position.x,p.position.y,12+sin(frameCount*0.2)*3);}else{fill(pC);rect(p.position.x-4,p.position.y-4,8,8);}}}
