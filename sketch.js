@@ -1,9 +1,9 @@
-// --- GALAXINKO (v6.4.0 - HD, DYNAMIC SLIM UI & CLASSIC ZONES) ---
+// --- GALAXINKO (v6.5.0 - SMART ARKANOID, RAINBOW BALLS & ANTI-LAG) ---
 const GAME_TITLE = "GALAXINKO";
 let engine, world, balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {};
 let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFired = 0, roundCount = 1;
 let gameState = "PLAYING", libraryLoaded = false, winnerColor, flashEffect = 0, shakeAmount = 0;
-let currentDestination = "", currentGravity = 0.6, currentBounce = 50, spawnPerEvent = 1, currentShipChance = 30;
+let currentDestination = "", currentGravity = 0.6, currentBounce = 80, spawnPerEvent = 1, currentShipChance = 30;
 
 const UI_THEMES = [[0, 255, 255], [255, 50, 255], [50, 255, 50], [255, 200, 0], [255, 100, 50], [150, 100, 255]];
 let currentTheme = UI_THEMES[0];
@@ -71,7 +71,7 @@ function connectTikfinity() {
 let stars = [], dust = [], massivePlanets = [], spaceDebris = [], currentComet = null, planetSize = 0, currentTravelSpeed = 1.0;
 let blackHole = null, bhSpawnTimes = [], musicScale = [48, 52, 55, 57, 60, 64, 67, 72], nextNoteTime = 0, bhOsc;
 
-// --- POMĚR 9:11, UŽŠÍ ZÓNY DOLE ---
+// --- POMĚR 9:11 ---
 const W = 900, H = 1100, ZONE_H = 75;
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28}, {id: "HAWKING", name: "S. HAWKING", col: [50, 50, 255], size: 22},
@@ -107,7 +107,9 @@ function setup() {
   backgroundOsc = new p5.Oscillator('sine'); backgroundOsc2 = new p5.Oscillator('sine'); bhOsc = new p5.Oscillator('triangle');
   for(let i=0; i<100; i++) stars.push({x:random(W), y:random(H), s:random(1,2.5), speed:random(0.1,0.4)});
   for(let i=0; i<400; i++) dust.push({x:random(W), y:random(H), s:random(0.5,1.5)});
-  currentGravity = random(0.05, 1.95); currentBounce = floor(random(1, 100)); timer = floor(random(40, 181));
+  
+  // DEFAULT VÍCE BOUNCY (60-100 místo 1-100)
+  currentGravity = random(0.05, 1.95); currentBounce = floor(random(60, 100)); timer = floor(random(40, 181));
   currentDestination = generatePlanetName(); currentTheme = random(UI_THEMES); 
 
   generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); initTTS(); connectTikfinity();
@@ -131,7 +133,7 @@ function toggleAutoMode() {
   else { autoButton.html('AUTO RANDOM: OFF'); autoButton.style('background-color', ''); }
 }
 function autoRandomSettings() {
-  currentGravity = random(0.05, 1.95); currentBounce = floor(random(1, 100)); spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
+  currentGravity = random(0.05, 1.95); currentBounce = floor(random(60, 100)); spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce); spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
   if (world) world.gravity.y = currentGravity;
 }
@@ -142,43 +144,73 @@ function planSpaceshipForRound() {
 }
 
 function spawnSpaceship() {
-    let shipW = 140, shipH = 25, shipY = H - ZONE_H - 150;
+    let shipW = 160, shipH = 25, shipY = H - ZONE_H - 150;
     let body = Matter.Bodies.rectangle(-200, shipY, shipW, shipH, { isStatic: true, restitution: 1.5, friction: 0 });
     Matter.World.add(world, body);
-    starship = { body: body, w: shipW, h: shipH, y: shipY, targetX: W/2, speed: 6, activeFrames: 0, maxFrames: 60 * 25, state: "ENTERING" };
-    speakAnnouncer(random(["Houston, unidentified Starship is entering the live broadcast area.", "Radar picks up a vessel on the live feed!"]), 1);
+    starship = { body: body, w: shipW, h: shipH, y: shipY, targetX: W/2, speed: 8, activeFrames: 0, maxFrames: 60 * 25, state: "ENTERING" };
+    speakAnnouncer(random(["Arkanoid defense unit deployed.", "Watch out for the Arkanoid ship!"]), 1);
 }
 
 function handleSpaceship() {
     if (!starship) return;
     starship.activeFrames++;
+    
+    // SMART ARKANOID AI - TRACKING BALLS
+    if (frameCount % 5 === 0 && starship.state === "ACTIVE") {
+        let bestTarget = null;
+        let maxY = 0;
+        for(let b of balls) {
+            let py = b.body.position.y;
+            // Najde nejnižší kuličku nad lodí, co padá dolů
+            if (py > maxY && py < starship.y - 10 && b.body.velocity.y > 0) {
+                maxY = py; bestTarget = b;
+            }
+        }
+        if (bestTarget) starship.targetX = bestTarget.body.position.x;
+        else starship.targetX = W/2 + sin(frameCount * 0.02) * 200; // Hlídkování
+    }
+
     if (starship.state === "ENTERING") {
         starship.targetX = W/2; if (abs(starship.body.position.x - W/2) < 20) starship.state = "ACTIVE";
     } else if (starship.state === "ACTIVE") {
-        if (frameCount % 45 === 0) starship.targetX = random(100, W - 100);
         if (starship.activeFrames > starship.maxFrames) starship.state = "LEAVING";
     } else if (starship.state === "LEAVING") {
         starship.targetX = W + 300; 
         if (starship.body.position.x > W + 150) { Matter.World.remove(world, starship.body); starship = null; return; }
     }
+    
     let pos = starship.body.position; let dx = starship.targetX - pos.x; let moveX = 0;
     if (abs(dx) > starship.speed) moveX = dx > 0 ? starship.speed : -starship.speed;
     Matter.Body.setPosition(starship.body, { x: pos.x + moveX, y: starship.y });
 
-    push(); translate(pos.x, starship.y); noStroke(); fill(20, 20, 50); rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 12);
-    stroke(currentTheme[0], currentTheme[1], currentTheme[2], 200 + sin(frameCount * 0.2) * 55); strokeWeight(3); noFill(); rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 12);
-    noStroke(); fill(255, 50, 200, 180 + sin(frameCount * 0.4) * 75); ellipse(0, 0, starship.w * 0.4, starship.h * 0.4);
-    fill(currentTheme[0], currentTheme[1], currentTheme[2], 150); triangle(-starship.w/2 + 10, starship.h/2, -starship.w/2 + 25, starship.h/2 + 20, -starship.w/2 + 40, starship.h/2); triangle(starship.w/2 - 40, starship.h/2, starship.w/2 - 25, starship.h/2 + 20, starship.w/2 - 10, starship.h/2);
+    // VYLEPŠENÝ VIZUÁL LODĚ
+    push(); translate(pos.x, starship.y); noStroke(); 
+    // Plazmové motory
+    fill(0, 255, 255, 150 + sin(frameCount * 0.5)*100);
+    ellipse(-starship.w/2 + 15, starship.h/2 + 5, 15, 25);
+    ellipse(starship.w/2 - 15, starship.h/2 + 5, 15, 25);
+    
+    fill(10, 10, 30); rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 15);
+    stroke(currentTheme[0], currentTheme[1], currentTheme[2], 200 + sin(frameCount * 0.2) * 55); strokeWeight(3); noFill(); 
+    rect(-starship.w/2, -starship.h/2, starship.w, starship.h, 15);
+    
+    // Zářící kokpit
+    noStroke(); fill(255, 50, 200, 180 + sin(frameCount * 0.4) * 75); ellipse(0, -5, starship.w * 0.3, starship.h * 0.8);
+    
+    fill(currentTheme[0], currentTheme[1], currentTheme[2], 150); 
+    triangle(-starship.w/2 + 10, starship.h/2, -starship.w/2 + 35, starship.h/2 + 15, -starship.w/2 + 45, starship.h/2); 
+    triangle(starship.w/2 - 45, starship.h/2, starship.w/2 - 35, starship.h/2 + 15, starship.w/2 - 10, starship.h/2);
     pop();
 }
 
 function startSpaceAudio() {
   if (audioStarted) return;
   userStartAudio(); backgroundOsc.start(); backgroundOsc.amp(0.02, 2); backgroundOsc.freq(55); backgroundOsc2.start(); backgroundOsc2.amp(0.01, 2); backgroundOsc2.freq(110); bhOsc.start(); bhOsc.amp(0); audioStarted = true;
-  speakAnnouncer("Houston to ground control. We are live and systems are fully operational.", 2);
+  speakAnnouncer("Houston to ground control. We are live.", 2);
 }
 
 function playSpawnSound() { if (audioStarted) fxSynth.play(random([440, 493.88, 554.37, 659.25, 739.99, 880]) + random(-5, 5), random(0.02, 0.05), 0, random(0.05, 0.15)); }
+function playRainbowSound() { if (audioStarted) { synth.play('C6', 0.1, 0, 0.1); setTimeout(()=>synth.play('E6', 0.1, 0, 0.1), 100); setTimeout(()=>synth.play('G6', 0.1, 0, 0.3), 200); } }
 function playJackpotSound() { if (audioStarted) { synth.play('C5', 0.1, 0, 0.1); setTimeout(() => synth.play('E5', 0.1, 0, 0.1), 100); setTimeout(() => synth.play('G5', 0.1, 0, 0.2), 200); setTimeout(() => synth.play('C6', 0.2, 0, 0.5), 300); } }
 function playExplosionSound() { if (audioStarted) fxSynth.play(random(50, 150), 0.1, 0, 0.2); }
 function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
@@ -223,7 +255,7 @@ function draw() {
       if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
       if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
       if (random() < 0.11) spawnRareLegend();
-      if (timer === 10) speakAnnouncer("Houston, we have 10 seconds remaining on the live feed.", 1);
+      if (timer === 10) speakAnnouncer("10 seconds remaining.", 1);
       if (timer <= 0) {
         gameState = "WAITING"; waitStartTime = millis(); shakeAmount = 6; playCleanupSound(); playTimerEndSequence();
         speakAnnouncer("Sector operations complete. Returning units to base.", 2);
@@ -239,7 +271,7 @@ function draw() {
     if (balls.length === 0 || timeSinceWait > 10) {
       gameState = "RESULTS"; resultsTimer = 10;
       let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
-      if (sorted.length > 0) speakAnnouncer(`Round over! The ultimate commander is ${sanitizeText(sorted[0][0])}.`, 2);
+      if (sorted.length > 0) speakAnnouncer(`Round over! The ultimate commander of this sector is ${sanitizeText(sorted[0][0])}. Great job!`, 2);
       else speakAnnouncer(`Round over. No active commanders this time.`, 2);
     }
   }
@@ -259,11 +291,20 @@ function draw() {
 
 function spawnBall(userName) {
   if (!libraryLoaded || gameState !== "PLAYING") return;
-  if (!audioStarted) startSpaceAudio(); playSpawnSound(); totalBallsFired++;
-  let ballRestitution = map(currentBounce, 1, 99, 0.4, 0.9); let spawnX = W/2 + random(-15, 15);
-  let ballBody = Matter.Bodies.rectangle(spawnX, 100, 10, 10, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001 });
+  // SILENT ANTI-SPAM: MAX 150 kuliček pro udržení plynulosti
+  if (balls.length > 150) return;
+
+  if (!audioStarted) startSpaceAudio();
+  
+  let isRainbow = random() < 0.03; // 3% ŠANCE NA DUHOVOU
+  if (isRainbow) playRainbowSound(); else playSpawnSound();
+  
+  totalBallsFired++;
+  let ballRestitution = map(currentBounce, 1, 99, 0.65, 1.05); // UPRAVENÝ BOUNCE DO VYŠŠÍCH HODNOT
+  let spawnX = W/2 + random(-15, 15);
+  let ballBody = Matter.Bodies.rectangle(spawnX, 100, 14, 14, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001 });
   if (!leaderboard[userName]) leaderboard[userName] = { score: 0, color: color(random(100,255), random(100,255), random(100,255)) };
-  balls.push({ body: ballBody, name: userName, color: leaderboard[userName].color, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0 });
+  balls.push({ body: ballBody, name: userName, color: leaderboard[userName].color, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, spawnTime: millis(), isRainbow: isRainbow, trail: [] });
   Matter.World.add(world, ballBody);
 }
 
@@ -271,41 +312,70 @@ function drawBalls() {
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i]; if (!b.body) { balls.splice(i, 1); continue; }
     let pos = b.body.position; if (isNaN(pos.x) || isNaN(pos.y)) { removeBall(b); continue; }
+    
+    // RAINBOW TRAIL EFFECT
+    if (b.isRainbow) {
+        b.trail.push({x: pos.x, y: pos.y});
+        if (b.trail.length > 15) b.trail.shift();
+        push(); noStroke(); colorMode(HSB);
+        for (let t = 0; t < b.trail.length; t++) {
+            let tr = b.trail[t];
+            let hue = (frameCount * 5 + t * 15) % 360;
+            fill(hue, 200, 255, map(t, 0, b.trail.length, 0, 1));
+            ellipse(tr.x, tr.y, map(t, 0, b.trail.length, 4, 16));
+        }
+        colorMode(RGB); pop();
+    }
+
     push(); translate(pos.x, pos.y); rotate(b.body.angle);
-    if (b.combo > 2) { fill(255); noStroke(); rect(-7, -7, 14, 14); }
-    fill(b.color); stroke(255); strokeWeight(1); rect(-5, -5, 10, 10); rotate(-b.body.angle);
-    fill(0, 150); noStroke(); textAlign(CENTER); textSize(11); text(b.name, 1, -13); fill(b.color); text(b.name, 0, -14);
-    if (b.combo > 0) { fill(0, 150); textSize(13); text("x" + b.combo, 1, -25); fill(255, 200, 0); text("x" + b.combo, 0, -26); }
+    if (b.combo > 2) { fill(255); noStroke(); rect(-9, -9, 18, 18); }
+    
+    if (b.isRainbow) {
+        colorMode(HSB); fill((frameCount*10)%360, 255, 255); colorMode(RGB);
+    } else {
+        fill(b.color); 
+    }
+    stroke(255); strokeWeight(1); rect(-7, -7, 14, 14); rotate(-b.body.angle);
+    
+    let age = millis() - b.spawnTime; let showName = age < 3000 || b.scored;
+    if (showName) { fill(0, 150); noStroke(); textAlign(CENTER); textSize(12); text(b.name, 1, -16); fill(b.isRainbow?color(255):b.color); text(b.name, 0, -17); }
+    if (b.combo > 0) { fill(0, 150); textSize(14); text("x" + b.combo, 1, -30); fill(255, 200, 0); text("x" + b.combo, 0, -31); }
     pop();
+    
     if (b.combo > 0 && millis() - b.lastHitTime > 2000) b.combo = 0;
+
     if (starship && starship.state === "ACTIVE") {
         if (abs(pos.x - starship.body.position.x) < starship.w/2 + 10 && abs(pos.y - starship.y) < starship.h/2 + 10) {
             if (millis() - (b.lastShipHit || 0) > 500) {
                 b.lastShipHit = millis(); b.combo += 2; b.lastHitTime = millis(); updateScore(b.name, 100, b.color);
                 createExplosion(pos.x, pos.y, b.color); playExplosionSound();
-                Matter.Body.applyForce(b.body, pos, { x: (pos.x - starship.body.position.x) * 0.0001, y: -0.015 });
-                if (random() < 0.2) speakAnnouncer(random([`A live collision recorded from ${sanitizeText(b.name)}!`, `Vessel hit by ${sanitizeText(b.name)}!`]), 0);
+                Matter.Body.applyForce(b.body, pos, { x: (pos.x - starship.body.position.x) * 0.0001, y: -0.025 });
+                if (random() < 0.2) speakAnnouncer(random([`Great block by Arkanoid!`, `Vessel hit by ${sanitizeText(b.name)}!`]), 0);
             }
         }
     }
+
     for (let j = pegs.length - 1; j >= 0; j--) {
       let p = pegs[j];
-      if (dist(pos.x, pos.y, p.position.x, p.position.y) < 14) {
+      if (dist(pos.x, pos.y, p.position.x, p.position.y) < 18) { // Větší kolize pro větší kuličky
           p.glow = 255; b.combo += 1; b.lastHitTime = millis();
           if (p.isExplosive) {
               createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
-              let forceDir = Matter.Vector.sub(pos, p.position); Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise(forceDir), 0.02));
+              let forceDir = Matter.Vector.sub(pos, p.position); Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise(forceDir), 0.025));
               Matter.World.remove(world, p); pegs.splice(j, 1);
           }
       }
     }
+    
     if (pos.y > H - ZONE_H - 10) {
       Matter.Body.set(b.body, { friction: 0.6, frictionAir: 0.1 });
       if (!b.scored) {
         let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
         if (cz) {
-          b.scored = true; let finalScore = floor(cz.score * (1 + (b.combo * 0.1))); updateScore(b.name, finalScore, b.color);
-          cz.flash = 255; cz.flashColor = b.color;
+          b.scored = true; let finalScore = floor(cz.score * (1 + (b.combo * 0.1))); 
+          if(b.isRainbow) finalScore *= 2; // DUHOVÁ MÁ 2X SKÓRE
+          updateScore(b.name, finalScore, b.color);
+          cz.flash = 255; cz.flashColor = b.isRainbow ? color(255,255,255) : b.color;
           if (finalScore >= 5000) { shakeAmount = 8; playJackpotSound(); speakAnnouncer(random([`Incredible! ${sanitizeText(b.name)} just hit the planetary core!`, `Live feed confirms an epic landing by ${sanitizeText(b.name)}!`]), 2); }
           checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color);
         }
@@ -354,7 +424,7 @@ function drawUI() {
   drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(currentTheme[0], currentTheme[1], currentTheme[2]);
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); textSize(45); text(GAME_TITLE, logoX + 2, logoY + 2);
   fill(255); textSize(45); text(GAME_TITLE, logoX, logoY); drawingContext.shadowBlur = 0; 
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(9); text("STABLE SINGULARITY SIMULATION v6.2.4", logoX + 2, 54);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(9); text("STABLE SINGULARITY SIMULATION v6.5.0", logoX + 2, 54);
   
   let dropZoneW = 360, dropZoneX = W/2 - (dropZoneW / 2), pulse = sin(frameCount * 0.1) * 3;
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); rect(dropZoneX, 8, dropZoneW, 54, 8);
@@ -377,7 +447,7 @@ function drawUI() {
   noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(12); text("MISSION MILESTONES", 120, 25);
   stroke(255, 30); strokeWeight(1); line(10, 40, 230, 40); noStroke(); textAlign(LEFT);
   milestones.forEach((rec, i) => { 
-      let tSize = (i < 3) ? 13 : 10; textSize(tSize); // TOP 3 jsou větší
+      let tSize = (i < 3) ? 13 : 10; textSize(tSize); 
       let yPos = 65 + i * 26; fill(rec.color[0], rec.color[1], rec.color[2]); text(`${i+1}. ${rec.name}`, 15, yPos); 
       textAlign(RIGHT); fill(255, 220); text(rec.score, 225, yPos); textAlign(LEFT); 
   });
@@ -395,7 +465,7 @@ function drawUI() {
   noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(12); text("TOP CONTRIBUTORS", 120, 25);
   stroke(255, 30); strokeWeight(1); line(10, 40, 230, 40); noStroke(); textAlign(LEFT);
   sorted.forEach((e, i) => { 
-      let tSize = (i < 3) ? 13 : 10; textSize(tSize); // TOP 3 jsou větší
+      let tSize = (i < 3) ? 13 : 10; textSize(tSize); 
       let yPos = 65 + i * 22; fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, yPos); 
       textAlign(RIGHT); fill(255); text(e[1].score, 225, yPos); textAlign(LEFT); 
   });
@@ -412,12 +482,7 @@ function mouseClicked() {
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 function createExplosion(x, y, c) { let col = c || color(255, random(100, 255), 0); for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: col }); }
-function drawExplosions() { for (let i = explosions.length - 1; i >= 0; i--) { let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 4, 4); e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1); } }
-
-function updateComet() {
-  if (currentComet === null && gameState === "PLAYING" && random() < 0.003) { currentComet = { x: random(W), y: -50, targetX: W + 100, targetY: H + 100, progress: 0, speed: random(0.01, 0.03), size: random(6, 10), color: color(255, 255, 200, 200) }; }
-  if (currentComet) { currentComet.progress += currentComet.speed; let curX = lerp(currentComet.x, currentComet.targetX, currentComet.progress); let curY = lerp(currentComet.y, currentComet.targetY, currentComet.progress); fill(currentComet.color); ellipse(curX, curY, currentComet.size); if (currentComet.progress > 1.2) currentComet = null; }
-}
+function drawExplosions() { for (let i = explosions.length - 1; i >= 0; i--) { let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 6, 6); e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1); } }
 
 function checkAllTimeRecords(n, s, col) {
   let idx = allTimeRecords.findIndex(r => r.name === n);
@@ -443,52 +508,59 @@ function initGame() {
   
   const patterns = ["SPIRAL", "WAVES", "HOURGLASS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "HEXAGON_GRID", "PYRAMID", "FRACTAL_TREE", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN", "SHAPE_HOUSE", "SHAPE_SWORD", "SHAPE_MUSHROOM"];
   const mode = random(patterns);
-  let numPegs = floor(random(450, 650)); let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
-  let blocker = Matter.Bodies.circle(W/2, 130, 4, { isStatic: true, restitution: pegRestitution }); pegs.push(blocker); Matter.World.add(world, blocker);
+  let numPegs = floor(random(450, 750)); let pegRestitution = map(currentBounce, 1, 99, 0.1, 1.8);
+  let blocker = Matter.Bodies.circle(W/2, 200, 4, { isStatic: true, restitution: pegRestitution }); pegs.push(blocker); Matter.World.add(world, blocker);
   
   if (mode.startsWith("SHAPE_")) {
     let shapeName = mode.split("_")[1]; let shape = SHAPES[shapeName] || SHAPES["HEART"];
-    let rows = shape.length; let cols = shape[0].length; let spacing = 26; let startX = (W - (cols * spacing)) / 2; let startY = 220;
-    for(let i = 0; i < 15; i++) {
-      pegs.push(Matter.Bodies.circle(map(i, 0, 14, 50, startX - 30), map(i, 0, 14, 150, startY + 50), 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
-      pegs.push(Matter.Bodies.circle(map(i, 0, 14, W-50, startX + (cols*spacing) + 30), map(i, 0, 14, 150, startY + 50), 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
+    let rows = shape.length; let cols = shape[0].length; let spacing = 38; let startX = (W - (cols * spacing)) / 2; let startY = 250;
+    for(let i = 0; i < 20; i++) {
+      pegs.push(Matter.Bodies.circle(map(i, 0, 19, 40, startX - 40), map(i, 0, 19, 150, 800), 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
+      pegs.push(Matter.Bodies.circle(map(i, 0, 19, W-40, startX + (cols*spacing) + 40), map(i, 0, 19, 150, 800), 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } })); Matter.World.add(world, pegs[pegs.length-1]);
     }
-    for (let r = 0; r < rows; r++) { for (let c = 0; c < cols; c++) { if (shape[r][c] === '*') { let peg = Matter.Bodies.circle(startX + c * spacing + random(-1, 1), startY + r * spacing + random(-1, 1), 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); } } }
+    for (let r = 0; r < rows; r++) { for (let c = 0; c < cols; c++) { if (shape[r][c] === '*') { let peg = Matter.Bodies.circle(startX + c * spacing + random(-1, 1), startY + r * spacing + random(-1, 1), 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); } } }
   } else {
     for (let i = 0; i < numPegs; i++) {
       let px, py; let valid = false; let attempts = 0;
       while (!valid && attempts < 50) {
         attempts++;
         switch(mode) {
-          case "SPIRAL": let angle = i * 0.15; let r = 15 + i * 1.5; px = W/2 + cos(angle) * r; py = 180 + i * 1.8; break;
-          case "WAVES": px = map(i % 20, 0, 20, 50, W-50); py = 160 + floor(i/20) * 40 + sin(i * 0.5) * 30; break;
-          case "HOURGLASS": let rowH = floor(i / 15); let colH = i % 15; let shrink = abs(rowH - 15) * 12; px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink); py = 160 + rowH * 25; break;
-          case "GALAXY": let aG = random(TWO_PI); let radG = pow(random(), 0.5) * 350; px = W/2 + cos(aG) * radG; py = 450 + sin(aG) * radG * 0.8; break;
-          case "DIAMOND": let rowD = floor(i / 18); let colD = i % 18; px = W/2 + (colD - 9) * 22; py = 180 + rowD * 28 + abs(colD-9)*8; break;
-          case "PYRAMID": let levelP = floor(i / 20); let posInLevel = i % 20; px = W/2 + (posInLevel - 10) * (22 - levelP*1.5); py = 160 + levelP * 26; break;
-          case "HYPERCUBE": let side = 300; let ix = i % 10; let iy = floor(i / 10) % 10; let iz = floor(i / 100); px = W/2 - side/2 + ix * 30 + iz * 15; py = 200 + iy * 30 + iz * 15; break;
-          case "DNA_HELIX": let t = i * 0.1; let sideDNA = (i % 2 === 0) ? 1 : -1; px = W/2 + sideDNA * cos(t) * 100; py = 160 + i * 4; break;
-          case "SATURN_RINGS": let angleS = random(TWO_PI); let distS = (i < numPegs/2) ? random(80, 120) : random(200, 250); px = W/2 + cos(angleS) * distS; py = 400 + sin(angleS) * distS * 0.4; break;
-          case "HEXAGON_GRID": let hRow = floor(i / 12); let hCol = i % 12; px = 100 + hCol * 60 + (hRow % 2) * 30; py = 180 + hRow * 50; break;
-          case "FRACTAL_TREE": let level = floor(log(i + 1) / log(2)); px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level)); py = 160 + level * 60; break;
-          default: px = random(60, W - 60); py = random(140, H - 300); break;
+          case "SPIRAL": let angle = i * 0.15; let r = 15 + i * 2.0; px = W/2 + cos(angle) * r; py = 200 + i * 2.5; break;
+          case "WAVES": px = map(i % 20, 0, 20, 50, W-50); py = 220 + floor(i/20) * 60 + sin(i * 0.5) * 40; break;
+          case "HOURGLASS": let rowH = floor(i / 15); let colH = i % 15; let shrink = abs(rowH - 15) * 12; px = map(colH, 0, 15, 100 + shrink, W - 100 - shrink); py = 200 + rowH * 40; break;
+          case "GALAXY": let aG = random(TWO_PI); let radG = pow(random(), 0.5) * 400; px = W/2 + cos(aG) * radG; py = 500 + sin(aG) * radG; break;
+          case "DIAMOND": let rowD = floor(i / 18); let colD = i % 18; px = W/2 + (colD - 9) * 22; py = 200 + rowD * 40 + abs(colD-9)*12; break;
+          case "PYRAMID": let levelP = floor(i / 20); let posInLevel = i % 20; px = W/2 + (posInLevel - 10) * (22 - levelP*1.5); py = 200 + levelP * 40; break;
+          case "HYPERCUBE": let side = 400; let ix = i % 10; let iy = floor(i / 10) % 10; let iz = floor(i / 100); px = W/2 - side/2 + ix * 40 + iz * 20; py = 250 + iy * 40 + iz * 20; break;
+          case "DNA_HELIX": let t = i * 0.1; let sideDNA = (i % 2 === 0) ? 1 : -1; px = W/2 + sideDNA * cos(t) * 150; py = 200 + i * 6; break;
+          case "SATURN_RINGS": let angleS = random(TWO_PI); let distS = (i < numPegs/2) ? random(80, 150) : random(250, 350); px = W/2 + cos(angleS) * distS; py = 500 + sin(angleS) * distS * 0.4; break;
+          case "HEXAGON_GRID": let hRow = floor(i / 12); let hCol = i % 12; px = 100 + hCol * 60 + (hRow % 2) * 30; py = 200 + hRow * 60; break;
+          case "FRACTAL_TREE": let level = floor(log(i + 1) / log(2)); px = W/2 + (i % pow(2, level) - pow(2, level)/2) * (W / pow(2, level)); py = 200 + level * 80; break;
+          default: px = random(60, W - 60); py = random(180, H - 220); break;
         }
-        if (py > 115 && py < H - 280 && px > 40 && px < W - 40) {
-          let tooClose = false; for(let other of pegs) { if(dist(px, py, other.position.x, other.position.y) < 22) { tooClose = true; break; } }
+        if (py > 150 && py < H - 150 && px > 40 && px < W - 40) {
+          let tooClose = false; for(let other of pegs) { if(dist(px, py, other.position.x, other.position.y) < 35) { tooClose = true; break; } }
           if(!tooClose) valid = true;
         } else if (attempts > 45) { break; }
       }
-      if (valid) { let peg = Matter.Bodies.circle(px, py, 2.5, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); }
+      if (valid) { let peg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = random() < 0.05; pegs.push(peg); Matter.World.add(world, peg); }
     }
+  }
+  
+  for (let i = 0; i < 150; i++) {
+    let px = random(60, W - 60); let py = random(180, H - 200); let valid = true;
+    for (let other of pegs) { if (dist(px, py, other.position.x, other.position.y) < 35) { valid = false; break; } }
+    if (valid) { let isExplosive = random() < 0.05; let peg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pegRestitution, collisionFilter: { category: 2 } }); peg.isExplosive = isExplosive; pegs.push(peg); Matter.World.add(world, peg); }
   }
   
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let curX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
-    // KLASICKÉ TMAVÉ ZÓNY S LEHKÝM NÁDECHEM U 5000
-    let zColor = (sV[i] >= 5000) ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
-    zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255), baseColor: zColor });
+    let val = sV[i];
+    // KLASICKÉ TMAVÉ POZADÍ, u 5000x lehký zlatý nádech
+    let zColor = (val >= 5000) ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
+    zones.push({ x: curX, w: zw, score: val, flash: 0, flashColor: color(255), baseColor: zColor });
     if (i > 0) { let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); walls.push(wall); Matter.World.add(world, wall); }
     curX += zw;
   }
@@ -499,8 +571,8 @@ function drawPegs() {
   noStroke(); let pegR = map(currentGravity, 0.05, 1.95, 0, 255); let pegG = map(currentGravity, 0.05, 1.95, 255, 100); let pegB = map(currentGravity, 0.05, 1.95, 255, 0); let pegBaseCol = color(pegR, pegG, pegB);
   for (let p of pegs) {
     p.glow = p.glow || 0;
-    if (p.glow > 0) { fill(pegR, pegG + 50, pegB + 50, p.glow); rect(p.position.x - 4, p.position.y - 4, 8, 8); p.glow -= 20; }
-    if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 3, p.position.y - 3, 6, 6); } else { fill(pegBaseCol); rect(p.position.x - 2, p.position.y - 2, 4, 4); }
+    if (p.glow > 0) { fill(pegR, pegG + 50, pegB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; }
+    if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } else { fill(pegBaseCol); rect(p.position.x - 4, p.position.y - 4, 8, 8); }
   }
 }
 
@@ -509,9 +581,8 @@ function drawZones() {
     if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(z.baseColor); }
     noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
     push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER);
-    if (z.score >= 5000) { fill(255, 230, 100); textSize(16); text(z.score, 0, 0); } 
-    else { fill(255); textSize(z.w < 30 ? 10 : 13); text(z.score, 0, 0); }
-    pop();
+    if (z.score >= 5000) { fill(255, 230, 100); textSize(18); } else { fill(255); textSize(z.w < 30 ? 10 : 15); }
+    text(z.score, 0, 0); pop();
   }
 }
 
@@ -563,7 +634,7 @@ function drawGalacticBackground() {
   fill(255, 120); noStroke();
   for(let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
   for(let p of massivePlanets) { push(); translate(p.x, p.y); p.y += p.speed * currentTravelSpeed * 5; p.rot += p.rotSpeed * currentTravelSpeed; rotate(p.rot); if (p.hasRing) { noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.1); ellipse(0, 0, p.size * 2.2, p.size * 0.6); } noStroke(); fill(p.color); ellipse(0, 0, p.size); pop(); if (p.y > H + p.size * 2) { p.y = -p.size * 2; p.x = random(W); } }
-  updateComet();
+  
   for(let i = spaceDebris.length - 1; i >= 0; i--) {
     let d = spaceDebris[i]; push(); translate(d.x, d.y); d.y += d.speed * currentTravelSpeed * 2; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
     if (d.type === "LEGEND") { drawLegendShape(d); } else if (d.type === "UFO") { d.x += sin(frameCount * d.wobble) * 2; fill(0, 255, 100, 150); rect(-d.size/2, -d.size/6, d.size, d.size/3, 2); ellipse(0, -d.size/6, d.size/2, d.size/2); } else if (d.type === "SATELLITE") { stroke(200, 200, 255, 120); strokeWeight(1); noFill(); rect(-d.size/4, -d.size/4, d.size/2, d.size/2); line(-d.size, 0, d.size, 0); rect(-d.size, -d.size/6, d.size/2, d.size/3); rect(d.size/2, -d.size/6, d.size/2, d.size/3); } else { fill(80, 150); noStroke(); rect(-d.size/2, -d.size/2, d.size, d.size, 3); } pop();
