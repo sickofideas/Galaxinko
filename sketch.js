@@ -1,4 +1,4 @@
-// --- GALAXINKO (v7.3.1 - COMPLETE & NEW UFO VISUALS) ---
+// --- GALAXINKO (v7.3.2 - STACKING & RE-SCORING FIX) ---
 const GAME_TITLE="GALAXINKO";
 let engine,world,balls=[],pegs=[],zones=[],walls=[],explosions=[],leaderboard={};
 let timer=40,resultsTimer=10,lastTick=0,waitStartTime=0,totalBallsFired=0,roundCount=1;
@@ -55,8 +55,8 @@ function preload(){let s=document.createElement('script');s.src='https://cdnjs.c
 function setup(){
   createCanvas(W,H);smooth();textFont('Press Start 2P');winnerColor=color(0,0,128);
   synth=new p5.PolySynth();fxSynth=new p5.PolySynth();backgroundOsc=new p5.Oscillator('sine');backgroundOsc2=new p5.Oscillator('sine');bhOsc=new p5.Oscillator('triangle');
-  for(let i=0;i<100;i++)stars.push({x:random(W),y:random(H),s:random(1,2.5),speed:random(0.1,0.4)});
-  for(let i=0;i<300;i++)dust.push({x:random(W),y:random(H),s:random(0.5,1.5)});
+  for(let i=0; i<150; i++)stars.push({x:random(W),y:random(H),s:random(1,2.5),speed:random(0.1,0.4)});
+  for(let i=0; i<300; i++)dust.push({x:random(W),y:random(H),s:random(0.5,1.5)});
   currentGravity=random(0.05,1.95);currentBounce=floor(random(60,100));timer=floor(random(40,181));currentDestination=generatePlanetName();currentTheme=random(UI_THEMES);
   generateDeepSpaceElements();prepareSingularityEvents();planSpaceshipForRound();initTTS();connectTikfinity();
   keyButton=createButton('🔑');keyButton.position(15,H-45);keyButton.style('font-size','28px');keyButton.style('background','transparent');keyButton.style('border','none');keyButton.style('color','rgba(255,255,255,0.15)');keyButton.style('cursor','pointer');keyButton.mousePressed(toggleSettings);
@@ -94,7 +94,6 @@ function handleSpaceship(){
   let pos=starship.body.position,dx=starship.targetX-pos.x,moveX=abs(dx)>starship.speed?(dx>0?starship.speed:-starship.speed):0;
   Matter.Body.setPosition(starship.body,{x:pos.x+moveX,y:starship.y});
 
-  // NOVÝ DETAILNÍ UFO ARKANOID
   push();translate(pos.x,starship.y);noStroke();
   fill(0,255,255,random(150,255));ellipse(0,starship.h/2+5,starship.w*0.6,25);fill(255);ellipse(0,starship.h/2+5,starship.w*0.2,10);
   fill(80);ellipse(0,0,starship.w,starship.h*1.2);
@@ -168,12 +167,7 @@ function draw(){
     lastTick=millis();
   }
   
-  if(gameState==="WAITING"){
-    if(balls.length===0||(millis()-waitStartTime)/1000>10){
-      gameState="RESULTS";resultsTimer=10;let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score);
-      speakAnnouncer(s.length>0?`Round over! Ultimate commander is ${sanitizeText(s[0][0])}.`:`Round over. No active commanders.`,2);
-    }
-  }
+  if(gameState==="WAITING"){if(balls.length===0||(millis()-waitStartTime)/1000>10){gameState="RESULTS";resultsTimer=10;let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score);speakAnnouncer(s.length>0?`Round over! Ultimate commander is ${sanitizeText(s[0][0])}.`:`Round over. No active commanders.`,2);}}
   
   drawZones();drawWalls();drawPegs();drawBalls();drawExplosions();handleFollowEvents();drawUI();
   if(gameState==="WAITING")drawWaitingMessage();if(gameState==="RESULTS")drawResultsOverlay();
@@ -183,7 +177,8 @@ function draw(){
 }
 
 function spawnBall(userName){
-  if(!libraryLoaded||gameState!=="PLAYING"||balls.length>250)return; // Anti-Lag
+  if(!libraryLoaded||gameState!=="PLAYING")return;
+  // LIMIT 200 KULIČEK - PAK ZAČNOU NEJSTARŠÍ MIZET (VIZ drawBalls)
   if(!audioStarted)startSpaceAudio();
   let isR=random()<0.03;if(isR)playRainbowSound();else playSpawnSound();
   totalBallsFired++;
@@ -194,9 +189,16 @@ function spawnBall(userName){
 }
 
 function drawBalls(){
+  // OCHRANA 95% - POKUD JE MOC KULIČEK, NEJSTARŠÍ ODSTRANÍME
+  if (balls.length > 200) { removeBall(balls[0]); }
+
   for(let i=balls.length-1;i>=0;i--){
     let b=balls[i];if(!b.body){balls.splice(i,1);continue;}
     let pos=b.body.position;if(isNaN(pos.x)||isNaN(pos.y)){removeBall(b);continue;}
+
+    // RESET SKÓROVÁNÍ POKUD JE VYHOZENA NAHORU (Arkanoid/Exploze)
+    if(b.scored && b.body.velocity.y < -2 && pos.y < H-ZONE_H-50) { b.scored = false; }
+
     if(b.isRainbow){
         b.trail.push({x:pos.x,y:pos.y});if(b.trail.length>40)b.trail.shift();
         push();noStroke();colorMode(HSB);for(let t=0;t<b.trail.length;t++){fill((frameCount*5+t*15)%360,200,255,map(t,0,b.trail.length,0,1));ellipse(b.trail[t].x,b.trail[t].y,map(t,0,b.trail.length,4,16));}colorMode(RGB);pop();
@@ -214,45 +216,46 @@ function drawBalls(){
             b.lastShipHit=millis();b.combo+=2;b.lastHitTime=millis();updateScore(b.name,100,b.color);
             createExplosion(pos.x,pos.y,b.color);playExplosionSound();
             Matter.Body.applyForce(b.body,pos,{x:(pos.x-starship.body.position.x)*0.0001,y:-0.025});
-            if(random()<0.2)speakAnnouncer(random([`Great block by Arkanoid!`,`Vessel hit by ${sanitizeText(b.name)}!`]),0);
         }
     }
     
-    if(!b.scored){
-        for(let j=pegs.length-1;j>=0;j--){
-          let p=pegs[j];
-          if(dist(pos.x,pos.y,p.position.x,p.position.y)<18){
-              p.glow=255;b.combo+=1;b.lastHitTime=millis();
-              if(p.isExplosive){createExplosion(p.position.x,p.position.y,color(255,150,0));playExplosionSound();Matter.Body.applyForce(b.body,pos,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub(pos,p.position)),0.025));Matter.World.remove(world,p);pegs.splice(j,1);}
-          }
-        }
-    }
-    
-    if(pos.y>H-ZONE_H-10){
-      if(!b.scored){
-        let cz=zones.find(z=>pos.x>=z.x&&pos.x<z.x+z.w);
-        if(cz){
-          b.scored=true;b.body.collisionFilter={group:-1,category:4,mask:0}; // Anti-Stacking (propadne dolu)
-          let fs=floor(cz.score*(1+(b.combo*0.1)));
-          if(b.isRainbow){fs*=2;b.rainbowExplodeTime=millis()+2500;}
-          updateScore(b.name,fs,b.color);cz.flash=255;cz.flashColor=b.isRainbow?color(255):b.color;
-          if(fs>=5000){shakeAmount=8;playJackpotSound();speakAnnouncer(random([`Incredible! ${sanitizeText(b.name)} hit the core!`,`Epic landing by ${sanitizeText(b.name)}!`]),2);}
-          checkAllTimeRecords(b.name,leaderboard[b.name].score,b.color);
-        }
+    for(let j=pegs.length-1;j>=0;j--){
+      let p=pegs[j];
+      if(dist(pos.x,pos.y,p.position.x,p.position.y)<18){
+          p.glow=255;b.combo+=1;b.lastHitTime=millis();
+          if(p.isExplosive){createExplosion(p.position.x,p.position.y,color(255,150,0));playExplosionSound();Matter.Body.applyForce(b.body,pos,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub(pos,p.position)),0.025));Matter.World.remove(world,p);pegs.splice(j,1);}
       }
     }
     
-    if(b.scored&&b.isRainbow&&b.rainbowExplodeTime&&millis()>b.rainbowExplodeTime){
-        for(let e=0;e<3;e++)createExplosion(pos.x,pos.y,color(random(255),random(255),random(255)));
-        playExplosionSound();shakeAmount=15;speakAnnouncer("Rainbow supernova activated!",2);
-        for(let ob of balls){if(ob===b)continue;if(dist(pos.x,pos.y,ob.body.position.x,ob.body.position.y)<400){ob.scored=false;ob.body.collisionFilter={category:1,mask:4294967295};Matter.Body.applyForce(ob.body,ob.body.position,Matter.Vector.mult(Matter.Vector.normalise({x:ob.body.position.x-pos.x,y:ob.body.position.y-pos.y-50}),0.08));}}
-        b.rainbowExplodeTime=null;removeBall(b);continue;
+    if(pos.y>H-ZONE_H-10 && !b.scored){
+        let cz=zones.find(z=>pos.x>=z.x&&pos.x<z.x+z.w);
+        if(cz){
+          b.scored=true;
+          let fs=floor(cz.score*(1+(b.combo*0.1)));
+          if(b.isRainbow){fs*=2;b.rainbowExplodeTime=millis()+2500;}
+          updateScore(b.name,fs,b.color);cz.flash=255;cz.flashColor=b.isRainbow?color(255):b.color;
+          if(fs>=5000){shakeAmount=8;playJackpotSound();checkAllTimeRecords(b.name,leaderboard[b.name].score,b.color);}
+        }
     }
-    if(pos.y>H+150||pos.x<-150||pos.x>W+150){if(!b.isRainbow||(b.isRainbow&&!b.rainbowExplodeTime))removeBall(b);}
+    
+    if(b.isRainbow && b.rainbowExplodeTime && millis()>b.rainbowExplodeTime){
+        createExplosion(pos.x,pos.y,color(255));
+        playExplosionSound();shakeAmount=10;
+        for(let ob of balls){
+            if(ob===b)continue;
+            if(dist(pos.x,pos.y,ob.body.position.x,ob.body.position.y)<300){
+                ob.scored=false; 
+                let forceDir=Matter.Vector.normalise({x:ob.body.position.x-pos.x,y:ob.body.position.y-pos.y-80});
+                Matter.Body.applyForce(ob.body,ob.body.position,Matter.Vector.mult(forceDir,0.055)); // SLABŠÍ EXPLOZE
+            }
+        }
+        b.rainbowExplodeTime=null; removeBall(b); continue;
+    }
+    if(pos.y>H+150||pos.x<-150||pos.x>W+150)removeBall(b);
   }
 }
 
-function removeBall(b){Matter.World.remove(world,b.body);let i=balls.indexOf(b);if(i!==-1)balls.splice(i,1);}
+function removeBall(b){if(!b)return;Matter.World.remove(world,b.body);let i=balls.indexOf(b);if(i!==-1)balls.splice(i,1);}
 function onUserJoin(u,img){if(viewerSpaceObjects.find(o=>o.name===u))return;let obj={name:u,x:random(100,W-100),y:random(150,H-300),vx:random(-0.3,0.3),vy:random(-0.3,0.3),baseSize:40,extraSize:0,color:[random(100,255),random(100,255),random(255)],img:null,angle:random(TWO_PI),lastActiveTime:millis(),alpha:255};if(img)loadImage(img,l=>obj.img=l);viewerSpaceObjects.push(obj);}
 function updateUserLikes(u,c){let o=viewerSpaceObjects.find(ob=>ob.name===u);if(o){o.extraSize=min(150,o.extraSize+c*2);o.lastActiveTime=millis();o.alpha=255;}else{onUserJoin(u,null);setTimeout(()=>updateUserLikes(u,c),500);}}
 function drawViewerObjects(){
@@ -267,7 +270,7 @@ function drawViewerObjects(){
 
 function drawUI(){
   push();fill(5,5,15,240);noStroke();rect(0,0,W,70);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120);strokeWeight(2);line(0,70,W,70);
-  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v7.3.1",lX+2,54);
+  let lX=15,lY=30;textAlign(LEFT,CENTER);drawingContext.shadowBlur=10;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);fill(currentTheme[0],currentTheme[1],currentTheme[2],30);textSize(45);text(GAME_TITLE,lX+2,lY+2);fill(255);textSize(45);text(GAME_TITLE,lX,lY);drawingContext.shadowBlur=0;fill(currentTheme[0],currentTheme[1],currentTheme[2]);textSize(9);text("STABLE SINGULARITY SIMULATION v7.3.2",lX+2,54);
   let dW=360,dX=W/2-(dW/2),p=sin(frameCount*0.1)*3;
   fill(currentTheme[0],currentTheme[1],currentTheme[2],10+p);rect(dX,8,dW,54,8);fill(5,5,20,250);stroke(currentTheme[0],currentTheme[1],currentTheme[2],120+p*10);strokeWeight(2);rect(dX,8,dW,54,8);
   noStroke();let lT=new Intl.DateTimeFormat('cs-CZ',{timeStyle:'medium'}).format(new Date());
@@ -278,7 +281,7 @@ function drawUI(){
   fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,lH,8);noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(12);text("MISSION MILESTONES",120,25);stroke(255,30);strokeWeight(1);line(10,40,230,40);noStroke();textAlign(LEFT);
   ml.forEach((r,i)=>{textSize(i<3?13:10);let y=65+i*26;fill(r.color[0],r.color[1],r.color[2]);text(`${i===0?'👑 ':''}${i+1}. ${r.name}`,15,y);textAlign(RIGHT);fill(255,220);text(r.score,225,y);textAlign(LEFT);});
   translate(0,lH+15);fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,60,8);noStroke();textSize(11);
-  if(gameState==="PLAYING"){textAlign(LEFT,CENTER);fill(timer<10?color(255,50,50):color(currentTheme[0],currentTheme[1],currentTheme[2]));text("WARP-DRIVE: "+timer+"s",15,20);fill(50,255,50);text(`ACTIVE UNITS: ${totalBallsFired}`,15,40);}else if(gameState==="WAITING"){textAlign(LEFT,CENTER);fill(255,200,0);text("COOLING DOWN...",15,20);fill(50,255,50);text(`TOTAL UNITS: ${totalBallsFired}`,15,40);}pop();
+  if(gameState==="PLAYING"){textAlign(LEFT,CENTER);fill(timer<10?color(255,50,50):color(currentTheme[0],currentTheme[1],currentTheme[2]));text("WARP-DRIVE: "+timer+"s",15,20);fill(50,255,50);text(`ACTIVE UNITS: ${balls.length}`,15,40);}else if(gameState==="WAITING"){textAlign(LEFT,CENTER);fill(255,200,0);text("COOLING DOWN...",15,20);fill(50,255,50);text(`TOTAL UNITS: ${balls.length}`,15,40);}pop();
   
   push();translate(W-250,85);let sl=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,30),rH=45+max(1,sl.length)*22;
   fill(0,0,15,245);stroke(currentTheme[0],currentTheme[1],currentTheme[2],150);strokeWeight(2);rect(0,0,240,rH,8);noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(12);text("TOP CONTRIBUTORS",120,25);stroke(255,30);strokeWeight(1);line(10,40,230,40);noStroke();textAlign(LEFT);
@@ -288,7 +291,7 @@ function drawUI(){
 function mouseClicked(){if(!audioStarted)startSpaceAudio();if(mouseX<100&&mouseY<100&&audioStarted){triggerFollowEvent(random(TEST_BOTS));return;}if(mouseX>W-280&&mouseX<W&&mouseY>85&&mouseY<405){leaderboard={};shakeAmount=4;return;}if(mouseX>10&&mouseX<280&&mouseY>85&&mouseY<345){allTimeRecords=[];localStorage.setItem('galaxinko_records',JSON.stringify(allTimeRecords));shakeAmount=5;return;}if(mouseY>0&&mouseY<70){spawnBall(random(TEST_BOTS));shakeAmount=2;}}
 function drawWalls(){stroke(100);strokeWeight(2);for(let w of walls)line(w.position.x,H-ZONE_H,w.position.x,H);}
 function updateTravelSpeed(){currentTravelSpeed=lerp(currentTravelSpeed,(gameState==="PLAYING"?1.0:0.2),0.01);}
-function createExplosion(x,y,c){let col=c||color(255,random(100,255),0);for(let i=0;i<25;i++)explosions.push({x:x,y:y,vx:random(-5,5),vy:random(-5,5),life:255,col:col});}
+function createExplosion(x,y,c){let col=c||color(255,random(100,255),0);for(let i=0; i<25; i++)explosions.push({x:x,y:y,vx:random(-5,5),vy:random(-5,5),life:255,col:col});}
 function drawExplosions(){for(let i=explosions.length-1;i>=0;i--){let e=explosions[i];fill(red(e.col),green(e.col),blue(e.col),e.life);rect(e.x,e.y,6,6);e.x+=e.vx;e.y+=e.vy;e.life-=5;if(e.life<=0)explosions.splice(i,1);}}
 function checkAllTimeRecords(n,s,c){let i=allTimeRecords.findIndex(r=>r.name===n);if(i!==-1){if(s>allTimeRecords[i].score)allTimeRecords[i].score=s;}else{allTimeRecords.push({name:n,score:s,color:[red(c),green(c),blue(c)]});}allTimeRecords.sort((a,b)=>b.score-a.score);allTimeRecords=allTimeRecords.slice(0,5);localStorage.setItem('galaxinko_records',JSON.stringify(allTimeRecords));}
 function updateWinnerColor(){let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score);winnerColor=s.length>0?lerpColor(winnerColor,s[0][1].color,0.005):color(0,0,128);}
@@ -313,7 +316,7 @@ function initGame(){
         a++;
         switch(mode){
           case "SPIRAL":px=W/2+cos(i*0.15)*(15+i*2.0);py=200+i*2.5;break;
-          case "WAVES":px=map(i%20,0,20,50,W-50);py=220+floor(i/20)*60+sin(i*0.5)*40;break;
+          case "WAVES":px=map(i%20,0,20,50,W-50);py=220+floor(i/20) * 60 + sin(i * 0.5) * 40;break;
           case "HOURGLASS":px=map(i%15,0,15,100+abs(floor(i/15)-15)*12,W-100-abs(floor(i/15)-15)*12);py=200+floor(i/15)*40;break;
           case "GALAXY":let ag=random(TWO_PI),rd=pow(random(),0.5)*400;px=W/2+cos(ag)*rd;py=500+sin(ag)*rd;break;
           case "DIAMOND":px=W/2+((i%18)-9)*22;py=200+floor(i/18)*40+abs((i%18)-9)*12;break;
@@ -344,12 +347,12 @@ function initGame(){
 }
 
 function drawPegs(){noStroke();let pR=map(currentGravity,0.05,1.95,0,255),pG=map(currentGravity,0.05,1.95,255,100),pB=map(currentGravity,0.05,1.95,255,0),pC=color(pR,pG,pB);for(let p of pegs){p.glow=p.glow||0;if(p.glow>0){fill(pR,pG+50,pB+50,p.glow);rect(p.position.x-6,p.position.y-6,12,12);p.glow-=20;}if(p.isExplosive){fill(255,100,0);rect(p.position.x-4,p.position.y-4,8,8);}else{fill(pC);rect(p.position.x-4,p.position.y-4,8,8);}}}
-function drawZones(){for(let z of zones){if(z.flash>0){fill(z.flashColor);z.flash-=10;}else{fill(z.baseColor);}noStroke();rect(z.x,H-ZONE_H,z.w,ZONE_H);push();translate(z.x+z.w/2,H-20);rotate(-HALF_PI);textAlign(LEFT,CENTER);if(z.score>=5000){fill(255,230,100);textSize(18);}else{fill(255);textSize(z.w<30?10:14);}text(z.score,0,0);pop();}}
+function drawZones(){for(let z of zones){if(z.flash>0){fill(z.flashColor);z.flash-=10;}else{fill(z.baseColor);}noStroke();rect(z.x,H-ZONE_H,z.w,ZONE_H);push();translate(z.x+z.w/2,H-20);rotate(-HALF_PI);textAlign(LEFT,CENTER);if(z.score>=5000){fill(255,230,100);textSize(18);}else{fill(255);textSize(z.w < 30 ? 10 : 14);}text(z.score,0,0);pop();}}
 function drawWaitingMessage(){let a=map(sin(frameCount*0.15),-1,1,100,255);push();fill(255,50,50,a);textAlign(CENTER,CENTER);textSize(30);stroke(0);strokeWeight(4);text("WARNING: CLEANUP",W/2,H/2-50);textSize(14);noStroke();fill(255,200,0,a);text("REMAINING UNITS RETURNING TO BASE...",W/2,H/2);pop();}
 function drawResultsOverlay(){fill(0,0,20,230);rect(20,50,W-40,H-100,20);drawingContext.shadowBlur=20;drawingContext.shadowColor=color(currentTheme[0],currentTheme[1],currentTheme[2]);stroke(currentTheme[0],currentTheme[1],currentTheme[2],255);strokeWeight(4);fill(10,10,30,240);rect(40,80,W-80,H-160,15);drawingContext.shadowBlur=0;noStroke();fill(currentTheme[0],currentTheme[1],currentTheme[2]);textAlign(CENTER);textSize(50);text("ROUND COMPLETE",W/2,160);fill(255,215,0);textSize(22);text(`SECTOR: ${currentDestination}`,W/2,210);let s=Object.entries(leaderboard).sort((a,b)=>b[1].score-a[1].score).slice(0,5);for(let i=0;i<s.length;i++){let e=s[i],y=320+i*90;fill(i%2===0?color(255,255,255,20):color(255,255,255,5));rect(80,y-45,W-160,80,10);textAlign(LEFT,CENTER);fill(e[1].color);textSize(i===0?45:35);text(`${i===0?"👑 ":i+1+". "}${e[0]}`,100,y-5);textAlign(RIGHT,CENTER);fill(255);textSize(i===0?45:38);text(e[1].score.toLocaleString(),W-100,y-5);}textAlign(CENTER);fill(255,50,50);textSize(24);text(`NEXT ROUND IN: ${resultsTimer}s`,W/2,H-120);}
 function drawProceduralHUD(){push();stroke(255,10);strokeWeight(1);for(let i=0;i<H;i+=4)line(0,i+(frameCount%4),W,i+(frameCount%4));fill(0,255,0,150);textSize(8);textAlign(LEFT);text(`POS_X: ${camOffset.x.toFixed(4)}`,20,H-40);text(`POS_Y: ${camOffset.y.toFixed(4)}`,20,H-30);text(`ZOOM: ${camOffset.z.toFixed(4)}`,20,H-20);textAlign(RIGHT);text(`SENS_TEMP: ${(24+noise(frameCount*0.01)*5).toFixed(1)}°C`,W-20,H-30);text(`BUFFER_LOAD: ${balls.length*2}%`,W-20,H-20);pop();}
 function drawAntiBotOverlay(){push();if(random()<0.1){fill(255,150);noStroke();circle(random(W),random(H),random(1,3));}if(random()<0.02){fill(currentTheme[0],currentTheme[1],currentTheme[2],100);rect(0,random(H),W,random(1,10));}if(random()<0.05){fill(255,0,0,50);rect(random(W),random(H),20,20);}pop();}
-function triggerCosmicEvent(){if(cosmicEvent)return;eventOccurredThisRound=true;let fL=random()<0.5,s=random(25,45),sx=fL?-100:W+100,ty=H-ZONE_H-random(20,120),b=Matter.Bodies.circle(sx,ty,s/2,{isStatic:false,isSensor:false,density:0.1,frictionAir:0,collisionFilter:{mask:1}}),iC=random()<0.5;cosmicEvent={body:b,type:iC?"COMET":"METEOR",size:s,color:iC?color(150,200,255):color(255,100,50),trail:[]};Matter.World.add(world,b);Matter.Body.setVelocity(b,{x:fL?random(12,18):random(-12,-18),y:random(-1,1)});if(audioStarted){let o=new p5.Oscillator('sine');o.start();o.freq(random(100,400));o.freq(random(800,1200),1.5);o.amp(0.1);o.amp(0,1.5);setTimeout(()=>o.stop(),1600);}speakAnnouncer("Warning! Cosmic anomaly detected in the sector.",1);}
+function triggerCosmicEvent(){if(cosmicEvent)return;eventOccurredThisRound=true;let fL=random()<0.5,s=random(25,45),sx=fL?-100:W+100,ty=H-ZONE_H-random(20,120),b=Matter.Bodies.circle(sx,ty,s/2,{isStatic:false,isSensor:false,density:0.1,frictionAir:0,collisionFilter:{mask:1}}),iC=random()<0.5;cosmicEvent={body:b,type:iC?"COMET":"METEOR",size:s,color:iC?color(150,200,255):color(255,100,50),trail:[]};Matter.World.add(world,b);Matter.Body.setVelocity(b,{x:fL?random(12,18):random(-12,-18),y:random(-1,1)});if(audioStarted){let o=new p5.Oscillator('sine');o.start();o.freq(random(100,400));o.freq(random(800,1200),1.5);o.amp(0.1);o.amp(0,1.5);setTimeout(()=>o.stop(),1600);}}
 function handleCosmicEvent(){if(!cosmicEvent)return;let p=cosmicEvent.body.position;cosmicEvent.trail.push({x:p.x,y:p.y,life:255});if(cosmicEvent.trail.length>20)cosmicEvent.trail.shift();push();noStroke();for(let i=0;i<cosmicEvent.trail.length;i++){fill(red(cosmicEvent.color),green(cosmicEvent.color),blue(cosmicEvent.color),map(i,0,cosmicEvent.trail.length,0,150));ellipse(cosmicEvent.trail[i].x,cosmicEvent.trail[i].y,cosmicEvent.size*(i/cosmicEvent.trail.length));}fill(255);ellipse(p.x,p.y,cosmicEvent.size);fill(cosmicEvent.color);ellipse(p.x,p.y,cosmicEvent.size*0.8);pop();if(p.x<-300||p.x>W+300){Matter.World.remove(world,cosmicEvent.body);cosmicEvent=null;}}
 function spawnRareLegend(){let l=random(RARE_POOL);spaceDebris.push({x:random(50,W-50),y:-100,type:"LEGEND",legendId:l.id,size:l.size,color:color(l.col[0],l.col[1],l.col[2]),speed:random(0.8,1.8),vx:random(-0.5,0.5),rot:random(TWO_PI),rotSpeed:random(-0.06,0.06),wobble:random(0.02,0.08),isRare:true});}
 
@@ -369,7 +372,7 @@ function drawGalacticBackground(){
 function drawLegendShape(d){noStroke();fill(d.color);let s=d.size;switch(d.legendId){case "STARMAN":rect(-s/2,-s/4,s,s/2,5);fill(255);ellipse(-s/4,-s/4,s/5);break;case "HAWKING":fill(100);rect(-s/2,0,s,s/4);fill(d.color);rect(-s/4,-s/2,s/2,s/2);break;case "LAIKA":fill(150,100);ellipse(0,0,s,s);fill(d.color);ellipse(0,-s/6,s/2);break;case "ET":fill(100,50,0);rect(-s/2,0,s,s/2);fill(255);ellipse(0,-s/4,s/2);break;case "NYAN":fill(255,200,150);rect(-s/2,-s/3,s,s/1.5,3);break;case "VOYAGER":fill(180);ellipse(0,0,s/2);fill(212,175,55);ellipse(0,0,s/3);break;case "OUMUAMUA":fill(60,40,30);ellipse(0,0,s,s/4);break;case "SHUTTLE":fill(255);triangle(-s/2,s/2,s/2,s/2,0,-s/2);break;}}
 function drawGravityDust(){let r=map(currentGravity,0.05,1.95,100,255),g=map(currentGravity,0.05,1.95,200,100),b=map(currentGravity,0.05,1.95,255,50);fill(r,g,b,150);noStroke();for(let d of dust){d.y+=currentGravity*3*currentTravelSpeed;if(d.y>H){d.y=0;d.x=random(W);}rect(d.x,d.y,d.s,d.s);}}
 function prepareSingularityEvents(){bhSpawnTimes=[];if(random()<0.4)bhSpawnTimes.push(floor(random(5,timer*0.8)));}
-function checkSingularitySpawn(){if(bhSpawnTimes.includes(timer)&&!blackHole){let fL=random()<0.5;blackHole={x:fL?-150:W+150,y:random(200,H-450),startY:0,targetX:fL?W+250:-250,speed:random(0.8,1.5),size:random(12,18),noiseOffset:random(1000),noiseSpeed:random(0.01,0.02),wobbleAmp:random(40,90)};blackHole.startY=blackHole.y;bhSpawnTimes=bhSpawnTimes.filter(t=>t!==timer);speakAnnouncer("Warning! Black hole singularity forming!",1);}}
+function checkSingularitySpawn(){if(bhSpawnTimes.includes(timer)&&!blackHole){let fL=random()<0.5;blackHole={x:fL?-150:W+150,y:random(200,H-450),startY:0,targetX:fL?W+250:-250,speed:random(0.8,1.5),size:random(12,18),noiseOffset:random(1000),noiseSpeed:random(0.01,0.02),wobbleAmp:random(40,90)};blackHole.startY=blackHole.y;bhSpawnTimes=bhSpawnTimes.filter(t=>t!==timer);speakAnnouncer("Warning! Black hole singularity forming!", 1);}}
 function handleBlackHole(){if(!blackHole)return;let d=blackHole.targetX>blackHole.x?1:-1;blackHole.x+=blackHole.speed*d;let n=noise(frameCount*blackHole.noiseSpeed+blackHole.noiseOffset);blackHole.y=blackHole.startY+(n-0.5)*blackHole.wobbleAmp*2;let jS=blackHole.size*(1+(n-0.5)*0.15);if(audioStarted){let cD=abs(W/2-blackHole.x),tr=map(sin(frameCount*0.2),-1,1,0.8,1.0);bhOsc.amp(map(cD,W,0,0,0.08)*tr,0.1);bhOsc.freq(32+n*12);}push();translate(blackHole.x,blackHole.y);noStroke();for(let i=5;i>0;i--){fill(10+i*10,0,40+i*20,25);ellipse(0,0,jS+i*(blackHole.size*0.15)+(n*10));}fill(0);ellipse(0,0,jS);pop();for(let i=pegs.length-1;i>=0;i--){let p=pegs[i];if(dist(blackHole.x,blackHole.y,p.position.x,p.position.y)<jS*0.55&&random()<0.23){Matter.Composite.remove(world,p);createExplosion(p.position.x,p.position.y);playExplosionSound();pegs.splice(i,1);}}for(let i=balls.length-1;i>=0;i--){let b=balls[i];if(!b.body)continue;let ds=dist(blackHole.x,blackHole.y,b.body.position.x,b.body.position.y);if(ds<jS*0.5){removeBall(b);continue;}if(ds<blackHole.size*1.87){let sD=Math.max(ds,30);Matter.Body.applyForce(b.body,b.body.position,Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({x:blackHole.x,y:blackHole.y},b.body.position)),(blackHole.size*0.00018)/(sD/80)));}}if((d===1&&blackHole.x>blackHole.targetX)||(d===-1&&blackHole.x<blackHole.targetX)){blackHole=null;if(audioStarted)bhOsc.amp(0,0.5);}}
 
 function resetGame(){
