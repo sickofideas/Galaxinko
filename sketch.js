@@ -1,9 +1,8 @@
-// --- GALAXINKO (v6.1.0 - HOUSTON LIVE BROADCAST) ---
-// NOVINKY v6.1.0:
-// • Žádné zmínky o hazardu (jackpot, multiplier odstraněno).
-// • Procedurální generátor vtipných Houston/Space hlášek (tisíce kombinací).
-// • Hlubší "Radio" hlas pro autentičtější kosmický pocit.
-// • Silný důraz na "LIVE" interakci v mluveném slově.
+// --- GALAXINKO (v6.2.0 - BIG UI & WINNER ANNOUNCEMENT) ---
+// NOVINKY v6.2.0:
+// • Zvětšené texty (kuličky, jména, tabulky, zóny) pro lepší čitelnost na mobilu.
+// • Vyhlášení vítěze: Houston přečte jméno vítěze na konci každého kola.
+// • Lepší kontrast textů nad kuličkami.
 
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
@@ -65,7 +64,6 @@ function sanitizeText(text) {
   return s.trim() || "Commander";
 }
 
-// Procedurální generátor vtipných vesmírných příběhů
 function getHoustonStory(playerName) {
   const intros = [
     "Houston here. ", "Command center to live feed. ", "Galactic broadcast is online. ", 
@@ -96,7 +94,6 @@ function speakAnnouncer(phrase, priority = 0) {
   let utter = new SpeechSynthesisUtterance(phrase);
   utter.lang = 'en-US';
   if (availableVoices.length > 0) utter.voice = random(availableVoices);
-  // Nižší pitch pro rádiový "Houston" efekt
   utter.pitch = random(0.5, 0.8); 
   utter.rate = random(0.9, 1.1);  
   utter.volume = random(0.7, 1.0);
@@ -189,7 +186,7 @@ let nextNoteTime = 0;
 let bhOsc;
 const W = 900;
 const H = 950;
-const ZONE_H = 80;
+const ZONE_H = 100; // ZVĚTŠENO PRO LEPŠÍ ČITELNOST SKÓRE
 const RARE_POOL = [
   {id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28},
   {id: "HAWKING", name: "S. HAWKING", col: [50, 50, 255], size: 22},
@@ -496,6 +493,15 @@ function draw() {
     if (balls.length === 0 || timeSinceWait > 10) {
       gameState = "RESULTS";
       resultsTimer = 10;
+      
+      // VYHLÁŠENÍ VÍTĚZE KOLA
+      let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
+      if (sorted.length > 0) {
+          let winnerName = sanitizeText(sorted[0][0]);
+          speakAnnouncer(`Round over! The ultimate commander of this sector is ${winnerName}. Great job!`, 2);
+      } else {
+          speakAnnouncer(`Round over. No active commanders this time.`, 2);
+      }
     }
   }
   
@@ -572,9 +578,15 @@ function drawBalls() {
     if (b.combo > 2) { fill(255); noStroke(); rect(-7, -7, 14, 14); }
     fill(b.color); stroke(255); strokeWeight(1); rect(-5, -5, 10, 10);
     rotate(-b.body.angle);
-    fill(b.color); noStroke(); textAlign(CENTER); textSize(8); text(b.name, 0, -12);
     
-    if (b.combo > 0) { fill(255, 200, 0); textSize(10); text("x" + b.combo, 0, -22); }
+    // ZVĚTŠENÉ JMÉNO A COMBO NAD KULIČKOU (s lehkým stínem pro čitelnost)
+    fill(0, 150); noStroke(); textAlign(CENTER); textSize(11); text(b.name, 1, -13); // Stín
+    fill(b.color); text(b.name, 0, -14);
+    
+    if (b.combo > 0) { 
+        fill(0, 150); textSize(13); text("x" + b.combo, 1, -25); // Stín
+        fill(255, 200, 0); text("x" + b.combo, 0, -26); 
+    }
     pop();
     
     if (b.combo > 0 && millis() - b.lastHitTime > 2000) b.combo = 0;
@@ -673,51 +685,55 @@ function drawViewerObjects() {
 
 function drawUI() {
   push();
-  fill(0, 0, 30, 255); noStroke(); rect(0, 0, W, 85);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 100); strokeWeight(2); line(0, 83, W, 83);
-  let logoX = 20, logoY = 40;
-  textAlign(LEFT, CENTER); fill(currentTheme[0], currentTheme[1], currentTheme[2], 20); textSize(64); text(GAME_TITLE, logoX + 4, logoY + 4);
-  fill(255); textSize(64); text(GAME_TITLE, logoX, logoY);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(11); text("STABLE SINGULARITY SIMULATION v6.1.0", logoX + 2, logoY + 34);
+  // Větší výška horního panelu
+  fill(0, 0, 30, 255); noStroke(); rect(0, 0, W, 100);
+  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 100); strokeWeight(2); line(0, 98, W, 98);
+  let logoX = 20, logoY = 45;
+  textAlign(LEFT, CENTER); fill(currentTheme[0], currentTheme[1], currentTheme[2], 20); textSize(70); text(GAME_TITLE, logoX + 4, logoY + 4);
+  fill(255); textSize(70); text(GAME_TITLE, logoX, logoY);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(14); text("STABLE SINGULARITY SIMULATION v6.2.0", logoX + 2, logoY + 38);
   
-  let dropZoneW = 400, dropZoneX = W/2 - (dropZoneW / 2);
+  let dropZoneW = 450, dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
-  fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); rect(dropZoneX - 10, 6, dropZoneW + 20, 72, 15);
-  fill(5, 5, 20, 250); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120 + pulse * 10); strokeWeight(2); rect(dropZoneX, 10, dropZoneW, 64, 12);
-  noStroke(); textAlign(CENTER, CENTER); fill(255); textSize(16); text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 32);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(10); text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 55);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(RIGHT); textSize(9); text(`${currentDestination}`, W - 25, 25);
-  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); fill(200); textSize(8); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 45);
-  fill(255, 150, 0); text(`BOUNCE-X: ${currentBounce}`, W - 25, 60);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); rect(dropZoneX - 10, 6, dropZoneW + 20, 85, 15);
+  fill(5, 5, 20, 250); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120 + pulse * 10); strokeWeight(2); rect(dropZoneX, 10, dropZoneW, 75, 12);
+  noStroke(); textAlign(CENTER, CENTER); fill(255); textSize(18); text("SYSTEM STATUS: ONLINE", dropZoneX + dropZoneW/2, 35);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(12); text("GEOMETRY: PROCEDURAL | DATA: SYNCED", dropZoneX + dropZoneW/2, 65);
+  
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(RIGHT); textSize(11); text(`${currentDestination}`, W - 25, 30);
+  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99)); fill(200); textSize(10); text(`G-FORCE: ${gDisp} [R-${roundCount}]`, W - 25, 50);
+  fill(255, 150, 0); text(`BOUNCE-X: ${currentBounce}`, W - 25, 68);
   pop();
   
-  push(); translate(0, 100);
-  fill(100, 100, 150, 100); rect(10, 0, 250, 225); fill(0, 0, 20, 245); rect(12, 2, 246, 221);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(9); text("MISSION MILESTONES", 130, 20);
+  // ZVĚTŠENÝ LEVÝ PANEL
+  push(); translate(0, 115);
+  fill(100, 100, 150, 100); rect(10, 0, 280, 260); fill(0, 0, 20, 245); rect(12, 2, 276, 256);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(12); text("MISSION MILESTONES", 150, 22);
   textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => {
-    let tSize = (i === 0) ? 12 : (i === 1) ? 10 : 9; textSize(tSize);
-    fill(rec.color[0], rec.color[1], rec.color[2]); text(`${i+1}. ${rec.name}`, 22, 48 + i * 22);
-    textAlign(RIGHT); fill(255, 180); text(rec.score, 248, 48 + i * 22); textAlign(LEFT);
+    let tSize = (i === 0) ? 14 : (i === 1) ? 12 : 11; textSize(tSize);
+    fill(rec.color[0], rec.color[1], rec.color[2]); text(`${i+1}. ${rec.name}`, 22, 55 + i * 25);
+    textAlign(RIGHT); fill(255, 180); text(rec.score, 278, 55 + i * 25); textAlign(LEFT);
   });
-  translate(0, 235);
-  fill(100, 100, 150, 100); rect(10, 0, 250, 60); fill(0, 0, 30, 245); rect(12, 2, 246, 56); textSize(8);
+  translate(0, 270);
+  fill(100, 100, 150, 100); rect(10, 0, 280, 70); fill(0, 0, 30, 245); rect(12, 2, 276, 66); textSize(10);
   if (gameState === "PLAYING") {
     textAlign(LEFT, CENTER); fill(timer < 10 ? color(255,0,0) : color(currentTheme[0], currentTheme[1], currentTheme[2]));
-    text("WARP-DRIVE: " + timer + "s", 22, 18); fill(0, 255, 0); text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 42);
+    text("WARP-DRIVE: " + timer + "s", 22, 22); fill(0, 255, 0); text(`ACTIVE UNITS: ${totalBallsFired}`, 22, 48);
   } else if (gameState === "WAITING") {
-    textAlign(LEFT, CENTER); fill(255, 200, 0); text("COOLING DOWN...", 22, 18); fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 42);
+    textAlign(LEFT, CENTER); fill(255, 200, 0); text("COOLING DOWN...", 22, 22); fill(0, 255, 0); text(`TOTAL UNITS: ${totalBallsFired}`, 22, 48);
   }
   pop();
   
-  push(); translate(W - 260, 100);
+  // ZVĚTŠENÝ PRAVÝ PANEL
+  push(); translate(W - 290, 115);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 12);
-  fill(100, 100, 150, 100); rect(0, 0, 250, 285); fill(0, 0, 20, 240); rect(2, 2, 246, 281);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(10); text("TOP CONTRIBUTORS", 125, 20);
-  textAlign(LEFT); textSize(8);
+  fill(100, 100, 150, 100); rect(0, 0, 280, 320); fill(0, 0, 20, 240); rect(2, 2, 276, 316);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(12); text("TOP CONTRIBUTORS", 140, 22);
+  textAlign(LEFT); textSize(11);
   sorted.forEach((e, i) => {
-    fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, 50 + i * 19);
-    textAlign(RIGHT); fill(255); text(e[1].score, 235, 50 + i * 19); textAlign(LEFT);
+    fill(e[1].color); text(`${nf(i+1, 2)}. ${e[0]}`, 15, 55 + i * 22);
+    textAlign(RIGHT); fill(255); text(e[1].score, 265, 55 + i * 22); textAlign(LEFT);
   });
   pop();
 }
@@ -903,9 +919,10 @@ function drawZones() {
     let baseCol = isJackpot ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
     if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(baseCol); }
     noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
-    push(); translate(z.x + z.w/2, H - 15); rotate(-HALF_PI); textAlign(LEFT, CENTER);
-    if (isJackpot) { fill(255, 230, 100); textSize(12); text(z.score, 0, 0); }
-    else { fill(255); textSize(z.w < 30 ? 7 : 10); text(z.score, 0, 0); }
+    push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER);
+    // ZVĚTŠENÉ TEXTY V ZÓNÁCH
+    if (isJackpot) { fill(255, 230, 100); textSize(16); text(z.score, 0, 0); }
+    else { fill(255); textSize(z.w < 30 ? 10 : 14); text(z.score, 0, 0); }
     pop();
   }
 }
@@ -919,16 +936,17 @@ function drawWaitingMessage() {
 function drawResultsOverlay() {
   fill(0, 0, 20, 230); rect(20, 50, W - 40, H - 100, 20);
   stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(4); noFill(); rect(30, 60, W - 60, H - 120, 15);
-  noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(45); text("ROUND COMPLETE", W/2, 140);
-  fill(255, 215, 0); textSize(22); text(`SECTOR: ${currentDestination}`, W/2, 190);
+  // ZVĚTŠENÉ TEXTY NA VÝSLEDKOVÉ OBRAZOVCE
+  noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(55); text("ROUND COMPLETE", W/2, 140);
+  fill(255, 215, 0); textSize(26); text(`SECTOR: ${currentDestination}`, W/2, 200);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
   for (let i = 0; i < sorted.length; i++) {
-    let entry = sorted[i]; let yPos = 300 + i * 90;
+    let entry = sorted[i]; let yPos = 310 + i * 90;
     fill(255, 255, 255, 20); rect(60, yPos - 55, W - 120, 80, 10);
-    textAlign(LEFT, CENTER); fill(entry[1].color); textSize(35); text(`${i + 1}. ${entry[0]}`, 90, yPos - 15);
-    textAlign(RIGHT, CENTER); fill(255); textSize(38); text(entry[1].score.toLocaleString(), W - 90, yPos - 15);
+    textAlign(LEFT, CENTER); fill(entry[1].color); textSize(40); text(`${i + 1}. ${entry[0]}`, 90, yPos - 15);
+    textAlign(RIGHT, CENTER); fill(255); textSize(42); text(entry[1].score.toLocaleString(), W - 90, yPos - 15);
   }
-  textAlign(CENTER); fill(255, 50, 50); textSize(20); text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
+  textAlign(CENTER); fill(255, 50, 50); textSize(24); text(`NEXT ROUND IN: ${resultsTimer}s`, W/2, H - 60);
 }
 
 function drawProceduralHUD() {
