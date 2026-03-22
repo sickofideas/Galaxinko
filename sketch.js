@@ -1,11 +1,9 @@
-// --- GALAXINKO (v6.0.1 - THE SHOW UPDATE FIX) ---
-// Opraveno: Chybějící proměnná audioStarted a synth.
-// NOVINKY:
-// • AI Komentátor (TTS) s měnícím se hlasem a cenzurou.
-// • Chat drop: Komentář = kuličky dle délky textu (max 15).
-// • Dynamické UI: Každé kolo má jinou neonovou barvu.
-// • Extrémní odrazivost stěn (2.2), zahuštěné obrazce.
-// • Opravený TikFinity spawn pro lajky.
+// --- GALAXINKO (v6.1.0 - HOUSTON LIVE BROADCAST) ---
+// NOVINKY v6.1.0:
+// • Žádné zmínky o hazardu (jackpot, multiplier odstraněno).
+// • Procedurální generátor vtipných Houston/Space hlášek (tisíce kombinací).
+// • Hlubší "Radio" hlas pro autentičtější kosmický pocit.
+// • Silný důraz na "LIVE" interakci v mluveném slově.
 
 const GAME_TITLE = "GALAXINKO";
 let engine, world;
@@ -32,37 +30,23 @@ let currentBounce = 50;
 let spawnPerEvent = 1;
 let currentShipChance = 30;
 
-// --- DYNAMICKÉ BARVY UI ---
 const UI_THEMES = [
-  [0, 255, 255],   // Cyan
-  [255, 50, 255],  // Pink
-  [50, 255, 50],   // Neon Green
-  [255, 200, 0],   // Gold/Yellow
-  [255, 100, 50],  // Orange
-  [150, 100, 255]  // Purple
+  [0, 255, 255], [255, 50, 255], [50, 255, 50], 
+  [255, 200, 0], [255, 100, 50], [150, 100, 255]
 ];
 let currentTheme = UI_THEMES[0];
 
-// --- ARKANOID STARSHIP ---
 let starship = null;
 let shipPlanned = false;
 let shipSpawnAt = -1;
-
-// --- VIEWER INTERACTION ---
 let viewerSpaceObjects = [];
 let cosmicEvent = null;
 let eventOccurredThisRound = false;
 
-// --- AUDIO PROMĚNNÉ (OPRAVENO) ---
-let synth, fxSynth, backgroundOsc, backgroundOsc2;
-let audioStarted = false;
-let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
-
-// --- AI ANNOUNCER (TEXT-TO-SPEECH) ---
+// --- AI ANNOUNCER (HOUSTON TEXT-TO-SPEECH) ---
 let availableVoices = [];
 let lastSpokeTime = 0;
 
-// Cenzurní filtr
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
 function initTTS() {
@@ -74,11 +58,34 @@ function initTTS() {
 }
 
 function sanitizeText(text) {
-  if(!text) return "Player";
+  if(!text) return "Commander";
   let s = text.replace(badWordsRegex, "Bleep");
   s = s.replace(/[^a-zA-Z0-9 ]/g, ""); 
   s = s.replace(/(.)\1{3,}/g, "$1$1"); 
-  return s.trim() || "Player";
+  return s.trim() || "Commander";
+}
+
+// Procedurální generátor vtipných vesmírných příběhů
+function getHoustonStory(playerName) {
+  const intros = [
+    "Houston here. ", "Command center to live feed. ", "Galactic broadcast is online. ", 
+    "Telemetry update. ", "Attention space crew! ", "Live observation deck reporting. "
+  ];
+  const actions = [
+    `Astronaut Dave just spilled zero-G coffee on the main console because of ${playerName}. `,
+    `We are detecting a massive energy surge from ${playerName}'s coordinates. `,
+    `Someone left the airlock open again, please check your live feed. `,
+    `Captain, ${playerName} is single-handedly carrying this live operation. `,
+    `The alien lifeforms are requesting more dropping units from ${playerName}. `,
+    `Oxygen levels are stable, but the fun meter on this stream is off the charts. `,
+    `Our radars show ${playerName} is doing some crazy unauthorized maneuvers. `,
+    `Warning, we have a rogue space-cat in the engine room, but ${playerName} is handling it. `
+  ];
+  const outros = [
+    "Keep it up on the live stream!", "Awaiting further instructions.", "Over and out.", 
+    "Let's see what happens next.", "May the space force be with you.", "Continuing observation."
+  ];
+  return random(intros) + random(actions) + random(outros);
 }
 
 function speakAnnouncer(phrase, priority = 0) {
@@ -89,8 +96,9 @@ function speakAnnouncer(phrase, priority = 0) {
   let utter = new SpeechSynthesisUtterance(phrase);
   utter.lang = 'en-US';
   if (availableVoices.length > 0) utter.voice = random(availableVoices);
-  utter.pitch = random(0.7, 1.4); 
-  utter.rate = random(0.9, 1.4);  
+  // Nižší pitch pro rádiový "Houston" efekt
+  utter.pitch = random(0.5, 0.8); 
+  utter.rate = random(0.9, 1.1);  
   utter.volume = random(0.7, 1.0);
   
   window.speechSynthesis.speak(utter);
@@ -133,37 +141,27 @@ function connectTikfinity() {
                 setTimeout(() => spawnBall(name), i * 150);
             }
             
-            if (millis() - lastSpokeTime > 6000) {
-                let phrases = [
-                    `${safeName} is dropping units!`, 
-                    `Incoming balls from ${safeName}!`, 
-                    `Message received from ${safeName}.`,
-                    `Deploying fleet for ${safeName}.`
-                ];
-                speakAnnouncer(random(phrases), 0);
+            if (millis() - lastSpokeTime > 8000) {
+                speakAnnouncer(getHoustonStory(safeName), 0);
                 lastSpokeTime = millis();
             }
         }
         else if (evt !== "like" && evt !== "chat") {
-          for (let s = 0; s < spawnPerEvent; s++) {
-            spawnBall(name);
-          }
+          for (let s = 0; s < spawnPerEvent; s++) { spawnBall(name); }
         }
         
         if (evt === "like") {
           let count = data.data?.likeCount || 1;
           updateUserLikes(name, count);
           
-          if (millis() - lastSpokeTime > 8000) {
-             speakAnnouncer(random([`Energy boost from ${safeName}!`, `Thanks for the likes, ${safeName}!`]), 0);
+          if (millis() - lastSpokeTime > 9000) {
+             speakAnnouncer(random([`Houston to ${safeName}, energy shields are boosted thanks to your transmission!`, `Live feed confirms power up from ${safeName}.`]), 0);
              lastSpokeTime = millis();
           }
           
           for (let i = 0; i < count; i++) {
             setTimeout(() => {
-              for (let s = 0; s < spawnPerEvent; s++) {
-                spawnBall(name);
-              }
+              for (let s = 0; s < spawnPerEvent; s++) { spawnBall(name); }
             }, i * 120);
           }
         }
@@ -202,6 +200,10 @@ const RARE_POOL = [
   {id: "OUMUAMUA", name: "OUMUAMUA", col: [60, 40, 30], size: 45},
   {id: "SHUTTLE", name: "NASA SHUTTLE", col: [255, 255, 255], size: 35}
 ];
+
+let synth, fxSynth, backgroundOsc, backgroundOsc2;
+let audioStarted = false;
+let allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
 
 const SHAPES = {
   "HEART": [" ***** ***** ", " ******* ******* ", "*****************", "*****************", " *************** ", " ************* ", " *********** ", " ********* ", " ***** ", " *** ", " * "],
@@ -328,7 +330,7 @@ function spawnSpaceship() {
     let body = Matter.Bodies.rectangle(-200, shipY, shipW, shipH, { isStatic: true, restitution: 1.5, friction: 0 });
     Matter.World.add(world, body);
     starship = { body: body, w: shipW, h: shipH, y: shipY, targetX: W/2, speed: 6, activeFrames: 0, maxFrames: 60 * 25, state: "ENTERING" };
-    speakAnnouncer(random(["Starship entering the sector!", "Watch out for the Arkanoid ship!"]), 1);
+    speakAnnouncer(random(["Houston, unidentified Starship is entering the live broadcast area.", "Radar picks up a vessel on the live feed!"]), 1);
 }
 
 function handleSpaceship() {
@@ -384,7 +386,7 @@ function startSpaceAudio() {
   backgroundOsc2.start(); backgroundOsc2.amp(0.01, 2); backgroundOsc2.freq(110);
   bhOsc.start(); bhOsc.amp(0);
   audioStarted = true;
-  speakAnnouncer("System online. Audio sequence initiated.", 2);
+  speakAnnouncer("Houston to ground control. We are live and systems are fully operational.", 2);
 }
 
 function playSpawnSound() {
@@ -472,7 +474,7 @@ function draw() {
       if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
       if (random() < 0.11) spawnRareLegend();
       
-      if (timer === 10) speakAnnouncer("10 seconds remaining.", 1);
+      if (timer === 10) speakAnnouncer("Houston, we have 10 seconds remaining on the live feed.", 1);
       
       if (timer <= 0) {
         gameState = "WAITING";
@@ -480,7 +482,7 @@ function draw() {
         shakeAmount = 6;
         playCleanupSound();
         playTimerEndSequence();
-        speakAnnouncer("Simulation complete. Cleaning up units.", 2);
+        speakAnnouncer("Sector operations complete. Returning units to base.", 2);
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -586,7 +588,7 @@ function drawBalls() {
                 let force = { x: (pos.x - starship.body.position.x) * 0.0001, y: -0.015 };
                 Matter.Body.applyForce(b.body, pos, force);
                 
-                if (random() < 0.2) speakAnnouncer(random([`Great bounce by ${sanitizeText(b.name)}!`, `Direct hit from ${sanitizeText(b.name)}!`]), 0);
+                if (random() < 0.2) speakAnnouncer(random([`A live collision recorded from ${sanitizeText(b.name)}!`, `Vessel hit by ${sanitizeText(b.name)}!`, `Houston, ship has been impacted by ${sanitizeText(b.name)}.`]), 0);
             }
         }
     }
@@ -619,7 +621,7 @@ function drawBalls() {
           cz.flash = 255; cz.flashColor = b.color;
           if (finalScore >= 5000) { 
               shakeAmount = 8; playJackpotSound(); 
-              speakAnnouncer(random([`Unbelievable! ${sanitizeText(b.name)} just hit the five thousand multiplier!`, `Massive jackpot for ${sanitizeText(b.name)}!`, `Holy moly! High score for ${sanitizeText(b.name)}!`]), 2);
+              speakAnnouncer(random([`Incredible! ${sanitizeText(b.name)} just hit the planetary core!`, `Houston, we are reading a massive supernova from ${sanitizeText(b.name)}!`, `Live feed confirms an epic landing by ${sanitizeText(b.name)}!`]), 2);
           }
           checkAllTimeRecords(b.name, leaderboard[b.name].score, b.color);
         }
@@ -676,7 +678,7 @@ function drawUI() {
   let logoX = 20, logoY = 40;
   textAlign(LEFT, CENTER); fill(currentTheme[0], currentTheme[1], currentTheme[2], 20); textSize(64); text(GAME_TITLE, logoX + 4, logoY + 4);
   fill(255); textSize(64); text(GAME_TITLE, logoX, logoY);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(11); text("STABLE SINGULARITY SIMULATION v6.0.1", logoX + 2, logoY + 34);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(11); text("STABLE SINGULARITY SIMULATION v6.1.0", logoX + 2, logoY + 34);
   
   let dropZoneW = 400, dropZoneX = W/2 - (dropZoneW / 2);
   let pulse = sin(frameCount * 0.1) * 3;
@@ -721,7 +723,7 @@ function drawUI() {
 }
 
 function mouseClicked() {
-  if (!audioStarted) startSpaceAudio(); // Vynutí spuštění zvuku a TTS při kliku
+  if (!audioStarted) startSpaceAudio(); // Vynutí spuštění zvuku při prvním kliknutí
   if (mouseX > W-260 && mouseX < W && mouseY > 100 && mouseY < 385) { leaderboard = {}; shakeAmount = 4; return; }
   if (mouseX > 10 && mouseX < 260 && mouseY > 100 && mouseY < 130) {
     allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] });
@@ -955,7 +957,7 @@ function triggerCosmicEvent() {
   cosmicEvent = { body: body, type: isComet ? "COMET" : "METEOR", size: size, color: isComet ? color(150, 200, 255) : color(255, 100, 50), trail: [] };
   Matter.World.add(world, body); Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
   if (audioStarted) { let osc = new p5.Oscillator('sine'); osc.start(); osc.freq(random(100, 400)); osc.freq(random(800, 1200), 1.5); osc.amp(0.1); osc.amp(0, 1.5); setTimeout(() => osc.stop(), 1600); }
-  speakAnnouncer("Warning! Cosmic event detected in the sector.", 1);
+  speakAnnouncer("Warning! Cosmic anomaly detected in the sector.", 1);
 }
 
 function handleCosmicEvent() {
@@ -1036,7 +1038,7 @@ function checkSingularitySpawn() {
       speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90)
     };
     blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
-    speakAnnouncer("Warning! Black hole singularity forming!", 1);
+    speakAnnouncer("Warning! Black hole singularity forming on the live feed!", 1);
   }
 }
 
@@ -1090,5 +1092,5 @@ function resetGame() {
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents();
   planSpaceshipForRound();
   
-  speakAnnouncer(`Welcome to sector ${currentDestination}. Dropping phase initiated.`, 1);
+  speakAnnouncer(`Welcome to sector ${currentDestination}. The live dropping phase has started.`, 1);
 }
