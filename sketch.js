@@ -1,4 +1,4 @@
-// --- GALAXINKO (v7.0.0 - PRO BROADCAST 9:10) ---
+// --- GALAXINKO (v7.1.0 - EPIC FOLLOW EVENTS) ---
 const GAME_TITLE = "GALAXINKO";
 let engine, world, balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {};
 let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFired = 0, roundCount = 1;
@@ -8,6 +8,9 @@ let currentDestination = "", currentGravity = 0.6, currentBounce = 50, spawnPerE
 const UI_THEMES = [[0, 255, 255], [255, 50, 255], [50, 255, 50], [255, 200, 0], [255, 100, 50], [150, 100, 255]];
 let currentTheme = UI_THEMES[0];
 let starship = null, shipPlanned = false, shipSpawnAt = -1, viewerSpaceObjects = [], cosmicEvent = null, eventOccurredThisRound = false;
+
+// Pole pro nové efekty follow
+let followEvents = [];
 
 let availableVoices = [], lastSpokeTime = 0;
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
@@ -51,11 +54,16 @@ function connectTikfinity() {
       if (possibleName && possibleName !== "Anonym") {
         let name = possibleName.toUpperCase().substring(0, 12); let safeName = sanitizeText(name);
         onUserJoin(name, data?.data?.profilePictureUrl || data?.profilePictureUrl || "");
-        if (evt === "chat") {
+        
+        // FOLLOW EVENT
+        if (evt === "follow") {
+            triggerFollowEvent(safeName);
+        }
+        else if (evt === "chat") {
             let chars = (data?.data?.comment || "").length; let ballCount = Math.min(chars, 15);
             for (let i = 0; i < ballCount; i++) setTimeout(() => spawnBall(name), i * 150);
             if (millis() - lastSpokeTime > 8000) { speakAnnouncer(getHoustonStory(safeName), 0); lastSpokeTime = millis(); }
-        } else if (evt !== "like" && evt !== "chat") {
+        } else if (evt !== "like") {
           for (let s = 0; s < spawnPerEvent; s++) spawnBall(name);
         }
         if (evt === "like") {
@@ -193,6 +201,79 @@ function updateJukebox() {
   if (millis() > nextNoteTime) { synth.play(pow(2, (random(musicScale) - 69) / 12) * 440, 0.01, 0, 1.5); nextNoteTime = millis() + random(2000, 5000); }
 }
 
+// --- FOLLOW EVENT LOGIC ---
+function triggerFollowEvent(name) {
+  let side = floor(random(3)); // 0: top, 1: right, 2: left
+  let startX, startY;
+  if (side === 0) { startX = random(100, W-100); startY = -50; }
+  else if (side === 1) { startX = W + 50; startY = random(100, H/3); }
+  else { startX = -50; startY = random(100, H/3); }
+
+  let targetX = W / 2 + random(-200, 200);
+  let targetY = H / 2 + random(-250, 50);
+
+  let angle = atan2(targetY - startY, targetX - startX);
+  let speed = random(18, 28);
+  let col = color(random(150, 255), random(100, 255), random(150, 255));
+
+  followEvents.push({
+      name: name, x: startX, y: startY, vx: cos(angle) * speed, vy: sin(angle) * speed,
+      targetX: targetX, targetY: targetY, color: col, exploded: false, timer: 100, trail: []
+  });
+  
+  if(random() < 0.3) speakAnnouncer(random(["New recruit approaching!", "Incoming vessel from " + name]), 0);
+}
+
+function handleFollowEvents() {
+  for (let i = followEvents.length - 1; i >= 0; i--) {
+      let fe = followEvents[i];
+      if (!fe.exploded) {
+          fe.trail.push({x: fe.x, y: fe.y});
+          if (fe.trail.length > 15) fe.trail.shift();
+
+          noStroke();
+          for(let t=0; t<fe.trail.length; t++) {
+              let tr = fe.trail[t];
+              fill(red(fe.color), green(fe.color), blue(fe.color), map(t, 0, fe.trail.length, 0, 150));
+              ellipse(tr.x, tr.y, map(t, 0, fe.trail.length, 5, 25));
+          }
+          fill(255); ellipse(fe.x, fe.y, 25);
+          fill(fe.color); ellipse(fe.x, fe.y, 18);
+
+          fe.x += fe.vx; fe.y += fe.vy;
+
+          if (dist(fe.x, fe.y, fe.targetX, fe.targetY) < 30) {
+              fe.exploded = true;
+              playExplosionSound();
+              shakeAmount = 5;
+              for(let e=0; e<50; e++) {
+                  explosions.push({x: fe.x, y: fe.y, vx: random(-12, 12), vy: random(-12, 12), life: 255, col: fe.color});
+              }
+          }
+      } else {
+          push();
+          translate(fe.targetX, fe.targetY);
+          let scaleAmt = map(fe.timer, 100, 0, 1, 4.5); 
+          let alpha = map(fe.timer, 100, 0, 300, -50); 
+          scale(scaleAmt);
+          textAlign(CENTER, CENTER);
+          drawingContext.shadowBlur = 20;
+          drawingContext.shadowColor = fe.color;
+          fill(255, alpha);
+          textSize(30);
+          text(fe.name, 0, 0);
+          drawingContext.shadowBlur = 0;
+          if (fe.timer % 4 === 0) {
+               fill(fe.color); ellipse(random(-40, 40), random(-40, 40), random(2, 5));
+          }
+          pop();
+
+          fe.timer--;
+          if (fe.timer <= 0) followEvents.splice(i, 1);
+      }
+  }
+}
+
 function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
@@ -242,7 +323,11 @@ function draw() {
     }
   }
   
-  drawZones(); drawWalls(); drawPegs(); drawBalls(); drawExplosions(); drawUI();
+  drawZones(); drawWalls(); drawPegs(); drawBalls(); drawExplosions();
+  
+  handleFollowEvents(); // VYKRESLENÍ FOLLOW EFEKTŮ
+  
+  drawUI();
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
   drawProceduralHUD(); drawAntiBotOverlay();
@@ -350,15 +435,12 @@ function drawViewerObjects() {
 }
 
 function drawUI() {
-  push();
-  // UŽŠÍ A PROFI HORNÍ LIŠTA
-  fill(5, 5, 15, 240); noStroke(); rect(0, 0, W, 70);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120); strokeWeight(2); line(0, 70, W, 70);
+  push(); fill(5, 5, 15, 240); noStroke(); rect(0, 0, W, 70); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120); strokeWeight(2); line(0, 70, W, 70);
   let logoX = 15, logoY = 30; textAlign(LEFT, CENTER);
   drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(currentTheme[0], currentTheme[1], currentTheme[2]);
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); textSize(45); text(GAME_TITLE, logoX + 2, logoY + 2);
   fill(255); textSize(45); text(GAME_TITLE, logoX, logoY); drawingContext.shadowBlur = 0; 
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(9); text("STABLE SINGULARITY SIMULATION v7.0.0", logoX + 2, 54);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); textSize(9); text("STABLE SINGULARITY SIMULATION v7.1.0", logoX + 2, 54);
   
   let dropZoneW = 360, dropZoneX = W/2 - (dropZoneW / 2), pulse = sin(frameCount * 0.1) * 3;
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + pulse); rect(dropZoneX, 8, dropZoneW, 54, 8);
@@ -373,8 +455,7 @@ function drawUI() {
   fill(255, 150, 0); text(`BOUNCE-X: ${currentBounce}`, W - 15, 56);
   pop();
   
-  push(); translate(10, 85);
-  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 270, 260, 8);
+  push(); translate(10, 85); fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 270, 260, 8);
   noStroke(); fill(currentTheme[0], currentTheme[1], currentTheme[2]); textAlign(CENTER); textSize(13); text("MISSION MILESTONES", 135, 25);
   stroke(255, 30); strokeWeight(1); line(10, 40, 260, 40); noStroke(); textAlign(LEFT);
   allTimeRecords.forEach((rec, i) => { let tSize = (i === 0) ? 13 : 11; textSize(tSize); let yPos = 65 + i * 26; fill(rec.color[0], rec.color[1], rec.color[2]); text(`${i+1}. ${rec.name}`, 15, yPos); textAlign(RIGHT); fill(255, 220); text(rec.score, 255, yPos); textAlign(LEFT); });
@@ -394,6 +475,9 @@ function drawUI() {
 
 function mouseClicked() {
   if (!audioStarted) startSpaceAudio(); 
+  // TEST FOLLOW EVENTU POMOCÍ KLIKNUTÍ DO LEVÉHO HORNÍHO ROHU
+  if (mouseX < 100 && mouseY < 100 && audioStarted) { triggerFollowEvent(random(TEST_BOTS)); return; }
+  
   if (mouseX > W-280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; }
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = Array(8).fill({ name: "NONE", score: 0, color: [100, 100, 100] }); localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; }
   if (mouseY > 0 && mouseY < 70) { spawnBall(random(TEST_BOTS)); shakeAmount = 2; }
@@ -401,7 +485,6 @@ function mouseClicked() {
 
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
 function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
-
 function createExplosion(x, y, c) { let col = c || color(255, random(100, 255), 0); for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: col }); }
 function drawExplosions() { for (let i = explosions.length - 1; i >= 0; i--) { let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 6, 6); e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1); } }
 
@@ -474,7 +557,7 @@ function initGame() {
     }
   }
   
-  // Rovnoměrné vyplnění zbylých prázdných míst velkými kolíky
+  // Rovnoměrné vyplnění zbylých prázdných míst
   for (let i = 0; i < 150; i++) {
     let px = random(60, W - 60); let py = random(180, H - 200); let valid = true;
     for (let other of pegs) { if (dist(px, py, other.position.x, other.position.y) < 35) { valid = false; break; } }
@@ -485,7 +568,9 @@ function initGame() {
   let curX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
     let zw = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
-    zones.push({ x: curX, w: zw, score: sV[i], flash: 0, flashColor: color(255) });
+    let val = sV[i]; let zColor;
+    if (val === 5000) zColor = color(255, 215, 0, 200); else if (val >= 500) zColor = color(255, 140, 0, 200); else if (val >= 50) zColor = color(0, 150, 255, 200); else if (val >= 10) zColor = color(0, 255, 100, 200); else zColor = color(100, 100, 100, 200); 
+    zones.push({ x: curX, w: zw, score: val, flash: 0, flashColor: color(255), baseColor: zColor });
     if (i > 0) { let wall = Matter.Bodies.rectangle(curX, H - (ZONE_H/2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); walls.push(wall); Matter.World.add(world, wall); }
     curX += zw;
   }
@@ -497,19 +582,17 @@ function drawPegs() {
   for (let p of pegs) {
     p.glow = p.glow || 0;
     if (p.glow > 0) { fill(pegR, pegG + 50, pegB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; }
-    // ZVĚTŠENÉ KRESLENÍ KOLÍČKŮ
     if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } else { fill(pegBaseCol); rect(p.position.x - 4, p.position.y - 4, 8, 8); }
   }
 }
 
 function drawZones() {
   for (let z of zones) {
-    let isJackpot = (z.score >= 5000); let baseCol = isJackpot ? color(50, 45, 15, 180) : color(10, 10, 40, 180);
-    if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(baseCol); }
+    if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(z.baseColor); }
     noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
     push(); translate(z.x + z.w/2, H - 20); rotate(-HALF_PI); textAlign(LEFT, CENTER);
-    if (isJackpot) { fill(255, 230, 100); textSize(18); text(z.score, 0, 0); } else { fill(255); textSize(z.w < 30 ? 10 : 15); text(z.score, 0, 0); }
-    pop();
+    if (z.score === 5000) { fill(255, 255, 0); textSize(18); } else { fill(255); textSize(z.w < 30 ? 10 : 15); }
+    text(z.score, 0, 0); pop();
   }
 }
 
@@ -542,6 +625,7 @@ function triggerCosmicEvent() {
   let isComet = random() < 0.5; cosmicEvent = { body: body, type: isComet ? "COMET" : "METEOR", size: size, color: isComet ? color(150, 200, 255) : color(255, 100, 50), trail: [] };
   Matter.World.add(world, body); Matter.Body.setVelocity(body, { x: fromLeft ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
   if (audioStarted) { let osc = new p5.Oscillator('sine'); osc.start(); osc.freq(random(100, 400)); osc.freq(random(800, 1200), 1.5); osc.amp(0.1); osc.amp(0, 1.5); setTimeout(() => osc.stop(), 1600); }
+  speakAnnouncer("Warning! Cosmic anomaly detected in the sector.", 1);
 }
 
 function handleCosmicEvent() {
@@ -587,8 +671,8 @@ function prepareSingularityEvents() { bhSpawnTimes = []; if (random() < 0.4) bhS
 function checkSingularitySpawn() {
   if (bhSpawnTimes.includes(timer) && !blackHole) {
     let fromLeft = random() < 0.5;
-    blackHole = { x: fromLeft ? -150 : W + 150, y: random(300, H - 450), startY: 0, targetX: fromLeft ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) };
-    blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer);
+    blackHole = { x: fromLeft ? -150 : W + 150, y: random(200, H - 450), startY: 0, targetX: fromLeft ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) };
+    blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); speakAnnouncer("Warning! Black hole singularity forming on the live feed!", 1);
   }
 }
 
@@ -609,7 +693,7 @@ function handleBlackHole() {
 function resetGame() {
   leaderboard = {}; totalBallsFired = 0; roundCount++; gameState = "PLAYING"; resultsTimer = 10; eventOccurredThisRound = false; currentDestination = generatePlanetName(); timer = floor(random(40, 181)); currentTheme = random(UI_THEMES);
   if (isAutoMode) { autoRandomSettings(); }
-  if (world) Matter.World.clear(world, false); pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null;
+  if (world) Matter.World.clear(world, false); pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; followEvents = [];
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound();
   speakAnnouncer(`Welcome to sector ${currentDestination}. The live dropping phase has started.`, 1);
 }
