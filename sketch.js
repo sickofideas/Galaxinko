@@ -244,7 +244,15 @@ function spawnBall(userName){
   
   let ballRestitution=map(currentBounce,1,99,0.65,1.05);let spawnX=W/2+random(-15,15);
   let ballBody=Matter.Bodies.rectangle(spawnX,100,14,14,{restitution:ballRestitution,friction:0.2,frictionAir:0.04,density:0.001});
-  if(!leaderboard[userName])leaderboard[userName]={score:0,color:color(random(100,255),random(100,255),random(100,255))};
+  
+  // NOVÉ: Generování zářivých NEONOVÝCH barev (HSB režim pro max saturaci a jas)
+  if(!leaderboard[userName]){
+    colorMode(HSB, 360, 100, 100);
+    let neonColor = color(random(360), random(70, 100), 100);
+    colorMode(RGB, 255, 255, 255);
+    leaderboard[userName]={score:0, color:neonColor};
+  }
+  
   balls.push({body:ballBody,name:userName,color:leaderboard[userName].color,scored:false,combo:0,lastHitTime:0,lastShipHit:0,spawnTime:millis(),isRainbow:isR,trail:[],rainbowExplodeTime:null, portalCooldown: 0});
   Matter.World.add(world,ballBody);
 }
@@ -266,12 +274,27 @@ function drawBalls(){
     
     if(b.isRainbow){
         b.trail.push({x:pos.x,y:pos.y});if(b.trail.length>40)b.trail.shift();
-        push();noStroke();colorMode(HSB);for(let t=0;t<b.trail.length;t++){fill((frameCount*5+t*15)%360,200,255,map(t,0,b.trail.length,0,1));ellipse(b.trail[t].x,b.trail[t].y,map(t,0,b.trail.length,4,16));}colorMode(RGB);pop();
+        push();noStroke();colorMode(HSB, 360, 100, 100);
+        for(let t=0;t<b.trail.length;t++){fill((frameCount*5+t*15)%360,80,100,map(t,0,b.trail.length,0,1));ellipse(b.trail[t].x,b.trail[t].y,map(t,0,b.trail.length,4,16));}
+        colorMode(RGB, 255, 255, 255);pop();
     }
     
     push();translate(pos.x,pos.y);rotate(b.body.angle);
     if(b.combo>2){fill(255);noStroke();rect(-9,-9,18,18);}
-    if(b.isRainbow){colorMode(HSB);fill((frameCount*10)%360,255,255);colorMode(RGB);}else{fill(b.color);}
+    
+    // NOVÉ: Neonová záře (Aura) pod kuličkou
+    noStroke();
+    if(b.isRainbow){
+        colorMode(HSB, 360, 100, 100);
+        let c = color((frameCount*10)%360, 100, 100);
+        colorMode(RGB, 255, 255, 255);
+        fill(red(c), green(c), blue(c), 100); rect(-10,-10,20,20); // Aura
+        fill(c); // Střed
+    } else {
+        fill(red(b.color), green(b.color), blue(b.color), 100); rect(-10,-10,20,20); // Aura
+        fill(b.color); // Střed
+    }
+    
     stroke(255);strokeWeight(1);rect(-7,-7,14,14);rotate(-b.body.angle);
     let age=millis()-b.spawnTime;let showName=age<3000||b.scored;
     if(showName){fill(0,150);noStroke();textAlign(CENTER);textSize(12);text(b.name,1,-16);fill(b.isRainbow?color(255):b.color);text(b.name,0,-17);}
