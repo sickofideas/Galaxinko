@@ -1,4 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
+const GAME_VERSION = "v11.8";
 let engine, world, balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {};
 let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFired = 0, roundCount = 1;
 let gameState = "PLAYING", libraryLoaded = false, winnerColor, flashEffect = 0, shakeAmount = 0;
@@ -51,106 +52,6 @@ function preload() {
   if (d) allTimeRecords = JSON.parse(d).filter(r => r.name !== "NONE");
 }
 
-function generatePlanetName() {
-  const n = ["XERON", "KEPLER", "ZENON", "AETHER", "NIBIRU", "PANDORA", "CYGNUS", "TITAN", "VULCAN", "ARRAKIS", "SOLARIS", "ZION", "EDEN"];
-  const t = ["PRIME", "STATION", "SYSTEM", "REACH", "BETA", "MAJOR", "MINOR", "VOID", "CLUSTER", "GATE"];
-  return random(n) + " " + random(t);
-}
-
-function initTTS() {
-  if ('speechSynthesis' in window) {
-    let setV = () => { availableVoices = window.speechSynthesis.getVoices(); };
-    window.speechSynthesis.onvoiceschanged = setV;
-    setV();
-  }
-}
-
-function sanitizeText(t) {
-  if (!t) return "Commander";
-  return t.replace(badWordsRegex, "Bleep").replace(/[^\p{L}\p{N} ]/gu, "").replace(/(.)\1{3,}/g, "$1$1").trim().substring(0, 15) || "Commander";
-}
-
-function getHoustonStory(p) {
-  const i = ["Houston here. ", "Command center. "];
-  const a = [`Energy surge from `, `Maneuvers by `];
-  return random(i) + random(a);
-}
-
-function speakAnnouncer(p, pri = 0) {
-  if (!audioStarted || !('speechSynthesis' in window) || window.speechSynthesis.speaking && pri < 1 || window.speechSynthesis.pending && pri < 2) return;
-  let u = new SpeechSynthesisUtterance(p);
-  let env = availableVoices.filter(v => v.lang && v.lang.includes('en'));
-  if (env.length > 0) u.voice = random(env);
-  u.pitch = random(0.8, 1.1);
-  u.rate = 1.05;
-  u.volume = volumeSlider ? volumeSlider.value() : 1.0;
-  window.speechSynthesis.speak(u);
-}
-
-function speakName(n) {
-  if (!audioStarted || !('speechSynthesis' in window)) return;
-  let u = new SpeechSynthesisUtterance(n);
-  let v = null;
-  if (/[ěščřžýáíéůúťďň]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('cs')); }
-  else if (/[äöüß]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('de')); }
-  else if (/[ñáéíóú¿¡]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('es')); }
-  else if (/[àáâèéêìíîòóôùúû]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('fr')); }
-  else if (/[ąęłńóśźż]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('pl')); }
-  
-  if (v) {
-    u.voice = v;
-    u.lang = v.lang;
-  } else {
-    let env = availableVoices.filter(x => x.lang && x.lang.includes('en'));
-    if (env.length > 0) u.voice = random(env);
-  }
-  u.volume = volumeSlider ? volumeSlider.value() : 1.0;
-  window.speechSynthesis.speak(u);
-}
-
-function connectTikfinity() {
-  socket = new WebSocket(TIKFINITY_URL);
-  socket.onopen = () => console.log("[Tikfinity] Connected");
-  socket.onmessage = (e) => {
-    try {
-      let d = JSON.parse(e.data);
-      let evt = d?.event || d?.type || "";
-      let n = d?.data?.nickname || d?.data?.uniqueId || "Anonym";
-      if (n && n !== "Anonym") {
-        let u = n.toUpperCase().substring(0, 15);
-        let s = sanitizeText(u);
-        onUserJoin(u, d?.data?.profilePictureUrl || d?.profilePictureUrl || "");
-        
-        if (evt === "follow") {
-          triggerFollowEvent(s);
-        } else if (evt === "chat") {
-          let c = Math.min((d?.data?.comment || "").length, 15);
-          for (let i = 0; i < c; i++) setTimeout(() => spawnBall(u), i * 150);
-          if (millis() - lastSpokeTime > 8000) {
-            speakAnnouncer(getHoustonStory(s), 0);
-            speakName(s);
-            lastSpokeTime = millis();
-          }
-        } else if (evt !== "like") {
-          for (let j = 0; j < spawnPerEvent; j++) spawnBall(u);
-        }
-        
-        if (evt === "like") {
-          let c = d.data?.likeCount || 1;
-          updateUserLikes(u, c);
-          if (millis() - lastSpokeTime > 9000) {
-            speakAnnouncer("Power up from ", 0);
-            speakName(s);
-            lastSpokeTime = millis();
-          }
-          for (let i = 0; i < c; i++) setTimeout(() => { for (let j = 0; j < spawnPerEvent; j++) spawnBall(u); }, i * 120);
-        }
-      }
-    } catch (err) {}
-  };
-  socket.onclose = () => setTimeout(connectTikfinity, 5000);
-}
-
 function setup() {
   createCanvas(W, H);
   smooth();
@@ -191,6 +92,112 @@ function setup() {
   volumeSlider = createSlider(0, 1, 0.5, 0.05); volumeSlider.position(50, 400); volumeSlider.hide();
   autoButton = createButton('AUTO: OFF'); autoButton.position(50, 440); autoButton.hide(); autoButton.mousePressed(toggleAutoMode);
 }
+function generatePlanetName() {
+  const n = ["XERON", "KEPLER", "ZENON", "AETHER", "NIBIRU", "PANDORA", "CYGNUS", "TITAN", "SOLARIS", "ZION"];
+  const t = ["PRIME", "STATION", "SYSTEM", "REACH", "BETA", "MAJOR", "MINOR", "VOID"];
+  return random(n) + " " + random(t);
+}
+
+function initTTS() {
+  if ('speechSynthesis' in window) {
+    let setV = () => { availableVoices = window.speechSynthesis.getVoices(); };
+    window.speechSynthesis.onvoiceschanged = setV;
+    setV();
+  }
+}
+
+function sanitizeText(t) {
+  if (!t) return "Commander";
+  return t.replace(badWordsRegex, "Bleep").replace(/[^\p{L}\p{N} ]/gu, "").trim().substring(0, 15) || "Commander";
+}
+
+function getHoustonStory(p) {
+  const i = ["Houston here. ", "Command center. "];
+  const a = [`Energy surge from `, `Maneuvers by `];
+  return random(i) + random(a);
+}
+
+function speakAnnouncer(p, pri = 0) {
+  if (!audioStarted || !('speechSynthesis' in window) || window.speechSynthesis.speaking && pri < 1) return;
+  let u = new SpeechSynthesisUtterance(p);
+  let env = availableVoices.filter(v => v.lang && v.lang.includes('en'));
+  if (env.length > 0) u.voice = random(env);
+  u.pitch = random(0.8, 1.1);
+  u.rate = 1.05;
+  u.volume = volumeSlider ? volumeSlider.value() : 1.0;
+  window.speechSynthesis.speak(u);
+}
+
+function speakName(n) {
+  if (!audioStarted || !('speechSynthesis' in window)) return;
+  let u = new SpeechSynthesisUtterance(n);
+  let v = null;
+  if (/[ěščřžýáíéůúťďň]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('cs')); }
+  else if (/[äöüß]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('de')); }
+  else if (/[ñáéíóú¿¡]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('es')); }
+  else if (/[ąęłńóśźż]/i.test(n)) { v = availableVoices.find(x => x.lang && x.lang.includes('pl')); }
+  
+  if (v) {
+    u.voice = v;
+    u.lang = v.lang;
+  } else {
+    let env = availableVoices.filter(x => x.lang && x.lang.includes('en'));
+    if (env.length > 0) u.voice = random(env);
+  }
+  
+  u.volume = volumeSlider ? volumeSlider.value() : 1.0;
+  u.rate = 0.85; 
+  u.pitch = 1.0; 
+  window.speechSynthesis.speak(u);
+}
+
+function connectTikfinity() {
+  socket = new WebSocket(TIKFINITY_URL);
+  socket.onopen = () => console.log("[Tikfinity] Connected");
+  socket.onmessage = (e) => {
+    try {
+      let d = JSON.parse(e.data);
+      let evt = d?.event || d?.type || "";
+      let n = d?.data?.nickname || d?.data?.uniqueId || "Anonym";
+      
+      if (n && n !== "Anonym") {
+        let u = n.toUpperCase().substring(0, 15);
+        let s = sanitizeText(u);
+        onUserJoin(u, d?.data?.profilePictureUrl || d?.profilePictureUrl || "");
+        
+        if (evt === "follow") {
+          triggerFollowEvent(s);
+        } else if (evt === "chat") {
+          let c = Math.min((d?.data?.comment || "").length, 15);
+          for (let i = 0; i < c; i++) setTimeout(() => spawnBall(u), i * 150);
+          if (millis() - lastSpokeTime > 8000) {
+            speakAnnouncer(getHoustonStory(s), 0);
+            speakName(s);
+            lastSpokeTime = millis();
+          }
+        } else if (evt !== "like") {
+          for (let j = 0; j < spawnPerEvent; j++) spawnBall(u);
+        }
+        
+        if (evt === "like") {
+          let c = d.data?.likeCount || 1;
+          updateUserLikes(u, c);
+          if (millis() - lastSpokeTime > 9000) {
+            speakAnnouncer("Power up from ", 0);
+            speakName(s);
+            lastSpokeTime = millis();
+          }
+          for (let i = 0; i < c; i++) {
+            setTimeout(() => {
+              for (let j = 0; j < spawnPerEvent; j++) spawnBall(u);
+            }, i * 120);
+          }
+        }
+      }
+    } catch (err) {}
+  };
+  socket.onclose = () => setTimeout(connectTikfinity, 5000);
+}
 function drawTxt(t, x, y, c, s, a = CENTER) {
   push();
   noStroke();
@@ -201,6 +208,15 @@ function drawTxt(t, x, y, c, s, a = CENTER) {
   fill(c);
   text(t, x, y);
   pop();
+}
+
+function updateWinnerColor() {
+  let s = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
+  winnerColor = s.length > 0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0, 0, 128);
+}
+
+function updateTravelSpeed() {
+  currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01);
 }
 
 function draw() {
@@ -234,16 +250,14 @@ function draw() {
     translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount));
     shakeAmount *= 0.92;
   }
-  let driftX = sin(frameCount * 0.013) * 2.5, driftY = cos(frameCount * 0.017) * 2.5;
+  let driftX = sin(frameCount * 0.013) * 2.5;
+  let driftY = cos(frameCount * 0.017) * 2.5;
   translate(driftX, driftY);
 
   updateWinnerColor();
   updateTravelSpeed();
   
-  let bgR = 2 + sin(frameCount * 0.01) * 2;
-  let bgG = 2 + cos(frameCount * 0.015) * 2;
-  let bgB = 12 + sin(frameCount * 0.005) * 4;
-  background(bgR, bgG, bgB);
+  background(2 + sin(frameCount * 0.01) * 2, 2 + cos(frameCount * 0.015) * 2, 12 + sin(frameCount * 0.005) * 4);
   
   drawGravityDust();
   drawGalacticBackground();
@@ -258,13 +272,11 @@ function draw() {
   handleBoss();
 
   if (gameState === "PLAYING") {
-    // 66s MAIN METEOR SHOWER
     if (millis() > nextMeteorShowerTime) {
       triggerMeteorShower();
       nextMeteorShowerTime = millis() + 66000;
     }
-    // RANDOM SPORADIC METEORS (for TikTok AI)
-    if (random() < 0.01) {
+    if (random() < 0.015) {
       let side = floor(random(3));
       let mx, my, mvx, mvy;
       if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); }
@@ -353,13 +365,17 @@ function playJackpotSound() { if (audioStarted) { fxSynth.play('C5', 0.1, 0, 0.1
 function playExplosionSound() { if (audioStarted && millis() - lastExpSnd > 50) { fxSynth.play(random(50, 150), 0.1, 0, 0.2); lastExpSnd = millis(); } }
 function playCleanupSound() { if (audioStarted) fxSynth.play(100, 0.05, 0, 1.0); }
 function playTimerEndSequence() { if (!audioStarted) return; let e = [600, 400, 250, 100]; for (let i = 0; i < e.length; i++) { setTimeout(() => { if (gameState === "WAITING") { fxSynth.play(e[i] + random(-20, 20), 0.08, 0, 0.4); shakeAmount = random(2, 4); } }, i * 400); } flashEffect = 60; }
-
 function triggerMeteorShower() {
   speakAnnouncer("Warning! Incoming meteor shower!", 2);
   shakeAmount = 15;
   for (let i = 0; i < 30; i++) {
     setTimeout(() => {
-      backgroundMeteors.push({ x: random(W), y: -50, vx: random(-4, 4), vy: random(15, 25), size: random(4, 10), c: color(255, random(100, 200), 0), trail: [] });
+      let side = floor(random(3));
+      let mx, my, mvx, mvy;
+      if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); }
+      else if (side === 1) { mx = -50; my = random(H/2); mvx = random(15, 25); mvy = random(5, 15); }
+      else { mx = W + 50; my = random(H/2); mvx = random(-25, -15); mvy = random(5, 15); }
+      backgroundMeteors.push({ x: mx, y: my, vx: mvx, vy: mvy, size: random(4, 12), c: color(255, random(100, 200), 0), trail: [] });
       if (audioStarted && millis() - lastExpSnd > 100) { fxSynth.play(random(100, 200), 0.05, 0, 0.1); lastExpSnd = millis(); }
     }, i * 200);
   }
@@ -371,16 +387,19 @@ function handleBackgroundMeteors() {
     let m = backgroundMeteors[i];
     m.trail.push({ x: m.x, y: m.y });
     if (m.trail.length > 10) m.trail.shift();
+    
     for (let t = 0; t < m.trail.length; t++) {
       fill(red(m.c), green(m.c), blue(m.c), map(t, 0, m.trail.length, 0, 255));
       ellipse(m.trail[t].x, m.trail[t].y, m.size * (t / m.trail.length));
     }
     fill(255);
     ellipse(m.x, m.y, m.size);
-    m.x += m.vx; m.y += m.vy;
+    m.x += m.vx;
+    m.y += m.vy;
     if (m.y > H + 100 || m.x < -100 || m.x > W + 100) backgroundMeteors.splice(i, 1);
   }
 }
+
 function updateScore(n, p, c) {
   if (n === "METEOR" || n === "ROCK" || n === "DEBRIS" || n === "COMET" || n === "ASTEROID") return;
   if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c };
@@ -405,7 +424,7 @@ function drawUI() {
   fill(5, 5, 15, 240); noStroke(); rect(0, 0, W, 70); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 120); strokeWeight(2); line(0, 70, W, 70);
   let lX = 15, lY = 30; textAlign(LEFT, CENTER);
   fill(0, 150); textSize(45); text(GAME_TITLE, lX + 2, lY + 2); fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(GAME_TITLE, lX, lY);
-  textSize(9); fill(0, 150); text("LEVIATHAN & AVATARS UPDATE", lX + 2, 54 + 2); fill(255); text("LEVIATHAN & AVATARS UPDATE", lX, 54);
+  textSize(9); fill(0, 150); text(GAME_VERSION, lX + 2, 54 + 2); fill(255); text(GAME_VERSION, lX, 54);
   
   let dW = 360, dX = W / 2 - (dW / 2), p = sin(frameCount * 0.1) * 3;
   fill(currentTheme[0], currentTheme[1], currentTheme[2], 10 + p); rect(dX, 8, dW, 54, 8);
@@ -422,7 +441,6 @@ function drawUI() {
   fill(0, 150); text(`BOUNCE-X: ${currentBounce}`, W - 15 + 2, 56 + 2); fill(255, 150, 0); text(`BOUNCE-X: ${currentBounce}`, W - 15, 56);
   pop();
   
-  // MILESTONES (S AVATARY)
   push();
   translate(10, 85);
   let ml = allTimeRecords.slice(0, 5), lH = 45 + max(1, ml.length) * 26;
@@ -433,9 +451,9 @@ function drawUI() {
     let y = 65 + i * 26; let txt = `${i === 0 ? '👑 ' : ''}${i + 1}. ${r.name}`;
     if (userAvatars[r.name]) {
       push(); imageMode(CENTER); tint(255);
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(20, y - 2, 7, 0, TWO_PI); drawingContext.clip();
-      image(userAvatars[r.name], 20, y - 2, 14, 14); drawingContext.restore(); pop();
-      drawTxt(txt, 35, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 11 : 9, LEFT);
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(20, y - 2, 11, 0, TWO_PI); drawingContext.clip();
+      image(userAvatars[r.name], 20, y - 2, 22, 22); drawingContext.restore(); pop();
+      drawTxt(txt, 40, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 11 : 9, LEFT);
     } else {
       drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 12 : 9, LEFT);
     }
@@ -453,7 +471,6 @@ function drawUI() {
   }
   pop();
   
-  // TOP CONTRIBUTORS (S AVATARY)
   push();
   translate(W - 250, 85);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 30);
@@ -465,9 +482,9 @@ function drawUI() {
     let y = 65 + i * 22; let txt = `${i === 0 ? '👑 ' : ''}${nf(i + 1, 2)}. ${e[0]}`;
     if (userAvatars[e[0]]) {
       push(); imageMode(CENTER); tint(255);
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(20, y - 2, 6, 0, TWO_PI); drawingContext.clip();
-      image(userAvatars[e[0]], 20, y - 2, 12, 12); drawingContext.restore(); pop();
-      drawTxt(txt, 35, y, color(e[1].color), i < 3 ? 11 : 9, LEFT);
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(20, y - 2, 10, 0, TWO_PI); drawingContext.clip();
+      image(userAvatars[e[0]], 20, y - 2, 20, 20); drawingContext.restore(); pop();
+      drawTxt(txt, 40, y, color(e[1].color), i < 3 ? 11 : 9, LEFT);
     } else {
       drawTxt(txt, 15, y, color(e[1].color), i < 3 ? 11 : 9, LEFT);
     }
@@ -476,15 +493,12 @@ function drawUI() {
   pop();
 }
 
-function drawZones() {
-  for (let z of zones) {
-    if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(z.baseColor); }
-    noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
-    push(); translate(z.x + z.w / 2, H - 20); rotate(-HALF_PI);
-    drawTxt(z.score.toLocaleString(), 0, 0, z.score >= 5000 ? color(255, 230, 100) : color(255), z.score >= 5000 ? 18 : (z.w < 30 ? 10 : 15), CENTER);
-    pop();
-  }
+function drawWaitingMessage() {
+  let a = map(sin(frameCount * 0.15), -1, 1, 100, 255);
+  drawTxt("WARNING: CLEANUP", W / 2, H / 2 - 50, color(255, 50, 50, a), 30, CENTER);
+  drawTxt("REMAINING UNITS RETURNING TO BASE...", W / 2, H / 2, color(255, 200, 0, a), 14, CENTER);
 }
+
 function drawResultsOverlay() {
   fill(0, 0, 20, 230); rect(20, 50, W - 40, H - 100, 20);
   drawingContext.shadowBlur = 20; drawingContext.shadowColor = color(currentTheme[0], currentTheme[1], currentTheme[2]); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 255); strokeWeight(4); fill(10, 10, 30, 240); rect(40, 80, W - 80, H - 160, 15); drawingContext.shadowBlur = 0;
@@ -499,10 +513,10 @@ function drawResultsOverlay() {
     
     if (userAvatars[entry[0]]) {
       push(); imageMode(CENTER); tint(255);
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(115, yPos - 5, 15, 0, TWO_PI); drawingContext.clip();
-      image(userAvatars[entry[0]], 115, yPos - 5, 30, 30);
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(115, yPos - 5, 25, 0, TWO_PI); drawingContext.clip();
+      image(userAvatars[entry[0]], 115, yPos - 5, 50, 50);
       drawingContext.restore(); pop();
-      drawTxt(txt, 140, yPos - 5, color(entry[1].color), i === 0 ? 35 : 25, LEFT);
+      drawTxt(txt, 155, yPos - 5, color(entry[1].color), i === 0 ? 35 : 25, LEFT);
     } else {
       drawTxt(txt, 100, yPos - 5, color(entry[1].color), i === 0 ? 35 : 25, LEFT);
     }
@@ -510,7 +524,6 @@ function drawResultsOverlay() {
   }
   drawTxt(`NEXT ROUND IN: ${resultsTimer}s`, W / 2, H - 120, color(255, 50, 50), 24, CENTER);
 }
-
 function planBossForRound() {
   bossPlanned = (random(100) < currentShipChance);
   bossSpawnAt = bossPlanned ? floor(random(15, timer - 15)) : -1;
@@ -584,6 +597,7 @@ function spawnSpaceship() {
   starship = { body: b, w: w, h: h, y: y, targetX: W / 2, speed: 8, activeFrames: 0, maxFrames: 1500, state: "ENTERING" };
   speakAnnouncer("Defense unit deployed.", 1);
 }
+
 function handleSpaceship() {
   if (!starship) return;
   starship.activeFrames++;
@@ -629,19 +643,36 @@ function handleSpaceship() {
   pop();
 }
 
+function handleJoinPopups() {
+  if (!activeJoinPopup && joinPopupQueue.length > 0) {
+    activeJoinPopup = joinPopupQueue.shift(); activeJoinPopup.timer = 180;
+    if (audioStarted && millis() - lastExpSnd > 50) { fxSynth.play(random([800, 1000, 1200]), 0.1, 0, 0.5); lastExpSnd = millis(); }
+    speakAnnouncer("Welcome commander ", 2); speakName(activeJoinPopup.name);
+  }
+  if (activeJoinPopup) {
+    let p = activeJoinPopup; p.timer--; let progress = p.timer / 180, sc = 1;
+    if (progress > 0.9) sc = map(progress, 1, 0.9, 0, 1); if (progress < 0.1) sc = map(progress, 0.1, 0, 1, 0);
+    push(); translate(W / 2, H / 2 - 80); scale(sc); let pulse = sin(frameCount * 0.2) * 15;
+    drawingContext.shadowBlur = 30 + pulse; drawingContext.shadowColor = color(currentTheme[0], currentTheme[1], currentTheme[2]);
+    fill(10, 10, 30, 240); stroke(currentTheme[0], currentTheme[1], currentTheme[2]); strokeWeight(4); rectMode(CENTER); rect(0, 0, 500 + pulse, 120 + pulse, 15); rectMode(CORNER); drawingContext.shadowBlur = 0;
+    if (p.img) { imageMode(CENTER); image(p.img, -180, 0, 80, 80); } else { fill(100); noStroke(); ellipse(-180, 0, 80, 80); fill(0, 150); textAlign(CENTER, CENTER); textSize(30); text(p.name[0], -180 + 2, 2); fill(255); text(p.name[0], -180, 0); }
+    textAlign(LEFT, CENTER); noStroke(); textSize(16); fill(0, 150); text("🔥 NEW COMMANDER! 🔥", -120 + 2, -25 + 2); fill(currentTheme[0], currentTheme[1], currentTheme[2]); text("🔥 NEW COMMANDER! 🔥", -120, -25); textSize(35); fill(0, 150); text(p.name, -120 + 2, 15 + 2); fill(255); text(p.name, -120, 15); pop();
+    if (p.timer <= 0) activeJoinPopup = null;
+  }
+}
 function onUserJoin(u, img) {
   let isNew = !viewerSpaceObjects.find(o => o.name === u);
   if (img && !userAvatars[u]) {
     loadImage(img, l => {
       userAvatars[u] = l;
       if (isNew) {
-        let obj = { name: u, x: random(100, W - 100), y: random(150, H - 300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3), baseSize: 40, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: l, angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255 };
+        let obj = { name: u, x: random(100, W - 100), y: random(150, H - 300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3), baseSize: 60, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: l, angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255 };
         viewerSpaceObjects.push(obj);
         joinPopupQueue.push({ name: u, img: l });
       }
     }, () => {});
   } else if (isNew) {
-    let obj = { name: u, x: random(100, W - 100), y: random(150, H - 300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3), baseSize: 40, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: userAvatars[u] || null, angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255 };
+    let obj = { name: u, x: random(100, W - 100), y: random(150, H - 300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3), baseSize: 60, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: userAvatars[u] || null, angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255 };
     viewerSpaceObjects.push(obj);
     joinPopupQueue.push({ name: u, img: userAvatars[u] || null });
   }
@@ -758,7 +789,6 @@ function toggleAutoMode() { isAutoMode = !isAutoMode; if (isAutoMode) { autoButt
 function autoRandomSettings() { currentGravity = random(0.05, 1.95); currentBounce = floor(random(60, 100)); spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101)); gravitySlider.value(currentGravity); bounceSlider.value(currentBounce); spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance); if (world) world.gravity.y = currentGravity; }
 function triggerFollowEvent(name, silent = false) { let s = floor(random(3)), sx, sy; if (s === 0) { sx = random(100, W - 100); sy = -50; } else if (s === 1) { sx = W + 50; sy = random(100, H / 3); } else { sx = -50; sy = random(100, H / 3); } let tx = W / 2 + random(-200, 200), ty = H / 2 + random(-250, 50), a = atan2(ty - sy, tx - sx), sp = random(18, 28), c = color(random(150, 255), random(100, 255), random(150, 255)); followEvents.push({ name: name, x: sx, y: sy, vx: cos(a) * sp, vy: sin(a) * sp, targetX: tx, targetY: ty, color: c, exploded: false, timer: 100, trail: [] }); if (!silent && random() < 0.3) { speakAnnouncer("Incoming vessel from ", 0); speakName(name); } }
 function handleFollowEvents() { for (let i = followEvents.length - 1; i >= 0; i--) { let f = followEvents[i]; if (!f.exploded) { f.trail.push({ x: f.x, y: f.y }); if (f.trail.length > 15) f.trail.shift(); noStroke(); for (let t = 0; t < f.trail.length; t++) { fill(red(f.color), green(f.color), blue(f.color), map(t, 0, f.trail.length, 0, 150)); ellipse(f.trail[t].x, f.trail[t].y, map(t, 0, f.trail.length, 5, 25)); } fill(255); ellipse(f.x, f.y, 25); fill(f.color); ellipse(f.x, f.y, 18); f.x += f.vx; f.y += f.vy; if (dist(f.x, f.y, f.targetX, f.targetY) < 30) { f.exploded = true; playExplosionSound(); shakeAmount = 5; for (let e = 0; e < 50; e++) explosions.push({ x: f.x, y: f.y, vx: random(-12, 12), vy: random(-12, 12), life: 255, col: f.color }); } } else { push(); translate(f.targetX, f.targetY); scale(map(f.timer, 100, 0, 1, 4.5)); textAlign(CENTER, CENTER); drawingContext.shadowBlur = 20; drawingContext.shadowColor = f.color; fill(0, 150); text(f.name, 2, 2); fill(255, map(f.timer, 100, 0, 300, -50)); text(f.name, 0, 0); drawingContext.shadowBlur = 0; if (f.timer % 4 === 0) { noStroke(); fill(f.color); ellipse(random(-40, 40), random(-40, 40), random(2, 5)); } pop(); f.timer--; if (f.timer <= 0) followEvents.splice(i, 1); } } }
-function handleJoinPopups() { if (!activeJoinPopup && joinPopupQueue.length > 0) { activeJoinPopup = joinPopupQueue.shift(); activeJoinPopup.timer = 180; if (audioStarted && millis() - lastExpSnd > 50) { fxSynth.play(random([800, 1000, 1200]), 0.1, 0, 0.5); lastExpSnd = millis(); } speakAnnouncer("Welcome commander ", 2); speakName(activeJoinPopup.name); } if (activeJoinPopup) { let p = activeJoinPopup; p.timer--; let progress = p.timer / 180, sc = 1; if (progress > 0.9) sc = map(progress, 1, 0.9, 0, 1); if (progress < 0.1) sc = map(progress, 0.1, 0, 1, 0); push(); translate(W / 2, H / 2 - 80); scale(sc); let pulse = sin(frameCount * 0.2) * 15; drawingContext.shadowBlur = 30 + pulse; drawingContext.shadowColor = color(0, 255, 255); fill(10, 10, 30, 240); stroke(0, 255, 255); strokeWeight(4); rectMode(CENTER); rect(0, 0, 500 + pulse, 120 + pulse, 15); rectMode(CORNER); drawingContext.shadowBlur = 0; if (p.img) { imageMode(CENTER); image(p.img, -180, 0, 80, 80); } else { fill(100); noStroke(); ellipse(-180, 0, 80, 80); fill(0, 150); textAlign(CENTER, CENTER); textSize(30); text(p.name[0], -180 + 2, 2); fill(255); text(p.name[0], -180, 0); } textAlign(LEFT, CENTER); noStroke(); textSize(16); fill(0, 150); text("🔥 NEW COMMANDER! 🔥", -120 + 2, -25 + 2); fill(255, 255, 0); text("🔥 NEW COMMANDER! 🔥", -120, -25); textSize(35); fill(0, 150); text(p.name, -120 + 2, 15 + 2); fill(255); text(p.name, -120, 15); pop(); if (p.timer <= 0) activeJoinPopup = null; } }
 function addFloatingText(txt, x, y, col, isJackpot = false) { floatingTexts.push({ text: txt, x: x, y: y, life: 255, color: col, scale: isJackpot ? 1.5 : 1, vy: isJackpot ? -2 : -1 }); }
 function handleFloatingTexts() { for (let i = floatingTexts.length - 1; i >= 0; i--) { let ft = floatingTexts[i]; push(); translate(ft.x, ft.y); drawTxt(ft.text, 0, 0, color(red(ft.color), green(ft.color), blue(ft.color), ft.life), 14 * ft.scale, CENTER); pop(); ft.y += ft.vy; ft.life -= 4; if (ft.life <= 0) floatingTexts.splice(i, 1); } }
 function createShockwave(x, y) { shockwaves.push({ x: x, y: y, radius: 0, maxRadius: 300, life: 255 }); }
@@ -767,64 +797,36 @@ function drawPortals() { if (portals.length < 2) return; for (let i = 0; i < por
 function updateUserLikes(u, c) { let o = viewerSpaceObjects.find(ob => ob.name === u); if (o) { o.extraSize = min(150, o.extraSize + c * 2); o.lastActiveTime = millis(); o.alpha = 255; } else { onUserJoin(u, null); setTimeout(() => updateUserLikes(u, c), 500); } }
 function onUserQuit(username) { viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username); }
 function drawViewerObjects() { for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) { let o = viewerSpaceObjects[i], ia = millis() - o.lastActiveTime; if (ia > 60000) { viewerSpaceObjects.splice(i, 1); continue; } o.alpha = ia > 50000 ? map(ia, 50000, 60000, 255, 0) : 255; } for (let o of viewerSpaceObjects) { o.x += o.vx + sin(frameCount * 0.01) * 0.1; o.y += o.vy + cos(frameCount * 0.01) * 0.1; o.angle += 0.005; if (o.x < 50 || o.x > W - 50) o.vx *= -1; if (o.y < 100 || o.y > H - 250) o.vy *= -1; push(); translate(o.x, o.y); rotate(o.angle); let tS = o.baseSize + o.extraSize; noStroke(); fill(o.color[0], o.color[1], o.color[2], 40 * (o.alpha / 255)); ellipse(0, 0, tS + 20); if (o.img) { imageMode(CENTER); tint(255, o.alpha); image(o.img, 0, 0, tS, tS); } else { fill(o.color[0], o.color[1], o.color[2], o.alpha); ellipse(0, 0, tS); drawTxt(o.name[0], 0, 0, color(255, o.alpha), tS * 0.3, CENTER); } rotate(-o.angle); drawTxt(o.name, 0, tS / 2 + 15, color(255, o.alpha), 10, CENTER); pop(); } }
-// --- GALAXINKO v11.5 - ČÁST 6/7 ---
+// --- GALAXINKO v11.8 - ČÁST 7/7 ---
 function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
-function updateTravelSpeed() { currentTravelSpeed = lerp(currentTravelSpeed, (gameState === "PLAYING" ? 1.0 : 0.2), 0.01); }
 function createExplosion(x, y, c) { let col = c || color(255, random(100, 255), 0); for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: col }); }
 function drawExplosions() { noStroke(); for (let i = explosions.length - 1; i >= 0; i--) { let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 6, 6); e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1); } }
-function updateWinnerColor() { let s = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score); winnerColor = s.length > 0 ? lerpColor(winnerColor, s[0][1].color, 0.005) : color(0, 0, 128); }
+function drawZones() { for (let z of zones) { if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(z.baseColor); } noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H); push(); translate(z.x + z.w / 2, H - 20); rotate(-HALF_PI); drawTxt(z.score.toLocaleString(), 0, 0, z.score >= 5000 ? color(255, 230, 100) : color(255), z.score >= 5000 ? 18 : (z.w < 30 ? 10 : 15), CENTER); pop(); } }
+function drawGravityDust() { let r = map(currentGravity, 0.05, 1.95, 100, 255), g = map(currentGravity, 0.05, 1.95, 200, 100), b = map(currentGravity, 0.05, 1.95, 255, 50); fill(r, g, b, 150); noStroke(); let dustSpeed = currentGravity * 3 * currentTravelSpeed; for (let d of dust) { d.y += dustSpeed; if (d.y > H) { d.y = 0; d.x = random(W); } rect(d.x, d.y, d.s, d.s); } }
+function drawLegendShape(d) { noStroke(); fill(d.color); let s = d.size; switch (d.legendId) { case "STARMAN": rect(-s / 2, -s / 4, s, s / 2, 5); fill(255); ellipse(-s / 4, -s / 4, s / 5); break; case "HAWKING": fill(100); rect(-s / 2, 0, s, s / 4); fill(d.color); rect(-s / 4, -s / 2, s / 2, s / 2); break; case "LAIKA": fill(150, 100); ellipse(0, 0, s, s); fill(d.color); ellipse(0, -s / 6, s / 2); break; case "ET": fill(100, 50, 0); rect(-s / 2, 0, s, s / 2); fill(255); ellipse(0, -s / 4, s / 2); break; case "NYAN": fill(255, 200, 150); rect(-s / 2, -s / 3, s, s / 1.5, 3); break; case "VOYAGER": fill(180); ellipse(0, 0, s / 2); fill(212, 175, 55); ellipse(0, 0, s / 3); break; } }
+function spawnRareLegend() { let l = random(RARE_POOL); spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: l.id, size: l.size, color: color(l.col[0], l.col[1], l.col[2]), speed: random(0.8, 1.8), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true }); }
+function drawPegs() { noStroke(); let pR = map(currentGravity, 0.05, 1.95, 0, 255), pG = map(currentGravity, 0.05, 1.95, 255, 100), pB = map(currentGravity, 0.05, 1.95, 255, 0), pC = color(pR, pG, pB); for (let p of pegs) { p.glow = p.glow || 0; if (p.glow > 0) { fill(pR, pG + 50, pB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; } if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } else if (p.isRepulsor) { fill(255, 50, 200); ellipse(p.position.x, p.position.y, 12 + sin(frameCount * 0.2) * 3); } else { fill(pC); rect(p.position.x - 4, p.position.y - 4, 8, 8); } } }
+function prepareSingularityEvents() { bhSpawnTimes = []; if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8))); }
+function checkSingularitySpawn() { if (bhSpawnTimes.includes(timer) && !blackHole) { let fL = random() < 0.5; blackHole = { x: fL ? -150 : W + 150, y: random(200, H - 450), startY: 0, targetX: fL ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) }; blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); speakAnnouncer("Warning! Black hole singularity forming!", 1); } }
+function handleBlackHole() { if (!blackHole) return; let d = blackHole.targetX > blackHole.x ? 1 : -1; blackHole.x += blackHole.speed * d; let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset); blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2; let jS = blackHole.size * (1 + (n - 0.5) * 0.15); push(); translate(blackHole.x, blackHole.y); noStroke(); push(); rotate(frameCount * 0.05); for (let i = 0; i < 4; i++) { fill(150, 50, 255, 20); ellipse(0, 0, jS * 2.5 + i * 15, jS * 0.8 + i * 5); } pop(); for (let i = 5; i > 0; i--) { fill(10 + i * 10, 0, 40 + i * 20, 25); ellipse(0, 0, jS + i * (blackHole.size * 0.15) + (n * 10)); } fill(0); ellipse(0, 0, jS); pop(); for (let i = pegs.length - 1; i >= 0; i--) { let p = pegs[i]; if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jS * 0.55 && random() < 0.23) { Matter.Composite.remove(world, p); createExplosion(p.position.x, p.position.y); playExplosionSound(); pegs.splice(i, 1); } } for (let i = balls.length - 1; i >= 0; i--) { let b = balls[i]; if (!b.body) continue; let ds = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y); if (ds < jS * 0.5) { removeBall(b); continue; } if (ds < blackHole.size * 1.87) { let sD = Math.max(ds, 30); Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({ x: blackHole.x, y: blackHole.y }, b.body.position)), (blackHole.size * 0.00018) / (sD / 80))); } } if ((d === 1 && blackHole.x > blackHole.targetX) || (d === -1 && blackHole.x < blackHole.targetX)) { blackHole = null; } }
+function triggerCosmicEvent() { if (cosmicEvent) return; eventOccurredThisRound = true; let fL = random() < 0.5, s = random(25, 45), sx = fL ? -100 : W + 100, ty = H - ZONE_H - random(20, 120), b = Matter.Bodies.circle(sx, ty, s / 2, { isStatic: false, isSensor: false, density: 0.1, frictionAir: 0, collisionFilter: { mask: 1 } }), iC = random() < 0.5; cosmicEvent = { body: b, type: iC ? "COMET" : "METEOR", size: s, color: iC ? color(150, 200, 255) : color(255, 100, 50), trail: [] }; Matter.World.add(world, b); Matter.Body.setVelocity(b, { x: fL ? random(12, 18) : random(-12, -18), y: random(-1, 1) }); if (audioStarted && millis() - lastExpSnd > 50) { fxSynth.play(200, 0.1, 0, 0.5); lastExpSnd = millis(); } speakAnnouncer("Warning! Cosmic anomaly detected.", 1); }
+function handleCosmicEvent() { if (!cosmicEvent) return; let p = cosmicEvent.body.position; cosmicEvent.trail.push({ x: p.x, y: p.y, life: 255 }); if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift(); push(); noStroke(); for (let i = 0; i < cosmicEvent.trail.length; i++) { let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150); fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha); ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i / cosmicEvent.trail.length)); } fill(255); ellipse(p.x, p.y, cosmicEvent.size); fill(cosmicEvent.color); ellipse(p.x, p.y, cosmicEvent.size * 0.8); pop(); if (p.x < -300 || p.x > W + 300) { Matter.World.remove(world, cosmicEvent.body); cosmicEvent = null; } }
+function drawWaitingMessage() { let a = map(sin(frameCount * 0.15), -1, 1, 100, 255); drawTxt("WARNING: CLEANUP", W / 2, H / 2 - 50, color(255, 50, 50, a), 30, CENTER); drawTxt("REMAINING UNITS RETURNING TO BASE...", W / 2, H / 2, color(255, 200, 0, a), 14, CENTER); }
+function drawProceduralHUD() { push(); stroke(255, 10); strokeWeight(1); for (let i = 0; i < H; i += 4) { line(0, i + (frameCount % 4), W, i + (frameCount % 4)); } fill(0, 255, 0, 150); textSize(8); textAlign(LEFT); text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40); text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30); text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20); textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount * 0.01) * 5).toFixed(1)}°C`, W - 20, H - 30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20); pop(); }
+function drawPixelAvatar(x, y, w, h) { push(); translate(x, y); noStroke(); let vlasy = color(240, 220, 110), kuze = color(245, 200, 170), triko = color(currentTheme[0], currentTheme[1], currentTheme[2]), stin = color(0, 0, 0, 50), oci = color(40), pw = w / 20, ph = h / 15, sway = sin(frameCount * 0.05) * 2, handMove = sin(frameCount * 0.2) * 4, eyesOpen = (frameCount % 120 > 5); fill(triko); rect(pw * 5 + sway, ph * 7, pw * 10, ph * 8, 2); fill(stin); rect(pw * 7 + sway, ph * 7, pw * 6, ph * 1); let headSway = sway * 0.5; fill(kuze); rect(pw * 6 + headSway, ph * 2, pw * 8, ph * 6, 3); fill(vlasy); rect(pw * 5 + headSway, ph * 1, pw * 10, ph * 3, 2); rect(pw * 5 + headSway, ph * 3, pw * 2, ph * 7, 2); rect(pw * 13 + headSway, ph * 3, pw * 2, ph * 7, 2); if (eyesOpen) { fill(oci); rect(pw * 8 + headSway, ph * 4, pw * 1, ph * 2); rect(pw * 11 + headSway, ph * 4, pw * 1, ph * 2); } else { fill(stin); rect(pw * 8 + headSway, ph * 5, pw * 1, ph * 1); rect(pw * 11 + headSway, ph * 5, pw * 1, ph * 1); } fill(color(200, 100, 100)); rect(pw * 9 + headSway, ph * 7, pw * 2, ph * 1); fill(kuze); rect(pw * 3, ph * 8 + handMove, pw * 3, ph * 4, 2); rect(pw * 14, ph * 8 - handMove, pw * 3, ph * 4, 2); pop(); }
+function drawAntiBotOverlay() { push(); stroke(0, 15); strokeWeight(1); let offset = frameCount % 4; for (let i = 0; i < H; i += 4) { line(0, i + offset, W, i + offset); } noStroke(); for (let i = 0; i < 20; i++) { fill(255, random(5, 25)); rect(random(W), random(H), random(1, 3), random(1, 3)); } for (let i = 0; i < 10; i++) { fill(currentTheme[0], currentTheme[1], currentTheme[2], random(5, 15)); rect(random(W), random(H), random(1, 4), random(1, 4)); } if (random() < 0.08) { fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); rect(0, random(H), W, random(1, 6)); } let camX = W - 110, camY = H - 185; fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5); drawPixelAvatar(camX + 5, camY + 5, 90, 65); noStroke(); for (let cx = 0; cx < 100; cx += 5) { for (let cy = 0; cy < 75; cy += 5) { let n = noise(cx * 0.1, cy * 0.1, frameCount * 0.1); if (n > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } } } fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text("LIVE_PLAYER", camX + 5, camY + 5); if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); } textFont('Press Start 2P'); textStyle(NORMAL); let marqueeText = `🚀 LIVE SECTOR: ${currentDestination} --- ACTIVE UNITS: ${balls.length} --- SEND LIKES TO POWER UP Shields! --- `; let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W)); fill(5, 5, 15, 230); noStroke(); rect(0, H - 25, W, 25); drawTxt(marqueeText + marqueeText, scrollX, H - 12, color(currentTheme), 11, LEFT); pop(); }
 
 function generateDeepSpaceElements() {
-  nebulas = [];
-  for (let i = 0; i < 8; i++) {
-    let isGalaxy = random() < 0.3;
-    nebulas.push({
-      x: random(W), y: random(H), s: random(isGalaxy ? 150 : 200, isGalaxy ? 300 : 600),
-      col: color(random(50, 255), random(50, 150), random(200, 255), isGalaxy ? 30 : 15),
-      type: isGalaxy ? 'SPIRAL_GALAXY' : 'NEBULA', rotDir: random([-1, 1])
-    });
-  }
-  massivePlanets = [];
-  for (let i = 0; i < 5; i++) {
-    let isSun = i === 0 || random() < 0.15;
-    let pSize = random(isSun ? 40 : 20, isSun ? 80 : 50);
-    let moons = [];
-    if (!isSun) {
-      let numMoons = floor(random(1, 5));
-      for (let m = 0; m < numMoons; m++) { moons.push({ dist: random(pSize * 0.7, pSize * 2.5), size: random(3, 12), speed: random(0.01, 0.04), phase: random(TWO_PI), col: color(random(150, 255)) }); }
-    }
-    massivePlanets.push({
-      x: random(W), y: random(H), size: pSize, color: isSun ? color(255, random(200, 255), 150) : color(random(30, 150), random(30, 150), random(30, 150), 200),
-      type: isSun ? 'SUN' : 'PLANET', hasRing: !isSun && random() < 0.5, ringColor: color(random(100, 200), random(100, 200), random(100, 200), 150), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01), moons: moons
-    });
-  }
-  spaceDebris = [];
-  for (let i = 0; i < 12; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), vx: random(-0.5, 0.5), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) });
+  nebulas = []; for (let i = 0; i < 8; i++) { let isGalaxy = random() < 0.3; nebulas.push({ x: random(W), y: random(H), s: random(isGalaxy ? 150 : 200, isGalaxy ? 300 : 600), col: color(random(50, 255), random(50, 150), random(200, 255), isGalaxy ? 30 : 15), type: isGalaxy ? 'SPIRAL_GALAXY' : 'NEBULA', rotDir: random([-1, 1]) }); }
+  massivePlanets = []; for (let i = 0; i < 5; i++) { let isSun = i === 0 || random() < 0.15; let pSize = random(isSun ? 40 : 20, isSun ? 80 : 50); let moons = []; if (!isSun) { let numMoons = floor(random(1, 5)); for (let m = 0; m < numMoons; m++) { moons.push({ dist: random(pSize * 0.7, pSize * 2.5), size: random(3, 12), speed: random(0.01, 0.04), phase: random(TWO_PI), col: color(random(150, 255)) }); } } massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: isSun ? color(255, random(200, 255), 150) : color(random(30, 150), random(30, 150), random(30, 150), 200), type: isSun ? 'SUN' : 'PLANET', hasRing: !isSun && random() < 0.5, ringColor: color(random(100, 200), random(100, 200), random(100, 200), 150), speed: random(0.005, 0.015), rot: random(TWO_PI), rotSpeed: random(-0.01, 0.01), moons: moons }); }
+  spaceDebris = []; for (let i = 0; i < 12; i++) { spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID"]), size: random(10, 25), speed: random(0.3, 1.2), vx: random(-0.5, 0.5), wobble: random(0.02, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.05, 0.05) }); }
 }
 
 function drawGalacticBackground() {
   noStroke();
-  for (let n of nebulas) {
-    n.y += 0.2 * currentTravelSpeed;
-    if (n.y > H + n.s) n.y = -n.s;
-    fill(n.col);
-    if (n.type === 'SPIRAL_GALAXY') { push(); translate(n.x, n.y); rotate(frameCount * 0.001 * n.rotDir); for (let i = 0; i < 5; i++) { rotate(TWO_PI / 5); ellipse(n.s * 0.3, 0, n.s * 0.8, n.s * 0.2); } pop(); }
-    else { ellipse(n.x, n.y, n.s, n.s * 0.6); }
-  }
-  fill(255, 120);
-  for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
-  for (let p of massivePlanets) {
-    push(); translate(p.x, p.y); p.y += p.speed * currentTravelSpeed * 5; p.rot += p.rotSpeed * currentTravelSpeed;
-    if (p.type === 'SUN') { for (let i = 5; i > 0; i--) { fill(red(p.color), green(p.color), 100, 25 / i); ellipse(0, 0, p.size * (1 + i * 0.6)); } fill(255, 255, 220, 150); ellipse(0, 0, p.size * 0.6); }
-    else {
-      rotate(p.rot);
-      if (p.hasRing) { noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.1); ellipse(0, 0, p.size * 2.2, p.size * 0.6); noFill(); stroke(red(p.ringColor), green(p.ringColor), blue(p.ringColor), 60); strokeWeight(p.size * 0.05); ellipse(0, 0, p.size * 2.4, p.size * 0.7); }
-      noStroke(); fill(p.color); ellipse(0, 0, p.size); fill(0, 100); arc(0, 0, p.size, p.size, HALF_PI, -HALF_PI); rotate(-p.rot);
-      for (let m of p.moons) { let mx = cos(frameCount * m.speed + m.phase) * m.dist; let my = sin(frameCount * m.speed + m.phase) * m.dist * 0.5; fill(m.col); noStroke(); ellipse(mx, my, m.size); }
-    }
-    pop();
-    if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); }
-  }
+  for (let n of nebulas) { n.y += 0.2 * currentTravelSpeed; if (n.y > H + n.s) n.y = -n.s; fill(n.col); if (n.type === 'SPIRAL_GALAXY') { push(); translate(n.x, n.y); rotate(frameCount * 0.001 * n.rotDir); for (let i = 0; i < 5; i++) { rotate(TWO_PI / 5); ellipse(n.s * 0.3, 0, n.s * 0.8, n.s * 0.2); } pop(); } else { ellipse(n.x, n.y, n.s, n.s * 0.6); } }
+  fill(255, 120); for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
+  for (let p of massivePlanets) { push(); translate(p.x, p.y); p.y += p.speed * currentTravelSpeed * 5; p.rot += p.rotSpeed * currentTravelSpeed; if (p.type === 'SUN') { for (let i = 5; i > 0; i--) { fill(red(p.color), green(p.color), 100, 25 / i); ellipse(0, 0, p.size * (1 + i * 0.6)); } fill(255, 255, 220, 150); ellipse(0, 0, p.size * 0.6); } else { rotate(p.rot); if (p.hasRing) { noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.1); ellipse(0, 0, p.size * 2.2, p.size * 0.6); noFill(); stroke(red(p.ringColor), green(p.ringColor), blue(p.ringColor), 60); strokeWeight(p.size * 0.05); ellipse(0, 0, p.size * 2.4, p.size * 0.7); } noStroke(); fill(p.color); ellipse(0, 0, p.size); fill(0, 100); arc(0, 0, p.size, p.size, HALF_PI, -HALF_PI); rotate(-p.rot); for (let m of p.moons) { let mx = cos(frameCount * m.speed + m.phase) * m.dist; let my = sin(frameCount * m.speed + m.phase) * m.dist * 0.5; fill(m.col); noStroke(); ellipse(mx, my, m.size); } } pop(); if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); } }
   if (gameState === "PLAYING" && random() < 0.08) shootingStars.push({ x: random(W), y: random(-50, H / 2), vx: random(10, 25), vy: random(10, 25), life: 255, len: random(20, 100) });
   for (let i = shootingStars.length - 1; i >= 0; i--) { let s = shootingStars[i]; stroke(255, s.life); strokeWeight(1.5); line(s.x, s.y, s.x - s.vx * (s.len / 20), s.y - s.vy * (s.len / 20)); s.x += s.vx; s.y += s.vy; s.life -= 10; if (s.life <= 0) shootingStars.splice(i, 1); noStroke(); }
   if (gameState === "PLAYING" && random() < 0.06) { let fL = random() < 0.5; ambientComets.push({ x: fL ? -50 : W + 50, y: random(-100, H / 2), vx: fL ? random(2, 5) : random(-5, -2), vy: random(2, 4), s: random(4, 8), life: 255, col: color(random(150, 255), random(200, 255), 255) }); }
@@ -834,29 +836,6 @@ function drawGalacticBackground() {
   if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05); else if (gameState === "WAITING") planetSize = lerp(planetSize, 450, 0.01);
   if (planetSize > 10) { for (let r = 4; r > 0; r--) { fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4); ellipse(W / 2, H + 60, planetSize * (r * 0.6), planetSize * 0.4); } }
 }
-
-function spawnRareLegend() { let l = random(RARE_POOL); spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: l.id, size: l.size, color: color(l.col[0], l.col[1], l.col[2]), speed: random(0.8, 1.8), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true }); }
-function drawLegendShape(d) { noStroke(); fill(d.color); let s = d.size; switch (d.legendId) { case "STARMAN": rect(-s / 2, -s / 4, s, s / 2, 5); fill(255); ellipse(-s / 4, -s / 4, s / 5); break; case "HAWKING": fill(100); rect(-s / 2, 0, s, s / 4); fill(d.color); rect(-s / 4, -s / 2, s / 2, s / 2); break; case "LAIKA": fill(150, 100); ellipse(0, 0, s, s); fill(d.color); ellipse(0, -s / 6, s / 2); break; case "ET": fill(100, 50, 0); rect(-s / 2, 0, s, s / 2); fill(255); ellipse(0, -s / 4, s / 2); break; case "NYAN": fill(255, 200, 150); rect(-s / 2, -s / 3, s, s / 1.5, 3); break; case "VOYAGER": fill(180); ellipse(0, 0, s / 2); fill(212, 175, 55); ellipse(0, 0, s / 3); break; } }
-function drawGravityDust() { let r = map(currentGravity, 0.05, 1.95, 100, 255), g = map(currentGravity, 0.05, 1.95, 200, 100), b = map(currentGravity, 0.05, 1.95, 255, 50); fill(r, g, b, 150); noStroke(); let dustSpeed = currentGravity * 3 * currentTravelSpeed; for (let d of dust) { d.y += dustSpeed; if (d.y > H) { d.y = 0; d.x = random(W); } rect(d.x, d.y, d.s, d.s); } }
-
-function drawZones() {
-  for (let z of zones) {
-    if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else { fill(z.baseColor); }
-    noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
-    push(); translate(z.x + z.w / 2, H - 20); rotate(-HALF_PI); drawTxt(z.score.toLocaleString(), 0, 0, z.score >= 5000 ? color(255, 230, 100) : color(255), z.score >= 5000 ? 18 : (z.w < 30 ? 10 : 15), CENTER); pop();
-  }
-}
-// --- GALAXINKO v11.5 - ČÁST 7/7 ---
-function drawWaitingMessage() { let a = map(sin(frameCount * 0.15), -1, 1, 100, 255); drawTxt("WARNING: CLEANUP", W / 2, H / 2 - 50, color(255, 50, 50, a), 30, CENTER); drawTxt("REMAINING UNITS RETURNING TO BASE...", W / 2, H / 2, color(255, 200, 0, a), 14, CENTER); }
-function drawProceduralHUD() { push(); stroke(255, 10); strokeWeight(1); for (let i = 0; i < H; i += 4) { line(0, i + (frameCount % 4), W, i + (frameCount % 4)); } fill(0, 255, 0, 150); textSize(8); textAlign(LEFT); text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40); text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30); text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20); textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount * 0.01) * 5).toFixed(1)}°C`, W - 20, H - 30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20); pop(); }
-function drawPixelAvatar(x, y, w, h) { push(); translate(x, y); noStroke(); let vlasy = color(240, 220, 110), kuze = color(245, 200, 170), triko = color(currentTheme[0], currentTheme[1], currentTheme[2]), stin = color(0, 0, 0, 50), oci = color(40), pw = w / 20, ph = h / 15, sway = sin(frameCount * 0.05) * 2, handMove = sin(frameCount * 0.2) * 4, eyesOpen = (frameCount % 120 > 5); fill(triko); rect(pw * 5 + sway, ph * 7, pw * 10, ph * 8, 2); fill(stin); rect(pw * 7 + sway, ph * 7, pw * 6, ph * 1); let headSway = sway * 0.5; fill(kuze); rect(pw * 6 + headSway, ph * 2, pw * 8, ph * 6, 3); fill(vlasy); rect(pw * 5 + headSway, ph * 1, pw * 10, ph * 3, 2); rect(pw * 5 + headSway, ph * 3, pw * 2, ph * 7, 2); rect(pw * 13 + headSway, ph * 3, pw * 2, ph * 7, 2); if (eyesOpen) { fill(oci); rect(pw * 8 + headSway, ph * 4, pw * 1, ph * 2); rect(pw * 11 + headSway, ph * 4, pw * 1, ph * 2); } else { fill(stin); rect(pw * 8 + headSway, ph * 5, pw * 1, ph * 1); rect(pw * 11 + headSway, ph * 5, pw * 1, ph * 1); } fill(color(200, 100, 100)); rect(pw * 9 + headSway, ph * 7, pw * 2, ph * 1); fill(kuze); rect(pw * 3, ph * 8 + handMove, pw * 3, ph * 4, 2); rect(pw * 14, ph * 8 - handMove, pw * 3, ph * 4, 2); pop(); }
-function drawAntiBotOverlay() { push(); stroke(0, 15); strokeWeight(1); let offset = frameCount % 4; for (let i = 0; i < H; i += 4) { line(0, i + offset, W, i + offset); } noStroke(); for (let i = 0; i < 20; i++) { fill(255, random(5, 25)); rect(random(W), random(H), random(1, 3), random(1, 3)); } for (let i = 0; i < 10; i++) { fill(currentTheme[0], currentTheme[1], currentTheme[2], random(5, 15)); rect(random(W), random(H), random(1, 4), random(1, 4)); } if (random() < 0.08) { fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); rect(0, random(H), W, random(1, 6)); } let camX = W - 110, camY = H - 185; fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5); drawPixelAvatar(camX + 5, camY + 5, 90, 65); noStroke(); for (let cx = 0; cx < 100; cx += 5) { for (let cy = 0; cy < 75; cy += 5) { let n = noise(cx * 0.1, cy * 0.1, frameCount * 0.1); if (n > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } } } fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text("LIVE_PLAYER", camX + 5, camY + 5); if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); } textFont('Press Start 2P'); textStyle(NORMAL); let marqueeText = `🚀 LIVE SECTOR: ${currentDestination} --- ACTIVE UNITS: ${balls.length} --- SEND LIKES TO POWER UP Shields! --- `; let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W)); fill(5, 5, 15, 230); noStroke(); rect(0, H - 25, W, 25); drawTxt(marqueeText + marqueeText, scrollX, H - 12, color(currentTheme), 11, LEFT); pop(); }
-function drawPegs() { noStroke(); let pR = map(currentGravity, 0.05, 1.95, 0, 255), pG = map(currentGravity, 0.05, 1.95, 255, 100), pB = map(currentGravity, 0.05, 1.95, 255, 0), pC = color(pR, pG, pB); for (let p of pegs) { p.glow = p.glow || 0; if (p.glow > 0) { fill(pR, pG + 50, pB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; } if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } else if (p.isRepulsor) { fill(255, 50, 200); ellipse(p.position.x, p.position.y, 12 + sin(frameCount * 0.2) * 3); } else { fill(pC); rect(p.position.x - 4, p.position.y - 4, 8, 8); } } }
-function prepareSingularityEvents() { bhSpawnTimes = []; if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8))); }
-function checkSingularitySpawn() { if (bhSpawnTimes.includes(timer) && !blackHole) { let fL = random() < 0.5; blackHole = { x: fL ? -150 : W + 150, y: random(200, H - 450), startY: 0, targetX: fL ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) }; blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); speakAnnouncer("Warning! Black hole singularity forming!", 1); } }
-function handleBlackHole() { if (!blackHole) return; let d = blackHole.targetX > blackHole.x ? 1 : -1; blackHole.x += blackHole.speed * d; let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset); blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2; let jS = blackHole.size * (1 + (n - 0.5) * 0.15); push(); translate(blackHole.x, blackHole.y); noStroke(); push(); rotate(frameCount * 0.05); for (let i = 0; i < 4; i++) { fill(150, 50, 255, 20); ellipse(0, 0, jS * 2.5 + i * 15, jS * 0.8 + i * 5); } pop(); for (let i = 5; i > 0; i--) { fill(10 + i * 10, 0, 40 + i * 20, 25); ellipse(0, 0, jS + i * (blackHole.size * 0.15) + (n * 10)); } fill(0); ellipse(0, 0, jS); pop(); for (let i = pegs.length - 1; i >= 0; i--) { let p = pegs[i]; if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jS * 0.55 && random() < 0.23) { Matter.Composite.remove(world, p); createExplosion(p.position.x, p.position.y); playExplosionSound(); pegs.splice(i, 1); } } for (let i = balls.length - 1; i >= 0; i--) { let b = balls[i]; if (!b.body) continue; let ds = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y); if (ds < jS * 0.5) { removeBall(b); continue; } if (ds < blackHole.size * 1.87) { let sD = Math.max(ds, 30); Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({ x: blackHole.x, y: blackHole.y }, b.body.position)), (blackHole.size * 0.00018) / (sD / 80))); } } if ((d === 1 && blackHole.x > blackHole.targetX) || (d === -1 && blackHole.x < blackHole.targetX)) { blackHole = null; } }
-function triggerCosmicEvent() { if (cosmicEvent) return; eventOccurredThisRound = true; let fL = random() < 0.5, s = random(25, 45), sx = fL ? -100 : W + 100, ty = H - ZONE_H - random(20, 120), b = Matter.Bodies.circle(sx, ty, s / 2, { isStatic: false, isSensor: false, density: 0.1, frictionAir: 0, collisionFilter: { mask: 1 } }), iC = random() < 0.5; cosmicEvent = { body: b, type: iC ? "COMET" : "METEOR", size: s, color: iC ? color(150, 200, 255) : color(255, 100, 50), trail: [] }; Matter.World.add(world, b); Matter.Body.setVelocity(b, { x: fL ? random(12, 18) : random(-12, -18), y: random(-1, 1) }); if (audioStarted && millis() - lastExpSnd > 50) { fxSynth.play(200, 0.1, 0, 0.5); lastExpSnd = millis(); } speakAnnouncer("Warning! Cosmic anomaly detected.", 1); }
-function handleCosmicEvent() { if (!cosmicEvent) return; let p = cosmicEvent.body.position; cosmicEvent.trail.push({ x: p.x, y: p.y, life: 255 }); if (cosmicEvent.trail.length > 20) cosmicEvent.trail.shift(); push(); noStroke(); for (let i = 0; i < cosmicEvent.trail.length; i++) { let alpha = map(i, 0, cosmicEvent.trail.length, 0, 150); fill(red(cosmicEvent.color), green(cosmicEvent.color), blue(cosmicEvent.color), alpha); ellipse(cosmicEvent.trail[i].x, cosmicEvent.trail[i].y, cosmicEvent.size * (i / cosmicEvent.trail.length)); } fill(255); ellipse(p.x, p.y, cosmicEvent.size); fill(cosmicEvent.color); ellipse(p.x, p.y, cosmicEvent.size * 0.8); pop(); if (p.x < -300 || p.x > W + 300) { Matter.World.remove(world, cosmicEvent.body); cosmicEvent = null; } }
 
 function initGame() {
   engine = Matter.Engine.create(); world = engine.world; let opts = { isStatic: true, restitution: 2.2, friction: 0 };
@@ -893,7 +872,7 @@ function resetGame() {
   leaderboard = {}; totalBallsFired = 0; roundCount++; gameState = "PLAYING"; resultsTimer = 10; eventOccurredThisRound = false; currentDestination = generatePlanetName(); timer = floor(random(40, 181)); currentTheme = random(UI_THEMES);
   if (isAutoMode) { autoRandomSettings(); }
   if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null;
+  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound();
   nextMeteorShowerTime = millis() + 66000;
   let delay = 0;
@@ -903,30 +882,11 @@ function resetGame() {
 
 function mouseClicked() { 
   if (!audioStarted) startSpaceAudio(); 
-  
-  // Klik na horní lištu - Spawnuje testovací kuličky (Boty) a lodě
   if (mouseY <= 75) { 
-    if (mouseX < 100) { 
-      triggerFollowEvent(random(TEST_BOTS)); 
-    } else { 
-      spawnBall(random(TEST_BOTS)); 
-      shakeAmount = 2; 
-    }
+    if (mouseX < 100) { triggerFollowEvent(random(TEST_BOTS)); }
+    else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; }
     return; 
   } 
-  
-  // Klik na pravou tabulku - Reset aktuálního kola (Leaderboard)
-  if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { 
-    leaderboard = {}; 
-    shakeAmount = 4; 
-    return; 
-  } 
-  
-  // Klik na levou tabulku - Reset celkových rekordů (Milestones)
-  if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { 
-    allTimeRecords = []; 
-    localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); 
-    shakeAmount = 5; 
-    return; 
-  } 
+  if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
+  if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
