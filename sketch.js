@@ -577,7 +577,7 @@ function draw() {
     }
     
     let msRate = mothershipSlider ? mothershipSlider.value() : 0;
-    if (isMothershipMode && msRate > 0 && balls.length < 400) {
+    if (isMothershipMode && msRate > 0 && balls.length < 1500) {
       if (random() < (msRate / targetFPS)) {
         spawnBall("MOTHERSHIP");
       }
@@ -709,14 +709,14 @@ function draw() {
 function spawnBall(userName) {
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") {
-    if (spawnQueue.length < 100) {
+    if (spawnQueue.length < 500) {
       spawnQueue.push(userName);
     }
     return;
   }
   
-  // Pevný limit, aby hra nezamrzala při velkém náporu
-  if (balls.length > 400) return;
+  // Pevný limit zvýšen na 1500
+  if (balls.length > 1500) return;
   
   if (!audioStarted) {
     startSpaceAudio();
@@ -765,7 +765,8 @@ function spawnBall(userName) {
     isRainbow: isR, 
     trail: [], 
     rainbowExplodeTime: null, 
-    portalCooldown: 0 
+    portalCooldown: 0,
+    scoreTime: null 
   };
   
   balls.push(newBall);
@@ -773,7 +774,7 @@ function spawnBall(userName) {
 }
 
 function drawBalls() {
-  if (balls.length > 450) {
+  if (balls.length > 1500) {
     removeBall(balls[0]);
   }
   
@@ -928,6 +929,7 @@ function drawBalls() {
       
       if (cz) {
         b.scored = true; 
+        b.scoreTime = millis();
         let fs = cz.score; 
         if (b.isRainbow) {
           fs *= 2;
@@ -965,6 +967,11 @@ function drawBalls() {
         }
       }
       b.rainbowExplodeTime = null;
+      removeBall(b);
+      continue;
+    }
+    
+    if (b.scored && b.scoreTime && millis() - b.scoreTime > 4000) {
       removeBall(b);
       continue;
     }
