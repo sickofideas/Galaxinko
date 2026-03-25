@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v12.9";
+const GAME_VERSION = "v13.2";
 
 let engine;
 let world;
@@ -168,10 +168,10 @@ function setup() {
   
   nextMeteorShowerTime = millis() + 66000;
   
-  // Tlacitko přesunuto vedle čísla verze
+  // Tlacitko presunuto uplne doprava MIMO hraci plochu
   keyButton = createButton('🔑');
-  keyButton.position(70, 42);
-  keyButton.style('font-size', '18px');
+  keyButton.position(W + 20, 20);
+  keyButton.style('font-size', '24px');
   keyButton.style('background', 'transparent');
   keyButton.style('border', 'none');
   keyButton.style('cursor', 'pointer');
@@ -577,7 +577,7 @@ function draw() {
     }
     
     let msRate = mothershipSlider ? mothershipSlider.value() : 0;
-    if (isMothershipMode && msRate > 0 && balls.length < 1500) {
+    if (isMothershipMode && msRate > 0 && balls.length < 3000) {
       if (random() < (msRate / targetFPS)) {
         spawnBall("MOTHERSHIP");
       }
@@ -715,8 +715,8 @@ function spawnBall(userName) {
     return;
   }
   
-  // Pevný limit zvýšen na 1500
-  if (balls.length > 1500) return;
+  // Zvýšen limit jako prevence proti naprostému zamrznutí (zbytek se ošetřuje dole)
+  if (balls.length > 3000) return;
   
   if (!audioStarted) {
     startSpaceAudio();
@@ -766,7 +766,8 @@ function spawnBall(userName) {
     trail: [], 
     rainbowExplodeTime: null, 
     portalCooldown: 0,
-    scoreTime: null 
+    scoreTime: null,
+    zoneIndex: -1 
   };
   
   balls.push(newBall);
@@ -774,10 +775,20 @@ function spawnBall(userName) {
 }
 
 function drawBalls() {
-  if (balls.length > 1500) {
-    removeBall(balls[0]);
+  // Dynamické vymazávání nejstarších kuliček, pokud se chlívek zaplní na 95 %
+  for (let zi = 0; zi < zones.length; zi++) {
+    let zBalls = balls.filter(b => b.scored && b.zoneIndex === zi);
+    let limit = Math.max(1, Math.floor(zones[zi].capacity * 0.95));
+    
+    if (zBalls.length > limit) {
+      zBalls.sort((a, b) => a.scoreTime - b.scoreTime);
+      let toRemove = zBalls.length - limit;
+      for (let k = 0; k < toRemove; k++) {
+        removeBall(zBalls[k]);
+      }
+    }
   }
-  
+
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
     if (!b.body) {
@@ -930,6 +941,7 @@ function drawBalls() {
       if (cz) {
         b.scored = true; 
         b.scoreTime = millis();
+        b.zoneIndex = zones.indexOf(cz);
         let fs = cz.score; 
         if (b.isRainbow) {
           fs *= 2;
@@ -971,7 +983,8 @@ function drawBalls() {
       continue;
     }
     
-    if (b.scored && b.scoreTime && millis() - b.scoreTime > 4000) {
+    // Mothership kulička zmizí po 5 sekundách od dosažení dna
+    if (b.scored && b.scoreTime && b.name === "MOTHERSHIP" && millis() - b.scoreTime > 5000) {
       removeBall(b);
       continue;
     }
@@ -2502,7 +2515,8 @@ function initGame() {
     let val = sV[i];
     zones.push({ 
       x: cX, w: zW, score: val, flash: 0, flashColor: color(255), 
-      baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180) 
+      baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180),
+      capacity: Math.max(5, Math.floor((zW * ZONE_H) / 200)) 
     });
     if (i > 0) {
       let wl = Matter.Bodies.rectangle(cX, H - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 });
