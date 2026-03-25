@@ -1,6 +1,5 @@
-// --- GALAXINKO v12.4 (Plně odřádkováno) ---
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v12.4";
+const GAME_VERSION = "v12.9";
 
 let engine;
 let world;
@@ -169,43 +168,47 @@ function setup() {
   
   nextMeteorShowerTime = millis() + 66000;
   
+  // Tlacitko a panel přesunuty doprava
   keyButton = createButton('🔑');
-  keyButton.position(15, H - 45);
+  keyButton.position(W - 60, H - 55);
   keyButton.style('font-size', '28px');
   keyButton.style('background', 'transparent');
   keyButton.style('border', 'none');
   keyButton.style('cursor', 'pointer');
   keyButton.mousePressed(toggleSettings);
   
+  let sX = W - 320;
+  
   gravitySlider = createSlider(0.01, 5.0, currentGravity, 0.01); 
-  gravitySlider.position(50, 200); 
+  gravitySlider.position(sX, 200); 
   gravitySlider.hide();
   
   bounceSlider = createSlider(1, 200, currentBounce, 1); 
-  bounceSlider.position(50, 250); 
+  bounceSlider.position(sX, 250); 
   bounceSlider.hide();
   
   spawnPerEventSlider = createSlider(1, 50, spawnPerEvent, 1); 
-  spawnPerEventSlider.position(50, 300); 
+  spawnPerEventSlider.position(sX, 300); 
   spawnPerEventSlider.hide();
   
   shipChanceSlider = createSlider(0, 100, currentShipChance, 1); 
-  shipChanceSlider.position(50, 350); 
+  shipChanceSlider.position(sX, 350); 
   shipChanceSlider.hide();
   
   volumeSlider = createSlider(0, 1, 0.5, 0.05); 
-  volumeSlider.position(50, 400); 
+  volumeSlider.position(sX, 400); 
   volumeSlider.hide();
   
   autoButton = createButton('AUTO: OFF'); 
-  autoButton.position(50, 440); 
+  autoButton.position(sX, 440); 
   autoButton.hide(); 
   autoButton.mousePressed(toggleAutoMode);
   
   mothershipSlider = createSlider(0, 30, 5, 1); 
-  mothershipSlider.position(50, 490); 
+  mothershipSlider.position(sX, 490); 
   mothershipSlider.hide();
 }
+
 function generatePlanetName() {
   const n = ["XERON", "KEPLER", "ZENON", "AETHER", "NIBIRU", "PANDORA", "CYGNUS", "TITAN", "SOLARIS", "ZION"];
   const t = ["PRIME", "STATION", "SYSTEM", "REACH", "BETA", "MAJOR", "MINOR", "VOID"];
@@ -345,6 +348,116 @@ function connectTikfinity() {
     setTimeout(connectTikfinity, 5000);
   };
 }
+
+function startSpaceAudio() {
+  audioStarted = true;
+  userStartAudio();
+}
+
+function playSpawnSound() {
+  if (audioStarted && millis() - lastSpawnSnd > 50) {
+    try { fxSynth.play(random([440, 493, 554, 659, 739, 880]) + random(-5, 5), random(0.02, 0.05), 0, random(0.05, 0.15)); } catch(e) {}
+    lastSpawnSnd = millis();
+  }
+}
+
+function playRainbowSound() {
+  if (audioStarted && millis() - lastSpawnSnd > 50) {
+    let r = random([500, 600, 700, 800]);
+    try {
+      fxSynth.play(r, 0.1, 0, 0.1);
+      setTimeout(() => { try { fxSynth.play(r * 1.25, 0.1, 0, 0.1); } catch(e){} }, 100);
+      setTimeout(() => { try { fxSynth.play(r * 1.5, 0.1, 0, 0.3); } catch(e){} }, 200);
+    } catch(e) {}
+    lastSpawnSnd = millis();
+  }
+}
+
+function playJackpotSound() {
+  if (audioStarted) {
+    try {
+      fxSynth.play('C5', 0.1, 0, 0.1);
+      setTimeout(() => { try { fxSynth.play('E5', 0.1, 0, 0.1); } catch(e){} }, 100);
+      setTimeout(() => { try { fxSynth.play('G5', 0.1, 0, 0.2); } catch(e){} }, 200);
+      setTimeout(() => { try { fxSynth.play('C6', 0.2, 0, 0.5); } catch(e){} }, 300);
+    } catch(e) {}
+  }
+}
+
+function playExplosionSound() {
+  if (audioStarted && millis() - lastExpSnd > 50) {
+    try { fxSynth.play(random(50, 150), 0.1, 0, 0.2); } catch(e) {}
+    lastExpSnd = millis();
+  }
+}
+
+function playCleanupSound() {
+  if (audioStarted) {
+    try { fxSynth.play(100, 0.05, 0, 1.0); } catch(e) {}
+  }
+}
+
+function playTimerEndSequence() {
+  if (!audioStarted) return;
+  let e = [600, 400, 250, 100];
+  for (let i = 0; i < e.length; i++) {
+    setTimeout(() => {
+      if (gameState === "WAITING") {
+        try { fxSynth.play(e[i] + random(-20, 20), 0.08, 0, 0.4); } catch(err) {}
+        shakeAmount = random(2, 4);
+      }
+    }, i * 400);
+  }
+  flashEffect = 60;
+}
+
+function toggleSettings() { 
+  settingsPanelVisible = !settingsPanelVisible; 
+  if (settingsPanelVisible) {
+    gravitySlider.show();
+    bounceSlider.show();
+    spawnPerEventSlider.show();
+    shipChanceSlider.show();
+    volumeSlider.show();
+    autoButton.show();
+    mothershipSlider.show();
+  } else {
+    gravitySlider.hide();
+    bounceSlider.hide();
+    spawnPerEventSlider.hide();
+    shipChanceSlider.hide();
+    volumeSlider.hide();
+    autoButton.hide();
+    mothershipSlider.hide();
+  } 
+}
+
+function toggleAutoMode() {
+  isAutoMode = !isAutoMode;
+  if (isAutoMode) {
+    autoButton.html('AUTO: ON');
+    autoButton.style('background-color', '#4CAF50');
+    autoRandomSettings();
+  } else {
+    autoButton.html('AUTO: OFF');
+    autoButton.style('background-color', '');
+  }
+}
+
+function autoRandomSettings() {
+  currentGravity = random(0.05, 1.95);
+  currentBounce = floor(random(60, 100));
+  spawnPerEvent = floor(random(1, 4));
+  currentShipChance = floor(random(0, 101));
+  gravitySlider.value(currentGravity);
+  bounceSlider.value(currentBounce);
+  spawnPerEventSlider.value(spawnPerEvent);
+  shipChanceSlider.value(currentShipChance);
+  if (world) {
+    world.gravity.y = currentGravity;
+  }
+}
+
 function drawTxt(t, x, y, c, s, a = CENTER) {
   push();
   noStroke();
@@ -369,30 +482,6 @@ function updateWinnerColor() {
 function updateTravelSpeed() {
   let target = (gameState === "PLAYING" ? 1.0 : 0.2);
   currentTravelSpeed = lerp(currentTravelSpeed, target, 0.01);
-}
-
-function drawSpaceDoors() {
-  let targetDoor = 0;
-  if (millis() - lastSpawnTime < 800) {
-    targetDoor = 1;
-  }
-  doorOpen = lerp(doorOpen, targetDoor, 0.15);
-  
-  push();
-  translate(W / 2, 20);
-  let dW = 120;
-  let offset = doorOpen * dW * 0.95;
-  
-  fill(25, 30, 40);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 200);
-  strokeWeight(3);
-  rect(-dW - offset, -20, dW, 40, 5); 
-  rect(offset, -20, dW, 40, 5);       
-  
-  noStroke();
-  fill(currentTheme[0], currentTheme[1], currentTheme[2], doorOpen * 180);
-  rect(-dW * 0.8, -5, dW * 1.6, 10);
-  pop();
 }
 
 function draw() {
@@ -458,7 +547,6 @@ function draw() {
   drawGalacticBackground();
   drawViewerObjects();
   handleBackgroundMeteors();
-  drawSpaceDoors();
 
   try {
     Matter.Engine.update(engine, 1000 / 60);
@@ -488,8 +576,8 @@ function draw() {
       backgroundMeteors.push({ x: mx, y: my, vx: mvx, vy: mvy, size: random(4, 12), c: color(255, random(100, 200), 0), trail: [] });
     }
     
-    let msRate = mothershipSlider.value();
-    if (msRate > 0 && balls.length < 200) {
+    let msRate = mothershipSlider ? mothershipSlider.value() : 0;
+    if (msRate > 0 && balls.length < 150) {
       if (random() < (msRate / targetFPS)) {
         spawnBall("MOTHERSHIP");
       }
@@ -567,43 +655,45 @@ function draw() {
   drawAntiBotOverlay();
 
   if (settingsPanelVisible) {
+    let pX = W - 340;
     push();
     drawingContext.shadowBlur = 15;
     drawingContext.shadowColor = color(0);
     fill(15, 15, 25, 240);
     stroke(currentTheme[0], currentTheme[1], currentTheme[2], 100);
     strokeWeight(2);
-    rect(30, 120, 320, 420, 15);
+    rect(pX, 120, 320, 420, 15);
     drawingContext.shadowBlur = 0;
     
     noStroke();
     textAlign(LEFT, CENTER);
     textSize(16);
-    fill(0, 150); text("⚙️ ADMIN PANEL", 50 + 2, 155 + 2);
-    fill(currentTheme[0], currentTheme[1], currentTheme[2]); text("⚙️ ADMIN PANEL", 50, 155);
+    let tX = pX + 20;
+    fill(0, 150); text("⚙️ ADMIN PANEL", tX + 2, 155 + 2);
+    fill(currentTheme[0], currentTheme[1], currentTheme[2]); text("⚙️ ADMIN PANEL", tX, 155);
     
     stroke(255, 50);
-    line(50, 175, 310, 175);
+    line(tX, 175, pX + 300, 175);
     noStroke();
     textSize(11);
     
-    fill(0, 150); text(`GRAVITY: ${currentGravity.toFixed(2)}`, 50 + 2, 205 + 2);
-    fill(200); text(`GRAVITY: ${currentGravity.toFixed(2)}`, 50, 205);
+    fill(0, 150); text(`GRAVITY: ${currentGravity.toFixed(2)}`, tX + 2, 205 + 2);
+    fill(200); text(`GRAVITY: ${currentGravity.toFixed(2)}`, tX, 205);
     
-    fill(0, 150); text(`BOUNCE: ${currentBounce}`, 50 + 2, 255 + 2);
-    fill(200); text(`BOUNCE: ${currentBounce}`, 50, 255);
+    fill(0, 150); text(`BOUNCE: ${currentBounce}`, tX + 2, 255 + 2);
+    fill(200); text(`BOUNCE: ${currentBounce}`, tX, 255);
     
-    fill(0, 150); text(`SPAWN LIMIT: ${spawnPerEvent}`, 50 + 2, 305 + 2);
-    fill(200); text(`SPAWN LIMIT: ${spawnPerEvent}`, 50, 305);
+    fill(0, 150); text(`SPAWN LIMIT: ${spawnPerEvent}`, tX + 2, 305 + 2);
+    fill(200); text(`SPAWN LIMIT: ${spawnPerEvent}`, tX, 305);
     
-    fill(0, 150); text(`BOSS/SHIP CHANCE: ${currentShipChance}%`, 50 + 2, 355 + 2);
-    fill(200); text(`BOSS/SHIP CHANCE: ${currentShipChance}%`, 50, 355);
+    fill(0, 150); text(`BOSS/SHIP CHANCE: ${currentShipChance}%`, tX + 2, 355 + 2);
+    fill(200); text(`BOSS/SHIP CHANCE: ${currentShipChance}%`, tX, 355);
     
-    fill(0, 150); text(`SFX VOL: ${floor(volumeSlider.value() * 100)}%`, 50 + 2, 405 + 2);
-    fill(200); text(`SFX VOL: ${floor(volumeSlider.value() * 100)}%`, 50, 405);
+    fill(0, 150); text(`SFX VOL: ${floor(volumeSlider.value() * 100)}%`, tX + 2, 405 + 2);
+    fill(200); text(`SFX VOL: ${floor(volumeSlider.value() * 100)}%`, tX, 405);
     
-    fill(0, 150); text(`MOTHERSHIP RATE: ${mothershipSlider.value()}/s`, 50 + 2, 475 + 2);
-    fill(200); text(`MOTHERSHIP RATE: ${mothershipSlider.value()}/s`, 50, 475);
+    fill(0, 150); text(`MOTHERSHIP RATE: ${mothershipSlider.value()}/s`, tX + 2, 475 + 2);
+    fill(200); text(`MOTHERSHIP RATE: ${mothershipSlider.value()}/s`, tX, 475);
     pop();
   }
   
@@ -615,13 +705,18 @@ function draw() {
   }
   pop();
 }
+
 function spawnBall(userName) {
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") {
-    spawnQueue.push(userName);
+    if (spawnQueue.length < 100) {
+      spawnQueue.push(userName);
+    }
     return;
   }
-  if (balls.length > 250) return;
+  
+  // Pevný limit, aby hra nezamrzala při velkém náporu
+  if (balls.length > 150) return;
   
   if (!audioStarted) {
     startSpaceAudio();
@@ -678,7 +773,7 @@ function spawnBall(userName) {
 }
 
 function drawBalls() {
-  if (balls.length > 100) {
+  if (balls.length > 180) {
     removeBall(balls[0]);
   }
   
@@ -913,6 +1008,7 @@ function checkAllTimeRecords(n, s, c) {
   allTimeRecords = allTimeRecords.slice(0, 5);
   localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
 }
+
 function drawUI() {
   push();
   fill(5, 5, 15, 240);
@@ -989,7 +1085,6 @@ function drawUI() {
   text(`BOUNCE-X: ${currentBounce}`, W - 15, 56);
   pop();
   
-  // LEVA STRANA (MILESTONES) S VELKYMI AVATARY
   push();
   translate(10, 85);
   let ml = allTimeRecords.slice(0, 5);
@@ -1068,7 +1163,6 @@ function drawUI() {
   }
   pop();
   
-  // PRAVA STRANA (TOP CONTRIBUTORS) S VELKYMI AVATARY
   push();
   translate(W - 250, 85);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 30);
@@ -1136,6 +1230,7 @@ function drawZones() {
     pop();
   }
 }
+
 function drawWaitingMessage() {
   let a = map(sin(frameCount * 0.15), -1, 1, 100, 255);
   drawTxt("WARNING: CLEANUP", W / 2, H / 2 - 50, color(255, 50, 50, a), 30, CENTER);
@@ -1389,183 +1484,7 @@ function handleSpaceship() {
   }
   pop();
 }
-function startSpaceAudio() {
-  audioStarted = true;
-  userStartAudio();
-}
 
-function playSpawnSound() {
-  if (audioStarted && millis() - lastSpawnSnd > 50) {
-    fxSynth.play(random([440, 493, 554, 659, 739, 880]) + random(-5, 5), random(0.02, 0.05), 0, random(0.05, 0.15));
-    lastSpawnSnd = millis();
-  }
-}
-
-function playRainbowSound() {
-  if (audioStarted && millis() - lastSpawnSnd > 50) {
-    let r = random([500, 600, 700, 800]);
-    fxSynth.play(r, 0.1, 0, 0.1);
-    setTimeout(() => fxSynth.play(r * 1.25, 0.1, 0, 0.1), 100);
-    setTimeout(() => fxSynth.play(r * 1.5, 0.1, 0, 0.3), 200);
-    lastSpawnSnd = millis();
-  }
-}
-
-function playJackpotSound() {
-  if (audioStarted) {
-    fxSynth.play('C5', 0.1, 0, 0.1);
-    setTimeout(() => fxSynth.play('E5', 0.1, 0, 0.1), 100);
-    setTimeout(() => fxSynth.play('G5', 0.1, 0, 0.2), 200);
-    setTimeout(() => fxSynth.play('C6', 0.2, 0, 0.5), 300);
-  }
-}
-
-function playExplosionSound() {
-  if (audioStarted && millis() - lastExpSnd > 50) {
-    fxSynth.play(random(50, 150), 0.1, 0, 0.2);
-    lastExpSnd = millis();
-  }
-}
-
-function playCleanupSound() {
-  if (audioStarted) {
-    fxSynth.play(100, 0.05, 0, 1.0);
-  }
-}
-
-function playTimerEndSequence() {
-  if (!audioStarted) return;
-  let e = [600, 400, 250, 100];
-  for (let i = 0; i < e.length; i++) {
-    setTimeout(() => {
-      if (gameState === "WAITING") {
-        fxSynth.play(e[i] + random(-20, 20), 0.08, 0, 0.4);
-        shakeAmount = random(2, 4);
-      }
-    }, i * 400);
-  }
-  flashEffect = 60;
-}
-
-function toggleSettings() { 
-  settingsPanelVisible = !settingsPanelVisible; 
-  if (settingsPanelVisible) {
-    gravitySlider.show();
-    bounceSlider.show();
-    spawnPerEventSlider.show();
-    shipChanceSlider.show();
-    volumeSlider.show();
-    autoButton.show();
-    mothershipSlider.show();
-  } else {
-    gravitySlider.hide();
-    bounceSlider.hide();
-    spawnPerEventSlider.hide();
-    shipChanceSlider.hide();
-    volumeSlider.hide();
-    autoButton.hide();
-    mothershipSlider.hide();
-  } 
-}
-
-function toggleAutoMode() {
-  isAutoMode = !isAutoMode;
-  if (isAutoMode) {
-    autoButton.html('AUTO: ON');
-    autoButton.style('background-color', '#4CAF50');
-    autoRandomSettings();
-  } else {
-    autoButton.html('AUTO: OFF');
-    autoButton.style('background-color', '');
-  }
-}
-
-function toggleMothership() {
-  isMothershipMode = !isMothershipMode;
-  if (isMothershipMode) {
-    mothershipButton.html('MOTHERSHIP: ON');
-    mothershipButton.style('background-color', '#4CAF50');
-  } else {
-    mothershipButton.html('MOTHERSHIP: OFF');
-    mothershipButton.style('background-color', '');
-  }
-}
-
-function autoRandomSettings() {
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(60, 100));
-  spawnPerEvent = floor(random(1, 4));
-  currentShipChance = floor(random(0, 101));
-  gravitySlider.value(currentGravity);
-  bounceSlider.value(currentBounce);
-  spawnPerEventSlider.value(spawnPerEvent);
-  shipChanceSlider.value(currentShipChance);
-  if (world) {
-    world.gravity.y = currentGravity;
-  }
-}
-
-function triggerMeteorShower() {
-  speakAnnouncer("Warning! Incoming meteor shower!", 2);
-  shakeAmount = 15;
-  for (let i = 0; i < 30; i++) {
-    setTimeout(() => {
-      let side = floor(random(3));
-      let mx, my, mvx, mvy;
-      if (side === 0) { 
-        mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); 
-      } else if (side === 1) { 
-        mx = -50; my = random(H/2); mvx = random(15, 25); mvy = random(5, 15); 
-      } else { 
-        mx = W + 50; my = random(H/2); mvx = random(-25, -15); mvy = random(5, 15); 
-      }
-      backgroundMeteors.push({ x: mx, y: my, vx: mvx, vy: mvy, size: random(4, 12), c: color(255, random(100, 200), 0), trail: [] });
-      if (audioStarted && millis() - lastExpSnd > 100) {
-        fxSynth.play(random(100, 200), 0.05, 0, 0.1);
-        lastExpSnd = millis();
-      }
-    }, i * 200);
-  }
-}
-
-function handleBackgroundMeteors() {
-  noStroke();
-  for (let i = backgroundMeteors.length - 1; i >= 0; i--) {
-    let m = backgroundMeteors[i];
-    m.trail.push({ x: m.x, y: m.y });
-    if (m.trail.length > 10) {
-      m.trail.shift();
-    }
-    for (let t = 0; t < m.trail.length; t++) {
-      fill(red(m.c), green(m.c), blue(m.c), map(t, 0, m.trail.length, 0, 255));
-      ellipse(m.trail[t].x, m.trail[t].y, m.size * (t / m.trail.length));
-    }
-    fill(255);
-    ellipse(m.x, m.y, m.size);
-    m.x += m.vx;
-    m.y += m.vy;
-    if (m.y > H + 100 || m.x < -100 || m.x > W + 100) {
-      backgroundMeteors.splice(i, 1);
-    }
-  }
-}
-
-function drawGravityDust() {
-  let r = map(currentGravity, 0.05, 1.95, 100, 255);
-  let g = map(currentGravity, 0.05, 1.95, 200, 100);
-  let b = map(currentGravity, 0.05, 1.95, 255, 50);
-  fill(r, g, b, 150);
-  noStroke();
-  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
-  for (let d of dust) {
-    d.y += dustSpeed;
-    if (d.y > H) {
-      d.y = 0;
-      d.x = random(W);
-    }
-    rect(d.x, d.y, d.s, d.s);
-  }
-}
 function onUserJoin(u, img) {
   let isNew = !viewerSpaceObjects.find(o => o.name === u);
   if (img && !userAvatars[u]) {
@@ -1679,7 +1598,9 @@ function handleJoinPopups() {
     activeJoinPopup = joinPopupQueue.shift();
     activeJoinPopup.timer = 180;
     if (audioStarted && millis() - lastExpSnd > 50) {
-      fxSynth.play(random([800, 1000, 1200]), 0.1, 0, 0.5);
+      try {
+        fxSynth.play(random([800, 1000, 1200]), 0.1, 0, 0.5);
+      } catch(e) {}
       lastExpSnd = millis();
     }
     speakAnnouncer("Welcome commander ", 2);
@@ -2119,7 +2040,9 @@ function triggerCosmicEvent() {
   Matter.Body.setVelocity(b, { x: fL ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
   
   if (audioStarted && millis() - lastExpSnd > 50) {
-    fxSynth.play(200, 0.1, 0, 0.5);
+    try {
+      fxSynth.play(200, 0.1, 0, 0.5);
+    } catch(e) {}
     lastExpSnd = millis();
   }
   speakAnnouncer("Warning! Cosmic anomaly detected.", 1);
@@ -2389,6 +2312,68 @@ function drawGalacticBackground() {
   }
 }
 
+function drawGravityDust() {
+  let r = map(currentGravity, 0.05, 1.95, 100, 255);
+  let g = map(currentGravity, 0.05, 1.95, 200, 100);
+  let b = map(currentGravity, 0.05, 1.95, 255, 50);
+  fill(r, g, b, 150);
+  noStroke();
+  let dustSpeed = currentGravity * 3 * currentTravelSpeed;
+  for (let d of dust) {
+    d.y += dustSpeed;
+    if (d.y > H) {
+      d.y = 0;
+      d.x = random(W);
+    }
+    rect(d.x, d.y, d.s, d.s);
+  }
+}
+
+function triggerMeteorShower() {
+  speakAnnouncer("Warning! Incoming meteor shower!", 2);
+  shakeAmount = 15;
+  for (let i = 0; i < 30; i++) {
+    setTimeout(() => {
+      let side = floor(random(3));
+      let mx, my, mvx, mvy;
+      if (side === 0) { 
+        mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); 
+      } else if (side === 1) { 
+        mx = -50; my = random(H/2); mvx = random(15, 25); mvy = random(5, 15); 
+      } else { 
+        mx = W + 50; my = random(H/2); mvx = random(-25, -15); mvy = random(5, 15); 
+      }
+      backgroundMeteors.push({ x: mx, y: my, vx: mvx, vy: mvy, size: random(4, 12), c: color(255, random(100, 200), 0), trail: [] });
+      if (audioStarted && millis() - lastExpSnd > 100) {
+        try { fxSynth.play(random(100, 200), 0.05, 0, 0.1); } catch(e){}
+        lastExpSnd = millis();
+      }
+    }, i * 200);
+  }
+}
+
+function handleBackgroundMeteors() {
+  noStroke();
+  for (let i = backgroundMeteors.length - 1; i >= 0; i--) {
+    let m = backgroundMeteors[i];
+    m.trail.push({ x: m.x, y: m.y });
+    if (m.trail.length > 10) {
+      m.trail.shift();
+    }
+    for (let t = 0; t < m.trail.length; t++) {
+      fill(red(m.c), green(m.c), blue(m.c), map(t, 0, m.trail.length, 0, 255));
+      ellipse(m.trail[t].x, m.trail[t].y, m.size * (t / m.trail.length));
+    }
+    fill(255);
+    ellipse(m.x, m.y, m.size);
+    m.x += m.vx;
+    m.y += m.vy;
+    if (m.y > H + 100 || m.x < -100 || m.x > W + 100) {
+      backgroundMeteors.splice(i, 1);
+    }
+  }
+}
+
 function initGame() {
   engine = Matter.Engine.create();
   world = engine.world;
@@ -2573,6 +2558,7 @@ function mouseClicked() {
   if (!audioStarted) {
     startSpaceAudio(); 
   }
+  
   if (mouseY <= 75) { 
     if (mouseX < 100) { 
       triggerFollowEvent(random(TEST_BOTS)); 
@@ -2582,11 +2568,13 @@ function mouseClicked() {
     }
     return; 
   } 
+  
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { 
     leaderboard = {}; 
     shakeAmount = 4; 
     return; 
   } 
+  
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { 
     allTimeRecords = []; 
     localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); 
