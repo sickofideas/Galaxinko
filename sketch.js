@@ -577,7 +577,7 @@ function draw() {
     }
     
     let msRate = mothershipSlider ? mothershipSlider.value() : 0;
-    if (msRate > 0 && balls.length < 150) {
+    if (isMothershipMode && msRate > 0 && balls.length < 400) {
       if (random() < (msRate / targetFPS)) {
         spawnBall("MOTHERSHIP");
       }
@@ -716,7 +716,7 @@ function spawnBall(userName) {
   }
   
   // Pevný limit, aby hra nezamrzala při velkém náporu
-  if (balls.length > 150) return;
+  if (balls.length > 400) return;
   
   if (!audioStarted) {
     startSpaceAudio();
@@ -773,7 +773,7 @@ function spawnBall(userName) {
 }
 
 function drawBalls() {
-  if (balls.length > 180) {
+  if (balls.length > 450) {
     removeBall(balls[0]);
   }
   
