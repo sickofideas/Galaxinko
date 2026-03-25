@@ -168,10 +168,10 @@ function setup() {
   
   nextMeteorShowerTime = millis() + 66000;
   
-  // Tlacitko a panel přesunuty doprava
+  // Tlacitko přesunuto vedle čísla verze
   keyButton = createButton('🔑');
-  keyButton.position(W - 60, H - 55);
-  keyButton.style('font-size', '28px');
+  keyButton.position(70, 42);
+  keyButton.style('font-size', '18px');
   keyButton.style('background', 'transparent');
   keyButton.style('border', 'none');
   keyButton.style('cursor', 'pointer');
