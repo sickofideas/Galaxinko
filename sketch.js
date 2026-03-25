@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.3";
+const GAME_VERSION = "v13.4";
 
 let engine;
 let world;
@@ -1134,16 +1134,17 @@ function drawUI() {
       tint(255);
       drawingContext.save();
       drawingContext.beginPath();
-      drawingContext.arc(-5, y - 2, 16, 0, TWO_PI);
+      drawingContext.arc(245, y - 2, 16, 0, TWO_PI);
       drawingContext.clip();
-      image(userAvatars[r.name], -5, y - 2, 32, 32);
+      image(userAvatars[r.name], 245, y - 2, 32, 32);
       drawingContext.restore();
       pop();
-      drawTxt(txt, 25, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 10 : 9, LEFT);
+      drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 10 : 9, LEFT);
+      drawTxt(r.score.toLocaleString(), 220, y, color(255), i < 3 ? 10 : 9, RIGHT);
     } else {
       drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 10 : 9, LEFT);
+      drawTxt(r.score.toLocaleString(), 225, y, color(255), i < 3 ? 10 : 9, RIGHT);
     }
-    drawTxt(r.score.toLocaleString(), 225, y, color(255), i < 3 ? 10 : 9, RIGHT);
   });
   
   translate(0, lH + 15);
