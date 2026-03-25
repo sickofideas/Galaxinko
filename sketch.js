@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.2";
+const GAME_VERSION = "v13.3";
 
 let engine;
 let world;
@@ -168,7 +168,6 @@ function setup() {
   
   nextMeteorShowerTime = millis() + 66000;
   
-  // Tlacitko presunuto uplne doprava MIMO hraci plochu
   keyButton = createButton('🔑');
   keyButton.position(W + 20, 20);
   keyButton.style('font-size', '24px');
@@ -715,7 +714,6 @@ function spawnBall(userName) {
     return;
   }
   
-  // Zvýšen limit jako prevence proti naprostému zamrznutí (zbytek se ošetřuje dole)
   if (balls.length > 3000) return;
   
   if (!audioStarted) {
@@ -775,7 +773,6 @@ function spawnBall(userName) {
 }
 
 function drawBalls() {
-  // Dynamické vymazávání nejstarších kuliček, pokud se chlívek zaplní na 95 %
   for (let zi = 0; zi < zones.length; zi++) {
     let zBalls = balls.filter(b => b.scored && b.zoneIndex === zi);
     let limit = Math.max(1, Math.floor(zones[zi].capacity * 0.95));
@@ -983,7 +980,6 @@ function drawBalls() {
       continue;
     }
     
-    // Mothership kulička zmizí po 5 sekundách od dosažení dna
     if (b.scored && b.scoreTime && b.name === "MOTHERSHIP" && millis() - b.scoreTime > 5000) {
       removeBall(b);
       continue;
@@ -1623,8 +1619,10 @@ function handleJoinPopups() {
       } catch(e) {}
       lastExpSnd = millis();
     }
-    speakAnnouncer("Welcome commander ", 2);
-    speakName(activeJoinPopup.name);
+    
+    // Vyčištění jména a spojení do jedné spolehlivé hlášky
+    let safeName = sanitizeText(activeJoinPopup.name);
+    speakAnnouncer("Welcome new commander " + safeName, 2);
   }
   
   if (activeJoinPopup) {
