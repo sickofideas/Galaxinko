@@ -1115,9 +1115,9 @@ function drawUI() {
   textAlign(CENTER);
   textSize(12);
   fill(0, 150);
-  text("MISSION MILESTONES", 122, 27);
+  text("TODAY'S RECORDS", 122, 27);
   fill(currentTheme[0], currentTheme[1], currentTheme[2]);
-  text("MISSION MILESTONES", 120, 25);
+  text("TODAY'S RECORDS", 120, 25);
   
   stroke(255, 30);
   strokeWeight(1);
