@@ -1120,8 +1120,8 @@ function drawAntiBotOverlay() {
   textFont('Press Start 2P'); textStyle(NORMAL);
   let marqueeText = T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls);
   let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
-  fill(5, 5, 15, 230); noStroke(); rect(0, H - 25, W, 25);
-  drawTxt(marqueeText + marqueeText, scrollX, H - 12, color(currentTheme), 11, LEFT); pop();
+  fill(5, 5, 15, 230); noStroke(); rect(0, H - 15, W, 15);
+  drawTxt(marqueeText + marqueeText, scrollX, H - 7, color(currentTheme), 9, LEFT); pop();
 }
 
 function drawPegs() {
@@ -1190,7 +1190,7 @@ function handleCosmicEvent() {
 
 function spawnRareLegend() {
   let l = random(RARE_POOL);
-  spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: l.id, size: l.size, color: color(l.col[0], l.col[1], l.col[2]), speed: random(0.8, 1.8), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true });
+  spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: l.id, size: l.size, color: color(l.col[0], l.col[1], l.col[2]), vy: random(1, 3), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true });
 }
 
 function generateDeepSpaceElements() {
@@ -1212,7 +1212,7 @@ function generateDeepSpaceElements() {
   }
   
   spaceDebris = [];
-  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), speed: random(0.5, 3.0), vx: random(-1.5, 1.5), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
+  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
 }
 
 function drawGalacticBackground() {
@@ -1263,12 +1263,12 @@ function drawGalacticBackground() {
   for (let i = 0; i < spaceDebris.length; i++) {
     for (let j = i + 1; j < spaceDebris.length; j++) {
       let d1 = spaceDebris[i], d2 = spaceDebris[j], ds = (d1.x - d2.x) ** 2 + (d1.y - d2.y) ** 2, md = (d1.size + d2.size) / 2;
-      if (ds < md * md) { let tVx = d1.vx; d1.vx = d2.vx; d2.vx = tVx; let tVy = d1.speed; d1.speed = d2.speed; d2.speed = tVy; d1.x += d1.vx * 2; d1.y += d1.speed * 2; createExplosion(d1.x, d1.y, color(255, 200, 100)); }
+      if (ds < md * md) { let tVx = d1.vx; d1.vx = d2.vx; d2.vx = tVx; let tVy = d1.vy; d1.vy = d2.vy; d2.vy = tVy; d1.x += d1.vx * 2; d1.y += d1.vy * 2; createExplosion(d1.x, d1.y, color(255, 200, 100)); if (audioStarted) playExplosionSound(); }
     }
   }
   
   for (let i = spaceDebris.length - 1; i >= 0; i--) {
-    let d = spaceDebris[i]; push(); translate(d.x, d.y); d.x += d.vx * currentTravelSpeed; d.y += d.speed * currentTravelSpeed * 2; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
+    let d = spaceDebris[i]; push(); translate(d.x, d.y); d.x += d.vx * currentTravelSpeed; d.y += d.vy * currentTravelSpeed; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
     if (d.type === "LEGEND") drawLegendShape(d); 
     else if (d.type === "CRUISER") { fill(90); rect(-d.size, -d.size/4, d.size*2, d.size/2, 3); fill(60); rect(-d.size/2, -d.size/2, d.size, d.size/4); fill(50, 200, 255, 200); ellipse(-d.size, 0, d.size/3, d.size/2); } 
     else if (d.type === "FIGHTER") { fill(120); triangle(d.size/2, 0, -d.size/2, -d.size/2, -d.size/2, d.size/2); fill(255, 100, 50, 200); ellipse(-d.size/2, 0, d.size/3); } 
@@ -1279,7 +1279,13 @@ function drawGalacticBackground() {
     else if (d.type === "SATELLITE") { stroke(200, 200, 255, 120); strokeWeight(1); noFill(); rect(-d.size / 4, -d.size / 4, d.size / 2, d.size / 2); line(-d.size, 0, d.size, 0); rect(-d.size, -d.size / 6, d.size / 2, d.size / 3); rect(d.size / 2, -d.size / 6, d.size / 2, d.size / 3); } 
     else { fill(80, 150); noStroke(); rect(-d.size / 2, -d.size / 2, d.size, d.size, 3); }
     pop();
-    if (d.y > H + 150) { if (d.isRare) spaceDebris.splice(i, 1); else { d.y = -100; d.x = random(W); } }
+    if (d.y > H + 150 || d.y < -150 || d.x > W + 150 || d.x < -150) { 
+      if (d.isRare) spaceDebris.splice(i, 1); 
+      else { 
+        if (random() < 0.5) { d.x = random() < 0.5 ? -100 : W + 100; d.y = random(H); } 
+        else { d.y = random() < 0.5 ? -100 : H + 100; d.x = random(W); } 
+      } 
+    }
   }
   
   if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05);
@@ -1405,4 +1411,3 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
-
