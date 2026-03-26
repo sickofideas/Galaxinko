@@ -42,6 +42,29 @@ const T = {
   }
 };
 
+const JOKES = {
+  CZ: [
+    "Všichni jsou mrtví, Dave.",
+    "Smrťáku, smrťáku, dej mi pokoj, nebo ti ukopnu hlavu!",
+    "Základní směrnice vesmírného sboru říká: Nikdy neotvírejte cizí ledničku.",
+    "Moje kalkulačka má větší IQ než ty.",
+    "Jsem Kryton, android řady 4000. Služba je mi potěšením.",
+    "Vesmír je obrovský. Opravdu hodně, hodně obrovský.",
+    "Pozor, detekuji přítomnost karí omáčky.",
+    "Polévka gazpacho se podává studená!"
+  ],
+  EN: [
+    "Everybody's dead, Dave.",
+    "Smeg head detected.",
+    "Space Corps Directive 34124: Never open a stranger's fridge.",
+    "My calculator has a higher IQ than you.",
+    "I am Kryten, series 4000 mechanoid. How may I serve you?",
+    "Space is big. You just won't believe how vastly, hugely, mind-bogglingly big it is.",
+    "Warning, curry sauce detected.",
+    "Gazpacho soup is served cold!"
+  ]
+};
+
 let engine, world;
 let balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {};
 let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFired = 0, roundTotalBalls = 0, roundCount = 1;
@@ -53,13 +76,13 @@ let currentTheme = UI_THEMES[0];
 
 let starship = null, shipPlanned = false, shipSpawnAt = -1, viewerSpaceObjects = [];
 let cosmicEvent = null, eventOccurredThisRound = false, followEvents = [], availableVoices = [], lastSpokeTime = 0;
-let nextMeteorShowerTime = 0, backgroundMeteors = [];
+let nextMeteorShowerTime = 0, nextJokeTime = 0, backgroundMeteors = [];
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
 let camOffset = { x: 0, y: 0, z: 1.0 }, targetFPS = 60, socket;
-const TEST_BOTS = ["ALFA", "CYBER", "GALAXY", "NEBULA", "STAR", "COMET", "VOID", "ORBITAL"];
+const TEST_BOTS = ["LISTER", "RIMMER", "KRYTON", "KOCUR", "HOLLY", "KOCHANSKA", "ALFA", "CYBER"];
 const TIKFINITY_URL = "ws://localhost:21213/";
 
 let isAutoMode = false, isMothershipMode = true;
@@ -78,7 +101,9 @@ const RARE_POOL = [
   { id: "HAWKING", name: "S. HAWKING", col: [50, 50, 255], size: 22 },
   { id: "LAIKA", name: "LAIKA DOG", col: [200, 180, 150], size: 18 },
   { id: "ET", name: "E.T.", col: [150, 120, 80], size: 24 },
-  { id: "NYAN", name: "NYAN CAT", col: [255, 100, 200], size: 25 }
+  { id: "NYAN", name: "NYAN CAT", col: [255, 100, 200], size: 25 },
+  { id: "STARBUG", name: "KOSMIK", col: [50, 200, 50], size: 30 },
+  { id: "RED_DWARF", name: "CERVENY TRPASLIK", col: [220, 50, 50], size: 45 }
 ];
 let allTimeRecords = [];
 
@@ -184,6 +209,7 @@ function setup() {
   connectTikfinity();
   
   nextMeteorShowerTime = millis() + 66000;
+  nextJokeTime = millis() + random(30000, 60000);
 }
 
 function toggleLang() {
@@ -432,6 +458,11 @@ function draw() {
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
       triggerMeteorShower(); nextMeteorShowerTime = millis() + 66000;
+    }
+    
+    if (millis() > nextJokeTime) {
+      speakAnnouncer(random(JOKES[currentLang]), 0);
+      nextJokeTime = millis() + random(40000, 70000);
     }
     
     if (random() < 0.015) {
@@ -1081,6 +1112,8 @@ function drawLegendShape(d) {
     case "ET": fill(100, 50, 0); rect(-s / 2, 0, s, s / 2); fill(255); ellipse(0, -s / 4, s / 2); break;
     case "NYAN": fill(255, 200, 150); rect(-s / 2, -s / 3, s, s / 1.5, 3); break;
     case "VOYAGER": fill(180); ellipse(0, 0, s / 2); fill(212, 175, 55); ellipse(0, 0, s / 3); break;
+    case "STARBUG": fill(50, 200, 50); ellipse(s*0.3, 0, s*0.6, s*0.4); ellipse(-s*0.1, 0, s*0.8, s*0.6); ellipse(-s*0.6, 0, s*0.4, s*0.5); break;
+    case "RED_DWARF": fill(200, 50, 50); rect(-s, -s/4, s*2, s/2, 2); fill(150, 30, 30); rect(-s/2, -s/3, s, s/1.5, 2); fill(100); rect(s*0.8, -s/8, s/2, s/4); break;
   }
 }
 
@@ -1399,7 +1432,7 @@ function resetGame() {
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
   
-  initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound(); nextMeteorShowerTime = millis() + 66000; nextAutoBotEvent = millis() + random(15000, 35000);
+  initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound(); nextMeteorShowerTime = millis() + 66000; nextJokeTime = millis() + random(30000, 60000);
   
   let delay = 0; while (spawnQueue.length > 0) { let u = spawnQueue.shift(); setTimeout(() => spawnBall(u), delay * 100); delay++; }
   speakAnnouncer(T[currentLang].TTS_SEC_W + currentDestination, 1);
