@@ -20,7 +20,8 @@ const T = {
     TTS_B_ENT: "VOID LEVIATHAN DETECTED. ENCOUNTER COMMENCING.", TTS_B_DEF: "Leviathan destroyed! Massive bonus awarded!",
     TTS_DEF: "Defense unit deployed.", TTS_10S: "10 seconds remaining.",
     TTS_SEC_C: "Sector operations complete.", TTS_SEC_W: "Welcome to sector ",
-    TTS_R_O: "Round over! The ultimate commander is ", TTS_WELC: "Welcome commander "
+    TTS_R_O: "Round over! The ultimate commander is ", TTS_WELC: "Welcome commander ",
+    TTS_RIMMER_ON: "Warning! Rimmer Mode Activated!", TTS_RIMMER_OFF: "Rimmer Mode Deactivated.", RIM_MODE: "RIMMER MODE"
   },
   CZ: {
     GRAV: "Gravitace:", BOUNCE: "Odraz:", SPAWN: "Limit spawnu:", CHANCE: "Šance Boss/Loď%:",
@@ -38,7 +39,8 @@ const T = {
     TTS_B_ENT: "VOID LEVIATHAN DETEKOVÁN. ZAHÁJENÍ STŘETU.", TTS_B_DEF: "Leviathan zničen! Udělen obrovský bonus!",
     TTS_DEF: "Obranná jednotka nasazena.", TTS_10S: "Zbývá 10 sekund.",
     TTS_SEC_C: "Operace v sektoru dokončeny.", TTS_SEC_W: "Vítejte v sektoru ",
-    TTS_R_O: "Kolo skončilo! Ultimátním velitelem je ", TTS_WELC: "Vítej veliteli "
+    TTS_R_O: "Kolo skončilo! Ultimátním velitelem je ", TTS_WELC: "Vítej veliteli ",
+    TTS_RIMMER_ON: "Varování! Rimmer Mód Aktivován!", TTS_RIMMER_OFF: "Rimmer Mód Deaktivován.", RIM_MODE: "RIMMER MÓD"
   }
 };
 
@@ -158,6 +160,8 @@ let starship = null, shipPlanned = false, shipSpawnAt = -1, viewerSpaceObjects =
 let cosmicEvent = null, eventOccurredThisRound = false, followEvents = [], availableVoices = [], lastSpokeTime = 0;
 let nextMeteorShowerTime = 0, nextJokeTime = 0, backgroundMeteors = [];
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
+
+let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -499,8 +503,10 @@ function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
   
-  let diff = (gravitySlider.value() !== currentGravity) || (bounceSlider.value() !== currentBounce) || 
-             (spawnPerEventSlider.value() !== spawnPerEvent) || (shipChanceSlider.value() !== currentShipChance);
+  let diff = (!rimmerModeActive && (gravitySlider.value() !== currentGravity)) || 
+             (!rimmerModeActive && (bounceSlider.value() !== currentBounce)) || 
+             (spawnPerEventSlider.value() !== spawnPerEvent) || 
+             (shipChanceSlider.value() !== currentShipChance);
              
   if (diff) {
     if (isAutoMode) toggleAutoMode();
@@ -531,7 +537,13 @@ function draw() {
   updateWinnerColor(); updateTravelSpeed();
   
   let bgTime = frameCount * 0.002;
-  background(5 + sin(bgTime) * 10, 5 + cos(bgTime * 1.3) * 10, 15 + sin(bgTime * 0.8) * 15);
+  let bgR = 5 + sin(bgTime) * 10, bgG = 5 + cos(bgTime * 1.3) * 10, bgB = 15 + sin(bgTime * 0.8) * 15;
+  if (rimmerModeActive) {
+    bgR = 60 + sin(frameCount * 0.2) * 40;
+    bgG = 10;
+    bgB = 10;
+  }
+  background(bgR, bgG, bgB);
   
   drawGravityDust(); drawGalacticBackground(); drawViewerObjects(); handleBackgroundMeteors();
 
@@ -544,7 +556,7 @@ function draw() {
       triggerMeteorShower(); nextMeteorShowerTime = millis() + 66000;
     }
     
-    if (millis() > nextJokeTime) {
+    if (!rimmerModeActive && millis() > nextJokeTime) {
       speakAnnouncer(random(JOKES[currentLang]), 0);
       nextJokeTime = millis() + random(40000, 70000);
     }
@@ -566,6 +578,30 @@ function draw() {
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
       timer--; checkSingularitySpawn();
+
+      if (rimmerModePlanned && !rimmerModeActive && timer === rimmerModeTriggerTime) {
+        rimmerModeActive = true;
+        rimmerModeTimer = 10;
+        originalGravity = currentGravity; originalBounce = currentBounce;
+        currentGravity = random(3.0, 5.0); currentBounce = floor(random(140, 200));
+        gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
+        if (world) world.gravity.y = currentGravity;
+        speakAnnouncer(T[currentLang].TTS_RIMMER_ON, 2);
+        shakeAmount = 30; flashEffect = 40;
+      }
+      
+      if (rimmerModeActive) {
+        rimmerModeTimer--;
+        if (rimmerModeTimer === 5) speakAnnouncer(random(JOKES[currentLang]), 1);
+        if (rimmerModeTimer <= 0) {
+          rimmerModeActive = false;
+          currentGravity = originalGravity; currentBounce = originalBounce;
+          gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
+          if (world) world.gravity.y = currentGravity;
+          speakAnnouncer(T[currentLang].TTS_RIMMER_OFF, 1);
+        }
+      }
+
       if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
       if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
       if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
@@ -596,6 +632,11 @@ function draw() {
   if (gameState === "WAITING") drawWaitingMessage();
   if (gameState === "RESULTS") drawResultsOverlay();
   
+  if (rimmerModeActive) {
+    let f = (frameCount % 10 < 5) ? 255 : 100;
+    drawTxt(`${T[currentLang].RIM_MODE} ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
+  }
+
   drawProceduralHUD(); drawAntiBotOverlay();
   
   if (flashEffect > 0) {
@@ -1512,6 +1553,11 @@ function initGame() {
 
 function resetGame() {
   leaderboard = {}; totalBallsFired = 0; roundTotalBalls = 0; roundCount++; gameState = "PLAYING"; resultsTimer = 10; eventOccurredThisRound = false; currentDestination = generatePlanetName(); timer = floor(random(60, 301)); currentTheme = random(UI_THEMES);
+  
+  rimmerModeActive = false;
+  rimmerModePlanned = (random() < 0.08);
+  rimmerModeTriggerTime = rimmerModePlanned ? floor(random(15, timer - 15)) : -1;
+  
   if (isAutoMode) autoRandomSettings();
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
