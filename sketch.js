@@ -176,7 +176,7 @@ function setup() {
   volumeSlider = createSlider(0, 1, 0.5, 0.05); volumeSlider.parent(adminBar);
 
   lblTTS = createSpan(T[currentLang].TTS_VOL); lblTTS.parent(adminBar);
-  ttsSlider = createSlider(0, 1, 1.0, 0.05); ttsSlider.parent(adminBar);
+  ttsSlider = createSlider(0, 1, 1.0, 0.01); ttsSlider.parent(adminBar);
 
   autoButton = createButton('AUTO: OFF'); autoButton.parent(adminBar);
   autoButton.mousePressed(toggleAutoMode);
@@ -257,7 +257,9 @@ function speakAnnouncer(p, pri = 0) {
   let langCode = currentLang === "CZ" ? "cs" : "en";
   let env = availableVoices.filter(v => v.lang && v.lang.includes(langCode));
   if (env.length > 0) u.voice = random(env);
-  u.pitch = random(0.8, 1.1); u.rate = 1.05; u.volume = ttsSlider ? ttsSlider.value() : 1.0;
+  u.pitch = random(0.8, 1.1); 
+  u.rate = 1.05; 
+  u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0;
   window.speechSynthesis.speak(u);
 }
 
@@ -276,7 +278,9 @@ function speakName(n) {
     let env = availableVoices.filter(x => x.lang && x.lang.includes(fallbackLang));
     if (env.length > 0) u.voice = random(env);
   }
-  u.volume = ttsSlider ? ttsSlider.value() : 1.0; u.rate = 0.85; u.pitch = 1.0; 
+  u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0; 
+  u.rate = 0.85; 
+  u.pitch = 1.0; 
   window.speechSynthesis.speak(u);
 }
 
