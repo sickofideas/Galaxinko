@@ -545,7 +545,16 @@ function draw() {
   }
   background(bgR, bgG, bgB);
   
-  drawGravityDust(); drawGalacticBackground(); drawViewerObjects(); handleBackgroundMeteors();
+  drawGalacticBackground(); 
+  drawViewerObjects(); 
+  handleBackgroundMeteors();
+
+  let dimAlpha = map(min(balls.length, 800), 0, 800, 0, 90);
+  if (dimAlpha > 0) {
+    fill(0, 0, 0, dimAlpha);
+    noStroke();
+    rect(-W, -H, W * 3, H * 3);
+  }
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
@@ -1351,29 +1360,10 @@ function spawnRareLegend() {
   spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: l.id, size: l.size, color: color(l.col[0], l.col[1], l.col[2]), vy: random(1, 3), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true });
 }
 
-function generateDeepSpaceElements() {
-  nebulas = [{ x: W/2, y: H/2, s: 1500, col: color(100, 50, 200, 10), type: 'MILKY_WAY', rotDir: 0 }];
-  for (let i = 0; i < 12; i++) { let isGalaxy = random() < 0.4; nebulas.push({ x: random(W), y: random(H), s: random(isGalaxy ? 200 : 300, isGalaxy ? 400 : 800), col: color(random(50, 255), random(50, 150), random(200, 255), isGalaxy ? 40 : 20), type: isGalaxy ? 'SPIRAL_GALAXY' : 'NEBULA', rotDir: random([-1, 1]) }); }
-  
-  massivePlanets = [];
-  for (let i = 0; i < 8; i++) {
-    let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
-    if (i === 0) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
-    else if (i === 1) { pType = 'JUPITER'; pSize = random(250, 400); pCol = color(180, 140, 100, 230); hasR = false; numMoons = floor(random(4, 8)); } 
-    else if (i === 2) { pType = 'SATURN'; pSize = random(200, 350); pCol = color(220, 200, 150, 230); hasR = true; numMoons = floor(random(3, 7)); } 
-    else if (typeRnd < 0.25) { pType = 'MARS'; pSize = random(80, 180); pCol = color(200, 60, 40, 220); hasR = false; numMoons = floor(random(1, 3)); } 
-    else if (typeRnd < 0.45) { pType = 'ICE_GIANT'; pSize = random(150, 300); pCol = color(60, 180, 255, 220); hasR = true; numMoons = floor(random(2, 5)); } 
-    else if (typeRnd < 0.55) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
-    
-    let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
-    massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), speed: random(0.001, 0.008), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
-  }
-  
-  spaceDebris = [];
-  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
-}
-
 function drawGalacticBackground() {
+  push();
+  translate(-camOffset.x * 0.6, -camOffset.y * 0.6);
+  drawingContext.globalAlpha = 0.3;
   noStroke();
   for (let n of nebulas) {
     n.y += 0.2 * currentTravelSpeed; if (n.y > H + n.s) n.y = -n.s;
@@ -1382,10 +1372,6 @@ function drawGalacticBackground() {
     if (n.type === 'SPIRAL_GALAXY') { push(); translate(n.x, n.y); rotate(frameCount * 0.001 * n.rotDir); for (let i = 0; i < 5; i++) { rotate(TWO_PI / 5); ellipse(n.s * 0.3, 0, n.s * 0.8, n.s * 0.2); } pop(); } 
     else { ellipse(n.x, n.y, n.s, n.s * 0.6); }
   }
-  
-  fill(255, 120);
-  for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
-  
   for (let p of massivePlanets) {
     push(); translate(p.x, p.y); p.y += p.speed * currentTravelSpeed * (p.size > 100 ? 1.5 : 5); p.rot += p.rotSpeed * currentTravelSpeed;
     if (p.type === 'SUN') {
@@ -1397,7 +1383,6 @@ function drawGalacticBackground() {
       else if (p.type === 'ICE_GIANT') { fill(255, 50); rect(-p.size/2, -p.size*0.1, p.size, p.size*0.2); } 
       else if (p.type === 'JUPITER') { fill(140, 90, 60, 150); ellipse(0, -p.size*0.2, p.size*0.95, p.size*0.15); fill(200, 180, 140, 150); ellipse(0, p.size*0.1, p.size*0.98, p.size*0.2); fill(160, 110, 70, 150); ellipse(0, p.size*0.35, p.size*0.8, p.size*0.1); fill(180, 60, 40, 200); ellipse(-p.size*0.15, p.size*0.1, p.size*0.25, p.size*0.12); } 
       else if (p.type === 'DEATH_STAR') { stroke(80); strokeWeight(p.size*0.02); line(-p.size/2, 0, p.size/2, 0); noStroke(); fill(50); ellipse(p.size*0.15, -p.size*0.2, p.size*0.25); fill(100, 255, 100, 150); ellipse(p.size*0.15, -p.size*0.2, p.size*0.1); }
-      
       fill(0, 120); arc(0, 0, p.size, p.size, HALF_PI, -HALF_PI);
       if (p.hasRing) { let rW = p.type === 'SATURN' ? 2.8 : 2.2, rH = p.type === 'SATURN' ? 0.6 : 0.4; noFill(); stroke(p.ringColor); strokeWeight(p.size * 0.12); ellipse(0, 0, p.size * rW, p.size * rH); stroke(255, 100); strokeWeight(p.size * 0.03); ellipse(0, 0, p.size * (rW - 0.2), p.size * (rH - 0.05)); }
       rotate(-p.rot); 
@@ -1405,6 +1390,14 @@ function drawGalacticBackground() {
     }
     pop(); if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); }
   }
+  pop();
+
+  push();
+  translate(-camOffset.x * 0.3, -camOffset.y * 0.3);
+  drawingContext.globalAlpha = 0.8;
+  
+  fill(255, 120);
+  for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
   
   if (gameState === "PLAYING" && random() < 0.08) shootingStars.push({ x: random(W), y: random(-50, H / 2), vx: random(10, 25), vy: random(10, 25), life: 255, len: random(20, 100) });
   for (let i = shootingStars.length - 1; i >= 0; i--) {
@@ -1445,13 +1438,7 @@ function drawGalacticBackground() {
       } 
     }
   }
-  
-  if (gameState === "PLAYING") planetSize = lerp(planetSize, 120 + map(timer, 40, 0, 0, 1) * 350, 0.05);
-  else if (gameState === "WAITING") planetSize = lerp(planetSize, 450, 0.01);
-  
-  if (planetSize > 10) {
-    for (let r = 4; r > 0; r--) { fill(red(winnerColor), green(winnerColor), blue(winnerColor), 4); ellipse(W / 2, H + 60, planetSize * (r * 0.6), planetSize * 0.4); }
-  }
+  pop();
 }
 
 function drawGravityDust() {
@@ -1482,6 +1469,28 @@ function handleBackgroundMeteors() {
     fill(255); ellipse(m.x, m.y, m.size); m.x += m.vx; m.y += m.vy;
     if (m.y > H + 100 || m.x < -100 || m.x > W + 100) backgroundMeteors.splice(i, 1);
   }
+}
+
+function generateDeepSpaceElements() {
+  nebulas = [{ x: W/2, y: H/2, s: 1500, col: color(100, 50, 200, 10), type: 'MILKY_WAY', rotDir: 0 }];
+  for (let i = 0; i < 12; i++) { let isGalaxy = random() < 0.4; nebulas.push({ x: random(W), y: random(H), s: random(isGalaxy ? 200 : 300, isGalaxy ? 400 : 800), col: color(random(50, 255), random(50, 150), random(200, 255), isGalaxy ? 40 : 20), type: isGalaxy ? 'SPIRAL_GALAXY' : 'NEBULA', rotDir: random([-1, 1]) }); }
+  
+  massivePlanets = [];
+  for (let i = 0; i < 8; i++) {
+    let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
+    if (i === 0) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
+    else if (i === 1) { pType = 'JUPITER'; pSize = random(250, 400); pCol = color(180, 140, 100, 230); hasR = false; numMoons = floor(random(4, 8)); } 
+    else if (i === 2) { pType = 'SATURN'; pSize = random(200, 350); pCol = color(220, 200, 150, 230); hasR = true; numMoons = floor(random(3, 7)); } 
+    else if (typeRnd < 0.25) { pType = 'MARS'; pSize = random(80, 180); pCol = color(200, 60, 40, 220); hasR = false; numMoons = floor(random(1, 3)); } 
+    else if (typeRnd < 0.45) { pType = 'ICE_GIANT'; pSize = random(150, 300); pCol = color(60, 180, 255, 220); hasR = true; numMoons = floor(random(2, 5)); } 
+    else if (typeRnd < 0.55) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
+    
+    let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
+    massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), speed: random(0.001, 0.008), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
+  }
+  
+  spaceDebris = [];
+  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
 }
 
 function initGame() {
@@ -1574,4 +1583,3 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
-
