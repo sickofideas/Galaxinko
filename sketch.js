@@ -545,16 +545,7 @@ function draw() {
   }
   background(bgR, bgG, bgB);
   
-  drawingContext.filter = 'blur(1.5px)';
   drawGravityDust(); drawGalacticBackground(); drawViewerObjects(); handleBackgroundMeteors();
-  drawingContext.filter = 'none';
-
-  let dimAlpha = map(min(balls.length, 800), 0, 800, 0, 90);
-  if (dimAlpha > 0) {
-    fill(0, 0, 0, dimAlpha);
-    noStroke();
-    rect(-W, -H, W * 3, H * 3);
-  }
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
@@ -1583,3 +1574,4 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
+
