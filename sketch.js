@@ -341,7 +341,9 @@ function speakAnnouncer(p, pri = 0) {
   let langCode = currentLang === "CZ" ? "cs" : "en";
   let env = availableVoices.filter(v => v.lang && v.lang.includes(langCode));
   if (env.length > 0) u.voice = random(env);
-  u.pitch = random(0.8, 1.1); 
+  
+  // Různé úrovně hlasu (nízké = muž, vysoké = žena/dítě)
+  u.pitch = random([0.6, 0.8, 1.0, 1.2, 1.4, 1.6]); 
   u.rate = 1.05; 
   u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0;
   window.speechSynthesis.speak(u);
@@ -364,7 +366,8 @@ function speakName(n) {
   }
   u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0; 
   u.rate = 0.85; 
-  u.pitch = 1.0; 
+  // Různé úrovně hlasu (nízké = muž, vysoké = žena/dítě)
+  u.pitch = random(0.6, 1.6); 
   window.speechSynthesis.speak(u);
 }
 
@@ -518,7 +521,8 @@ function draw() {
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
   
-  if (audioStarted) outputVolume(volumeSlider.value());
+  // Ztlumí herní SFX zvuky na 30 %, aby TTS robot maximálně vynikl
+  if (audioStarted) outputVolume(volumeSlider.value() * 0.3);
 
   push();
   camOffset.x = (noise(frameCount * 0.005) - 0.5) * 40;
