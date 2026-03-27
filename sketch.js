@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7";
+const GAME_VERSION = "v13.7.6";
 
 let currentLang = "CZ";
 
@@ -44,106 +44,127 @@ const T = {
   }
 };
 
-const JOKES = {
+const SPAM_MSGS = {
   CZ: [
-    "Všichni jsou mrtví, Dave.",
-    "Smrťáku, smrťáku, dej mi pokoj, nebo ti ukopnu hlavu!",
-    "Základní směrnice vesmírného sboru říká: Nikdy neotvírejte cizí ledničku.",
-    "Moje kalkulačka má větší IQ než ty.",
-    "Jsem Kryton, android řady 4000. Služba je mi potěšením.",
-    "Vesmír je obrovský. Opravdu hodně, hodně obrovský.",
-    "Pozor, detekuji přítomnost karí omáčky.",
-    "Polévka gazpacho se podává studená!",
-    "Teď se laskavě odkloň, než ti vytrhnu vnitřnosti a nacpu mezi rty, které nikdy nepolíbíš, velkou ochucenou cibuli.",
-    "Říkejte si tomu extrém, jestli chcete, ale navrhuju, abychom to vzali zostra a rychle – a myslím opravdu zostra – velkou kampaní s letáky.",
-    "Byl jsem tak znepokojený, že jsem si dva dny neleštil boty.",
-    "Viděl jsem westerny, vím, jak mluvit kovbojsky. Suché bílé víno a Perrier, prosím.",
-    "Řeknu vám jednu věc. Byl jsem v paralelním vesmíru, viděl jsem čas pozpátku, hrál jsem kulečník s planetami a porodil dvojčata, ale nikdy v životě by mě nenapadlo, že ochutnám jedlé Pot Noodle.",
-    "Je lepší milovat a ztratit, než poslouchat album Olivie Newton-Johnové.",
-    "Věci k vyřízení: zastavit mléko, zaplatit noviny, napadnout Československo!",
-    "Věděl jsem, že lžu. Žádný křemíkový ráj? Nesmysl! Kam by šly všechny kalkulačky?",
-    "Už ti někdo někdy řekl, že konfigurace a uspořádání tvých rysů je mimořádně příhodné?",
-    "Samozřejmě, pivo! Jediná věc, která zabije vindaloo!",
-    "Jak to, že potřebuješ víc paměti? Za ty roky jsi měl víc RAM než celé stádo ovcí!",
-    "Jsou jen tři možnosti: buď si myslí, že jsme hrozba, jídlo nebo partner. Buď nás zabije, sežere nebo se s námi spáří.",
-    "Hej kluci, podívejte se na moje tělo. Teď je to pozvání, které nevyvolá davovou hysterii.",
-    "Jsem tak krásný, že je šestiměsíční čekací listina na ptáky, které se objeví pokaždé, když jsem nablízku!",
-    "Minule, když jsme se potkali, jsem měl na sobě roztomilé malé černé číslo s broskvovým lemováním a zlatými flitry… a i když to vypadá, že mám na sobě stejný outfit dnes, je to ve skutečnosti úplně jiné roztomilé malé černé číslo s úplně jinými zlatými flitry!",
-    "Jsem Holly, lodní počítač s IQ 6000; stejné IQ jako 6000 učitelů tělocviku.",
-    "Jsou mrtví, Dave. Všichni jsou mrtví, Dave.",
-    "Hej, tohle byl opravdu dobrý den. Snědl jsem pětkrát, spal šestkrát a spoustu věcí jsem si udělal svýma. Zítra se podívám, jestli bych nemohl mít sex s něčím!",
-    "Jean-Paul Sartre říkal, že peklo je být navěky zavřený v místnosti s přáteli. Listre, všichni jeho kámoši byli Francouzi!",
-    "Jsme kámoši! Jsme parťáci!",
-    "MÁM UŽ DOST TOHO POSLOUCHÁNÍ O TĚCH PITOMÝCH KOČKÁCH!",
-    "Nikdy bys nedostal kočku, aby byla služebník. Viděl jsi někdy kočku vracet klacek? „Hej člověče! Ty jsi hodil klacek, tak si ho běž sežrat sám! Já mám práci!“",
-    "Mluvíme o vtipu desetiletí. Mluvíme o dubnu, květnu, červnu, červenci a srpnu bláznu. Ano, to je správně… Já jsem Queeg.",
-    "A morálka příběhu: važ si toho, co máš, protože v zásadě jsem fantastický!",
-    "No, věc o černé díře – její hlavní charakteristika – je, že je černá. A věc o vesmíru… je černá. Tak jak je máš vidět?",
-    "„Hospoda.“ Aha, ano: místo setkávání, kde se lidé snaží dosáhnout pokročilých stavů mentální inkompetence opakovanou konzumací fermentovaných rostlinných nápojů.",
-    "Caligula je slavný římský císař. Spal se svou matkou, oběma sestrami a nakonec sežral svého syna. Hej, malá rada, kámo. Všichni máme trochu hlad po milování, ale většina z nás se spokojí s pizzou.",
-    "Lister volá Červenému trpaslíkovi. Máme mezi sebou úplného smegheada. Mozek v řitní oblasti. Brada chybí, předpokládá se ztracená. Pohlavní orgány malé a neškodné. Bez hodnoty nebo zájmu.",
-    "Poplach na sprostosti! Poplach na sprostosti! Elektrický požár vyřadil můj hlasový rozpoznávač jednokolky! Z mé databáze chybí spousta Wurlitzerů. Opustit obchod! Tohle není kopretina. Opakuji: tohle NENÍ kopretina.",
-    "Co se sakra stalo s mými zuby? Mohl bych otevírat pivní láhve přehryzem!",
-    "Býval jsem v Samaritánech. Jedno dopoledne.",
-    "Co takhle Rimmerova direktiva, která říká „Nikdy se nepouštěj do křížku s něčím, co má víc zubů než celá rodina Osmondů“?",
-    "Jsme opravdová Mickey Mouse operace, co? Mickey Mouse? My nejsme ani Betty Boop!",
-    "Nemůžeš soudit knihu podle obalu. Nemůžeš si splést Rimmera s knihou. Kniha má páteř.",
-    "S úctou, pane, to nejsou androidi, jsou to simulanti. Jaký je rozdíl? Základní rozdíl je, že android by nikdy neutrhl člověku hlavu a neplivl mu do krku.",
-    "Přejděte na červenou pohotovost. Pane, jste si naprosto jistý? Znamená to vyměnit žárovku.",
-    "Myslím, že to přijde na výběr mezi „Ligou proti slintajícím příšerám“ nebo mou vlastní preferencí, která je „Výbor pro osvobození a integraci děsivých organismů a jejich rehabilitaci do společnosti“. Jedna nevýhoda: zkratka je C.L.I.T.O.R.I.S.",
-    "Zapal mi klippera, budu zpátky na Vánoce!",
-    "Co je to za smrad? Byl tady požár? Jen malý. Uhasil jsem ho pivem.",
-    "Celkově vzato stoprocentně úspěšná cesta. Ale pane, ztratili jsme pana Rimmera! Celkově vzato stoprocentně úspěšná cesta…"
+    "{0} si pálí prst o displej!",
+    "Pozor, {0} to tam sází jako o život!",
+    "Velitel {0} má asi křeč v prstu!",
+    "{0} žhaví obrazovku na maximum!",
+    "Zastavte někdo hráče {0}, nebo nám praskne sklo!"
   ],
   EN: [
-    "Everybody's dead, Dave.",
-    "Smeg head detected.",
-    "Space Corps Directive 34124: Never open a stranger's fridge.",
-    "My calculator has a higher IQ than you.",
-    "I am Kryten, series 4000 mechanoid. How may I serve you?",
-    "Space is big. You just won't believe how vastly, hugely, mind-bogglingly big it is.",
-    "Warning, curry sauce detected.",
-    "Gazpacho soup is served cold!",
-    "Now kindly step aside before I rip your insides out and stuff a large flavored onion between the lips you'll never kiss.",
-    "Call it extreme if you like, but I propose we hit it hard and hit it fast – and I mean really hard – with a major leaflet campaign.",
-    "I was so worried I didn't polish my boots for two days.",
-    "I've seen Westerns, I know how to speak cowboy. Dry white wine and Perrier, please.",
-    "I'll tell you one thing. I've been to a parallel universe, seen time running backwards, played pool with planets and given birth to twins, but I never thought I'd taste an edible Pot Noodle.",
-    "It's better to have loved and lost than to listen to an Olivia Newton-John album.",
-    "Things to do: cancel the milk, pay the papers, invade Czechoslovakia!",
-    "I knew I was lying. No Silicon Heaven? Nonsense! Where would all the calculators go?",
-    "Has anyone ever told you that the configuration and arrangement of your features is exceedingly pleasing?",
-    "Of course, lager! The only thing that can kill a vindaloo!",
-    "How come you need more memory? Over the years you've had more RAM than a flock of sheep!",
-    "There are only three alternatives: it thinks we're a threat, food, or a mate. It's either going to kill us, eat us, or hump us.",
-    "Hey guys, look at my body. Now there's an invitation that won't cause mass hysteria.",
-    "I'm so gorgeous, there's a six-month waiting list for birds to suddenly appear every time I'm near!",
-    "Last time we met I was wearing a cute little black number with peach trim and gold sequins... and although it looks like I'm wearing the same outfit today, it is in fact a completely different cute little black number with completely different gold sequins!",
-    "I am Holly, the ship's computer with an IQ of 6000; the same IQ as 6000 PE teachers.",
-    "They're dead, Dave. Everybody's dead, Dave.",
-    "Hey, this has been a really good day. I've eaten five times, slept six times, and made a lot of things mine. Tomorrow, I'll see if I can't have sex with something!",
-    "Jean-Paul Sartre said hell was being locked forever in a room with your friends. Lister, all his mates were French!",
-    "We're mates! We're buddies!",
-    "I AM SICK AND TIRED OF HEARING ABOUT THOSE STUPID CATS!",
-    "You'd never get a cat to be a servant. Ever see a cat return a stick? 'Hey man! You threw the stick, you go get it yourself! I'm busy!'",
-    "We are talking the April, May, June, July, and August fool. Yes, that's right... I am Queeg.",
-    "And the moral of the story is: appreciate what you've got, because basically, I'm fantastic!",
-    "Well, the thing about a black hole - its main distinguishing feature - is it's black. And the thing about space... is it's black. So how are you supposed to see them?",
-    "'Pub.' Ah, yes: a meeting place where people attempt to achieve advanced states of mental incompetence by the repeated consumption of fermented vegetable drinks.",
-    "Caligula is a famous Roman Emperor. He slept with his mother, both his sisters, and eventually ate his son. Hey, a little advice, buddy. We're all a bit hungry for love, but most of us settle for a pizza.",
-    "Lister to Red Dwarf. We have in our midst a complete smeghead. Brains in the anal region. Chin absent, presumed missing. Genitalia small and inoffensive. Of no value or interest.",
-    "Swear alert! Swear alert! An electrical fire has knocked out my unicycle voice recognizer! A lot of Wurlitzers are missing from my database. Abandon shop! This is not a daffodil. Repeat: this is NOT a daffodil.",
-    "What the hell has happened to my teeth? I could open beer bottles with my overbite!",
-    "I used to be in the Samaritans. For one morning.",
-    "How about Rimmer Directive, which states 'Never tangle with anything that's got more teeth than the entire Osmond family'?",
-    "We're a real Mickey Mouse operation, aren't we? Mickey Mouse? We ain't even Betty Boop!",
-    "You can't judge a book by its cover. You can't mistake Rimmer for a book. A book has a spine.",
-    "With respect, sir, they are not droids, they are simulants. What's the difference? The basic difference is that a droid would never rip off a human's head and spit down his neck.",
-    "Go to red alert. Sir, are you absolutely sure? It does mean changing the bulb.",
-    "I think it comes down to a choice between 'The League Against Salivating Monsters' or my own personal preference, which is 'The Committee for the Liberation and Integration of Terrifying Organisms and their Rehabilitation Into Society'. One drawback: the abbreviation is C.L.I.T.O.R.I.S.",
-    "Smoke me a kipper, I'll be back for Christmas!",
-    "What's that smell? Was there a fire? Just a small one. I put it out with lager.",
-    "All in all, a 100% successful trip. But sir, we've lost Mr. Rimmer! All in all, a 100% successful trip..."
+    "{0} is burning their finger on the screen!",
+    "Watch out, {0} is tapping like crazy!",
+    "Commander {0} must have a finger cramp!",
+    "{0} is heating up the display to the max!",
+    "Someone stop {0} before the glass breaks!"
+  ]
+};
+
+const JOKES = {
+  CZ: [
+    "„Kouříš?“ – „Jen po sexu.“ – „Takže vůbec.“",
+    "Jsem naprosto spolehlivý! To jen okolnosti jsou proti mně!",
+    "To není katastrofa, to je totální smeg!",
+    "Rimmere, ty jsi takový trouba, že bys ztratil i vlastní stín.",
+    "Krytone, přestaň být tak zatraceně poslušný!",
+    "Jsem poslední člověk naživu… a jsem to zrovna já.",
+    "Tohle je plán? To je spíš zoufalý pokus neumřít.",
+    "Když se něco může pokazit, Rimmer to pokazí.",
+    "Tohle je nejhorší situace, v jaké jsem kdy byl… a to jsem byl Rimmerův spolubydlící.",
+    "Já nejsem zbabělec! Jen mám vysoce vyvinutý pud sebezáchovy.",
+    "Kocoure, ty jsi úplně k ničemu. – Ale vypadám u toho skvěle.",
+    "To není problém. To je naprostá katastrofa.",
+    "Rimmere, ty jsi chodící důkaz, že evoluce může jít i pozpátku.",
+    "Já mám plán. A je dokonce lepší než žádný plán.",
+    "Jsme ztraceni ve vesmíru, bez šance na návrat… dá si někdo curry?",
+    "Já jsem tak skvělý, až je to skoro nespravedlivé.",
+    "Rimmere, ty jsi úplně k ničemu… a ještě k tomu pomalý.",
+    "Tohle je přesně ten typ plánu, který končí explozí.",
+    "Krytone, někdy bys mohl být méně dokonalý, víš?",
+    "Neříkám, že je to špatný nápad… ale ano, je to špatný nápad.",
+    "Jsem génius! Jen to zatím nikdo nepoznal.",
+    "Tohle je tak špatné, že už to ani nemůže být horší… že?",
+    "Rimmere, ty bys nedokázal zorganizovat ani vlastní snídani.",
+    "Já nemám problém. Já mám spoustu menších katastrof.",
+    "Kocoure, ty myslíš někdy i na něco jiného než na sebe?",
+    "Tohle je přesně chvíle, kdy bych měl být někde úplně jinde.",
+    "Já to zvládnu! …Dobře, nezvládnu, ale zkusím to.",
+    "Rimmere, kdybys byl ještě o trochu víc neschopný, zmizíš.",
+    "To není panika. To je jen velmi rychlé přemýšlení.",
+    "Vesmír je nebezpečné místo. A já jsem v něm s vámi.",
+    "Jmenuju se Rimmer. Arnold Rimmer. A jsem naprosto nepostradatelný.",
+    "Krytone, tohle je rozkaz! Přestaň poslouchat rozkazy!",
+    "To není moje chyba! Já jsem hlasoval proti!",
+    "Já jsem hrdina! Jen jsem měl smůlu na okolnosti.",
+    "Listere, ty jsi naprostý barbar!",
+    "Tohle není zbabělost. To je strategický ústup.",
+    "Kocoure, ty nemáš ani špetku sebekontroly.",
+    "Já mám vždycky pravdu. Jen se to občas ukáže později.",
+    "Tohle je naprosto bezpečné… myslím.",
+    "Krytone, analyzuj situaci! – Situace: jsme v koncích, pane.",
+    "Já se nevzdávám! Jen… měním plán.",
+    "Tohle je typická ukázka totální neschopnosti.",
+    "Listere, ty jsi největší prasák v celé galaxii.",
+    "Já bych to zvládl lépe… kdybych to dělal já.",
+    "Tohle není konec. To je jen velmi špatný začátek.",
+    "Hej vy tam! Potřebujeme kuličky! Nejsme tady na vesmírném pikniku!",
+    "Klikejte na tu obrazovku! Moje babička by klikala rychleji a to je už mrtvá!",
+    "Ztrácíme energii! Pošlete okamžitě kuličky, nebo nás to vcucne do černé díry!",
+    "Vesmírná anomálie? Ne, to je jen vaše lenost! Klikat, klikat, klikat!",
+    "Potřebujeme lajky na štíty! Posádko, do boje!"
+  ],
+  EN: [
+    "Do you smoke? Only after sex. So not at all.",
+    "I am completely reliable! It's just circumstances that are against me!",
+    "That's not a disaster, that's a total smeg!",
+    "Rimmer, you're such a dummy you'd lose your own shadow.",
+    "Kryten, stop being so damn obedient!",
+    "I'm the last human alive... and it just has to be me.",
+    "This is a plan? More like a desperate attempt not to die.",
+    "If something can go wrong, Rimmer will make it go wrong.",
+    "This is the worst situation I've ever been in... and I was Rimmer's roommate.",
+    "I'm not a coward! I just have a highly developed sense of self-preservation.",
+    "Cat, you are completely useless. But I look great doing it.",
+    "This is not a problem. It's an absolute disaster.",
+    "Rimmer, you are walking proof that evolution can go backwards.",
+    "I have a plan. And it's even better than no plan.",
+    "We are lost in space, with no chance of return... anyone fancy a curry?",
+    "I am so brilliant, it's almost unfair.",
+    "Rimmer, you are completely useless... and slow to boot.",
+    "This is exactly the type of plan that ends in an explosion.",
+    "Kryten, you could be a little less perfect sometimes, you know?",
+    "I'm not saying it's a bad idea... but yes, it's a bad idea.",
+    "I'm a genius! Nobody has realized it yet, though.",
+    "This is so bad it can't possibly get any worse... right?",
+    "Rimmer, you couldn't even organize your own breakfast.",
+    "I don't have a problem. I have a lot of minor disasters.",
+    "Cat, do you ever think about anything other than yourself?",
+    "This is exactly the moment I should be somewhere else entirely.",
+    "I can handle this! ...Okay, I can't, but I'll try.",
+    "Rimmer, if you were any more incompetent, you'd vanish.",
+    "This isn't panic. It's just very fast thinking.",
+    "Space is a dangerous place. And I'm in it with you.",
+    "My name is Rimmer. Arnold Rimmer. And I am absolutely indispensable.",
+    "Kryten, this is an order! Stop obeying orders!",
+    "It's not my fault! I voted against it!",
+    "I'm a hero! I just had bad luck with the circumstances.",
+    "Lister, you are an absolute barbarian!",
+    "This isn't cowardice. It's a strategic retreat.",
+    "Cat, you have absolutely no self-control.",
+    "I'm always right. It just sometimes takes a while to show.",
+    "This is perfectly safe... I think.",
+    "Kryten, analyze the situation! Situation: we are doomed, sir.",
+    "I'm not giving up! I'm just... changing the plan.",
+    "This is a prime example of total incompetence.",
+    "Lister, you are the biggest slob in the entire galaxy.",
+    "I could have done it better... if I was doing it.",
+    "This is not the end. It's just a very bad beginning.",
+    "Hey you out there! We need drops! We're not on a space picnic here!",
+    "Tap that screen! My grandmother would tap faster and she's dead!",
+    "We're losing energy! Send drops immediately or we'll get sucked into a black hole!",
+    "Space anomaly? No, that's just your laziness! Tap, tap, tap!",
+    "We need energy for shields! Crew, to your battle stations!"
   ]
 };
 
@@ -158,10 +179,12 @@ let currentTheme = UI_THEMES[0];
 
 let starship = null, shipPlanned = false, shipSpawnAt = -1, viewerSpaceObjects = [];
 let cosmicEvent = null, eventOccurredThisRound = false, followEvents = [], availableVoices = [], lastSpokeTime = 0;
-let nextMeteorShowerTime = 0, nextJokeTime = 0, backgroundMeteors = [];
+let nextMeteorShowerTime = 0, nextJokeTime = 0, meteorWarningTimer = 0, backgroundMeteors = [];
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
+
+let spamBuffer = {};
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -279,8 +302,8 @@ function setup() {
   for (let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
-  currentGravity = random(0.05, 1.95);
-  currentBounce = floor(random(60, 100));
+  currentGravity = random(0.8, 2.5);
+  currentBounce = floor(random(90, 140));
   timer = floor(random(50, 181));
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
@@ -293,7 +316,7 @@ function setup() {
   connectTikfinity();
   
   nextMeteorShowerTime = millis() + 66000;
-  nextJokeTime = millis() + random(30000, 60000);
+  nextJokeTime = millis() + random(10000, 20000);
 }
 
 function toggleLang() {
@@ -342,9 +365,19 @@ function speakAnnouncer(p, pri = 0) {
   let env = availableVoices.filter(v => v.lang && v.lang.includes(langCode));
   if (env.length > 0) u.voice = random(env);
   
-  // Různé úrovně hlasu (nízké = muž, vysoké = žena/dítě)
-  u.pitch = random([0.6, 0.8, 1.0, 1.2, 1.4, 1.6]); 
-  u.rate = 1.05; 
+  let voiceType = random(["ROBOT", "WOMAN", "MAN", "ALIEN", "NORMAL"]);
+  if (voiceType === "ROBOT") {
+    u.pitch = 0.3; u.rate = 0.8;
+  } else if (voiceType === "WOMAN") {
+    u.pitch = 1.7; u.rate = 1.1;
+  } else if (voiceType === "ALIEN") {
+    u.pitch = 0.1; u.rate = 0.6;
+  } else if (voiceType === "MAN") {
+    u.pitch = 0.7; u.rate = 0.9;
+  } else {
+    u.pitch = 1.0; u.rate = 1.0;
+  }
+  
   u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0;
   window.speechSynthesis.speak(u);
 }
@@ -364,10 +397,21 @@ function speakName(n) {
     let env = availableVoices.filter(x => x.lang && x.lang.includes(fallbackLang));
     if (env.length > 0) u.voice = random(env);
   }
+  
+  let voiceType = random(["ROBOT", "WOMAN", "MAN", "ALIEN", "NORMAL"]);
+  if (voiceType === "ROBOT") {
+    u.pitch = 0.3; u.rate = 0.8;
+  } else if (voiceType === "WOMAN") {
+    u.pitch = 1.7; u.rate = 1.1;
+  } else if (voiceType === "ALIEN") {
+    u.pitch = 0.1; u.rate = 0.6;
+  } else if (voiceType === "MAN") {
+    u.pitch = 0.7; u.rate = 0.9;
+  } else {
+    u.pitch = 1.0; u.rate = 1.0;
+  }
+
   u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0; 
-  u.rate = 0.85; 
-  // Různé úrovně hlasu (nízké = muž, vysoké = žena/dítě)
-  u.pitch = random(0.6, 1.6); 
   window.speechSynthesis.speak(u);
 }
 
@@ -399,11 +443,36 @@ function connectTikfinity() {
         if (evt === "like") {
           let c = d.data?.likeCount || 1;
           updateUserLikes(u, c);
-          if (millis() - lastSpokeTime > 9000) {
-            speakAnnouncer(T[currentLang].TTS_POW, 0); speakName(s); lastSpokeTime = millis();
+          
+          if (!spamBuffer[u]) {
+              spamBuffer[u] = { total: 0, buffered: 0, lastUpdate: millis(), state: 'CHARGING', fade: 255, announced: false };
           }
-          for (let i = 0; i < c; i++) {
-            setTimeout(() => { for (let j = 0; j < spawnPerEvent; j++) spawnBall(u); }, i * 120);
+          let sp = spamBuffer[u];
+          sp.lastUpdate = millis();
+          sp.state = 'CHARGING';
+          sp.fade = 255;
+          
+          if (sp.total < 4 && c < 5) {
+              for (let i = 0; i < c; i++) {
+                 setTimeout(() => { for (let j = 0; j < spawnPerEvent; j++) spawnBall(u); }, i * 120);
+              }
+              sp.total += c;
+          } else {
+              sp.total += c;
+              sp.buffered += c;
+          }
+
+          if (sp.total >= 5 && !sp.announced) {
+              sp.announced = true;
+              if (millis() - lastSpokeTime > 6000) {
+                  let msgTemplate = random(SPAM_MSGS[currentLang]);
+                  speakAnnouncer(msgTemplate.replace("{0}", s), 1);
+                  lastSpokeTime = millis();
+              }
+          }
+
+          if (millis() - lastSpokeTime > 9000 && sp.total < 5) {
+            speakAnnouncer(T[currentLang].TTS_POW, 0); speakName(s); lastSpokeTime = millis();
           }
         }
       }
@@ -479,7 +548,8 @@ function toggleAutoMode() {
 }
 
 function autoRandomSettings() {
-  currentGravity = random(0.05, 1.95); currentBounce = floor(random(60, 100));
+  currentGravity = random(0.8, 2.5);
+  currentBounce = floor(random(90, 140));
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
@@ -521,7 +591,6 @@ function draw() {
   if (frameCount % 60 === 0) targetFPS = random(57, 60);
   frameRate(targetFPS);
   
-  // Ztlumí herní SFX zvuky na 30 %, aby TTS robot maximálně vynikl
   if (audioStarted) outputVolume(volumeSlider.value() * 0.3);
 
   push();
@@ -571,7 +640,7 @@ function draw() {
     
     if (!rimmerModeActive && millis() > nextJokeTime) {
       speakAnnouncer(random(JOKES[currentLang]), 0);
-      nextJokeTime = millis() + random(40000, 70000);
+      nextJokeTime = millis() + random(10000, 20000);
     }
     
     if (random() < 0.015) {
@@ -650,16 +719,91 @@ function draw() {
     drawTxt(`${T[currentLang].RIM_MODE} ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
   }
 
+  if (meteorWarningTimer > 0) {
+    meteorWarningTimer--;
+    let flash = (frameCount % 20 < 10) ? 150 : 50;
+    fill(255, 0, 0, flash * 0.3);
+    noStroke();
+    rect(-W, -H, W * 3, H * 3);
+    let warningText = currentLang === "CZ" ? "!!! METEORICKÝ ROJ !!!" : "!!! METEOR SHOWER !!!";
+    drawTxt(warningText, 0, -150, color(255, 50, 50, flash + 100), 40, CENTER);
+    if (audioStarted && meteorWarningTimer % 15 === 0) {
+      try { fxSynth.play((meteorWarningTimer % 30 === 0) ? 600 : 400, 0.1, 0, 0.2); } catch(e){}
+    }
+  }
+
+  handleSpamBuffer();
   drawProceduralHUD(); drawAntiBotOverlay();
   
   if (flashEffect > 0) {
-    noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(0, 0, W, H);
+    noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(-W, -H, W*3, H*3);
     flashEffect--;
   }
   pop();
 }
 
-function spawnBall(userName) {
+function handleSpamBuffer() {
+  let activeIndex = 0;
+  for (let u in spamBuffer) {
+    let sp = spamBuffer[u];
+    if (sp.state === 'CHARGING' || sp.state === 'RELEASING') {
+      let bx = 100 + activeIndex * 90;
+      let by = 70;
+      
+      push();
+      translate(bx, by);
+      let a = sp.fade;
+      
+      let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.01) * 0.1 : 1;
+      scale(scaleVal);
+      
+      if (userAvatars[u]) {
+        drawingContext.save(); drawingContext.beginPath();
+        drawingContext.arc(0, 0, 20, 0, TWO_PI); drawingContext.clip();
+        tint(255, a); imageMode(CENTER); image(userAvatars[u], 0, 0, 40, 40);
+        drawingContext.restore();
+      } else {
+        fill(100, a); noStroke(); ellipse(0, 0, 40, 40);
+      }
+      
+      if (sp.total >= 5) {
+        drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(255, 200, 0, a);
+        drawTxt("x" + sp.total, 0, 35, color(255, 200, 0, a), 14, CENTER);
+        drawingContext.shadowBlur = 0;
+      }
+      
+      drawTxt(u.substring(0, 8), 0, -30, color(255, a), 10, CENTER);
+      pop();
+      
+      activeIndex++;
+      
+      if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
+        sp.state = 'RELEASING';
+        if (sp.buffered > 0) {
+          let count = Math.min(sp.buffered, 12);
+          let baseMult = Math.floor(sp.buffered / count);
+          let remainder = sp.buffered % count;
+
+          for (let i = 0; i < count; i++) {
+             let vx = random(-8, 8);
+             let vy = random(2, 9);
+             let ballMult = baseMult + (i < remainder ? 1 : 0);
+             spawnBall(u, ballMult, bx, by + 10, vx, vy);
+          }
+          createShockwave(bx, by);
+          playJackpotSound();
+        }
+      }
+      
+      if (sp.state === 'RELEASING') {
+        sp.fade -= 5;
+        if (sp.fade <= 0) delete spamBuffer[u];
+      }
+    }
+  }
+}
+
+function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null, velY = null) {
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") { if (spawnQueue.length < 500) spawnQueue.push(userName); return; }
   if (balls.length > 3000) return;
@@ -671,12 +815,19 @@ function spawnBall(userName) {
   lastSpawnTime = millis();
   
   let ballRestitution = map(currentBounce, 1, 99, 0.65, 1.05);
-  let spawnX = W / 2 + random(-30, 30);
+  let spawnX = startX !== null ? startX : W / 2 + random(-30, 30);
+  let spawnY = startY !== null ? startY : 40;
   
-  let ballBody = Matter.Bodies.rectangle(spawnX, 40, 14, 14, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: 0.001 });
+  let isMega = mult >= 2; 
+  let bSize = isMega ? constrain(14 + mult, 16, 24) : 14; 
+  
+  let ballBody = Matter.Bodies.rectangle(spawnX, spawnY, bSize, bSize, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: isMega ? 0.005 : 0.001 });
+  if (velX !== null && velY !== null) {
+    Matter.Body.setVelocity(ballBody, { x: velX, y: velY });
+  }
   let ballColor = (userName === "MOTHERSHIP") ? color(120, 120, 130) : (leaderboard[userName] || (leaderboard[userName] = { score: 0, color: color(random(100, 255), random(100, 255), random(100, 255)) })).color;
   
-  balls.push({ body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, lastBossHit: 0, spawnTime: millis(), isRainbow: isR, trail: [], rainbowExplodeTime: null, portalCooldown: 0, scoreTime: null, zoneIndex: -1 });
+  balls.push({ body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, lastBossHit: 0, spawnTime: millis(), isRainbow: isR, trail: [], rainbowExplodeTime: null, portalCooldown: 0, scoreTime: null, zoneIndex: -1, multiplier: mult, size: bSize });
   Matter.World.add(world, ballBody);
 }
 
@@ -685,8 +836,11 @@ function drawBalls() {
     let zBalls = balls.filter(b => b.scored && b.zoneIndex === zi);
     let limit = Math.max(1, Math.floor(zones[zi].capacity * 0.95));
     if (zBalls.length > limit) {
-      zBalls.sort((a, b) => a.scoreTime - b.scoreTime);
-      for (let k = 0; k < zBalls.length - limit; k++) removeBall(zBalls[k]);
+      zBalls.sort((a, b) => b.body.position.y - a.body.position.y);
+      let toRemove = zBalls.length - limit;
+      for (let k = 0; k < toRemove; k++) {
+        removeBall(zBalls[k]);
+      }
     }
   }
 
@@ -712,11 +866,21 @@ function drawBalls() {
     
     let isPlayer = b.name !== "MOTHERSHIP";
     if (isPlayer) {
-      noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-12, -12, 24, 24, 6);
-      fill(drawCol); stroke(255); strokeWeight(2); rect(-7, -7, 14, 14, 4);
-      noStroke(); fill(255, 220); ellipse(0, 0, 6, 6);
+      if (b.multiplier >= 2) {
+        drawingContext.shadowBlur = 15;
+        drawingContext.shadowColor = drawCol;
+      }
+      noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-b.size/2 - 5, -b.size/2 - 5, b.size + 10, b.size + 10, 6);
+      fill(drawCol); stroke(255); strokeWeight(2); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
+      noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
+      drawingContext.shadowBlur = 0;
+      
+      if (b.multiplier >= 2) {
+         fill(255, 200, 0); textAlign(CENTER, CENTER); textSize(10);
+         text("x" + b.multiplier, 0, 0);
+      }
     } else {
-      fill(drawCol); stroke(150); strokeWeight(1); rect(-7, -7, 14, 14);
+      fill(drawCol); stroke(150); strokeWeight(1); rect(-b.size/2, -b.size/2, b.size, b.size);
     }
     
     rotate(-b.body.angle);
@@ -724,13 +888,13 @@ function drawBalls() {
       let age = millis() - b.spawnTime;
       if (age < 3000 || b.scored) { 
         noStroke(); textAlign(CENTER); textSize(12);
-        fill(0, 150); text(b.name, 1 + 2, -16 + 2);
-        fill(b.isRainbow ? color(255) : b.color); text(b.name, 1, -16); 
+        fill(0, 150); text(b.name, 1 + 2, -b.size/2 - 9 + 2);
+        fill(b.isRainbow ? color(255) : b.color); text(b.name, 1, -b.size/2 - 9); 
       }
       if (b.combo > 0) { 
         noStroke(); textSize(14);
-        fill(0, 150); text("x" + b.combo, 1 + 2, -30 + 2);
-        fill(255, 200, 0); text("x" + b.combo, 1, -30); 
+        fill(0, 150); text("x" + b.combo, 1 + 2, -b.size/2 - 23 + 2);
+        fill(255, 200, 0); text("x" + b.combo, 1, -b.size/2 - 23); 
       }
     }
     pop();
@@ -740,16 +904,16 @@ function drawBalls() {
     if (starship && starship.state === "ACTIVE" && abs(pos.x - starship.body.position.x) < starship.w / 2 + 10 && abs(pos.y - starship.y) < starship.h / 2 + 10) {
       if (millis() - (b.lastShipHit || 0) > 500) {
         b.lastShipHit = millis(); b.combo += 2; b.lastHitTime = millis();
-        if (b.name !== "MOTHERSHIP") updateScore(b.name, 100, b.color);
+        if (b.name !== "MOTHERSHIP") updateScore(b.name, 100 * b.multiplier, b.color);
         createExplosion(pos.x, pos.y, b.color); playExplosionSound();
         Matter.Body.applyForce(b.body, pos, { x: (pos.x - starship.body.position.x) * 0.0001, y: -0.025 });
-        addFloatingText("+100", pos.x, pos.y, b.color);
+        addFloatingText("+" + (100 * b.multiplier), pos.x, pos.y, b.color);
       }
     }
     
     if (boss && boss.state === "ACTIVE" && abs(pos.x - boss.x) < boss.w / 2 + 10 && abs(pos.y - boss.y) < boss.h / 2 + 10) {
       if (millis() - (b.lastBossHit || 0) > 200) {
-        b.lastBossHit = millis(); let dmg = 50 + b.combo * 10; boss.hp -= dmg; boss.hitFlash = 5;
+        b.lastBossHit = millis(); let dmg = (50 + b.combo * 10) * b.multiplier; boss.hp -= dmg; boss.hitFlash = 5;
         if (b.name !== "MOTHERSHIP") updateScore(b.name, dmg * 5, b.color);
         addFloatingText("-" + dmg, pos.x, pos.y, color(255, 50, 50), true);
         createExplosion(pos.x, pos.y, b.color); playExplosionSound();
@@ -759,15 +923,17 @@ function drawBalls() {
 
     for (let j = pegs.length - 1; j >= 0; j--) {
       let p = pegs[j];
-      if (dist(pos.x, pos.y, p.position.x, p.position.y) < 18) {
+      let dx = pos.x - p.position.x;
+      let dy = pos.y - p.position.y;
+      if (dx * dx + dy * dy < 324) {
         p.glow = 255; b.combo += 1; b.lastHitTime = millis();
         if (p.isExplosive) {
           createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
-          Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub(pos, p.position)), 0.025));
+          Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
           Matter.World.remove(world, p); pegs.splice(j, 1);
         } else if (p.isRepulsor) {
           b.body.velocity.y = 0;
-          Matter.Body.applyForce(b.body, pos, { x: (pos.x - p.position.x) * 0.002, y: -0.04 });
+          Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
           createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
         }
       }
@@ -777,11 +943,11 @@ function drawBalls() {
       let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
       if (cz) {
         b.scored = true; b.scoreTime = millis(); b.zoneIndex = zones.indexOf(cz);
-        let fs = cz.score; 
+        let fs = cz.score * b.multiplier; 
         if (b.isRainbow) { fs *= 2; b.rainbowExplodeTime = millis() + 2500; }
         if (b.name !== "MOTHERSHIP") updateScore(b.name, fs, b.color); 
         cz.flash = 255; cz.flashColor = b.isRainbow ? color(255, 255, 255) : b.color;
-        let isJp = fs >= 5000; 
+        let isJp = fs >= (5000 * b.multiplier); 
         if (b.name !== "MOTHERSHIP") addFloatingText("+" + fs.toLocaleString(), pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
         if (isJp) { shakeAmount = 8; playJackpotSound(); }
       }
@@ -792,9 +958,11 @@ function drawBalls() {
       for (let ex = 0; ex < 10; ex++) explosions.push({ x: pos.x, y: pos.y, vx: random(-3, 3), vy: random(-3, 3), life: 255, col: color(255) });
       for (let ob of balls) {
         if (ob === b) continue;
-        if (dist(pos.x, pos.y, ob.body.position.x, ob.body.position.y) < 180) {
+        let dx = ob.body.position.x - pos.x;
+        let dy = ob.body.position.y - pos.y;
+        if (dx * dx + dy * dy < 32400) {
           ob.scored = false;
-          Matter.Body.applyForce(ob.body, ob.body.position, Matter.Vector.mult(Matter.Vector.normalise({ x: ob.body.position.x - pos.x, y: ob.body.position.y - pos.y - 40 }), 0.015));
+          Matter.Body.applyForce(ob.body, ob.body.position, Matter.Vector.mult(Matter.Vector.normalise({ x: dx, y: dy - 40 }), 0.015));
         }
       }
       b.rainbowExplodeTime = null; removeBall(b); continue;
@@ -1311,33 +1479,137 @@ function prepareSingularityEvents() { bhSpawnTimes = []; if (random() < 0.4) bhS
 function checkSingularitySpawn() {
   if (bhSpawnTimes.includes(timer) && !blackHole) {
     let fL = random() < 0.5;
-    blackHole = { x: fL ? -150 : W + 150, y: random(200, H - 450), startY: 0, targetX: fL ? W + 250 : -250, speed: random(0.8, 1.5), size: random(12, 18), noiseOffset: random(1000), noiseSpeed: random(0.01, 0.02), wobbleAmp: random(40, 90) };
-    blackHole.startY = blackHole.y; bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); speakAnnouncer(T[currentLang].TTS_BH, 1);
+    blackHole = { 
+        x: fL ? -200 : W + 200, 
+        y: random(200, H - 450), 
+        startY: 0, 
+        targetX: fL ? W + 300 : -300, 
+        speed: random(0.4, 0.9), 
+        size: random(45, 80), 
+        noiseOffset: random(1000), 
+        noiseSpeed: random(0.01, 0.02), 
+        wobbleAmp: random(40, 90) 
+    };
+    blackHole.startY = blackHole.y; 
+    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); 
+    speakAnnouncer(T[currentLang].TTS_BH, 1);
   }
 }
 
 function handleBlackHole() {
   if (!blackHole) return;
-  let d = blackHole.targetX > blackHole.x ? 1 : -1; blackHole.x += blackHole.speed * d;
-  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset); blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
+  let d = blackHole.targetX > blackHole.x ? 1 : -1;
+  blackHole.x += blackHole.speed * d;
+  let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
+  blackHole.y = blackHole.startY + (n - 0.5) * blackHole.wobbleAmp * 2;
   let jS = blackHole.size * (1 + (n - 0.5) * 0.15);
+
+  push();
+  translate(blackHole.x, blackHole.y);
+  noStroke();
   
-  push(); translate(blackHole.x, blackHole.y); noStroke(); push(); rotate(frameCount * 0.05);
-  for (let i = 0; i < 4; i++) { fill(150, 50, 255, 20); ellipse(0, 0, jS * 2.5 + i * 15, jS * 0.8 + i * 5); } pop();
-  for (let i = 5; i > 0; i--) { fill(10 + i * 10, 0, 40 + i * 20, 25); ellipse(0, 0, jS + i * (blackHole.size * 0.15) + (n * 10)); }
-  fill(0); ellipse(0, 0, jS); pop();
+  push();
+  rotate(frameCount * 0.1);
+  for (let i = 0; i < 6; i++) {
+    fill(150, 50, 255, 15);
+    ellipse(0, 0, jS * 3.5 + i * 20, jS * 1.2 + i * 8);
+  }
+  pop();
   
+  for (let i = 8; i > 0; i--) {
+    fill(10 + i * 5, 0, 40 + i * 15, 30);
+    ellipse(0, 0, jS + i * (blackHole.size * 0.3) + (n * 10));
+  }
+  
+  fill(0);
+  ellipse(0, 0, jS);
+  
+  stroke(255, 100);
+  strokeWeight(2);
+  for(let i=0; i<5; i++) {
+    let ang = random(TWO_PI);
+    let distR = random(jS*0.5, jS*2);
+    line(cos(ang)*distR, sin(ang)*distR, cos(ang)*(distR-10), sin(ang)*(distR-10));
+  }
+  pop();
+
+  let jS_sq25 = (jS * 2.5) * (jS * 2.5);
+  let jS_sq06 = (jS * 0.6) * (jS * 0.6);
+  let jS_sq5 = (jS * 5) * (jS * 5);
+  let jS_sq8 = (jS * 8) * (jS * 8);
+  let jS_sq15 = (jS * 1.5) * (jS * 1.5);
+  let jS_sq6 = (jS * 6) * (jS * 6);
+
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
-    if (dist(blackHole.x, blackHole.y, p.position.x, p.position.y) < jS * 0.55 && random() < 0.23) { Matter.Composite.remove(world, p); createExplosion(p.position.x, p.position.y); playExplosionSound(); pegs.splice(i, 1); }
+    let dx = blackHole.x - p.position.x;
+    let dy = blackHole.y - p.position.y;
+    if (dx * dx + dy * dy < jS_sq25 && random() < 0.02) {
+       Matter.Composite.remove(world, p);
+       createExplosion(p.position.x, p.position.y, color(150, 50, 255));
+       pegs.splice(i, 1);
+    }
   }
+
   for (let i = balls.length - 1; i >= 0; i--) {
-    let b = balls[i]; if (!b.body) continue;
-    let ds = dist(blackHole.x, blackHole.y, b.body.position.x, b.body.position.y);
-    if (ds < jS * 0.5) { removeBall(b); continue; }
-    if (ds < blackHole.size * 1.87) { let sD = Math.max(ds, 30); Matter.Body.applyForce(b.body, b.body.position, Matter.Vector.mult(Matter.Vector.normalise(Matter.Vector.sub({ x: blackHole.x, y: blackHole.y }, b.body.position)), (blackHole.size * 0.00018) / (sD / 80))); }
+    let b = balls[i];
+    if (!b.body) continue;
+    let dx = blackHole.x - b.body.position.x;
+    let dy = blackHole.y - b.body.position.y;
+    let distSq = dx * dx + dy * dy;
+    if (distSq < jS_sq06) {
+       removeBall(b);
+       continue;
+    }
+    if (distSq < jS_sq5) {
+       let ds = Math.sqrt(distSq);
+       let sD = Math.max(ds, 20);
+       let forceMag = (blackHole.size * 0.0006) / (sD / 100);
+       Matter.Body.applyForce(b.body, b.body.position, { x: (dx / ds) * forceMag, y: (dy / ds) * forceMag });
+    }
   }
-  if ((d === 1 && blackHole.x > blackHole.targetX) || (d === -1 && blackHole.x < blackHole.targetX)) blackHole = null;
+
+  for (let i = massivePlanets.length - 1; i >= 0; i--) {
+    let p = massivePlanets[i];
+    let pxReal = p.x - camOffset.x * 0.6;
+    let pyReal = p.y - camOffset.y * 0.6;
+    let dx = blackHole.x - pxReal;
+    let dy = blackHole.y - pyReal;
+    let distSq = dx * dx + dy * dy;
+    
+    if (distSq < jS_sq8) {
+      p.x += dx * 0.005;
+      p.y += dy * 0.005;
+      p.size *= 0.99; 
+      if (distSq < jS_sq15 || p.size < 5) {
+        massivePlanets.splice(i, 1);
+        shakeAmount = 15; 
+        if(audioStarted) playExplosionSound();
+      }
+    }
+  }
+
+  for (let i = spaceDebris.length - 1; i >= 0; i--) {
+    let p = spaceDebris[i];
+    let pxReal = p.x - camOffset.x * 0.3;
+    let pyReal = p.y - camOffset.y * 0.3;
+    let dx = blackHole.x - pxReal;
+    let dy = blackHole.y - pyReal;
+    let distSq = dx * dx + dy * dy;
+    if (distSq < jS_sq6) {
+      p.vx += dx * 0.003;
+      p.vy += dy * 0.003;
+      if (distSq < jS_sq15) {
+        spaceDebris.splice(i, 1);
+      }
+    }
+  }
+
+  if ((d === 1 && blackHole.x > blackHole.targetX) || (d === -1 && blackHole.x < blackHole.targetX)) {
+    blackHole = null;
+  } else {
+    shakeAmount = max(shakeAmount, jS * 0.02);
+  }
 }
 
 function triggerCosmicEvent() {
@@ -1362,6 +1634,28 @@ function handleCosmicEvent() {
 function spawnRareLegend() {
   let l = random(RARE_POOL);
   spaceDebris.push({ x: random(50, W - 50), y: -100, type: "LEGEND", legendId: l.id, size: l.size, color: color(l.col[0], l.col[1], l.col[2]), vy: random(1, 3), vx: random(-0.5, 0.5), rot: random(TWO_PI), rotSpeed: random(-0.06, 0.06), wobble: random(0.02, 0.08), isRare: true });
+}
+
+function generateDeepSpaceElements() {
+  nebulas = [{ x: W/2, y: H/2, s: 1500, col: color(100, 50, 200, 10), type: 'MILKY_WAY', rotDir: 0 }];
+  for (let i = 0; i < 12; i++) { let isGalaxy = random() < 0.4; nebulas.push({ x: random(W), y: random(H), s: random(isGalaxy ? 200 : 300, isGalaxy ? 400 : 800), col: color(random(50, 255), random(50, 150), random(200, 255), isGalaxy ? 40 : 20), type: isGalaxy ? 'SPIRAL_GALAXY' : 'NEBULA', rotDir: random([-1, 1]) }); }
+  
+  massivePlanets = [];
+  for (let i = 0; i < 8; i++) {
+    let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
+    if (i === 0) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
+    else if (i === 1) { pType = 'JUPITER'; pSize = random(250, 400); pCol = color(180, 140, 100, 230); hasR = false; numMoons = floor(random(4, 8)); } 
+    else if (i === 2) { pType = 'SATURN'; pSize = random(200, 350); pCol = color(220, 200, 150, 230); hasR = true; numMoons = floor(random(3, 7)); } 
+    else if (typeRnd < 0.25) { pType = 'MARS'; pSize = random(80, 180); pCol = color(200, 60, 40, 220); hasR = false; numMoons = floor(random(1, 3)); } 
+    else if (typeRnd < 0.45) { pType = 'ICE_GIANT'; pSize = random(150, 300); pCol = color(60, 180, 255, 220); hasR = true; numMoons = floor(random(2, 5)); } 
+    else if (typeRnd < 0.55) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
+    
+    let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
+    massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), speed: random(0.001, 0.008), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
+  }
+  
+  spaceDebris = [];
+  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
 }
 
 function drawGalacticBackground() {
@@ -1417,7 +1711,9 @@ function drawGalacticBackground() {
   
   for (let i = 0; i < spaceDebris.length; i++) {
     for (let j = i + 1; j < spaceDebris.length; j++) {
-      let d1 = spaceDebris[i], d2 = spaceDebris[j], ds = (d1.x - d2.x) ** 2 + (d1.y - d2.y) ** 2, md = (d1.size + d2.size) / 2;
+      let d1 = spaceDebris[i], d2 = spaceDebris[j];
+      let dx = d1.x - d2.x; let dy = d1.y - d2.y;
+      let ds = dx * dx + dy * dy, md = (d1.size + d2.size) / 2;
       if (ds < md * md) { let tVx = d1.vx; d1.vx = d2.vx; d2.vx = tVx; let tVy = d1.vy; d1.vy = d2.vy; d2.vy = tVy; d1.x += d1.vx * 2; d1.y += d1.vy * 2; createExplosion(d1.x, d1.y, color(255, 200, 100)); if (audioStarted) playExplosionSound(); }
     }
   }
@@ -1453,15 +1749,16 @@ function drawGravityDust() {
 
 function triggerMeteorShower() {
   speakAnnouncer(T[currentLang].TTS_MET, 2); shakeAmount = 15;
-  for (let i = 0; i < 30; i++) {
+  meteorWarningTimer = 180; 
+  for (let i = 0; i < 40; i++) {
     setTimeout(() => {
       let side = floor(random(3)), mx, my, mvx, mvy;
-      if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); } 
-      else if (side === 1) { mx = -50; my = random(H/2); mvx = random(15, 25); mvy = random(5, 15); } 
-      else { mx = W + 50; my = random(H/2); mvx = random(-25, -15); mvy = random(5, 15); }
-      backgroundMeteors.push({ x: mx, y: my, vx: mvx, vy: mvy, size: random(4, 12), c: color(255, random(100, 200), 0), trail: [] });
+      if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 35); } 
+      else if (side === 1) { mx = -50; my = random(H/2); mvx = random(15, 35); mvy = random(5, 15); } 
+      else { mx = W + 50; my = random(H/2); mvx = random(-35, -15); mvy = random(5, 15); }
+      backgroundMeteors.push({ x: mx, y: my, vx: mvx, vy: mvy, size: random(8, 25), c: color(255, random(100, 200), 0), trail: [] });
       if (audioStarted && millis() - lastExpSnd > 100) { try { fxSynth.play(random(100, 200), 0.05, 0, 0.1); } catch(e){} lastExpSnd = millis(); }
-    }, i * 200);
+    }, i * 150 + 2500); 
   }
 }
 
@@ -1473,28 +1770,6 @@ function handleBackgroundMeteors() {
     fill(255); ellipse(m.x, m.y, m.size); m.x += m.vx; m.y += m.vy;
     if (m.y > H + 100 || m.x < -100 || m.x > W + 100) backgroundMeteors.splice(i, 1);
   }
-}
-
-function generateDeepSpaceElements() {
-  nebulas = [{ x: W/2, y: H/2, s: 1500, col: color(100, 50, 200, 10), type: 'MILKY_WAY', rotDir: 0 }];
-  for (let i = 0; i < 12; i++) { let isGalaxy = random() < 0.4; nebulas.push({ x: random(W), y: random(H), s: random(isGalaxy ? 200 : 300, isGalaxy ? 400 : 800), col: color(random(50, 255), random(50, 150), random(200, 255), isGalaxy ? 40 : 20), type: isGalaxy ? 'SPIRAL_GALAXY' : 'NEBULA', rotDir: random([-1, 1]) }); }
-  
-  massivePlanets = [];
-  for (let i = 0; i < 8; i++) {
-    let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
-    if (i === 0) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
-    else if (i === 1) { pType = 'JUPITER'; pSize = random(250, 400); pCol = color(180, 140, 100, 230); hasR = false; numMoons = floor(random(4, 8)); } 
-    else if (i === 2) { pType = 'SATURN'; pSize = random(200, 350); pCol = color(220, 200, 150, 230); hasR = true; numMoons = floor(random(3, 7)); } 
-    else if (typeRnd < 0.25) { pType = 'MARS'; pSize = random(80, 180); pCol = color(200, 60, 40, 220); hasR = false; numMoons = floor(random(1, 3)); } 
-    else if (typeRnd < 0.45) { pType = 'ICE_GIANT'; pSize = random(150, 300); pCol = color(60, 180, 255, 220); hasR = true; numMoons = floor(random(2, 5)); } 
-    else if (typeRnd < 0.55) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
-    
-    let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
-    massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), speed: random(0.001, 0.008), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
-  }
-  
-  spaceDebris = [];
-  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
 }
 
 function initGame() {
@@ -1541,7 +1816,12 @@ function initGame() {
           default: px = random(60, W - 60); py = random(180, H - 220); break;
         }
         if (py > 150 && py < H - 150 && px > 40 && px < W - 40) {
-          let tc = false; for (let ot of pegs) { if (dist(px, py, ot.position.x, ot.position.y) < 35) { tc = true; break; } }
+          let tc = false; 
+          for (let ot of pegs) { 
+            let dx = px - ot.position.x;
+            let dy = py - ot.position.y;
+            if (dx * dx + dy * dy < 1225) { tc = true; break; } 
+          }
           if (!tc) v = true;
         } else if (a > 45) break;
       }
@@ -1551,14 +1831,18 @@ function initGame() {
   
   for (let i = 0; i < 150; i++) {
     let px = random(60, W - 60), py = random(180, H - 200), v = true;
-    for (let ot of pegs) { if (dist(px, py, ot.position.x, ot.position.y) < 35) { v = false; break; } }
+    for (let ot of pegs) { 
+      let dx = px - ot.position.x;
+      let dy = py - ot.position.y;
+      if (dx * dx + dy * dy < 1225) { v = false; break; } 
+    }
     if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
   }
   
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000], cX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
     let zW = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W, val = sV[i];
-    zones.push({ x: cX, w: zW, score: val, flash: 0, flashColor: color(255), baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180), capacity: Math.max(5, Math.floor((zW * ZONE_H) / 200)) });
+    zones.push({ x: cX, w: zW, score: val, flash: 0, flashColor: color(255), baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180), capacity: Math.max(3, Math.floor((zW * ZONE_H) / 250)) });
     if (i > 0) { let wl = Matter.Bodies.rectangle(cX, H - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); walls.push(wl); Matter.World.add(world, wl); }
     cX += zW;
   }
@@ -1570,12 +1854,13 @@ function resetGame() {
   rimmerModeActive = false;
   rimmerModePlanned = (random() < 0.08);
   rimmerModeTriggerTime = rimmerModePlanned ? floor(random(15, timer - 15)) : -1;
+  spamBuffer = {};
   
   if (isAutoMode) autoRandomSettings();
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
   
-  initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound(); nextMeteorShowerTime = millis() + 66000; nextJokeTime = millis() + random(30000, 60000);
+  initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound(); nextMeteorShowerTime = millis() + 66000; nextJokeTime = millis() + random(10000, 20000);
   
   let delay = 0; while (spawnQueue.length > 0) { let u = spawnQueue.shift(); setTimeout(() => spawnBall(u), delay * 100); delay++; }
   speakAnnouncer(T[currentLang].TTS_SEC_W + currentDestination, 1);
@@ -1587,3 +1872,4 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
+
