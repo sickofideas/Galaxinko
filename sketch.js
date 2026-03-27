@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.11";
+const GAME_VERSION = "v13.7.13";
 
 let currentLang = "CZ";
 
@@ -735,10 +735,19 @@ function draw() {
   handleSpamBuffer();
   drawProceduralHUD(); drawAntiBotOverlay();
   
-  if (balls.length > 500) {
-      let unstuck = balls.filter(b => !b.isRainbow && b.multiplier === 1 && !b.scored);
-      if (unstuck.length > 0) removeBall(unstuck[0]);
-      else removeBall(balls[0]);
+  if (balls.length > 400) {
+      let zbytek = balls.length - 400;
+      for(let iter = 0; iter < zbytek; iter++) {
+          let smazano = false;
+          for (let i = 0; i < balls.length; i++) {
+              if (!balls[i].isRainbow && balls[i].multiplier === 1 && !balls[i].scored) {
+                  removeBall(balls[i]);
+                  smazano = true;
+                  break;
+              }
+          }
+          if(!smazano && balls.length > 0) removeBall(balls[0]);
+      }
   }
   
   if (flashEffect > 0) {
@@ -832,7 +841,7 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
   let isMega = mult >= 2; 
   let bSize = isMega ? constrain(14 + mult, 16, 24) : 14; 
   
-  let ballBody = Matter.Bodies.rectangle(spawnX, spawnY, bSize, bSize, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: isMega ? 0.005 : 0.001 });
+  let ballBody = Matter.Bodies.rectangle(spawnX, spawnY, bSize, bSize, { restitution: ballRestitution, friction: 0.2, frictionAir: 0.04, density: isMega ? 0.005 : 0.001, sleepThreshold: 30 });
   if (velX !== null && velY !== null) {
     Matter.Body.setVelocity(ballBody, { x: velX, y: velY });
   }
@@ -843,17 +852,22 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
 }
 
 function drawBalls() {
-  for (let zi = 0; zi < zones.length; zi++) {
-    let zBalls = balls.filter(b => b.scored && b.zoneIndex === zi);
-    let limit = Math.max(1, Math.floor(zones[zi].capacity * 0.95));
-    if (zBalls.length > limit) {
-      zBalls.sort((a, b) => b.body.position.y - a.body.position.y);
-      let toRemove = zBalls.length - limit;
-      for (let k = 0; k < toRemove; k++) {
-        removeBall(zBalls[k]);
-      }
+  let zCounts = new Array(zones.length).fill(0);
+  let ballsToRemove = [];
+
+  for (let i = 0; i < balls.length; i++) {
+    let b = balls[i];
+    if (b.scored && b.zoneIndex !== -1 && b.zoneIndex < zones.length) {
+       zCounts[b.zoneIndex]++;
+       let limit = Math.max(1, Math.floor(zones[b.zoneIndex].capacity * 0.95));
+       if (zCounts[b.zoneIndex] > limit) {
+          ballsToRemove.push(b);
+          zCounts[b.zoneIndex]--; 
+       }
     }
   }
+  
+  for(let i=0; i<ballsToRemove.length; i++) removeBall(ballsToRemove[i]);
 
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
@@ -932,29 +946,35 @@ function drawBalls() {
       }
     }
 
-    for (let j = pegs.length - 1; j >= 0; j--) {
-      let p = pegs[j];
-      let dx = pos.x - p.position.x;
-      let dy = pos.y - p.position.y;
-      if (dx * dx + dy * dy < 324) {
-        p.glow = 255; b.combo += 1; b.lastHitTime = millis();
-        if (p.isExplosive) {
-          createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
-          Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
-          Matter.World.remove(world, p); pegs.splice(j, 1);
-        } else if (p.isRepulsor) {
-          b.body.velocity.y = 0;
-          Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
-          createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
+    if (pos.y < H - 100) {
+        for (let j = pegs.length - 1; j >= 0; j--) {
+          let p = pegs[j];
+          let dx = pos.x - p.position.x;
+          let dy = pos.y - p.position.y;
+          if (dx * dx + dy * dy < 324) {
+            p.glow = 255; b.combo += 1; b.lastHitTime = millis();
+            if (p.isExplosive) {
+              createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
+              Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
+              Matter.World.remove(world, p); pegs.splice(j, 1);
+            } else if (p.isRepulsor) {
+              b.body.velocity.y = 0;
+              Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
+              createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
+            }
+          }
         }
-      }
     }
     
-    let isStuckInPile = pos.y > H - 250 && b.body.speed < 0.2;
+    let isStuckInPile = pos.y > H - 250 && b.body.isSleeping;
     if ((pos.y > H - ZONE_H - 40 || isStuckInPile) && !b.scored) {
-      let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
-      if (cz) {
-        b.scored = true; b.scoreTime = millis(); b.zoneIndex = zones.indexOf(cz);
+      let czIndex = -1;
+      for(let z=0; z<zones.length; z++) {
+          if (pos.x >= zones[z].x && pos.x < zones[z].x + zones[z].w) { czIndex = z; break; }
+      }
+      if (czIndex !== -1) {
+        let cz = zones[czIndex];
+        b.scored = true; b.scoreTime = millis(); b.zoneIndex = czIndex;
         let fs = cz.score * b.multiplier; 
         if (b.isRainbow) { fs *= 2; b.rainbowExplodeTime = millis() + 2500; }
         if (b.name !== "MOTHERSHIP") updateScore(b.name, fs, b.color); 
@@ -1785,7 +1805,7 @@ function handleBackgroundMeteors() {
 }
 
 function initGame() {
-  engine = Matter.Engine.create(); world = engine.world; let opts = { isStatic: true, restitution: 2.2, friction: 0 };
+  engine = Matter.Engine.create({ enableSleeping: true }); world = engine.world; let opts = { isStatic: true, restitution: 2.2, friction: 0 };
   Matter.World.add(world, [ Matter.Bodies.rectangle(-25, H / 2, 50, H * 2, opts), Matter.Bodies.rectangle(W + 25, H / 2, 50, H * 2, opts), Matter.Bodies.rectangle(W / 2, H + 48, W, 100, { isStatic: true, friction: 1 }) ]);
   
   const p = ["SPIRAL", "WAVES", "HOURGLASS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "HEXAGON_GRID", "PYRAMID", "FRACTAL_TREE", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN"];
