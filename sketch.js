@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.9";
+const GAME_VERSION = "v13.7.11";
 
 let currentLang = "CZ";
 
@@ -735,6 +735,12 @@ function draw() {
   handleSpamBuffer();
   drawProceduralHUD(); drawAntiBotOverlay();
   
+  if (balls.length > 500) {
+      let unstuck = balls.filter(b => !b.isRainbow && b.multiplier === 1 && !b.scored);
+      if (unstuck.length > 0) removeBall(unstuck[0]);
+      else removeBall(balls[0]);
+  }
+  
   if (flashEffect > 0) {
     noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(-W, -H, W*3, H*3);
     flashEffect--;
@@ -811,7 +817,7 @@ function handleSpamBuffer() {
 function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null, velY = null) {
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") { if (spawnQueue.length < 500) spawnQueue.push(userName); return; }
-  if (balls.length > 3000) return;
+  if (balls.length > 700) return;
   if (userName !== "MOTHERSHIP") { totalBallsFired++; roundTotalBalls++; }
   if (!audioStarted) startSpaceAudio();
   
@@ -944,7 +950,8 @@ function drawBalls() {
       }
     }
     
-    if (pos.y > H - ZONE_H - 10 && !b.scored) {
+    let isStuckInPile = pos.y > H - 250 && b.body.speed < 0.2;
+    if ((pos.y > H - ZONE_H - 40 || isStuckInPile) && !b.scored) {
       let cz = zones.find(z => pos.x >= z.x && pos.x < z.x + z.w);
       if (cz) {
         b.scored = true; b.scoreTime = millis(); b.zoneIndex = zones.indexOf(cz);
@@ -1847,7 +1854,7 @@ function initGame() {
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000], cX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
     let zW = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W, val = sV[i];
-    zones.push({ x: cX, w: zW, score: val, flash: 0, flashColor: color(255), baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180), capacity: Math.max(3, Math.floor((zW * ZONE_H) / 250)) });
+    zones.push({ x: cX, w: zW, score: val, flash: 0, flashColor: color(255), baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180), capacity: Math.max(2, Math.floor((zW * ZONE_H) / 400)) });
     if (i > 0) { let wl = Matter.Bodies.rectangle(cX, H - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); walls.push(wl); Matter.World.add(world, wl); }
     cX += zW;
   }
@@ -1877,4 +1884,3 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
-// Konec souboru - Verze: v13.7.9
