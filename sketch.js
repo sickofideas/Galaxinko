@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.6";
+const GAME_VERSION = "v13.7.7";
 
 let currentLang = "CZ";
 
@@ -743,62 +743,67 @@ function draw() {
 }
 
 function handleSpamBuffer() {
-  let activeIndex = 0;
-  for (let u in spamBuffer) {
-    let sp = spamBuffer[u];
-    if (sp.state === 'CHARGING' || sp.state === 'RELEASING') {
-      let bx = 100 + activeIndex * 90;
-      let by = 70;
-      
-      push();
-      translate(bx, by);
-      let a = sp.fade;
-      
-      let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.01) * 0.1 : 1;
-      scale(scaleVal);
-      
-      if (userAvatars[u]) {
-        drawingContext.save(); drawingContext.beginPath();
-        drawingContext.arc(0, 0, 20, 0, TWO_PI); drawingContext.clip();
-        tint(255, a); imageMode(CENTER); image(userAvatars[u], 0, 0, 40, 40);
-        drawingContext.restore();
-      } else {
-        fill(100, a); noStroke(); ellipse(0, 0, 40, 40);
-      }
-      
-      if (sp.total >= 5) {
-        drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(255, 200, 0, a);
-        drawTxt("x" + sp.total, 0, 35, color(255, 200, 0, a), 14, CENTER);
-        drawingContext.shadowBlur = 0;
-      }
-      
-      drawTxt(u.substring(0, 8), 0, -30, color(255, a), 10, CENTER);
-      pop();
-      
-      activeIndex++;
-      
-      if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
-        sp.state = 'RELEASING';
-        if (sp.buffered > 0) {
-          let count = Math.min(sp.buffered, 12);
-          let baseMult = Math.floor(sp.buffered / count);
-          let remainder = sp.buffered % count;
+  let activeSpammers = Object.keys(spamBuffer).filter(u => spamBuffer[u].state === 'CHARGING' || spamBuffer[u].state === 'RELEASING');
+  let numSpammers = activeSpammers.length;
+  
+  if (numSpammers === 0) return;
 
-          for (let i = 0; i < count; i++) {
-             let vx = random(-8, 8);
-             let vy = random(2, 9);
-             let ballMult = baseMult + (i < remainder ? 1 : 0);
-             spawnBall(u, ballMult, bx, by + 10, vx, vy);
-          }
-          createShockwave(bx, by);
-          playJackpotSound();
+  let spacing = 90;
+  let startX = (W / 2) - ((numSpammers - 1) * spacing) / 2;
+
+  for (let i = 0; i < numSpammers; i++) {
+    let u = activeSpammers[i];
+    let sp = spamBuffer[u];
+    
+    let bx = startX + i * spacing;
+    let by = 70;
+    
+    push();
+    translate(bx, by);
+    let a = sp.fade;
+    
+    let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.01) * 0.1 : 1;
+    scale(scaleVal);
+    
+    if (userAvatars[u]) {
+      drawingContext.save(); drawingContext.beginPath();
+      drawingContext.arc(0, 0, 20, 0, TWO_PI); drawingContext.clip();
+      tint(255, a); imageMode(CENTER); image(userAvatars[u], 0, 0, 40, 40);
+      drawingContext.restore();
+    } else {
+      fill(100, a); noStroke(); ellipse(0, 0, 40, 40);
+    }
+    
+    if (sp.total >= 5) {
+      drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(255, 200, 0, a);
+      drawTxt("x" + sp.total, 0, 35, color(255, 200, 0, a), 14, CENTER);
+      drawingContext.shadowBlur = 0;
+    }
+    
+    drawTxt(u.substring(0, 8), 0, -30, color(255, a), 10, CENTER);
+    pop();
+    
+    if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
+      sp.state = 'RELEASING';
+      if (sp.buffered > 0) {
+        let count = Math.min(sp.buffered, 12);
+        let baseMult = Math.floor(sp.buffered / count);
+        let remainder = sp.buffered % count;
+
+        for (let j = 0; j < count; j++) {
+           let vx = random(-8, 8);
+           let vy = random(2, 9);
+           let ballMult = baseMult + (j < remainder ? 1 : 0);
+           spawnBall(u, ballMult, bx, by + 10, vx, vy);
         }
+        createShockwave(bx, by);
+        playJackpotSound();
       }
-      
-      if (sp.state === 'RELEASING') {
-        sp.fade -= 5;
-        if (sp.fade <= 0) delete spamBuffer[u];
-      }
+    }
+    
+    if (sp.state === 'RELEASING') {
+      sp.fade -= 5;
+      if (sp.fade <= 0) delete spamBuffer[u];
     }
   }
 }
@@ -1872,4 +1877,3 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
-
