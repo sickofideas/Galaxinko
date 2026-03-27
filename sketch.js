@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.7";
+const GAME_VERSION = "v13.7.9";
 
 let currentLang = "CZ";
 
@@ -112,7 +112,7 @@ const JOKES = {
     "Klikejte na tu obrazovku! Moje babička by klikala rychleji a to je už mrtvá!",
     "Ztrácíme energii! Pošlete okamžitě kuličky, nebo nás to vcucne do černé díry!",
     "Vesmírná anomálie? Ne, to je jen vaše lenost! Klikat, klikat, klikat!",
-    "Potřebujeme lajky na štíty! Posádko, do boje!"
+    "Potřebujeme energii na štíty! Posádko, do boje!"
   ],
   EN: [
     "Do you smoke? Only after sex. So not at all.",
@@ -302,8 +302,8 @@ function setup() {
   for (let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
-  currentGravity = random(0.8, 2.5);
-  currentBounce = floor(random(90, 140));
+  currentGravity = 0.8 + Math.sqrt(Math.random()) * 2.2;
+  currentBounce = Math.floor(90 + Math.sqrt(Math.random()) * 70);
   timer = floor(random(50, 181));
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
@@ -548,8 +548,8 @@ function toggleAutoMode() {
 }
 
 function autoRandomSettings() {
-  currentGravity = random(0.8, 2.5);
-  currentBounce = floor(random(90, 140));
+  currentGravity = 0.8 + Math.sqrt(Math.random()) * 2.2;
+  currentBounce = Math.floor(90 + Math.sqrt(Math.random()) * 70);
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
@@ -1877,3 +1877,4 @@ function mouseClicked() {
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
+// Konec souboru - Verze: v13.7.9
