@@ -1168,7 +1168,7 @@ function drawBalls() {
     if (b.scored && b.body.velocity.y < -2 && pos.y < H - ZONE_H - 50) b.scored = false;
     if (b.portalCooldown > 0) b.portalCooldown--;
     
-    if (portals.length === 2 && b.portalCooldown <= 0 && dist(pos.x, pos.y, portals[0].x, portals[0].y) < 30) {
+    if (portals.length === 2 && b.portalCooldown <= 0 && dist(pos.x, pos.y, portals[0].x, portals[0].y) < 45) {
       Matter.Body.setPosition(b.body, { x: portals[1].x, y: portals[1].y });
       Matter.Body.setVelocity(b.body, { x: random(-5, 5), y: random(2, 5) });
       b.portalCooldown = 60; playSpawnSound();
@@ -1771,9 +1771,26 @@ function drawPortals() {
   if (portals.length < 2) return;
   for (let i = 0; i < portals.length; i++) {
     let pt = portals[i];
-    push(); translate(pt.x, pt.y); rotate(frameCount * 0.05 * (i === 0 ? 1 : -1));
-    fill(i === 0 ? color(0, 150, 255, 150) : color(255, 150, 0, 150)); noStroke(); ellipse(0, 0, 50 + sin(frameCount * 0.1) * 10);
-    fill(0); ellipse(0, 0, 25); pop();
+    push(); 
+    let wobbleX = sin(frameCount * 0.2 + i * 10) * 3;
+    let wobbleY = cos(frameCount * 0.15 + i * 10) * 3;
+    translate(pt.x + wobbleX, pt.y + wobbleY); 
+    rotate(frameCount * 0.05 * (i === 0 ? 1 : -1));
+    
+    let baseCol = i === 0 ? color(0, 150, 255) : color(255, 150, 0);
+    let pulse = sin(frameCount * 0.1) * 15;
+    
+    noStroke();
+    for(let j = 4; j > 0; j--) {
+      fill(red(baseCol), green(baseCol), blue(baseCol), 40);
+      ellipse(0, 0, 70 + pulse + j * 15);
+    }
+    
+    fill(red(baseCol), green(baseCol), blue(baseCol), 200); 
+    ellipse(0, 0, 50 + pulse * 0.5);
+    fill(0); 
+    ellipse(0, 0, 30); 
+    pop();
   }
 }
 
@@ -2168,6 +2185,26 @@ function handleBackgroundMeteors() {
     let m = backgroundMeteors[i]; m.trail.push({ x: m.x, y: m.y }); if (m.trail.length > 10) m.trail.shift();
     for (let t = 0; t < m.trail.length; t++) { fill(red(m.c), green(m.c), blue(m.c), map(t, 0, m.trail.length, 0, 255)); ellipse(m.trail[t].x, m.trail[t].y, m.size * (t / m.trail.length)); }
     fill(255); ellipse(m.x, m.y, m.size); m.x += m.vx; m.y += m.vy;
+    
+    let hit = false;
+    for (let j = 0; j < balls.length; j++) {
+      let b = balls[j];
+      let dx = m.x - b.body.position.x;
+      let dy = m.y - b.body.position.y;
+      if (dx * dx + dy * dy < (m.size + b.size) * (m.size + b.size)) {
+        hit = true;
+        Matter.Body.applyForce(b.body, b.body.position, { x: -dx * 0.005, y: -dy * 0.005 });
+        createExplosion(m.x, m.y, m.c);
+        if (audioStarted) playExplosionSound();
+        shakeAmount = max(shakeAmount, 5);
+        break;
+      }
+    }
+    if (hit) {
+      backgroundMeteors.splice(i, 1);
+      continue;
+    }
+
     if (m.y > H + 100 || m.x < -100 || m.x > W + 100) backgroundMeteors.splice(i, 1);
   }
 }
