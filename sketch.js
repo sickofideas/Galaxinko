@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.18";
+const GAME_VERSION = "v13.7.19";
 
 let currentLang = "CZ";
 
@@ -952,9 +952,16 @@ function drawBalls() {
     
     if (boss && boss.state === "ACTIVE" && abs(pos.x - boss.x) < boss.w / 2 + 10 && abs(pos.y - boss.y) < boss.h / 2 + 10) {
       if (millis() - (b.lastBossHit || 0) > 200) {
-        b.lastBossHit = millis(); let dmg = (50 + b.combo * 10) * b.multiplier; boss.hp -= dmg; boss.hitFlash = 5;
-        if (b.name !== "MOTHERSHIP") updateScore(b.name, dmg * 5, b.color);
-        addFloatingText("-" + dmg, pos.x, pos.y, color(255, 50, 50), true);
+        b.lastBossHit = millis(); 
+        
+        if (b.name !== "MOTHERSHIP") {
+          let dmg = (50 + b.combo * 10) * b.multiplier; 
+          boss.hp -= dmg; 
+          boss.hitFlash = 5;
+          updateScore(b.name, dmg * 5, b.color);
+          addFloatingText("-" + dmg, pos.x, pos.y, color(255, 50, 50), true);
+        }
+        
         createExplosion(pos.x, pos.y, b.color); playExplosionSound();
         Matter.Body.applyForce(b.body, pos, { x: (pos.x - boss.x) * 0.0002, y: -0.03 });
       }
@@ -1209,8 +1216,35 @@ function handleBoss() {
     let dy = boss.targetY - boss.y; Matter.Body.setPosition(boss.body, { x: boss.x, y: boss.y + dy * 0.05 });
     if (abs(dy) < 2) boss.state = "ACTIVE";
   } else if (boss.state === "ACTIVE") {
-    if (frameCount % 120 === 0) { boss.targetX = random(200, W - 200); boss.targetY = random(150, H / 2 - 50); }
-    boss.x = lerp(boss.x, boss.targetX, 0.02); boss.y = lerp(boss.y, boss.targetY, 0.02);
+    
+    if (frameCount % 90 === 0) { 
+        boss.targetX = random(100, W - 100); 
+        boss.targetY = random(100, H - 250); 
+    }
+    
+    let closestBallDist = Infinity;
+    let closestBall = null;
+    for (let b of balls) {
+       if (b.body.position.y < boss.y && b.body.velocity.y > 0 && abs(b.body.position.x - boss.x) < boss.w) {
+           let distY = boss.y - b.body.position.y;
+           if (distY < 300 && distY < closestBallDist) {
+               closestBallDist = distY;
+               closestBall = b;
+           }
+       }
+    }
+    
+    if (closestBall) {
+       if (closestBall.body.position.x > boss.x) {
+           boss.targetX -= 15;
+       } else {
+           boss.targetX += 15;
+       }
+       boss.targetX = constrain(boss.targetX, 100, W - 100);
+    }
+    
+    boss.x = lerp(boss.x, boss.targetX, 0.04); 
+    boss.y = lerp(boss.y, boss.targetY, 0.03);
     Matter.Body.setPosition(boss.body, { x: boss.x, y: boss.y });
     
     if (boss.hp <= 0) {
@@ -1228,14 +1262,39 @@ function handleBoss() {
   }
   
   push(); translate(boss.x, boss.y);
-  if (boss.hitFlash > 0) { boss.hitFlash--; drawingContext.shadowBlur = 30; drawingContext.shadowColor = color(255); }
+  if (boss.hitFlash > 0) { boss.hitFlash--; drawingContext.shadowBlur = 40; drawingContext.shadowColor = color(255); }
+  else { drawingContext.shadowBlur = 20; drawingContext.shadowColor = color(100, 0, 255); }
   
-  fill(15, 5, 25); stroke(120, 50, 255); strokeWeight(3);
-  triangle(-boss.w/2, 0, -boss.w/2 - 60, -40, -boss.w/2 - 20, 40); triangle(boss.w/2, 0, boss.w/2 + 60, -40, boss.w/2 + 20, 40);
-  fill(25, 10, 45); stroke(160, 60, 255); strokeWeight(4); ellipse(0, 0, boss.w, boss.h);
-  fill(100, 50, 255, 150); noStroke(); ellipse(0, 0, boss.w * 0.7, boss.h * 0.5);
-  fill(255, 50, 50); ellipse(0, 0, 50 + sin(frameCount * 0.2) * 10, 50 + cos(frameCount * 0.2) * 10);
-  fill(255, 255, 0); ellipse(0, 0, 15, 35 + sin(frameCount * 0.3) * 5);
+  let wave = sin(frameCount * 0.1) * 20;
+  fill(20, 5, 40); stroke(150, 50, 255); strokeWeight(3);
+  
+  beginShape();
+  vertex(-boss.w/3, 0);
+  quadraticVertex(-boss.w/1.5, -50 + wave, -boss.w/2 - 40, 40 + wave);
+  quadraticVertex(-boss.w/2, 20, -boss.w/3, 20);
+  endShape();
+  
+  beginShape();
+  vertex(boss.w/3, 0);
+  quadraticVertex(boss.w/1.5, -50 - wave, boss.w/2 + 40, 40 - wave);
+  quadraticVertex(boss.w/2, 20, boss.w/3, 20);
+  endShape();
+
+  fill(30, 10, 50); stroke(200, 80, 255); strokeWeight(4);
+  ellipse(0, 0, boss.w * 0.8, boss.h);
+  
+  fill(150, 50, 255, 150); noStroke();
+  ellipse(0, 0, boss.w * 0.5, boss.h * 0.6);
+  
+  fill(255, 50, 50);
+  let eyeSize = 40 + sin(frameCount * 0.2) * 15;
+  ellipse(0, 0, eyeSize, eyeSize * 0.5);
+  fill(255, 255, 0);
+  ellipse(0, 0, 10, eyeSize * 0.8);
+  
+  fill(0, 255, 255);
+  ellipse(-boss.w * 0.25, 0, 15, 15);
+  ellipse(boss.w * 0.25, 0, 15, 15);
   pop();
   
   let barW = 400, barH = 20, barX = W/2 - barW/2, barY = 90;
