@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.0.7";
+const GAME_VERSION = "v14.0.8";
 
 let currentLang = "CZ";
 
@@ -1279,9 +1279,11 @@ function drawBalls() {
         let isJp = fs >= (5000 * b.multiplier); 
         
         if (b.name !== "MOTHERSHIP") {
-            let addedTime = 0.2 * b.multiplier;
+            // Dynamické vyvažování (diminishing returns) - čím více času mají, tím méně kulička přidá
+            let timeFactor = Math.max(0, (timer + bonusTime - 40));
+            let addedTime = (0.2 * b.multiplier) / (1 + (timeFactor / 50));
             bonusTime += addedTime;
-            addFloatingText("+" + fs.toLocaleString() + " | +" + addedTime.toFixed(1) + "s", pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
+            addFloatingText("+" + fs.toLocaleString() + " | +" + addedTime.toFixed(2) + "s", pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
             updateScore(b.name, fs, b.color); 
         }
         
