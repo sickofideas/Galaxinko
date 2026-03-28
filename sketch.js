@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.0.8";
+const GAME_VERSION = "v14.0.7";
 
 let currentLang = "CZ";
 
@@ -356,7 +356,7 @@ let roundStartTimeReal = 0;
 let nextAnomalyTime = 180; // 3 minúty pre prvú anomáliu
 let anomalyState = 0; // 0: neaktívne, 1: prebieha (koleso)
 let anomalyTimer = 0;
-let anomG = 0, anomB = 0, dispG = 0, dispB = 0;
+let anomG = 0, anomB = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -819,7 +819,7 @@ function draw() {
     }
     
     if (!rimmerModeActive && millis() > nextJokeTime) {
-      speakAnnouncer(random(JOKES[currentLang]), 0);
+      if (typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 0);
       nextJokeTime = millis() + random(10000, 20000);
     }
     
@@ -858,19 +858,19 @@ function draw() {
             currentGravity = random(3.0, 5.0); currentBounce = floor(random(200, 255));
             gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
             if (world) world.gravity.y = currentGravity;
-            speakAnnouncer(T[currentLang].TTS_RIMMER_ON, 2);
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_RIMMER_ON, 2);
             shakeAmount = 30; flashEffect = 40;
           }
           
           if (rimmerModeActive) {
             rimmerModeTimer--;
-            if (rimmerModeTimer === 5) speakAnnouncer(random(JOKES[currentLang]), 1);
+            if (rimmerModeTimer === 5 && typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 1);
             if (rimmerModeTimer <= 0) {
               rimmerModeActive = false;
               currentGravity = originalGravity; currentBounce = originalBounce;
               gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
               if (world) world.gravity.y = currentGravity;
-              speakAnnouncer(T[currentLang].TTS_RIMMER_OFF, 1);
+              if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_RIMMER_OFF, 1);
             }
           }
 
@@ -878,10 +878,11 @@ function draw() {
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
           if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
           if (random() < 0.11) spawnRareLegend();
-          if (timer === 10) speakAnnouncer(T[currentLang].TTS_10S, 1);
+          if (timer === 10 && typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_10S, 1);
           if (timer <= 0) {
             gameState = "WAITING"; waitStartTime = millis(); shakeAmount = 6;
-            playCleanupSound(); playTimerEndSequence(); speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
+            playCleanupSound(); playTimerEndSequence(); 
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
           }
           
           let elapsed = floor((millis() - roundStartTimeReal) / 1000);
@@ -900,7 +901,7 @@ function draw() {
     if (balls.length === 0 || (millis() - waitStartTime) / 1000 > 10) {
       gameState = "RESULTS"; resultsTimer = 10;
       let s = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
-      if (s.length > 0) { speakAnnouncer(T[currentLang].TTS_R_O, 2); speakName(s[0][0]); }
+      if (s.length > 0 && typeof T !== 'undefined') { speakAnnouncer(T[currentLang].TTS_R_O, 2); speakName(s[0][0]); }
     }
   }
 
@@ -926,7 +927,7 @@ function draw() {
   
   if (rimmerModeActive) {
     let f = (frameCount % 10 < 5) ? 255 : 100;
-    drawTxt(`${T[currentLang].RIM_MODE} ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
+    drawTxt(typeof T !== 'undefined' ? `${T[currentLang].RIM_MODE} ${rimmerModeTimer}s` : `RIMMER MODE ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
   }
 
   if (meteorWarningTimer > 0) {
@@ -974,7 +975,9 @@ function drawAnomalyRoulette() {
     translate(W/2, H/2);
     
     push();
-    rotate(frameCount * 0.15);
+    let spinSpeed = anomalyTimer > 90 ? map(anomalyTimer, 300, 90, 0.4, 0) : 0;
+    anomalyAngle += spinSpeed;
+    rotate(anomalyAngle);
     noFill();
     stroke(0, 255, 255, 180);
     strokeWeight(8);
@@ -987,11 +990,9 @@ function drawAnomalyRoulette() {
     }
     pop();
 
-    let t = anomalyTimer / 240; 
-    let updateInterval = floor(map(t, 1, 0, 1, 20));
-    
-    if (t > 0.15) { 
-        if (frameCount % updateInterval === 0) {
+    if (anomalyTimer > 90) { 
+        let updateInterval = floor(map(anomalyTimer, 300, 90, 1, 15));
+        if (frameCount % max(1, updateInterval) === 0) {
             dispG = floor(random(1, 255));
             dispB = floor(random(1, 255));
             if (audioStarted) try { fxSynth.play(random(600, 900), 0.05, 0, 0.05); } catch(e){}
@@ -1005,8 +1006,8 @@ function drawAnomalyRoulette() {
     noStroke();
     textAlign(CENTER, CENTER);
     textSize(18);
-    text(T[currentLang].GRAV, -80, -40);
-    text(T[currentLang].BOUNCE, 80, -40);
+    text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", -80, -40);
+    text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 80, -40);
     
     textSize(60);
     drawingContext.shadowBlur = 20;
@@ -1021,17 +1022,18 @@ function drawAnomalyRoulette() {
     
     textSize(26);
     fill(255, 200, 0, 150 + sin(frameCount * 0.2) * 100);
-    text(T[currentLang].ANOMALY, 0, -120);
+    text(typeof T !== 'undefined' ? T[currentLang].ANOMALY : "ANOMALY", 0, -120);
     pop();
 }
 
 function triggerAnomaly() {
     anomalyState = 1;
-    anomalyTimer = 240;
+    anomalyTimer = 300; 
     nextAnomalyTime += 60;
-    speakAnnouncer(T[currentLang].ANOMALY, 2);
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].ANOMALY, 2);
     anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
     anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+    anomalyAngle = 0;
 }
 
 function applyAnomaly() {
@@ -1043,7 +1045,7 @@ function applyAnomaly() {
     shakeAmount = 30;
     flashEffect = 80;
     playJackpotSound();
-    speakAnnouncer(T[currentLang].PHYS_ALT, 2);
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].PHYS_ALT, 2);
 }
 
 function handleSpamBuffer() {
@@ -1279,7 +1281,6 @@ function drawBalls() {
         let isJp = fs >= (5000 * b.multiplier); 
         
         if (b.name !== "MOTHERSHIP") {
-            // Dynamické vyvažování (diminishing returns) - čím více času mají, tím méně kulička přidá
             let timeFactor = Math.max(0, (timer + bonusTime - 40));
             let addedTime = (0.2 * b.multiplier) / (1 + (timeFactor / 50));
             bonusTime += addedTime;
@@ -1351,32 +1352,32 @@ function drawUI() {
   strokeWeight(2); rect(dX, 8, dW, 54, 8);
   
   let lT = new Intl.DateTimeFormat('cs-CZ', { timeStyle: 'medium' }).format(new Date());
-  noStroke(); fill(0, 150); textSize(12); text(T[currentLang].LIVE + lT, dX + 15 + 2, 24 + 2);
-  fill(255, 60, 60); text(T[currentLang].LIVE + lT, dX + 15, 24);
+  noStroke(); fill(0, 150); textSize(12); text(typeof T !== 'undefined' ? T[currentLang].LIVE + lT : "🔴 LIVE " + lT, dX + 15 + 2, 24 + 2);
+  fill(255, 60, 60); text(typeof T !== 'undefined' ? T[currentLang].LIVE + lT : "🔴 LIVE " + lT, dX + 15, 24);
   
-  textAlign(RIGHT, CENTER); fill(0, 150); text(T[currentLang].SYS_ON, dX + dW - 15 + 2, 24 + 2);
-  fill(50, 255, 50); text(T[currentLang].SYS_ON, dX + dW - 15, 24);
+  textAlign(RIGHT, CENTER); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].SYS_ON : "SYSTEM: ONLINE", dX + dW - 15 + 2, 24 + 2);
+  fill(50, 255, 50); text(typeof T !== 'undefined' ? T[currentLang].SYS_ON : "SYSTEM: ONLINE", dX + dW - 15, 24);
   
-  textAlign(CENTER, CENTER); fill(0, 150); textSize(10); text(T[currentLang].SYNC, dX + dW / 2 + 2, 45 + 2);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(T[currentLang].SYNC, dX + dW / 2, 45);
+  textAlign(CENTER, CENTER); fill(0, 150); textSize(10); text(typeof T !== 'undefined' ? T[currentLang].SYNC : "SYNC", dX + dW / 2 + 2, 45 + 2);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].SYNC : "SYNC", dX + dW / 2, 45);
   
-  textAlign(RIGHT, CENTER); fill(0, 150); textSize(12); text(`${T[currentLang].SECTOR} ${currentDestination}`, W - 15 + 2, 20 + 2);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(`${T[currentLang].SECTOR} ${currentDestination}`, W - 15, 20);
+  textAlign(RIGHT, CENTER); fill(0, 150); textSize(12); text(typeof T !== 'undefined' ? `${T[currentLang].SECTOR} ${currentDestination}` : currentDestination, W - 15 + 2, 20 + 2);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? `${T[currentLang].SECTOR} ${currentDestination}` : currentDestination, W - 15, 20);
   
   let gDisp = floor(map(currentGravity, 0.01, 5.0, 1, 255));
-  fill(0, 150); textSize(10); text(`${T[currentLang].GFORCE} ${gDisp} [R-${roundCount}]`, W - 15 + 2, 38 + 2);
-  fill(200); text(`${T[currentLang].GFORCE} ${gDisp} [R-${roundCount}]`, W - 15, 38);
+  fill(0, 150); textSize(10); text(typeof T !== 'undefined' ? `${T[currentLang].GFORCE} ${gDisp} [R-${roundCount}]` : `G: ${gDisp}`, W - 15 + 2, 38 + 2);
+  fill(200); text(typeof T !== 'undefined' ? `${T[currentLang].GFORCE} ${gDisp} [R-${roundCount}]` : `G: ${gDisp}`, W - 15, 38);
   
-  fill(0, 150); text(`${T[currentLang].BOUNCEX} ${currentBounce}`, W - 15 + 2, 56 + 2);
-  fill(255, 150, 0); text(`${T[currentLang].BOUNCEX} ${currentBounce}`, W - 15, 56);
+  fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].BOUNCEX} ${currentBounce}` : `B: ${currentBounce}`, W - 15 + 2, 56 + 2);
+  fill(255, 150, 0); text(typeof T !== 'undefined' ? `${T[currentLang].BOUNCEX} ${currentBounce}` : `B: ${currentBounce}`, W - 15, 56);
   pop();
   
   push(); translate(10, 85);
   let ml = allTimeRecords.slice(0, 5); let lH = 45 + max(1, ml.length) * 26;
   
   fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 240, lH, 8);
-  noStroke(); textAlign(CENTER); textSize(12); fill(0, 150); text(T[currentLang].REC, 122, 27);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(T[currentLang].REC, 120, 25);
+  noStroke(); textAlign(CENTER); textSize(12); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 122, 27);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 120, 25);
   stroke(255, 30); strokeWeight(1); line(10, 40, 230, 40);
   
   noStroke(); textAlign(LEFT);
@@ -1399,33 +1400,33 @@ function drawUI() {
   noStroke(); textSize(11);
   
   if (gameState === "PLAYING") {
-    textAlign(LEFT, CENTER); fill(0, 150); text(`${T[currentLang].WARP_CORE} ${timer}s`, 15 + 2, 20 + 2);
+    textAlign(LEFT, CENTER); fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s` : `TIME: ${timer}s`, 15 + 2, 20 + 2);
     fill(timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2])); 
-    text(`${T[currentLang].WARP_CORE} ${timer}s`, 15, 20);
+    text(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s` : `TIME: ${timer}s`, 15, 20);
     
     if (bonusTime > 0) {
-      let tW = textWidth(`${T[currentLang].WARP_CORE} ${timer}s `);
+      let tW = textWidth(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s ` : `TIME: ${timer}s `);
       fill(0, 150); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW + 2, 20 + 2);
       fill(50, 255, 50); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW, 20);
     }
     
-    fill(0, 150); text(`${T[currentLang].ACT_UNITS} ${roundTotalBalls}`, 15 + 2, 40 + 2);
-    fill(50, 255, 50); text(`${T[currentLang].ACT_UNITS} ${roundTotalBalls}`, 15, 40);
+    fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].ACT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15 + 2, 40 + 2);
+    fill(50, 255, 50); text(typeof T !== 'undefined' ? `${T[currentLang].ACT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15, 40);
   } else {
-    textAlign(LEFT, CENTER); fill(0, 150); text(T[currentLang].COOL, 15 + 2, 20 + 2);
-    fill(255, 200, 0); text(T[currentLang].COOL, 15, 20);
-    fill(0, 150); text(`${T[currentLang].TOT_UNITS} ${roundTotalBalls}`, 15 + 2, 40 + 2);
-    fill(50, 255, 50); text(`${T[currentLang].TOT_UNITS} ${roundTotalBalls}`, 15, 40);
+    textAlign(LEFT, CENTER); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN", 15 + 2, 20 + 2);
+    fill(255, 200, 0); text(typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN", 15, 20);
+    fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].TOT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15 + 2, 40 + 2);
+    fill(50, 255, 50); text(typeof T !== 'undefined' ? `${T[currentLang].TOT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15, 40);
   }
   pop();
   
   push(); translate(W - 250, 85);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 30);
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 25);
   let rH = 45 + max(1, sorted.length) * 22;
   
   fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 240, rH, 8);
-  noStroke(); fill(0, 150); textAlign(CENTER); textSize(12); text(T[currentLang].TOP, 122, 27);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(T[currentLang].TOP, 120, 25);
+  noStroke(); fill(0, 150); textAlign(CENTER); textSize(12); text(typeof T !== 'undefined' ? T[currentLang].TOP : "TOP", 122, 27);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].TOP : "TOP", 120, 25);
   stroke(255, 30); strokeWeight(1); line(10, 40, 230, 40);
   
   noStroke(); textAlign(LEFT);
@@ -1456,8 +1457,8 @@ function drawZones() {
 
 function drawWaitingMessage() {
   let a = map(sin(frameCount * 0.15), -1, 1, 100, 255);
-  drawTxt(T[currentLang].WARN, W / 2, H / 2 - 50, color(255, 50, 50, a), 30, CENTER);
-  drawTxt(T[currentLang].RET, W / 2, H / 2, color(255, 200, 0, a), 14, CENTER);
+  drawTxt(typeof T !== 'undefined' ? T[currentLang].WARN : "WARNING", W / 2, H / 2 - 50, color(255, 50, 50, a), 30, CENTER);
+  drawTxt(typeof T !== 'undefined' ? T[currentLang].RET : "RETURNING", W / 2, H / 2, color(255, 200, 0, a), 14, CENTER);
 }
 
 function drawResultsOverlay() {
@@ -1466,8 +1467,8 @@ function drawResultsOverlay() {
   stroke(currentTheme[0], currentTheme[1], currentTheme[2], 255); strokeWeight(4); fill(10, 10, 30, 240);
   rect(40, 80, W - 80, H - 160, 15); drawingContext.shadowBlur = 0;
   
-  drawTxt(T[currentLang].COMPL, W / 2, 160, color(currentTheme), 50, CENTER);
-  drawTxt(`${T[currentLang].SECTOR} ${currentDestination}`, W / 2, 210, color(255, 215, 0), 22, CENTER);
+  drawTxt(typeof T !== 'undefined' ? T[currentLang].COMPL : "COMPLETE", W / 2, 160, color(currentTheme), 50, CENTER);
+  drawTxt(typeof T !== 'undefined' ? `${T[currentLang].SECTOR} ${currentDestination}` : currentDestination, W / 2, 210, color(255, 215, 0), 22, CENTER);
   
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
   for (let i = 0; i < sorted.length; i++) {
@@ -1486,7 +1487,7 @@ function drawResultsOverlay() {
     }
     drawTxt(entry[1].score.toLocaleString(), W - 100, yPos - 5, color(255), i === 0 ? 45 : 38, RIGHT);
   }
-  drawTxt(`${T[currentLang].NEXT} ${resultsTimer}s`, W / 2, H - 120, color(255, 50, 50), 24, CENTER);
+  drawTxt(typeof T !== 'undefined' ? `${T[currentLang].NEXT} ${resultsTimer}s` : `NEXT: ${resultsTimer}s`, W / 2, H - 120, color(255, 50, 50), 24, CENTER);
 }
 
 function planBossForRound() {
@@ -1494,7 +1495,7 @@ function planBossForRound() {
 }
 
 function spawnBoss() {
-  speakAnnouncer(T[currentLang].TTS_B_ENT, 2);
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_B_ENT, 2);
   let w = 240, h = 80, startY = -150;
   let b = Matter.Bodies.rectangle(W/2, startY, w, h, { isStatic: true, restitution: 1.2, friction: 0 });
   Matter.World.add(world, b);
@@ -1542,10 +1543,10 @@ function handleBoss() {
     Matter.Body.setPosition(boss.body, { x: boss.x, y: boss.y });
     
     if (boss.hp <= 0) {
-      boss.state = "DEFEATED"; speakAnnouncer(T[currentLang].TTS_B_DEF, 2); shakeAmount = 30; playJackpotSound();
+      boss.state = "DEFEATED"; if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_B_DEF, 2); shakeAmount = 30; playJackpotSound();
       for(let player in leaderboard) {
         updateScore(player, 20000, leaderboard[player].color);
-        addFloatingText("+20000" + T[currentLang].SLAY, W/2 + random(-150, 150), boss.y + random(-50, 50), color(255, 215, 0), true);
+        addFloatingText(typeof T !== 'undefined' ? "+20000" + T[currentLang].SLAY : "+20000", W/2 + random(-150, 150), boss.y + random(-50, 50), color(255, 215, 0), true);
       }
       Matter.World.remove(world, boss.body);
     }
@@ -1594,7 +1595,7 @@ function handleBoss() {
   let barW = 400, barH = 20, barX = W/2 - barW/2, barY = 90;
   push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
   fill(255, 50, 50); rect(barX, barY, barW * (max(0, boss.hp) / boss.maxHp), barH, 5);
-  drawTxt(T[currentLang].LEVI, W/2, barY + 10, color(255), 10, CENTER);
+  drawTxt(typeof T !== 'undefined' ? T[currentLang].LEVI : "BOSS HP", W/2, barY + 10, color(255), 10, CENTER);
   pop();
 }
 
@@ -1607,7 +1608,7 @@ function spawnSpaceship() {
   let b = Matter.Bodies.rectangle(-200, y, w, h, { isStatic: true, restitution: 1.5, friction: 0 });
   Matter.World.add(world, b);
   starship = { body: b, w: w, h: h, y: y, targetX: W / 2, speed: 8, activeFrames: 0, maxFrames: 1500, state: "ENTERING" };
-  speakAnnouncer(T[currentLang].TTS_DEF, 1);
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEF, 1);
 }
 
 function handleSpaceship() {
@@ -1682,7 +1683,7 @@ function triggerFollowEvent(name, silent = false) {
   
   let tx = W / 2 + random(-200, 200), ty = H / 2 + random(-250, 50), a = atan2(ty - sy, tx - sx), sp = random(18, 28);
   followEvents.push({ name: name, x: sx, y: sy, vx: cos(a) * sp, vy: sin(a) * sp, targetX: tx, targetY: ty, color: color(random(150, 255), random(100, 255), random(150, 255)), exploded: false, timer: 100, trail: [] });
-  if (!silent && random() < 0.3) { speakAnnouncer(T[currentLang].TTS_INC, 0); speakName(name); }
+  if (!silent && random() < 0.3 && typeof T !== 'undefined') { speakAnnouncer(T[currentLang].TTS_INC, 0); speakName(name); }
 }
 
 function handleFollowEvents() {
@@ -1717,7 +1718,7 @@ function handleJoinPopups() {
   if (!activeJoinPopup && joinPopupQueue.length > 0) {
     activeJoinPopup = joinPopupQueue.shift(); activeJoinPopup.timer = 180;
     if (audioStarted && millis() - lastExpSnd > 50) { try { fxSynth.play(random([800, 1000, 1200]), 0.1, 0, 0.5); } catch(e) {} lastExpSnd = millis(); }
-    speakAnnouncer(T[currentLang].TTS_WELC + sanitizeText(activeJoinPopup.name), 2);
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_WELC + sanitizeText(activeJoinPopup.name), 2);
   }
   
   if (activeJoinPopup) {
@@ -1736,8 +1737,8 @@ function handleJoinPopups() {
       text(p.name[0], -180 + 2, 2); fill(255); text(p.name[0], -180, 0);
     }
     
-    textAlign(LEFT, CENTER); noStroke(); textSize(16); fill(0, 150); text(T[currentLang].NEW_C, -120 + 2, -25 + 2);
-    fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(T[currentLang].NEW_C, -120, -25);
+    textAlign(LEFT, CENTER); noStroke(); textSize(16); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].NEW_C : "NEW COMMANDER", -120 + 2, -25 + 2);
+    fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].NEW_C : "NEW COMMANDER", -120, -25);
     textSize(35); fill(0, 150); text(p.name, -120 + 2, 15 + 2); fill(255); text(p.name, -120, 15);
     pop();
     if (p.timer <= 0) activeJoinPopup = null;
@@ -1853,10 +1854,10 @@ function drawAntiBotOverlay() {
   let camX = W - 110, camY = H - 185;
   fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5); drawPixelAvatar(camX + 5, camY + 5, 90, 65); noStroke();
   for (let cx = 0; cx < 100; cx += 5) for (let cy = 0; cy < 75; cy += 5) { if (noise(cx * 0.1, cy * 0.1, frameCount * 0.1) > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } }
-  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(T[currentLang].L_PL, camX + 5, camY + 5);
+  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(typeof T !== 'undefined' ? T[currentLang].L_PL : "PLAYER", camX + 5, camY + 5);
   if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
   textFont('Press Start 2P'); textStyle(NORMAL);
-  let marqueeText = T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls);
+  let marqueeText = typeof T !== 'undefined' ? T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls) : currentDestination;
   let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
   fill(5, 5, 15, 230); noStroke(); rect(0, H - 12, W, 12);
   drawTxt(marqueeText + marqueeText, scrollX, H - 6, color(currentTheme), 8, LEFT); pop();
@@ -1891,7 +1892,7 @@ function checkSingularitySpawn() {
     };
     blackHole.startY = blackHole.y; 
     bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); 
-    speakAnnouncer(T[currentLang].TTS_BH, 1);
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_BH, 1);
   }
 }
 
@@ -2018,7 +2019,7 @@ function triggerCosmicEvent() {
   let iC = random() < 0.5; cosmicEvent = { body: b, type: iC ? "COMET" : "METEOR", size: s, color: iC ? color(150, 200, 255) : color(255, 100, 50), trail: [] };
   Matter.World.add(world, b); Matter.Body.setVelocity(b, { x: fL ? random(12, 18) : random(-12, -18), y: random(-1, 1) });
   if (audioStarted && millis() - lastExpSnd > 50) { try { fxSynth.play(200, 0.1, 0, 0.5); } catch(e) {} lastExpSnd = millis(); }
-  speakAnnouncer(T[currentLang].TTS_COS, 1);
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_COS, 1);
 }
 
 function handleCosmicEvent() {
@@ -2147,7 +2148,7 @@ function drawGravityDust() {
 }
 
 function triggerMeteorShower() {
-  speakAnnouncer(T[currentLang].TTS_MET, 2); shakeAmount = 15;
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_MET, 2); shakeAmount = 15;
   meteorWarningTimer = 180; 
   for (let i = 0; i < 40; i++) {
     setTimeout(() => {
@@ -2267,7 +2268,7 @@ function resetGame() {
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound(); nextMeteorShowerTime = millis() + 66000; nextJokeTime = millis() + random(10000, 20000);
   
   let delay = 0; while (spawnQueue.length > 0) { let u = spawnQueue.shift(); setTimeout(() => spawnBall(u), delay * 100); delay++; }
-  speakAnnouncer(T[currentLang].TTS_SEC_W + currentDestination, 1);
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_SEC_W + currentDestination, 1);
 }
 
 function mouseClicked() { 
