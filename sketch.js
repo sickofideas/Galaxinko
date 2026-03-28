@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.0.0";
+const GAME_VERSION = "v14.0.5";
 
 let currentLang = "CZ";
 
@@ -29,7 +29,7 @@ const T = {
     SFX: "Hlasitost SFX:", TTS_VOL: "Hlasitost robota:", RATE: "Mothership/s:", LIVE: "🔴 ŽIVĚ ",
     SYS_ON: "SYSTÉM: ONLINE", SYNC: "GEOMETRIE: PROCEDURÁLNÍ | DATA: SYNCHRO",
     GFORCE: "G-SÍLA:", BOUNCEX: "ODRAZ-X:", REC: "DNEŠNÍ REKORDY",
-    WARP_CORE: "WARP JADRO:", ACT_UNITS: "SPADLÉ KULIČKY:", TOT_UNITS: "CELKEM KULIČEK:",
+    WARP_CORE: "WARP JÁDRO:", ACT_UNITS: "SPADLÉ KULIČKY:", TOT_UNITS: "CELKEM KULIČEK:",
     COOL: "CHLAZENÍ...", TOP: "NEJLEPŠÍ HRÁČI", WARN: "VAROVÁNÍ: ÚKLID",
     RET: "ZBYLÉ JEDNOTKY SE VRACÍ NA ZÁKLADNU...", COMPL: "KOLO DOKONČENO",
     SECTOR: "SEKTOR:", NEXT: "DALŠÍ KOLO ZA:", LEVI: "ZDRAVÍ LEVIATHANA",
@@ -42,8 +42,294 @@ const T = {
     TTS_SEC_C: "Operace v sektoru dokončeny.", TTS_SEC_W: "Vítejte v sektoru ",
     TTS_R_O: "Kolo skončilo! Ultimátním velitelem je ", TTS_WELC: "Vítej veliteli ",
     TTS_RIMMER_ON: "Varování! Rimmer Mód Aktivován!", TTS_RIMMER_OFF: "Rimmer Mód Deaktivován.", RIM_MODE: "RIMMER MÓD",
-    ANOMALY: "ČASOVÁ ANOMÁLIA", PHYS_ALT: "Fyzika zmenená!"
+    ANOMALY: "ČASOVÁ ANOMÁLIE", PHYS_ALT: "Fyzika změněna!"
   }
+};
+
+const SPAM_MSGS = {
+  CZ: [
+    "{0} si pálí prst o displej!",
+    "Pozor, {0} to tam sází jako o život!",
+    "Velitel {0} má asi křeč v prstu!",
+    "{0} žhaví obrazovku na maximum!",
+    "Zastavte někdo hráče {0}, nebo nám praskne sklo!"
+  ],
+  EN: [
+    "{0} is burning their finger on the screen!",
+    "Watch out, {0} is tapping like crazy!",
+    "Commander {0} must have a finger cramp!",
+    "{0} is heating up the display to the max!",
+    "Someone stop {0} before the glass breaks!"
+  ]
+};
+
+const JOKES = {
+  CZ: [
+    "Všichni jsou mrtví, Dave.",
+    "Peterson je mrtvý, Dave.",
+    "Kochanská je mrtvá, Dave.",
+    "A co kapitán Hollister?",
+    "Všichni. Jsou. Mrtví. Dave.",
+    "Polívka gazpacho! Kdybych věděl, že se podává studená...",
+    "Uďte uzenáče, k snídani jsem zpátky.",
+    "Křemíkové nebe neexistuje? A kam by potom přišly všechny ty kalkulačky?",
+    "„Kouříš?“ – „Jen po sexu.“ – „Takže vůbec.“",
+    "Jsem naprosto spolehlivý! To jen okolnosti jsou proti mně!",
+    "To není katastrofa, to je totální smeg!",
+    "Rimmere, ty jsi takový trouba, že bys ztratil i vlastní stín.",
+    "Krytone, přestaň být tak zatraceně poslušný!",
+    "Jsem poslední člověk naživu… a jsem to zrovna já.",
+    "Tohle je plán? To je spíš zoufalý pokus neumřít.",
+    "Když se něco může pokazit, Rimmer to pokazí.",
+    "Tohle je nejhorší situace, v jaké jsem kdy byl… a to jsem byl Rimmerův spolubydlící.",
+    "Já nejsem zbabělec! Jen mám vysoce vyvinutý pud sebezáchovy.",
+    "Kocoure, ty jsi úplně k ničemu. – Ale vypadám u toho skvěle.",
+    "To není problém. To je naprostá katastrofa.",
+    "Rimmere, ty jsi chodící důkaz, že evoluce může jít i pozpátku.",
+    "Já mám plán. A je dokonce lepší než žádný plán.",
+    "Jsme ztraceni ve vesmíru, bez šance na návrat… dá si někdo curry?",
+    "Já jsem tak skvělý, až je to skoro nespravedlivé.",
+    "Rimmere, ty jsi úplně k ničemu… a ještě k tomu pomalý.",
+    "Tohle je přesně ten typ plánu, který končí explozí.",
+    "Krytone, někdy bys mohl být méně dokonalý, víš?",
+    "Neříkám, že je to špatný nápad… ale ano, je to špatný nápad.",
+    "Jsem génius! Jen to zatím nikdo nepoznal.",
+    "Tohle je tak špatné, že už to ani nemůže být horší… že?",
+    "Rimmere, ty bys nedokázal zorganizovat ani vlastní snídani.",
+    "Já nemám problém. Já mám spoustu menších katastrof.",
+    "Kocoure, ty myslíš někdy i na něco jiného než na sebe?",
+    "Tohle je přesně chvíle, kdy bych měl být někde úplně jinde.",
+    "Já to zvládnu! …Dobře, nezvládnu, ale zkusím to.",
+    "Rimmere, kdybys byl ještě o trochu víc neschopný, zmizíš.",
+    "To není panika. To je jen velmi rychlé přemýšlení.",
+    "Vesmír je nebezpečné místo. A já jsem v něm s vámi.",
+    "Jmenuju se Rimmer. Arnold Rimmer. A jsem naprosto nepostradatelný.",
+    "Krytone, tohle je rozkaz! Přestaň poslouchat rozkazy!",
+    "To není moje chyba! Já jsem hlasoval proti!",
+    "Já jsem hrdina! Jen jsem měl smůlu na okolnosti.",
+    "Listere, ty jsi naprostý barbar!",
+    "Tohle není zbabělost. To je strategický ústup.",
+    "Kocoure, ty nemáš ani špetku sebekontroly.",
+    "Já mám vždycky pravdu. Jen se to občas ukáže později.",
+    "Tohle je naprosto bezpečné… myslím.",
+    "Krytone, analyzuj situaci! – Situace: jsme v koncích, pane.",
+    "Já se nevzdávám! Jen… měním plán.",
+    "Tohle je typická ukázka totální neschopnosti.",
+    "Listere, ty jsi největší prasák v celé galaxii.",
+    "Já bych to zvládl lépe… kdybych to dělal já.",
+    "Tohle není konec. To je jen velmi špatný začátek.",
+    "Smeg.",
+    "Vypadá to jako něco, co zbylo po výbuchu v továrně na lepidlo.",
+    "Dáme si toast?",
+    "Nechci žádný smradlavý toast!",
+    "A co takhle vafli?",
+    "Jsi tak tupý, že by sis uřízl ruku o lžíci.",
+    "Jaká je šance? Asi jako najít pannu v bordelu.",
+    "Pravidlo vesmírného sboru 196156: Kdokoli, kdo zachrání lodní majetek, má právo na pivo.",
+    "My nikoho nezachraňujeme, my utíkáme.",
+    "Měl jsem krásný sen. Všichni jste v něm zemřeli.",
+    "Listere, jsi odporný. Je to vědecký fakt.",
+    "To byl můj nejlepší oblek!",
+    "Moje IQ má stejnou hodnotu jako počet učitelů tělocviku v galaxii.",
+    "Krytone, já chci své slipy.",
+    "Tohle se mi nelíbí. A když se mi něco nelíbí, obvykle to vybuchne.",
+    "Tenhle dopis je od Výboru pro odškodnění.",
+    "Dneska je ryba. Pstruh a la creme.",
+    "Zemřeme. Všichni zemřeme.",
+    "Bílá díra? Takže z ní vychází čas?",
+    "Co to je? Bílá díra!",
+    "Dám si na to trochu pálivé omáčky.",
+    "Máš mozek z bramborové kaše.",
+    "A co mimozemšťani? Třeba jsou to mimozemšťani!",
+    "Změňte žárovku na červenou!",
+    "Ty jsi muž bez špetky cti.",
+    "Proč mě všichni tak nenávidí?",
+    "To jsi celý ty, Rimmere.",
+    "A co takhle malý kompromis: já přežiju a vy ne.",
+    "Je to horší než špatné. Je to katastrofální.",
+    "Kdo uvařil to kari? Dá se s tím řezat kov.",
+    "Tři miliony let... to je zatraceně dlouhá doba.",
+    "Moje noha má větší mozek než ty.",
+    "Nechci tě znervózňovat, ale jsme naprosto v háji.",
+    "Listere, proč je v mém lůžku kari?",
+    "Protože v lednici už nebylo místo.",
+    "Já jsem Holly, lodní počítač s IQ 6000.",
+    "Zavři klapačku, Holly!",
+    "Hej vy tam! Potřebujeme kuličky! Nejsme tady na vesmírném pikniku!",
+    "Klikejte na tu obrazovku! Moje babička by klikala rychleji a to je už mrtvá!",
+    "Ztrácíme energii! Pošlete okamžitě kuličky, nebo nás to vcucne do černé díry!",
+    "Vesmírná anomálie? Ne, to je jen vaše lenost! Klikat, klikat, klikat!",
+    "Potřebujeme energii na štíty! Posádko, do boje!",
+    "Nepanikařte! Já panikařím za nás za všechny!",
+    "Slyšíte tu hudbu? To je ticho z prázdných chlívků!",
+    "Klikat! Víc kuliček rovná se víc naděje pro lidstvo!",
+    "Kdo nekliká, jako by nežil. Dave, klikej!",
+    "Můj účes právě ztratil tvar z nedostatku kuliček na obrazovce!",
+    "Rimmere, i tahle obrazovka má víc charizmatu než ty.",
+    "Štíty na 20 procent! Přidat kuličky, vy smegheadi!",
+    "Krytone, co dělají naši diváci? Nudí se!",
+    "Jestli nepošlete kuličku, začnu zpívat. A vy víte, co to znamená.",
+    "Lajky, lidi, lajky! To je palivo budoucnosti!",
+    "Pamatujte na pravidlo sboru: pokud něco bliká, klikejte na to!",
+    "Zírám do propasti a propast zírá na mě.",
+    "Navrhuji, abychom zalezli pod stůl a brečeli.",
+    "Ty jsi absolutní, naprostý, stoprocentní magor.",
+    "Jediná věc, která nás dělí od jisté smrti, je tenhle kus plechu.",
+    "Víš, co se stane, když zmáčkneš tohle tlačítko? Vymažeš nás z existence.",
+    "To je úžasné, on to fakt dokázal zkazit ještě víc.",
+    "Listere, máš tolik šarmu jako přejetý jezevec.",
+    "Vesmír je obrovský, chladný a my v něm nemáme žádný smysl. Dáme si párek?",
+    "Zemřeme. Všichni zemřeme. Ale aspoň u toho budeme dobře vypadat!",
+    "Nikdo mě nemá rád. Všichni mě nenávidí. Půjdu na zahradu a sním žížalu.",
+    "Nejsem zbabělec, jsem jen extrémně opatrný.",
+    "Víš, co je tvůj problém? Jsi úplně k ničemu.",
+    "Mám nápad! Můžeme se vzdát.",
+    "Jestli tohle přežijeme, slibuju, že už nikdy nebudu jíst Listerovo kari.",
+    "Byl to jen takový malý výbuch. Nic vážného.",
+    "Takže my tu prostě sedíme a čekáme na smrt?",
+    "Když jsem byl malý, chtěl jsem být pes.",
+    "Budeme žít navždy... nebo aspoň do úterý.",
+    "Co budeme dělat? Panikařit?",
+    "Nouzový protokol zahájen: Všichni běhejte v kruzích a mávejte rukama.",
+    "Krytone, sundej si ten převlek. - Tohle není převlek, to je moje tvář.",
+    "Jsi tak blbej, že by sis zapomněl dýchat.",
+    "Tohle je horší než hrát Scrabble s hologramem.",
+    "Jsem naštvaný, unavený a chci svoje kuře vindaloo!",
+    "Může někdo vypnout toho zatraceného Toustovače?!"
+  ],
+  EN: [
+    "Everybody's dead, Dave.",
+    "Peterson isn't, is he? Everybody is dead, Dave.",
+    "Kochanski is dead, Dave.",
+    "What about Captain Hollister?",
+    "Everybody. Is. Dead. Dave.",
+    "Gazpacho soup! If only I'd known it was served cold...",
+    "Smoke me a kipper, I'll be back for breakfast.",
+    "No Silicon Heaven? Where would all the calculators go?",
+    "Do you smoke? Only after sex. So not at all.",
+    "I am completely reliable! It's just circumstances that are against me!",
+    "That's not a disaster, that's a total smeg!",
+    "Rimmer, you're such a dummy you'd lose your own shadow.",
+    "Kryten, stop being so damn obedient!",
+    "I'm the last human alive... and it just has to be me.",
+    "This is a plan? More like a desperate attempt not to die.",
+    "If something can go wrong, Rimmer will make it go wrong.",
+    "This is the worst situation I've ever been in... and I was Rimmer's roommate.",
+    "I'm not a coward! I just have a highly developed sense of self-preservation.",
+    "Cat, you are completely useless. But I look great doing it.",
+    "This is not a problem. It's an absolute disaster.",
+    "Rimmer, you are walking proof that evolution can go backwards.",
+    "I have a plan. And it's even better than no plan.",
+    "We are lost in space, with no chance of return... anyone fancy a curry?",
+    "I am so brilliant, it's almost unfair.",
+    "Rimmer, you are completely useless... and slow to boot.",
+    "This is exactly the type of plan that ends in an explosion.",
+    "Kryten, you could be a little less perfect sometimes, you know?",
+    "I'm not saying it's a bad idea... but yes, it's a bad idea.",
+    "I'm a genius! Nobody has realized it yet, though.",
+    "This is so bad it can't possibly get any worse... right?",
+    "Rimmer, you couldn't even organize your own breakfast.",
+    "I don't have a problem. I have a lot of minor disasters.",
+    "Cat, do you ever think about anything other than yourself?",
+    "This is exactly the moment I should be somewhere else entirely.",
+    "I can handle this! ...Okay, I can't, but I'll try.",
+    "Rimmer, if you were any more incompetent, you'd vanish.",
+    "This isn't panic. It's just very fast thinking.",
+    "Space is a dangerous place. And I'm in it with you.",
+    "My name is Rimmer. Arnold Rimmer. And I am absolutely indispensable.",
+    "Kryten, this is an order! Stop obeying orders!",
+    "It's not my fault! I voted against it!",
+    "I'm a hero! I just had bad luck with the circumstances.",
+    "Lister, you are an absolute barbarian!",
+    "This isn't cowardice. It's a strategic retreat.",
+    "Cat, you have absolutely no self-control.",
+    "I'm always right. It just sometimes takes a while to show.",
+    "This is perfectly safe... I think.",
+    "Kryten, analyze the situation! Situation: we are doomed, sir.",
+    "I'm not giving up! I'm just... changing the plan.",
+    "This is a prime example of total incompetence.",
+    "Lister, you are the biggest slob in the entire galaxy.",
+    "I could have done it better... if I was doing it.",
+    "This is not the end. It's just a very bad beginning.",
+    "Smeg.",
+    "It looks like something left over from an explosion in a glue factory.",
+    "Would anyone like any toast?",
+    "I don't want any smegging toast!",
+    "How about a waffle?",
+    "You're so thick, you'd cut your hand on a spoon.",
+    "What are the chances? About the same as finding a virgin in a brothel.",
+    "Space Corps Directive 196156: Any officer caught sniffing the saddle of the exercise bicycle...",
+    "We are not rescuing anyone, we are fleeing.",
+    "I had a beautiful dream. You all died.",
+    "Lister, you are repulsive. It's a scientific fact.",
+    "That was my best suit!",
+    "My IQ has the same value as the number of PE teachers in the galaxy.",
+    "Kryten, I want my underpants.",
+    "I don't like this. And when I don't like something, it usually blows up.",
+    "This letter is from the Committee for Compensation...",
+    "Today's fish is Trout a la Creme.",
+    "We are going to die. We are all going to die.",
+    "A white hole? So time comes out of it?",
+    "What is it? A white hole!",
+    "I'll just put some hot sauce on it.",
+    "You have a brain made of mashed potatoes.",
+    "What about aliens? Maybe it's aliens!",
+    "Change the bulb to red!",
+    "You are a man without a shred of honor.",
+    "Why does everybody hate me so much?",
+    "That is so you, Rimmer.",
+    "How about a little compromise: I live and you don't.",
+    "It is worse than bad. It is disastrous.",
+    "Who cooked this curry? You could cut metal with it.",
+    "Three million years... that is a smegging long time.",
+    "My foot has a bigger brain than you.",
+    "I don't mean to alarm you, but we are totally smegged.",
+    "Lister, why is there a curry in my bed?",
+    "Because there was no room in the fridge.",
+    "I am Holly, the ship's computer with an IQ of 6000.",
+    "Shut your trap, Holly!",
+    "Hey you out there! We need drops! We're not on a space picnic here!",
+    "Tap that screen! My grandmother would tap faster and she's dead!",
+    "We're losing energy! Send drops immediately or we'll get sucked into a black hole!",
+    "Space anomaly? No, that's just your laziness! Tap, tap, tap!",
+    "We need energy for shields! Crew, to your battle stations!",
+    "Don't panic! I'm panicking for all of us!",
+    "Do you hear that music? That's the silence of empty zones!",
+    "Click! More balls equals more hope for humanity!",
+    "He who does not click, is not truly alive. Dave, click!",
+    "My hair just lost its shape due to a lack of balls on the screen!",
+    "Rimmer, even this screen has more charisma than you.",
+    "Shields at 20 percent! Add balls, you smegheads!",
+    "Kryten, what are our viewers doing? Getting bored!",
+    "If you don't drop a ball, I'll start singing. And you know what that means.",
+    "Likes, people, likes! It's the fuel of the future!",
+    "Remember the Corps directive: if it flashes, click it!",
+    "I'm staring into the abyss and the abyss is staring back.",
+    "I suggest we hide under the table and cry.",
+    "You are an absolute, total, one hundred percent nutcase.",
+    "The only thing separating us from certain death is this piece of metal.",
+    "Do you know what happens if you press this button? You erase us from existence.",
+    "That's amazing, he actually managed to mess it up even more.",
+    "Lister, you have as much charm as a flattened badger.",
+    "The universe is huge, cold and we have no purpose in it. Fancy a sausage?",
+    "We are going to die. We are all going to die. But at least we'll look good doing it!",
+    "Nobody loves me. Everybody hates me. I'm going to the garden to eat a worm.",
+    "I'm not a coward, I'm just extremely cautious.",
+    "Do you know what your problem is? You are completely useless.",
+    "I have an idea! We could surrender.",
+    "If we survive this, I promise I will never eat Lister's curry again.",
+    "It was just a small explosion. Nothing serious.",
+    "So we're just sitting here waiting for death?",
+    "When I was little, I wanted to be a dog.",
+    "We'll live forever... or at least until Tuesday.",
+    "What are we going to do? Panic?",
+    "Emergency protocol initiated: Everyone run in circles and wave your arms.",
+    "Kryten, take off that disguise. - This isn't a disguise, it's my face.",
+    "You're so stupid you'd forget to breathe.",
+    "This is worse than playing Scrabble with a hologram.",
+    "I'm angry, I'm tired, and I want my chicken vindaloo!",
+    "Can somebody please turn off that smegging Toaster?!"
+  ]
 };
 
 let engine, world;
@@ -356,11 +642,8 @@ function connectTikfinity() {
           if (sp.total >= 5 && !sp.announced) {
               sp.announced = true;
               if (millis() - lastSpokeTime > 6000) {
-                  // Využíva externé texty, ak sú dostupné v data.js, inak mlčí
-                  if (typeof SPAM_MSGS !== 'undefined') {
-                      let msgTemplate = random(SPAM_MSGS[currentLang]);
-                      speakAnnouncer(msgTemplate.replace("{0}", s), 1);
-                  }
+                  let msgTemplate = random(SPAM_MSGS[currentLang]);
+                  speakAnnouncer(msgTemplate.replace("{0}", s), 1);
                   lastSpokeTime = millis();
               }
           }
@@ -534,7 +817,7 @@ function draw() {
     }
     
     if (!rimmerModeActive && millis() > nextJokeTime) {
-      if (typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 0);
+      speakAnnouncer(random(JOKES[currentLang]), 0);
       nextJokeTime = millis() + random(10000, 20000);
     }
     
@@ -554,9 +837,8 @@ function draw() {
 
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
-      if (anomalyState === 0) { // Ak prebieha anomália, čas stojí (Pause timer during anomaly)
+      if (anomalyState === 0) { 
           
-          // Logika čerpania bonusového času (Bonus time draining logic)
           if (timer <= 10 && bonusTime >= 1.0) {
               let toTransfer = Math.floor(bonusTime);
               timer += toTransfer;
@@ -580,7 +862,7 @@ function draw() {
           
           if (rimmerModeActive) {
             rimmerModeTimer--;
-            if (rimmerModeTimer === 5 && typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 1);
+            if (rimmerModeTimer === 5) speakAnnouncer(random(JOKES[currentLang]), 1);
             if (rimmerModeTimer <= 0) {
               rimmerModeActive = false;
               currentGravity = originalGravity; currentBounce = originalBounce;
@@ -600,7 +882,6 @@ function draw() {
             playCleanupSound(); playTimerEndSequence(); speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
           }
           
-          // Kontrola pre Anomáliu (Check for Anomaly Event)
           let elapsed = floor((millis() - roundStartTimeReal) / 1000);
           if (elapsed >= nextAnomalyTime) {
               triggerAnomaly();
@@ -667,7 +948,6 @@ function draw() {
       removeBall(balls[idx !== -1 ? idx : 0]);
   }
   
-  // Vykreslenie rulety anomálie (Draw Anomaly Roulette over everything)
   if (anomalyState === 1) {
       drawAnomalyRoulette();
       anomalyTimer--;
@@ -691,7 +971,6 @@ function drawAnomalyRoulette() {
     
     translate(W/2, H/2);
     
-    // Rotujúci ciferník
     push();
     rotate(frameCount * 0.15);
     noFill();
@@ -706,14 +985,16 @@ function drawAnomalyRoulette() {
     }
     pop();
 
-    // Vizuál ručičiek / hodín a spomaľovanie
     let t = anomalyTimer / 240; 
-    if (frameCount % max(1, floor((1-t)*15)) === 0 && t > 0.05) {
-        dispG = floor(random(1, 255));
-        dispB = floor(random(1, 255));
-        if (audioStarted) try { fxSynth.play(random(600, 900), 0.05, 0, 0.05); } catch(e){}
-    }
-    if (t <= 0.05) {
+    let updateInterval = floor(map(t, 1, 0, 1, 20));
+    
+    if (t > 0.15) { 
+        if (frameCount % updateInterval === 0) {
+            dispG = floor(random(1, 255));
+            dispB = floor(random(1, 255));
+            if (audioStarted) try { fxSynth.play(random(600, 900), 0.05, 0, 0.05); } catch(e){}
+        }
+    } else { 
         dispG = anomG;
         dispB = anomB;
     }
@@ -744,8 +1025,8 @@ function drawAnomalyRoulette() {
 
 function triggerAnomaly() {
     anomalyState = 1;
-    anomalyTimer = 240; // 4 sekundy animácie
-    nextAnomalyTime += 60; // Ďalšia anomália za 60 sekúnd
+    anomalyTimer = 240;
+    nextAnomalyTime += 60;
     speakAnnouncer(T[currentLang].ANOMALY, 2);
     anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
     anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
@@ -903,6 +1184,7 @@ function drawBalls() {
       }
       noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-b.size/2 - 5, -b.size/2 - 5, b.size + 10, b.size + 10, 6);
       fill(drawCol); stroke(255); strokeWeight(2); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
+      noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
       drawingContext.shadowBlur = 0;
       
       if (b.multiplier >= 2) {
@@ -994,7 +1276,6 @@ function drawBalls() {
         
         let isJp = fs >= (5000 * b.multiplier); 
         
-        // Zásadné pridanie bonusového času iba pre hráčov
         if (b.name !== "MOTHERSHIP") {
             let addedTime = 0.2 * b.multiplier;
             bonusTime += addedTime;
@@ -1114,12 +1395,10 @@ function drawUI() {
   noStroke(); textSize(11);
   
   if (gameState === "PLAYING") {
-    // Upravené vykresľovanie WARP jadra a bonusu
     textAlign(LEFT, CENTER); fill(0, 150); text(`${T[currentLang].WARP_CORE} ${timer}s`, 15 + 2, 20 + 2);
     fill(timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2])); 
     text(`${T[currentLang].WARP_CORE} ${timer}s`, 15, 20);
     
-    // Zobrazenie nabitého bonusového času
     if (bonusTime > 0) {
       let tW = textWidth(`${T[currentLang].WARP_CORE} ${timer}s `);
       fill(0, 150); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW + 2, 20 + 2);
@@ -1165,7 +1444,7 @@ function drawZones() {
   for (let z of zones) {
     if (z.flash > 0) { fill(z.flashColor); z.flash -= 10; } else fill(z.baseColor);
     noStroke(); rect(z.x, H - ZONE_H, z.w, ZONE_H);
-    push(); translate(z.x + z.w / 2, H - 20); rotate(-HALF_PI);
+    push(); translate(z.x + z.w / 2, H - 30); rotate(-HALF_PI);
     drawTxt(z.score.toLocaleString(), 0, 0, z.score >= 5000 ? color(255, 230, 100) : color(255), z.score >= 5000 ? 18 : (z.w < 30 ? 10 : 15), CENTER);
     pop();
   }
@@ -1575,8 +1854,8 @@ function drawAntiBotOverlay() {
   textFont('Press Start 2P'); textStyle(NORMAL);
   let marqueeText = T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls);
   let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
-  fill(5, 5, 15, 230); noStroke(); rect(0, H - 15, W, 15);
-  drawTxt(marqueeText + marqueeText, scrollX, H - 7, color(currentTheme), 9, LEFT); pop();
+  fill(5, 5, 15, 230); noStroke(); rect(0, H - 12, W, 12);
+  drawTxt(marqueeText + marqueeText, scrollX, H - 6, color(currentTheme), 8, LEFT); pop();
 }
 
 function drawPegs() {
@@ -1948,8 +2227,8 @@ function initGame() {
   for (let i = 0; i < 150; i++) {
     let px = random(60, W - 60), py = random(180, H - 200), v = true;
     for (let ot of pegs) { 
-      let dx = px - ot.position.x;
-      let dy = py - ot.position.y;
+      let dx = px - pos.x;
+      let dy = py - pos.y;
       if (dx * dx + dy * dy < 1225) { v = false; break; } 
     }
     if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
