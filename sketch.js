@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.13";
+const GAME_VERSION = "v13.7.15";
 
 let currentLang = "CZ";
 
@@ -708,6 +708,21 @@ function draw() {
     }
   }
 
+  // Zónové čištění bez zpomalování CPU
+  if (frameCount % 15 === 0) {
+      let zC = new Array(zones.length).fill(0);
+      for (let i = balls.length - 1; i >= 0; i--) {
+          let b = balls[i];
+          if (b.scored && b.zoneIndex >= 0) {
+              zC[b.zoneIndex]++;
+              let lim = Math.max(2, Math.floor(zones[b.zoneIndex].capacity * 0.8));
+              if (zC[b.zoneIndex] > lim || (millis() - b.scoreTime > 7000)) {
+                  removeBall(b);
+              }
+          }
+      }
+  }
+
   drawPortals(); drawZones(); drawWalls(); drawPegs(); drawBalls(); drawExplosions();
   handleFollowEvents(); handleShockwaves(); handleFloatingTexts(); drawUI(); handleJoinPopups();
   
@@ -735,19 +750,10 @@ function draw() {
   handleSpamBuffer();
   drawProceduralHUD(); drawAntiBotOverlay();
   
-  if (balls.length > 400) {
-      let zbytek = balls.length - 400;
-      for(let iter = 0; iter < zbytek; iter++) {
-          let smazano = false;
-          for (let i = 0; i < balls.length; i++) {
-              if (!balls[i].isRainbow && balls[i].multiplier === 1 && !balls[i].scored) {
-                  removeBall(balls[i]);
-                  smazano = true;
-                  break;
-              }
-          }
-          if(!smazano && balls.length > 0) removeBall(balls[0]);
-      }
+  // Tvrdý anti-lag limit (při přesáhnutí počtu promaže ty nejstarší ležící kuličky)
+  while (balls.length > 350) {
+      let idx = balls.findIndex(b => b.scored);
+      removeBall(balls[idx !== -1 ? idx : 0]);
   }
   
   if (flashEffect > 0) {
@@ -809,7 +815,8 @@ function handleSpamBuffer() {
            let vx = random(-8, 8);
            let vy = random(2, 9);
            let ballMult = baseMult + (j < remainder ? 1 : 0);
-           spawnBall(u, ballMult, bx, by + 10, vx, vy);
+           // Přidán drobný náhodný rozptyl při startu, aby se kuličky v sobě "nezasekly"
+           spawnBall(u, ballMult, bx + random(-15, 15), by + random(0, 15), vx, vy);
         }
         createShockwave(bx, by);
         playJackpotSound();
@@ -911,7 +918,10 @@ function drawBalls() {
     rotate(-b.body.angle);
     if (isPlayer) {
       let age = millis() - b.spawnTime;
-      if (age < 3000 || b.scored) { 
+      // Zásadní optimalizace - při moc kuličkách nevypisujeme jméno u běžných
+      let renderText = balls.length < 150 || age < 2000 || b.multiplier >= 2;
+      
+      if (renderText && (age < 3000 || b.scored)) { 
         noStroke(); textAlign(CENTER); textSize(12);
         fill(0, 150); text(b.name, 1 + 2, -b.size/2 - 9 + 2);
         fill(b.isRainbow ? color(255) : b.color); text(b.name, 1, -b.size/2 - 9); 
