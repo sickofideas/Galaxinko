@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.15";
+const GAME_VERSION = "v13.7.16";
 
 let currentLang = "CZ";
 
@@ -112,7 +112,7 @@ const JOKES = {
     "Klikejte na tu obrazovku! Moje babička by klikala rychleji a to je už mrtvá!",
     "Ztrácíme energii! Pošlete okamžitě kuličky, nebo nás to vcucne do černé díry!",
     "Vesmírná anomálie? Ne, to je jen vaše lenost! Klikat, klikat, klikat!",
-    "Potřebujeme energii na štíty! Posádko, do boje!"
+    "Potřebujeme lajky na štíty! Posádko, do boje!"
   ],
   EN: [
     "Do you smoke? Only after sex. So not at all.",
@@ -302,8 +302,8 @@ function setup() {
   for (let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
-  currentGravity = 0.8 + Math.sqrt(Math.random()) * 2.2;
-  currentBounce = Math.floor(90 + Math.sqrt(Math.random()) * 70);
+  currentGravity = random() < 0.8 ? random(1.2, 1.95) : random(0.05, 1.95);
+  currentBounce = random() < 0.8 ? floor(random(60, 100)) : floor(random(1, 100));
   timer = floor(random(50, 181));
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
@@ -548,8 +548,8 @@ function toggleAutoMode() {
 }
 
 function autoRandomSettings() {
-  currentGravity = 0.8 + Math.sqrt(Math.random()) * 2.2;
-  currentBounce = Math.floor(90 + Math.sqrt(Math.random()) * 70);
+  currentGravity = random() < 0.8 ? random(1.2, 1.95) : random(0.05, 1.95);
+  currentBounce = random() < 0.8 ? floor(random(60, 100)) : floor(random(1, 100));
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
