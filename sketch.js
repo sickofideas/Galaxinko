@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.17";
+const GAME_VERSION = "v13.7.18";
 
 let currentLang = "CZ";
 
@@ -192,7 +192,7 @@ let camOffset = { x: 0, y: 0, z: 1.0 }, targetFPS = 60, socket;
 const TEST_BOTS = ["LISTER", "RIMMER", "KRYTON", "KOCUR", "HOLLY", "KOCHANSKA", "ALFA", "CYBER"];
 const TIKFINITY_URL = "ws://localhost:21213/";
 
-let isAutoMode = false, isMothershipMode = true;
+let isAutoMode = true, isMothershipMode = true;
 let gravitySlider, bounceSlider, spawnPerEventSlider, shipChanceSlider, volumeSlider, ttsSlider, mothershipSlider;
 let autoButton, langButton;
 let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
@@ -267,11 +267,15 @@ function setup() {
   langButton.style('cursor', 'pointer');
   langButton.mousePressed(toggleLang);
 
+  let randG = random() < 0.8 ? random(50, 255) : random(1, 50);
+  currentGravity = map(randG, 1, 255, 0.01, 5.0);
+  currentBounce = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+
   lblGrav = createSpan(T[currentLang].GRAV); lblGrav.parent(adminBar);
   gravitySlider = createSlider(0.01, 5.0, currentGravity, 0.01); gravitySlider.parent(adminBar);
 
   lblBounce = createSpan(T[currentLang].BOUNCE); lblBounce.parent(adminBar);
-  bounceSlider = createSlider(1, 200, currentBounce, 1); bounceSlider.parent(adminBar);
+  bounceSlider = createSlider(1, 255, currentBounce, 1); bounceSlider.parent(adminBar);
 
   lblSpawn = createSpan(T[currentLang].SPAWN); lblSpawn.parent(adminBar);
   spawnPerEventSlider = createSlider(1, 50, spawnPerEvent, 1); spawnPerEventSlider.parent(adminBar);
@@ -285,7 +289,8 @@ function setup() {
   lblTTS = createSpan(T[currentLang].TTS_VOL); lblTTS.parent(adminBar);
   ttsSlider = createSlider(0, 1, 1.0, 0.01); ttsSlider.parent(adminBar);
 
-  autoButton = createButton('AUTO: OFF'); autoButton.parent(adminBar);
+  autoButton = createButton('AUTO: ON'); autoButton.parent(adminBar);
+  autoButton.style('background-color', '#4CAF50');
   autoButton.mousePressed(toggleAutoMode);
 
   lblMother = createSpan(T[currentLang].RATE); lblMother.parent(adminBar);
@@ -302,8 +307,6 @@ function setup() {
   for (let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
   for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
-  currentGravity = 0.05 + Math.sqrt(Math.random()) * 1.90;
-  currentBounce = Math.floor(1 + Math.sqrt(Math.random()) * 99);
   timer = floor(random(50, 181));
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
@@ -548,8 +551,9 @@ function toggleAutoMode() {
 }
 
 function autoRandomSettings() {
-  currentGravity = 0.05 + Math.sqrt(Math.random()) * 1.90;
-  currentBounce = Math.floor(1 + Math.sqrt(Math.random()) * 99);
+  let randG = random() < 0.8 ? random(50, 255) : random(1, 50);
+  currentGravity = map(randG, 1, 255, 0.01, 5.0);
+  currentBounce = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
@@ -665,7 +669,7 @@ function draw() {
         rimmerModeActive = true;
         rimmerModeTimer = 10;
         originalGravity = currentGravity; originalBounce = currentBounce;
-        currentGravity = random(3.0, 5.0); currentBounce = floor(random(140, 200));
+        currentGravity = random(3.0, 5.0); currentBounce = floor(random(200, 255));
         gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
         if (world) world.gravity.y = currentGravity;
         speakAnnouncer(T[currentLang].TTS_RIMMER_ON, 2);
@@ -841,7 +845,7 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
   if (isR) playRainbowSound(); else playSpawnSound();
   lastSpawnTime = millis();
   
-  let ballRestitution = map(currentBounce, 1, 99, 0.65, 1.05);
+  let ballRestitution = map(currentBounce, 1, 255, 0.5, 1.5);
   let spawnX = startX !== null ? startX : W / 2 + random(-30, 30);
   let spawnY = startY !== null ? startY : 40;
   
@@ -1066,7 +1070,7 @@ function drawUI() {
   textAlign(RIGHT, CENTER); fill(0, 150); textSize(12); text(`${T[currentLang].SECTOR} ${currentDestination}`, W - 15 + 2, 20 + 2);
   fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(`${T[currentLang].SECTOR} ${currentDestination}`, W - 15, 20);
   
-  let gDisp = floor(map(currentGravity, 0.05, 1.95, 1, 99));
+  let gDisp = floor(map(currentGravity, 0.01, 5.0, 1, 255));
   fill(0, 150); textSize(10); text(`${T[currentLang].GFORCE} ${gDisp} [R-${roundCount}]`, W - 15 + 2, 38 + 2);
   fill(200); text(`${T[currentLang].GFORCE} ${gDisp} [R-${roundCount}]`, W - 15, 38);
   
@@ -1506,7 +1510,7 @@ function drawAntiBotOverlay() {
 }
 
 function drawPegs() {
-  noStroke(); let pR = map(currentGravity, 0.05, 1.95, 0, 255), pG = map(currentGravity, 0.05, 1.95, 255, 100), pB = map(currentGravity, 0.05, 1.95, 255, 0), pC = color(pR, pG, pB);
+  noStroke(); let pR = map(currentGravity, 0.01, 5.0, 0, 255), pG = map(currentGravity, 0.01, 5.0, 255, 100), pB = map(currentGravity, 0.01, 5.0, 255, 0), pC = color(pR, pG, pB);
   for (let p of pegs) {
     p.glow = p.glow || 0;
     if (p.glow > 0) { fill(pR, pG + 50, pB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; }
@@ -1784,7 +1788,7 @@ function drawGalacticBackground() {
 }
 
 function drawGravityDust() {
-  let r = map(currentGravity, 0.05, 1.95, 100, 255), g = map(currentGravity, 0.05, 1.95, 200, 100), b = map(currentGravity, 0.05, 1.95, 255, 50);
+  let r = map(currentGravity, 0.01, 5.0, 100, 255), g = map(currentGravity, 0.01, 5.0, 200, 100), b = map(currentGravity, 0.01, 5.0, 255, 50);
   fill(r, g, b, 150); noStroke(); let dustSpeed = currentGravity * 3 * currentTravelSpeed;
   for (let d of dust) { d.y += dustSpeed; if (d.y > H) { d.y = 0; d.x = random(W); } rect(d.x, d.y, d.s, d.s); }
 }
@@ -1819,7 +1823,7 @@ function initGame() {
   Matter.World.add(world, [ Matter.Bodies.rectangle(-25, H / 2, 50, H * 2, opts), Matter.Bodies.rectangle(W + 25, H / 2, 50, H * 2, opts), Matter.Bodies.rectangle(W / 2, H + 48, W, 100, { isStatic: true, friction: 1 }) ]);
   
   const p = ["SPIRAL", "WAVES", "HOURGLASS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "HEXAGON_GRID", "PYRAMID", "FRACTAL_TREE", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN"];
-  const mode = random(p); let nP = floor(random(300, 450)), pR = map(currentBounce, 1, 99, 0.1, 1.8);
+  const mode = random(p); let nP = floor(random(300, 450)), pR = map(currentBounce, 1, 255, 0.1, 2.0);
   
   let blocker = Matter.Bodies.circle(W / 2, 130, 4, { isStatic: true, restitution: pR }); pegs.push(blocker); Matter.World.add(world, blocker);
   if (random() < 0.2) portals = [{ x: random(100, W - 100), y: random(200, H / 2 - 100) }, { x: random(100, W - 100), y: random(H / 2 + 100, H - 250) }];
