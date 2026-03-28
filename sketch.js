@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.0.5";
+const GAME_VERSION = "v14.0.6";
 
 let currentLang = "CZ";
 
@@ -483,7 +483,7 @@ function setup() {
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
   
-  roundStartTimeReal = millis(); // Inicializácia reálneho času kola pre anomálie
+  roundStartTimeReal = millis(); // Inicializace času kola pro anomálie
   
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -2227,8 +2227,8 @@ function initGame() {
   for (let i = 0; i < 150; i++) {
     let px = random(60, W - 60), py = random(180, H - 200), v = true;
     for (let ot of pegs) { 
-      let dx = px - pos.x;
-      let dy = py - pos.y;
+      let dx = px - ot.position.x;
+      let dy = py - ot.position.y;
       if (dx * dx + dy * dy < 1225) { v = false; break; } 
     }
     if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
