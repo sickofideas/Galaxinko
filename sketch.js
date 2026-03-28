@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.19";
+const GAME_VERSION = "v13.7.26";
 
 let currentLang = "CZ";
 
@@ -712,7 +712,6 @@ function draw() {
     }
   }
 
-  // Zónové čištění bez zpomalování CPU
   if (frameCount % 15 === 0) {
       let zC = new Array(zones.length).fill(0);
       for (let i = balls.length - 1; i >= 0; i--) {
@@ -754,7 +753,6 @@ function draw() {
   handleSpamBuffer();
   drawProceduralHUD(); drawAntiBotOverlay();
   
-  // Tvrdý anti-lag limit (při přesáhnutí počtu promaže ty nejstarší ležící kuličky)
   while (balls.length > 350) {
       let idx = balls.findIndex(b => b.scored);
       removeBall(balls[idx !== -1 ? idx : 0]);
@@ -819,7 +817,6 @@ function handleSpamBuffer() {
            let vx = random(-8, 8);
            let vy = random(2, 9);
            let ballMult = baseMult + (j < remainder ? 1 : 0);
-           // Přidán drobný náhodný rozptyl při startu, aby se kuličky v sobě "nezasekly"
            spawnBall(u, ballMult, bx + random(-15, 15), by + random(0, 15), vx, vy);
         }
         createShockwave(bx, by);
@@ -908,7 +905,6 @@ function drawBalls() {
       }
       noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-b.size/2 - 5, -b.size/2 - 5, b.size + 10, b.size + 10, 6);
       fill(drawCol); stroke(255); strokeWeight(2); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
-      noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
       drawingContext.shadowBlur = 0;
       
       if (b.multiplier >= 2) {
@@ -922,7 +918,6 @@ function drawBalls() {
     rotate(-b.body.angle);
     if (isPlayer) {
       let age = millis() - b.spawnTime;
-      // Zásadní optimalizace - při moc kuličkách nevypisujeme jméno u běžných
       let renderText = balls.length < 150 || age < 2000 || b.multiplier >= 2;
       
       if (renderText && (age < 3000 || b.scored)) { 
