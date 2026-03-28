@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.0.6";
+const GAME_VERSION = "v14.0.7";
 
 let currentLang = "CZ";
 
@@ -483,7 +483,7 @@ function setup() {
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
   
-  roundStartTimeReal = millis(); // Inicializace času kola pro anomálie
+  roundStartTimeReal = millis(); 
   
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -563,7 +563,9 @@ function speakName(n) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
   let u = new SpeechSynthesisUtterance(n.toLowerCase());
   let v = null;
-  if (/[ěščřžýáíéůúťďň]/i.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('cs')); 
+  if (/[\u0400-\u04FF]/.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('ru'));
+  else if (/[\u0600-\u06FF]/.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('ar'));
+  else if (/[ěščřžýáíéůúťďň]/i.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('cs')); 
   else if (/[äöüß]/i.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('de')); 
   else if (/[ñáéíóú¿¡]/i.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('es')); 
   else if (/[ąęłńóśźż]/i.test(n)) v = availableVoices.find(x => x.lang && x.lang.includes('pl')); 
