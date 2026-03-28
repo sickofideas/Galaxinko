@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v13.7.27";
+const GAME_VERSION = "v14.0.0";
 
 let currentLang = "CZ";
 
@@ -9,7 +9,7 @@ const T = {
     SFX: "SFX Vol:", TTS_VOL: "Voice Vol:", RATE: "Mothership/s:", LIVE: "🔴 LIVE ",
     SYS_ON: "SYSTEM: ONLINE", SYNC: "GEOMETRY: PROCEDURAL | DATA: SYNCED",
     GFORCE: "G-FORCE:", BOUNCEX: "BOUNCE-X:", REC: "MISSION MILESTONES",
-    WARP: "WARP-DRIVE:", ACT_UNITS: "DROPPED UNITS:", TOT_UNITS: "TOTAL UNITS:",
+    WARP_CORE: "WARP CORE:", ACT_UNITS: "DROPPED UNITS:", TOT_UNITS: "TOTAL UNITS:",
     COOL: "COOLING DOWN...", TOP: "TOP CONTRIBUTORS", WARN: "WARNING: CLEANUP",
     RET: "REMAINING UNITS RETURNING TO BASE...", COMPL: "ROUND COMPLETE",
     SECTOR: "SECTOR:", NEXT: "NEXT ROUND IN:", LEVI: "VOID LEVIATHAN HP",
@@ -21,14 +21,15 @@ const T = {
     TTS_DEF: "Defense unit deployed.", TTS_10S: "10 seconds remaining.",
     TTS_SEC_C: "Sector operations complete.", TTS_SEC_W: "Welcome to sector ",
     TTS_R_O: "Round over! The ultimate commander is ", TTS_WELC: "Welcome commander ",
-    TTS_RIMMER_ON: "Warning! Rimmer Mode Activated!", TTS_RIMMER_OFF: "Rimmer Mode Deactivated.", RIM_MODE: "RIMMER MODE"
+    TTS_RIMMER_ON: "Warning! Rimmer Mode Activated!", TTS_RIMMER_OFF: "Rimmer Mode Deactivated.", RIM_MODE: "RIMMER MODE",
+    ANOMALY: "TEMPORAL ANOMALY", PHYS_ALT: "Physics altered!"
   },
   CZ: {
     GRAV: "Gravitace:", BOUNCE: "Odraz:", SPAWN: "Limit spawnu:", CHANCE: "Šance Boss/Loď%:",
     SFX: "Hlasitost SFX:", TTS_VOL: "Hlasitost robota:", RATE: "Mothership/s:", LIVE: "🔴 ŽIVĚ ",
     SYS_ON: "SYSTÉM: ONLINE", SYNC: "GEOMETRIE: PROCEDURÁLNÍ | DATA: SYNCHRO",
     GFORCE: "G-SÍLA:", BOUNCEX: "ODRAZ-X:", REC: "DNEŠNÍ REKORDY",
-    WARP: "WARP-POHON:", ACT_UNITS: "SPADLÉ KULIČKY:", TOT_UNITS: "CELKEM KULIČEK:",
+    WARP_CORE: "WARP JADRO:", ACT_UNITS: "SPADLÉ KULIČKY:", TOT_UNITS: "CELKEM KULIČEK:",
     COOL: "CHLAZENÍ...", TOP: "NEJLEPŠÍ HRÁČI", WARN: "VAROVÁNÍ: ÚKLID",
     RET: "ZBYLÉ JEDNOTKY SE VRACÍ NA ZÁKLADNU...", COMPL: "KOLO DOKONČENO",
     SECTOR: "SEKTOR:", NEXT: "DALŠÍ KOLO ZA:", LEVI: "ZDRAVÍ LEVIATHANA",
@@ -40,7 +41,8 @@ const T = {
     TTS_DEF: "Obranná jednotka nasazena.", TTS_10S: "Zbývá 10 sekund.",
     TTS_SEC_C: "Operace v sektoru dokončeny.", TTS_SEC_W: "Vítejte v sektoru ",
     TTS_R_O: "Kolo skončilo! Ultimátním velitelem je ", TTS_WELC: "Vítej veliteli ",
-    TTS_RIMMER_ON: "Varování! Rimmer Mód Aktivován!", TTS_RIMMER_OFF: "Rimmer Mód Deaktivován.", RIM_MODE: "RIMMER MÓD"
+    TTS_RIMMER_ON: "Varování! Rimmer Mód Aktivován!", TTS_RIMMER_OFF: "Rimmer Mód Deaktivován.", RIM_MODE: "RIMMER MÓD",
+    ANOMALY: "ČASOVÁ ANOMÁLIA", PHYS_ALT: "Fyzika zmenená!"
   }
 };
 
@@ -61,6 +63,14 @@ let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {};
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
 
 let spamBuffer = {};
+
+// Premenné pre mechaniku pridávania času a anomálie
+let bonusTime = 0.0;
+let roundStartTimeReal = 0;
+let nextAnomalyTime = 180; // 3 minúty pre prvú anomáliu
+let anomalyState = 0; // 0: neaktívne, 1: prebieha (koleso)
+let anomalyTimer = 0;
+let anomG = 0, anomB = 0, dispG = 0, dispB = 0;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -186,6 +196,8 @@ function setup() {
   timer = floor(random(50, 181));
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
+  
+  roundStartTimeReal = millis(); // Inicializácia reálneho času kola pre anomálie
   
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -344,8 +356,11 @@ function connectTikfinity() {
           if (sp.total >= 5 && !sp.announced) {
               sp.announced = true;
               if (millis() - lastSpokeTime > 6000) {
-                  let msgTemplate = random(SPAM_MSGS[currentLang]);
-                  speakAnnouncer(msgTemplate.replace("{0}", s), 1);
+                  // Využíva externé texty, ak sú dostupné v data.js, inak mlčí
+                  if (typeof SPAM_MSGS !== 'undefined') {
+                      let msgTemplate = random(SPAM_MSGS[currentLang]);
+                      speakAnnouncer(msgTemplate.replace("{0}", s), 1);
+                  }
                   lastSpokeTime = millis();
               }
           }
@@ -519,7 +534,7 @@ function draw() {
     }
     
     if (!rimmerModeActive && millis() > nextJokeTime) {
-      speakAnnouncer(random(JOKES[currentLang]), 0);
+      if (typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 0);
       nextJokeTime = millis() + random(10000, 20000);
     }
     
@@ -539,39 +554,57 @@ function draw() {
 
   if (millis() - lastTick > 1000) {
     if (gameState === "PLAYING") {
-      timer--; checkSingularitySpawn();
+      if (anomalyState === 0) { // Ak prebieha anomália, čas stojí (Pause timer during anomaly)
+          
+          // Logika čerpania bonusového času (Bonus time draining logic)
+          if (timer <= 10 && bonusTime >= 1.0) {
+              let toTransfer = Math.floor(bonusTime);
+              timer += toTransfer;
+              bonusTime -= toTransfer;
+          } else {
+              timer--;
+          }
+          
+          checkSingularitySpawn();
 
-      if (rimmerModePlanned && !rimmerModeActive && timer === rimmerModeTriggerTime) {
-        rimmerModeActive = true;
-        rimmerModeTimer = 10;
-        originalGravity = currentGravity; originalBounce = currentBounce;
-        currentGravity = random(3.0, 5.0); currentBounce = floor(random(200, 255));
-        gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
-        if (world) world.gravity.y = currentGravity;
-        speakAnnouncer(T[currentLang].TTS_RIMMER_ON, 2);
-        shakeAmount = 30; flashEffect = 40;
-      }
-      
-      if (rimmerModeActive) {
-        rimmerModeTimer--;
-        if (rimmerModeTimer === 5) speakAnnouncer(random(JOKES[currentLang]), 1);
-        if (rimmerModeTimer <= 0) {
-          rimmerModeActive = false;
-          currentGravity = originalGravity; currentBounce = originalBounce;
-          gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
-          if (world) world.gravity.y = currentGravity;
-          speakAnnouncer(T[currentLang].TTS_RIMMER_OFF, 1);
-        }
-      }
+          if (rimmerModePlanned && !rimmerModeActive && timer === rimmerModeTriggerTime) {
+            rimmerModeActive = true;
+            rimmerModeTimer = 10;
+            originalGravity = currentGravity; originalBounce = currentBounce;
+            currentGravity = random(3.0, 5.0); currentBounce = floor(random(200, 255));
+            gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
+            if (world) world.gravity.y = currentGravity;
+            speakAnnouncer(T[currentLang].TTS_RIMMER_ON, 2);
+            shakeAmount = 30; flashEffect = 40;
+          }
+          
+          if (rimmerModeActive) {
+            rimmerModeTimer--;
+            if (rimmerModeTimer === 5 && typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 1);
+            if (rimmerModeTimer <= 0) {
+              rimmerModeActive = false;
+              currentGravity = originalGravity; currentBounce = originalBounce;
+              gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
+              if (world) world.gravity.y = currentGravity;
+              speakAnnouncer(T[currentLang].TTS_RIMMER_OFF, 1);
+            }
+          }
 
-      if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
-      if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
-      if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
-      if (random() < 0.11) spawnRareLegend();
-      if (timer === 10) speakAnnouncer(T[currentLang].TTS_10S, 1);
-      if (timer <= 0) {
-        gameState = "WAITING"; waitStartTime = millis(); shakeAmount = 6;
-        playCleanupSound(); playTimerEndSequence(); speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
+          if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
+          if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
+          if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
+          if (random() < 0.11) spawnRareLegend();
+          if (timer === 10) speakAnnouncer(T[currentLang].TTS_10S, 1);
+          if (timer <= 0) {
+            gameState = "WAITING"; waitStartTime = millis(); shakeAmount = 6;
+            playCleanupSound(); playTimerEndSequence(); speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
+          }
+          
+          // Kontrola pre Anomáliu (Check for Anomaly Event)
+          let elapsed = floor((millis() - roundStartTimeReal) / 1000);
+          if (elapsed >= nextAnomalyTime) {
+              triggerAnomaly();
+          }
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -634,11 +667,100 @@ function draw() {
       removeBall(balls[idx !== -1 ? idx : 0]);
   }
   
+  // Vykreslenie rulety anomálie (Draw Anomaly Roulette over everything)
+  if (anomalyState === 1) {
+      drawAnomalyRoulette();
+      anomalyTimer--;
+      if (anomalyTimer <= 0) {
+          anomalyState = 0;
+          applyAnomaly();
+      }
+  }
+
   if (flashEffect > 0) {
     noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(-W, -H, W*3, H*3);
     flashEffect--;
   }
   pop();
+}
+
+function drawAnomalyRoulette() {
+    push();
+    fill(0, 0, 0, 200); 
+    rect(-W, -H, W*3, H*3);
+    
+    translate(W/2, H/2);
+    
+    // Rotujúci ciferník
+    push();
+    rotate(frameCount * 0.15);
+    noFill();
+    stroke(0, 255, 255, 180);
+    strokeWeight(8);
+    ellipse(0, 0, 320, 320);
+    stroke(255, 50, 150, 200);
+    strokeWeight(4);
+    for(let i=0; i<12; i++) {
+        line(0, -150, 0, -180);
+        rotate(TWO_PI/12);
+    }
+    pop();
+
+    // Vizuál ručičiek / hodín a spomaľovanie
+    let t = anomalyTimer / 240; 
+    if (frameCount % max(1, floor((1-t)*15)) === 0 && t > 0.05) {
+        dispG = floor(random(1, 255));
+        dispB = floor(random(1, 255));
+        if (audioStarted) try { fxSynth.play(random(600, 900), 0.05, 0, 0.05); } catch(e){}
+    }
+    if (t <= 0.05) {
+        dispG = anomG;
+        dispB = anomB;
+    }
+
+    fill(255);
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textSize(18);
+    text(T[currentLang].GRAV, -80, -40);
+    text(T[currentLang].BOUNCE, 80, -40);
+    
+    textSize(60);
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = color(255, 50, 50);
+    fill(255, 100, 100);
+    text(dispG, -80, 20);
+    
+    drawingContext.shadowColor = color(50, 255, 50);
+    fill(100, 255, 100);
+    text(dispB, 80, 20);
+    drawingContext.shadowBlur = 0;
+    
+    textSize(26);
+    fill(255, 200, 0, 150 + sin(frameCount * 0.2) * 100);
+    text(T[currentLang].ANOMALY, 0, -120);
+    pop();
+}
+
+function triggerAnomaly() {
+    anomalyState = 1;
+    anomalyTimer = 240; // 4 sekundy animácie
+    nextAnomalyTime += 60; // Ďalšia anomália za 60 sekúnd
+    speakAnnouncer(T[currentLang].ANOMALY, 2);
+    anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+    anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+}
+
+function applyAnomaly() {
+    currentGravity = map(anomG, 1, 255, 0.01, 5.0);
+    currentBounce = anomB;
+    gravitySlider.value(currentGravity);
+    bounceSlider.value(currentBounce);
+    if (world) world.gravity.y = currentGravity;
+    shakeAmount = 30;
+    flashEffect = 80;
+    playJackpotSound();
+    speakAnnouncer(T[currentLang].PHYS_ALT, 2);
 }
 
 function handleSpamBuffer() {
@@ -869,10 +991,18 @@ function drawBalls() {
         b.scored = true; b.scoreTime = millis(); b.zoneIndex = czIndex;
         let fs = cz.score * b.multiplier; 
         if (b.isRainbow) { fs *= 2; b.rainbowExplodeTime = millis() + 2500; }
-        if (b.name !== "MOTHERSHIP") updateScore(b.name, fs, b.color); 
-        cz.flash = 255; cz.flashColor = b.isRainbow ? color(255, 255, 255) : b.color;
+        
         let isJp = fs >= (5000 * b.multiplier); 
-        if (b.name !== "MOTHERSHIP") addFloatingText("+" + fs.toLocaleString(), pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
+        
+        // Zásadné pridanie bonusového času iba pre hráčov
+        if (b.name !== "MOTHERSHIP") {
+            let addedTime = 0.2 * b.multiplier;
+            bonusTime += addedTime;
+            addFloatingText("+" + fs.toLocaleString() + " | +" + addedTime.toFixed(1) + "s", pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
+            updateScore(b.name, fs, b.color); 
+        }
+        
+        cz.flash = 255; cz.flashColor = b.isRainbow ? color(255, 255, 255) : b.color;
         if (isJp) { shakeAmount = 8; playJackpotSound(); }
       }
     }
@@ -984,8 +1114,18 @@ function drawUI() {
   noStroke(); textSize(11);
   
   if (gameState === "PLAYING") {
-    textAlign(LEFT, CENTER); fill(0, 150); text(`${T[currentLang].WARP} ${timer}s`, 15 + 2, 20 + 2);
-    fill(timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2])); text(`${T[currentLang].WARP} ${timer}s`, 15, 20);
+    // Upravené vykresľovanie WARP jadra a bonusu
+    textAlign(LEFT, CENTER); fill(0, 150); text(`${T[currentLang].WARP_CORE} ${timer}s`, 15 + 2, 20 + 2);
+    fill(timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2])); 
+    text(`${T[currentLang].WARP_CORE} ${timer}s`, 15, 20);
+    
+    // Zobrazenie nabitého bonusového času
+    if (bonusTime > 0) {
+      let tW = textWidth(`${T[currentLang].WARP_CORE} ${timer}s `);
+      fill(0, 150); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW + 2, 20 + 2);
+      fill(50, 255, 50); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW, 20);
+    }
+    
     fill(0, 150); text(`${T[currentLang].ACT_UNITS} ${roundTotalBalls}`, 15 + 2, 40 + 2);
     fill(50, 255, 50); text(`${T[currentLang].ACT_UNITS} ${roundTotalBalls}`, 15, 40);
   } else {
@@ -1831,6 +1971,11 @@ function resetGame() {
   rimmerModePlanned = (random() < 0.08);
   rimmerModeTriggerTime = rimmerModePlanned ? floor(random(15, timer - 15)) : -1;
   spamBuffer = {};
+  
+  bonusTime = 0.0;
+  roundStartTimeReal = millis();
+  nextAnomalyTime = 180;
+  anomalyState = 0;
   
   if (isAutoMode) autoRandomSettings();
   if (world) Matter.World.clear(world, false);
