@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.0.7";
+const GAME_VERSION = "v14.1.0";
 
 let currentLang = "CZ";
 
@@ -22,7 +22,9 @@ const T = {
     TTS_SEC_C: "Sector operations complete.", TTS_SEC_W: "Welcome to sector ",
     TTS_R_O: "Round over! The ultimate commander is ", TTS_WELC: "Welcome commander ",
     TTS_RIMMER_ON: "Warning! Rimmer Mode Activated!", TTS_RIMMER_OFF: "Rimmer Mode Deactivated.", RIM_MODE: "RIMMER MODE",
-    ANOMALY: "TEMPORAL ANOMALY", PHYS_ALT: "Physics altered!"
+    ANOMALY: "TEMPORAL ANOMALY", PHYS_ALT: "Physics altered!",
+    TTS_DEV_ENT: "WARNING! TIME DEVOURER DETECTED!", TTS_DEV_DEF: "DEVOURER DESTROYED! TIME SAVED!",
+    TTS_DEV_FAIL: "TIME CONSUMED! ROUND SHORTENED!", DEVOURER: "TIME DEVOURER"
   },
   CZ: {
     GRAV: "Gravitace:", BOUNCE: "Odraz:", SPAWN: "Limit spawnu:", CHANCE: "Šance Boss/Loď%:",
@@ -42,7 +44,9 @@ const T = {
     TTS_SEC_C: "Operace v sektoru dokončeny.", TTS_SEC_W: "Vítejte v sektoru ",
     TTS_R_O: "Kolo skončilo! Ultimátním velitelem je ", TTS_WELC: "Vítej veliteli ",
     TTS_RIMMER_ON: "Varování! Rimmer Mód Aktivován!", TTS_RIMMER_OFF: "Rimmer Mód Deaktivován.", RIM_MODE: "RIMMER MÓD",
-    ANOMALY: "ČASOVÁ ANOMÁLIE", PHYS_ALT: "Fyzika změněna!"
+    ANOMALY: "ČASOVÁ ANOMÁLIE", PHYS_ALT: "Fyzika změněna!",
+    TTS_DEV_ENT: "VAROVÁNÍ! POŽÍRAČ ČASU DETEKOVÁN!", TTS_DEV_DEF: "POŽÍRAČ ZNIČEN! ČAS ZACHRÁNĚN!",
+    TTS_DEV_FAIL: "ČAS ZKONZUMOVÁN! KOLO ZKRÁCENO!", DEVOURER: "POŽÍRAČ ČASU"
   }
 };
 
@@ -353,10 +357,14 @@ let spamBuffer = {};
 // Premenné pre mechaniku pridávania času a anomálie
 let bonusTime = 0.0;
 let roundStartTimeReal = 0;
-let nextAnomalyTime = 180; // 3 minúty pre prvú anomáliu
-let anomalyState = 0; // 0: neaktívne, 1: prebieha (koleso)
+let nextAnomalyTime = 180; 
+let anomalyState = 0; 
 let anomalyTimer = 0;
 let anomG = 0, anomB = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
+
+// Novy Boss - Pozirac Casu
+let devourer = null;
+let devourerSpawnedThisRound = false;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -811,7 +819,7 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
-  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss();
+  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer();
 
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
@@ -819,10 +827,16 @@ function draw() {
     }
     
     if (!rimmerModeActive && millis() > nextJokeTime) {
-      if (typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 0);
+      speakAnnouncer(random(JOKES[currentLang]), 0);
       nextJokeTime = millis() + random(10000, 20000);
     }
     
+    // Zrození Požírače času
+    if (!devourerSpawnedThisRound && roundTotalBalls > 400 && !boss && !rimmerModeActive && anomalyState === 0) {
+        spawnDevourer();
+        devourerSpawnedThisRound = true;
+    }
+
     if (random() < 0.015) {
       let side = floor(random(3)); let mx, my, mvx, mvy;
       if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); } 
@@ -864,7 +878,7 @@ function draw() {
           
           if (rimmerModeActive) {
             rimmerModeTimer--;
-            if (rimmerModeTimer === 5 && typeof JOKES !== 'undefined') speakAnnouncer(random(JOKES[currentLang]), 1);
+            if (rimmerModeTimer === 5) speakAnnouncer(random(JOKES[currentLang]), 1);
             if (rimmerModeTimer <= 0) {
               rimmerModeActive = false;
               currentGravity = originalGravity; currentBounce = originalBounce;
@@ -967,29 +981,105 @@ function draw() {
   pop();
 }
 
+function spawnDevourer() {
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_ENT, 2);
+    let w = 300, h = 100, y = H - ZONE_H - 120;
+    let b = Matter.Bodies.rectangle(W/2, y, w, h, { isStatic: true, restitution: 0.2, friction: 0.5 });
+    Matter.World.add(world, b);
+    
+    // HP škáluje podle toho, kolik kuliček už padlo, aby ho jeden spammer hned nezabil
+    let bossHp = 50000 + (roundTotalBalls * 50);
+    devourer = { body: b, w: w, h: h, x: W/2, y: y, maxHp: bossHp, hp: bossHp, timer: 60 * targetFPS, state: "ACTIVE", hitFlash: 0 };
+    shakeAmount = 25; flashEffect = 40;
+}
+
+function handleDevourer() {
+    if (!devourer) return;
+    let pos = devourer.body.position;
+    devourer.x = pos.x; devourer.y = pos.y;
+    
+    if (devourer.state === "ACTIVE") {
+        devourer.timer--;
+        
+        // Vznášení nad chlívečky
+        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 120) + sin(frameCount * 0.1) * 20 });
+        
+        if (devourer.hp <= 0) {
+            devourer.state = "DEFEATED";
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_DEF, 2);
+            shakeAmount = 40; playJackpotSound();
+            triggerMeteorShower();
+            for(let player in leaderboard) {
+                updateScore(player, 50000, leaderboard[player].color);
+            }
+            Matter.World.remove(world, devourer.body);
+        } else if (devourer.timer <= 0) {
+            devourer.state = "FAILED";
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_FAIL, 2);
+            shakeAmount = 50; flashEffect = 100; playExplosionSound();
+            
+            // Trest za zničení
+            timer = Math.floor(timer / 2);
+            bonusTime = bonusTime / 2;
+            let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 10);
+            for(let i=0; i<sorted.length; i++) {
+                leaderboard[sorted[i][0]].score = Math.floor(leaderboard[sorted[i][0]].score * 0.8);
+            }
+            Matter.World.remove(world, devourer.body);
+        }
+    } else if (devourer.state === "DEFEATED" || devourer.state === "FAILED") {
+        createExplosion(devourer.x + random(-150, 150), devourer.y + random(-50, 50), color(200, 0, 255));
+        if (frameCount % 5 === 0) devourer = null; 
+        return;
+    }
+
+    push(); translate(devourer.x, devourer.y);
+    if (devourer.hitFlash > 0) { devourer.hitFlash--; drawingContext.shadowBlur = 40; drawingContext.shadowColor = color(255); }
+    else { drawingContext.shadowBlur = 30; drawingContext.shadowColor = color(0, 0, 0); }
+    
+    fill(10, 0, 20); stroke(150, 0, 255); strokeWeight(4);
+    ellipse(0, 0, devourer.w, devourer.h);
+    
+    let pulse = sin(frameCount * 0.2) * 10;
+    fill(0); noStroke();
+    ellipse(0, 0, devourer.w * 0.8 + pulse, devourer.h * 0.6 + pulse);
+    
+    fill(255, 0, 0);
+    for(let i=0; i<5; i++) {
+        ellipse(random(-50, 50), random(-10, 10), 8, 8);
+    }
+    
+    pop();
+    
+    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 180;
+    push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
+    fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
+    drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
+    drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
+    pop();
+}
+
 function drawAnomalyRoulette() {
     push();
-    fill(0, 0, 10, 220); // Temnější vesmírné pozadí
+    fill(0, 0, 10, 220); 
     rect(-W, -H, W*3, H*3);
     
     translate(W/2, H/2);
     
-    // Logika zpomalování (Easing)
-    let t = anomalyTimer; // Časovač jde od 300 do 0
-    let p = map(t, 300, 60, 0, 1); // 0 na začátku, 1 když zbývá 1 sekunda
+    let t = anomalyTimer; 
+    let p = map(t, 300, 60, 0, 1); 
     p = constrain(p, 0, 1);
-    let easeOut = 1 - Math.pow(1 - p, 4); // Plynulé zpomalování
+    let easeOut = 1 - Math.pow(1 - p, 4); 
 
     let targetAngleG = map(anomG, 1, 255, 0, TWO_PI);
     let targetAngleB = map(anomB, 1, 255, 0, TWO_PI);
 
-    let spinsG = 15; // Počet otoček Gravitace
-    let spinsB = 22; // Počet otoček Odrazu
+    let spinsG = 15; 
+    let spinsB = 22; 
 
     let currentAngleG = (targetAngleG - spinsG * TWO_PI) + (spinsG * TWO_PI) * easeOut;
     let currentAngleB = (targetAngleB - spinsB * TWO_PI) + (spinsB * TWO_PI) * easeOut;
 
-    // Aktuální zobrazované hodnoty během točení
     let normG = currentAngleG % TWO_PI;
     if (normG < 0) normG += TWO_PI;
     let currentValG = constrain(round(map(normG, 0, TWO_PI, 1, 255)), 1, 255);
@@ -998,7 +1088,6 @@ function drawAnomalyRoulette() {
     if (normB < 0) normB += TWO_PI;
     let currentValB = constrain(round(map(normB, 0, TWO_PI, 1, 255)), 1, 255);
 
-    // Na poslední vteřinu (60 framů) se rafičky pevně zamknou na výsledku
     if (t <= 60) {
         currentAngleG = targetAngleG;
         currentAngleB = targetAngleB;
@@ -1008,7 +1097,6 @@ function drawAnomalyRoulette() {
         try { fxSynth.play(random(600, 900), 0.02, 0, 0.05); } catch(e){}
     }
 
-    // Jemně rotující sci-fi prstence v pozadí
     push();
     rotate(frameCount * 0.01);
     stroke(0, 150, 255, 80);
@@ -1021,9 +1109,8 @@ function drawAnomalyRoulette() {
     }
     pop();
 
-    // Hlavní ciferník 1 - 255
     push();
-    rotate(-HALF_PI); // Nula/Jedna začíná na vrcholu
+    rotate(-HALF_PI); 
     
     textAlign(CENTER, CENTER);
     for(let i = 1; i <= 255; i++) {
@@ -1053,7 +1140,6 @@ function drawAnomalyRoulette() {
         }
     }
     
-    // Rafička pro Gravitaci (Červená)
     push();
     rotate(currentAngleG);
     stroke(255, 50, 50);
@@ -1066,7 +1152,6 @@ function drawAnomalyRoulette() {
     triangle(135, -6, 135, 6, 150, 0);
     pop();
 
-    // Rafička pro Odraz (Zelená)
     push();
     rotate(currentAngleB);
     stroke(50, 255, 50);
@@ -1079,9 +1164,8 @@ function drawAnomalyRoulette() {
     triangle(115, -6, 115, 6, 130, 0);
     pop();
     
-    pop(); // Konec rotace hlavního ciferníku
+    pop(); 
 
-    // Středový panel s hodnotami
     fill(10, 10, 30, 230);
     stroke(0, 255, 255, 100);
     strokeWeight(2);
@@ -1091,7 +1175,6 @@ function drawAnomalyRoulette() {
     noStroke();
     textAlign(CENTER, CENTER);
     
-    // Zobrazení vytočené Gravitace
     textSize(12);
     fill(255, 100, 100);
     text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", 0, -45);
@@ -1100,7 +1183,6 @@ function drawAnomalyRoulette() {
     drawingContext.shadowColor = color(255, 50, 50);
     text(currentValG, 0, -25);
     
-    // Zobrazení vytočeného Odrazu
     textSize(12);
     fill(100, 255, 100);
     drawingContext.shadowBlur = 0;
@@ -1111,7 +1193,6 @@ function drawAnomalyRoulette() {
     text(currentValB, 0, 35);
     drawingContext.shadowBlur = 0;
     
-    // Nápis nad ruletou
     textSize(26);
     fill(255, 200, 0, 150 + sin(frameCount * 0.2) * 100);
     text(typeof T !== 'undefined' ? T[currentLang].ANOMALY : "ANOMALY", 0, -230);
@@ -1120,7 +1201,7 @@ function drawAnomalyRoulette() {
 
 function triggerAnomaly() {
     anomalyState = 1;
-    anomalyTimer = 300; 
+    anomalyTimer = 300;
     nextAnomalyTime += 60;
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].ANOMALY, 2);
     anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
@@ -1146,7 +1227,6 @@ function handleSpamBuffer() {
   
   if (numSpammers === 0) return;
 
-  // Zmenšeno z 90 na 50, aby byly profilovky co nejvíce u sebe a držely se ve středu
   let spacing = 50; 
   let startX = (W / 2) - ((numSpammers - 1) * spacing) / 2;
 
@@ -1157,7 +1237,6 @@ function handleSpamBuffer() {
     let bx = startX + i * spacing;
     let by = 70;
     
-    // Zajistíme, že hráč má přiřazenou unikátní barvu
     if (!leaderboard[u]) leaderboard[u] = { score: 0, color: color(random(100, 255), random(100, 255), random(100, 255)) };
     let uCol = leaderboard[u].color;
     
@@ -1168,7 +1247,6 @@ function handleSpamBuffer() {
     let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.01) * 0.1 : 1;
     scale(scaleVal);
     
-    // Nastavení záře a obrysu v barvě konkrétního hráče
     drawingContext.shadowBlur = 15;
     drawingContext.shadowColor = color(red(uCol), green(uCol), blue(uCol), a);
     stroke(uCol);
@@ -1184,7 +1262,6 @@ function handleSpamBuffer() {
       image(userAvatars[u], 0, 0, 40, 40);
       drawingContext.restore();
       
-      // Vykreslení barevného okraje i přes oříznutý obrázek
       noFill();
       ellipse(0, 0, 40, 40);
     } else {
@@ -1201,14 +1278,14 @@ function handleSpamBuffer() {
       drawingContext.shadowBlur = 0;
     }
     
-    // Jméno vykreslené v barvě hráče
     drawTxt(u.substring(0, 8), 0, -30, color(red(uCol), green(uCol), blue(uCol), a), 10, CENTER);
     pop();
     
     if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
       sp.state = 'RELEASING';
       if (sp.buffered > 0) {
-        let count = Math.min(sp.buffered, 12);
+        // Změna: GIGA kuličky proti lagu
+        let count = Math.min(sp.buffered, 5); // Spawne max 5 kuliček najednou
         let baseMult = Math.floor(sp.buffered / count);
         let remainder = sp.buffered % count;
 
@@ -1361,6 +1438,22 @@ function drawBalls() {
         Matter.Body.applyForce(b.body, pos, { x: (pos.x - boss.x) * 0.0002, y: -0.03 });
       }
     }
+    
+    // Nový boss (Požírač Času)
+    if (devourer && devourer.state === "ACTIVE" && abs(pos.x - devourer.x) < devourer.w / 2 + 20 && abs(pos.y - devourer.y) < devourer.h / 2 + 20) {
+        if (millis() - (b.lastDevHit || 0) > 200) {
+            b.lastDevHit = millis(); 
+            if (b.name !== "MOTHERSHIP") {
+                let dmg = (150 + b.combo * 20) * b.multiplier; 
+                devourer.hp -= dmg; 
+                devourer.hitFlash = 5;
+                updateScore(b.name, dmg * 5, b.color);
+                addFloatingText("-" + dmg, pos.x, pos.y, color(200, 0, 255), true);
+            }
+            createExplosion(pos.x, pos.y, b.color); playExplosionSound();
+            Matter.Body.applyForce(b.body, pos, { x: (pos.x - devourer.x) * 0.0003, y: -0.04 });
+        }
+    }
 
     if (pos.y < H - 100) {
         for (let j = pegs.length - 1; j >= 0; j--) {
@@ -1399,8 +1492,20 @@ function drawBalls() {
         if (b.name !== "MOTHERSHIP") {
             let timeFactor = Math.max(0, (timer + bonusTime - 40));
             let addedTime = (0.2 * b.multiplier) / (1 + (timeFactor / 50));
+            
+            // Agresivní zpomalení nad 220s
+            if (bonusTime > 220) {
+                addedTime *= 0.2; 
+            }
+            
+            // Tvrdý strop 420s celkového bonusu
+            if (bonusTime + addedTime > 420) {
+                addedTime = Math.max(0, 420 - bonusTime);
+            }
+
             bonusTime += addedTime;
-            addFloatingText("+" + fs.toLocaleString() + " | +" + addedTime.toFixed(2) + "s", pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
+            let timeText = addedTime > 0 ? " | +" + addedTime.toFixed(2) + "s" : "";
+            addFloatingText("+" + fs.toLocaleString() + timeText, pos.x, pos.y, isJp ? color(255, 215, 0) : color(100, 255, 100), isJp);
             updateScore(b.name, fs, b.color); 
         }
         
@@ -1715,6 +1820,81 @@ function handleBoss() {
   pop();
 }
 
+function spawnDevourer() {
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_ENT, 2);
+    let w = 300, h = 100, y = H - ZONE_H - 120;
+    let b = Matter.Bodies.rectangle(W/2, y, w, h, { isStatic: true, restitution: 0.2, friction: 0.5 });
+    Matter.World.add(world, b);
+    
+    let bossHp = 50000 + (roundTotalBalls * 50);
+    devourer = { body: b, w: w, h: h, x: W/2, y: y, maxHp: bossHp, hp: bossHp, timer: 60 * targetFPS, state: "ACTIVE", hitFlash: 0 };
+    shakeAmount = 25; flashEffect = 40;
+}
+
+function handleDevourer() {
+    if (!devourer) return;
+    let pos = devourer.body.position;
+    devourer.x = pos.x; devourer.y = pos.y;
+    
+    if (devourer.state === "ACTIVE") {
+        devourer.timer--;
+        
+        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 120) + sin(frameCount * 0.1) * 20 });
+        
+        if (devourer.hp <= 0) {
+            devourer.state = "DEFEATED";
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_DEF, 2);
+            shakeAmount = 40; playJackpotSound();
+            triggerMeteorShower();
+            for(let player in leaderboard) {
+                updateScore(player, 50000, leaderboard[player].color);
+            }
+            Matter.World.remove(world, devourer.body);
+        } else if (devourer.timer <= 0) {
+            devourer.state = "FAILED";
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_FAIL, 2);
+            shakeAmount = 50; flashEffect = 100; playExplosionSound();
+            
+            timer = Math.floor(timer / 2);
+            bonusTime = bonusTime / 2;
+            let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 10);
+            for(let i=0; i<sorted.length; i++) {
+                leaderboard[sorted[i][0]].score = Math.floor(leaderboard[sorted[i][0]].score * 0.8);
+            }
+            Matter.World.remove(world, devourer.body);
+        }
+    } else if (devourer.state === "DEFEATED" || devourer.state === "FAILED") {
+        createExplosion(devourer.x + random(-150, 150), devourer.y + random(-50, 50), color(200, 0, 255));
+        if (frameCount % 5 === 0) devourer = null; 
+        return;
+    }
+
+    push(); translate(devourer.x, devourer.y);
+    if (devourer.hitFlash > 0) { devourer.hitFlash--; drawingContext.shadowBlur = 40; drawingContext.shadowColor = color(255); }
+    else { drawingContext.shadowBlur = 30; drawingContext.shadowColor = color(0, 0, 0); }
+    
+    fill(10, 0, 20); stroke(150, 0, 255); strokeWeight(4);
+    ellipse(0, 0, devourer.w, devourer.h);
+    
+    let pulse = sin(frameCount * 0.2) * 10;
+    fill(0); noStroke();
+    ellipse(0, 0, devourer.w * 0.8 + pulse, devourer.h * 0.6 + pulse);
+    
+    fill(255, 0, 0);
+    for(let i=0; i<5; i++) {
+        ellipse(random(-50, 50), random(-10, 10), 8, 8);
+    }
+    
+    pop();
+    
+    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 180;
+    push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
+    fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
+    drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
+    drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
+    pop();
+}
+
 function planSpaceshipForRound() {
   shipPlanned = (random(100) < currentShipChance); shipSpawnAt = shipPlanned ? floor(random(10, timer - 10)) : -1;
 }
@@ -1987,10 +2167,10 @@ function drawAntiBotOverlay() {
   let camX = W - 110, camY = H - 185;
   fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5); drawPixelAvatar(camX + 5, camY + 5, 90, 65); noStroke();
   for (let cx = 0; cx < 100; cx += 5) for (let cy = 0; cy < 75; cy += 5) { if (noise(cx * 0.1, cy * 0.1, frameCount * 0.1) > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } }
-  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(typeof T !== 'undefined' ? T[currentLang].L_PL : "PLAYER", camX + 5, camY + 5);
+  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(T[currentLang].L_PL, camX + 5, camY + 5);
   if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
   textFont('Press Start 2P'); textStyle(NORMAL);
-  let marqueeText = typeof T !== 'undefined' ? T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls) : currentDestination;
+  let marqueeText = T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls);
   let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
   fill(5, 5, 15, 230); noStroke(); rect(0, H - 12, W, 12);
   drawTxt(marqueeText + marqueeText, scrollX, H - 6, color(currentTheme), 8, LEFT); pop();
@@ -2413,6 +2593,9 @@ function resetGame() {
   roundStartTimeReal = millis();
   nextAnomalyTime = 180;
   anomalyState = 0;
+  
+  devourer = null;
+  devourerSpawnedThisRound = false;
   
   if (isAutoMode) autoRandomSettings();
   if (world) Matter.World.clear(world, false);
