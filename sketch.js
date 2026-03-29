@@ -969,60 +969,152 @@ function draw() {
 
 function drawAnomalyRoulette() {
     push();
-    fill(0, 0, 0, 200); 
+    fill(0, 0, 10, 220); // Temnější vesmírné pozadí
     rect(-W, -H, W*3, H*3);
     
     translate(W/2, H/2);
     
+    // Logika zpomalování (Easing)
+    let t = anomalyTimer; // Časovač jde od 300 do 0
+    let p = map(t, 300, 60, 0, 1); // 0 na začátku, 1 když zbývá 1 sekunda
+    p = constrain(p, 0, 1);
+    let easeOut = 1 - Math.pow(1 - p, 4); // Plynulé zpomalování
+
+    let targetAngleG = map(anomG, 1, 255, 0, TWO_PI);
+    let targetAngleB = map(anomB, 1, 255, 0, TWO_PI);
+
+    let spinsG = 15; // Počet otoček Gravitace
+    let spinsB = 22; // Počet otoček Odrazu
+
+    let currentAngleG = (targetAngleG - spinsG * TWO_PI) + (spinsG * TWO_PI) * easeOut;
+    let currentAngleB = (targetAngleB - spinsB * TWO_PI) + (spinsB * TWO_PI) * easeOut;
+
+    // Aktuální zobrazované hodnoty během točení
+    let normG = currentAngleG % TWO_PI;
+    if (normG < 0) normG += TWO_PI;
+    let currentValG = constrain(round(map(normG, 0, TWO_PI, 1, 255)), 1, 255);
+
+    let normB = currentAngleB % TWO_PI;
+    if (normB < 0) normB += TWO_PI;
+    let currentValB = constrain(round(map(normB, 0, TWO_PI, 1, 255)), 1, 255);
+
+    // Na poslední vteřinu (60 framů) se rafičky pevně zamknou na výsledku
+    if (t <= 60) {
+        currentAngleG = targetAngleG;
+        currentAngleB = targetAngleB;
+        currentValG = anomG;
+        currentValB = anomB;
+    } else if (frameCount % 4 === 0 && audioStarted) {
+        try { fxSynth.play(random(600, 900), 0.02, 0, 0.05); } catch(e){}
+    }
+
+    // Jemně rotující sci-fi prstence v pozadí
     push();
-    let spinSpeed = anomalyTimer > 90 ? map(anomalyTimer, 300, 90, 0.4, 0) : 0;
-    anomalyAngle += spinSpeed;
-    rotate(anomalyAngle);
+    rotate(frameCount * 0.01);
+    stroke(0, 150, 255, 80);
+    strokeWeight(2);
     noFill();
-    stroke(0, 255, 255, 180);
-    strokeWeight(8);
-    ellipse(0, 0, 320, 320);
-    stroke(255, 50, 150, 200);
-    strokeWeight(4);
-    for(let i=0; i<12; i++) {
-        line(0, -150, 0, -180);
-        rotate(TWO_PI/12);
+    ellipse(0, 0, 390, 390);
+    for(let i=0; i<36; i++) {
+        line(0, -195, 0, -205);
+        rotate(TWO_PI/36);
     }
     pop();
 
-    if (anomalyTimer > 90) { 
-        let updateInterval = floor(map(anomalyTimer, 300, 90, 1, 15));
-        if (frameCount % max(1, updateInterval) === 0) {
-            dispG = floor(random(1, 255));
-            dispB = floor(random(1, 255));
-            if (audioStarted) try { fxSynth.play(random(600, 900), 0.05, 0, 0.05); } catch(e){}
+    // Hlavní ciferník 1 - 255
+    push();
+    rotate(-HALF_PI); // Nula/Jedna začíná na vrcholu
+    
+    textAlign(CENTER, CENTER);
+    for(let i = 1; i <= 255; i++) {
+        let isMajor = (i === 1 || i % 25 === 0 || i === 255);
+        let isMid = (i % 5 === 0);
+        
+        if (isMajor || isMid) {
+            let ang = map(i, 1, 255, 0, TWO_PI);
+            let rInner = isMajor ? 140 : 150;
+            let rOuter = 160;
+            
+            stroke(isMajor ? color(255) : color(0, 255, 255, 120));
+            strokeWeight(isMajor ? 2 : 1);
+            line(cos(ang)*rInner, sin(ang)*rInner, cos(ang)*rOuter, sin(ang)*rOuter);
+            
+            if (isMajor) {
+                noStroke();
+                fill(200, 255, 255);
+                let rText = 175;
+                textSize(10);
+                push();
+                translate(cos(ang)*rText, sin(ang)*rText);
+                rotate(ang + HALF_PI);
+                text(i, 0, 0);
+                pop();
+            }
         }
-    } else { 
-        dispG = anomG;
-        dispB = anomB;
     }
+    
+    // Rafička pro Gravitaci (Červená)
+    push();
+    rotate(currentAngleG);
+    stroke(255, 50, 50);
+    strokeWeight(3);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = color(255, 50, 50);
+    line(0, 0, 135, 0);
+    fill(255, 50, 50);
+    noStroke();
+    triangle(135, -6, 135, 6, 150, 0);
+    pop();
 
+    // Rafička pro Odraz (Zelená)
+    push();
+    rotate(currentAngleB);
+    stroke(50, 255, 50);
+    strokeWeight(3);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = color(50, 255, 50);
+    line(0, 0, 115, 0);
+    fill(50, 255, 50);
+    noStroke();
+    triangle(115, -6, 115, 6, 130, 0);
+    pop();
+    
+    pop(); // Konec rotace hlavního ciferníku
+
+    // Středový panel s hodnotami
+    fill(10, 10, 30, 230);
+    stroke(0, 255, 255, 100);
+    strokeWeight(2);
+    ellipse(0, 0, 140, 140);
+    
     fill(255);
     noStroke();
     textAlign(CENTER, CENTER);
-    textSize(18);
-    text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", -80, -40);
-    text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 80, -40);
     
-    textSize(60);
-    drawingContext.shadowBlur = 20;
-    drawingContext.shadowColor = color(255, 50, 50);
+    // Zobrazení vytočené Gravitace
+    textSize(12);
     fill(255, 100, 100);
-    text(dispG, -80, 20);
+    text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", 0, -45);
+    textSize(24);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = color(255, 50, 50);
+    text(currentValG, 0, -25);
     
-    drawingContext.shadowColor = color(50, 255, 50);
+    // Zobrazení vytočeného Odrazu
+    textSize(12);
     fill(100, 255, 100);
-    text(dispB, 80, 20);
+    drawingContext.shadowBlur = 0;
+    text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 0, 15);
+    textSize(24);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = color(50, 255, 50);
+    text(currentValB, 0, 35);
     drawingContext.shadowBlur = 0;
     
+    // Nápis nad ruletou
     textSize(26);
     fill(255, 200, 0, 150 + sin(frameCount * 0.2) * 100);
-    text(typeof T !== 'undefined' ? T[currentLang].ANOMALY : "ANOMALY", 0, -120);
+    text(typeof T !== 'undefined' ? T[currentLang].ANOMALY : "ANOMALY", 0, -230);
     pop();
 }
 
