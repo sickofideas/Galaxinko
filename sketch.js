@@ -1054,7 +1054,8 @@ function handleSpamBuffer() {
   
   if (numSpammers === 0) return;
 
-  let spacing = 90;
+  // Zmenšeno z 90 na 50, aby byly profilovky co nejvíce u sebe a držely se ve středu
+  let spacing = 50; 
   let startX = (W / 2) - ((numSpammers - 1) * spacing) / 2;
 
   for (let i = 0; i < numSpammers; i++) {
@@ -1064,6 +1065,10 @@ function handleSpamBuffer() {
     let bx = startX + i * spacing;
     let by = 70;
     
+    // Zajistíme, že hráč má přiřazenou unikátní barvu
+    if (!leaderboard[u]) leaderboard[u] = { score: 0, color: color(random(100, 255), random(100, 255), random(100, 255)) };
+    let uCol = leaderboard[u].color;
+    
     push();
     translate(bx, by);
     let a = sp.fade;
@@ -1071,14 +1076,32 @@ function handleSpamBuffer() {
     let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.01) * 0.1 : 1;
     scale(scaleVal);
     
+    // Nastavení záře a obrysu v barvě konkrétního hráče
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = color(red(uCol), green(uCol), blue(uCol), a);
+    stroke(uCol);
+    strokeWeight(2);
+    
     if (userAvatars[u]) {
-      drawingContext.save(); drawingContext.beginPath();
-      drawingContext.arc(0, 0, 20, 0, TWO_PI); drawingContext.clip();
-      tint(255, a); imageMode(CENTER); image(userAvatars[u], 0, 0, 40, 40);
+      drawingContext.save(); 
+      drawingContext.beginPath();
+      drawingContext.arc(0, 0, 20, 0, TWO_PI); 
+      drawingContext.clip();
+      tint(255, a); 
+      imageMode(CENTER); 
+      image(userAvatars[u], 0, 0, 40, 40);
       drawingContext.restore();
+      
+      // Vykreslení barevného okraje i přes oříznutý obrázek
+      noFill();
+      ellipse(0, 0, 40, 40);
     } else {
-      fill(100, a); noStroke(); ellipse(0, 0, 40, 40);
+      fill(100, a); 
+      ellipse(0, 0, 40, 40);
     }
+    
+    drawingContext.shadowBlur = 0;
+    noStroke();
     
     if (sp.total >= 5) {
       drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(255, 200, 0, a);
@@ -1086,7 +1109,8 @@ function handleSpamBuffer() {
       drawingContext.shadowBlur = 0;
     }
     
-    drawTxt(u.substring(0, 8), 0, -30, color(255, a), 10, CENTER);
+    // Jméno vykreslené v barvě hráče
+    drawTxt(u.substring(0, 8), 0, -30, color(red(uCol), green(uCol), blue(uCol), a), 10, CENTER);
     pop();
     
     if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
