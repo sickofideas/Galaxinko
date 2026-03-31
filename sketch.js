@@ -258,6 +258,8 @@ let anomG = 0, anomB = 0, anomM = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
 // Novy Boss - Pozirac Casu
 let devourer = null;
 let devourerSpawnedThisRound = false;
+let starbugObj = null;
+let initialPegCount = 0;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -714,7 +716,7 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
-  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer();
+  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer(); handleStarbugObj();
 
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
@@ -781,6 +783,15 @@ function draw() {
           if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
           
+          if (!devourerSpawnedThisRound && timer === 60) {
+              spawnDevourer();
+              devourerSpawnedThisRound = true;
+          }
+
+          if (!starbugObj && timer === 40) {
+              spawnStarbugObj();
+          }
+
           if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
           if (random() < 0.11) spawnRareLegend();
           if (timer === 10) speakAnnouncer(T[currentLang].TTS_10S, 1);
@@ -1809,7 +1820,7 @@ function handleStarbugObj() {
     ellipse(-s*0.85, 0, s*0.3, s*0.2);
     pop();
 
-    if (starbugObj.activeFrames % 20 === 0 && random() < 0.7 && starbugObj.x > 100 && starbugObj.x < W - 100) {
+    if (starbugObj.activeFrames % 10 === 0 && random() < 0.9 && starbugObj.x > 100 && starbugObj.x < W - 100) {
         let py = starbugObj.y + random(80, 300);
         let valid = true;
         for (let pg of pegs) {
@@ -1827,6 +1838,19 @@ function handleStarbugObj() {
     }
 
     if (starbugObj.x > W + 150) starbugObj = null;
+}
+
+function spawnSinglePlanet(startY = null) {
+  let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
+  if (typeRnd < 0.1) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
+  else if (typeRnd < 0.2) { pType = 'JUPITER'; pSize = random(250, 400); pCol = color(180, 140, 100, 230); hasR = false; numMoons = floor(random(4, 8)); } 
+  else if (typeRnd < 0.3) { pType = 'SATURN'; pSize = random(200, 350); pCol = color(220, 200, 150, 230); hasR = true; numMoons = floor(random(3, 7)); } 
+  else if (typeRnd < 0.5) { pType = 'MARS'; pSize = random(80, 180); pCol = color(200, 60, 40, 220); hasR = false; numMoons = floor(random(1, 3)); } 
+  else if (typeRnd < 0.7) { pType = 'ICE_GIANT'; pSize = random(150, 300); pCol = color(60, 180, 255, 220); hasR = true; numMoons = floor(random(2, 5)); } 
+  else if (typeRnd < 0.8) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
+  
+  let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
+  massivePlanets.push({ x: random(W), y: startY !== null ? startY : -pSize * 3, size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), speed: random(0.001, 0.008), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
 }
 
 function planSpaceshipForRound() {
@@ -2335,6 +2359,10 @@ function drawGalacticBackground() {
       for (let m of p.moons) { let mx = cos(frameCount * m.speed + m.phase) * m.dist, my = sin(frameCount * m.speed + m.phase) * m.dist * 0.4; fill(m.col); noStroke(); ellipse(mx, my, m.size); fill(0, 150); arc(mx, my, m.size, m.size, HALF_PI, -HALF_PI); }
     }
     pop(); if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); }
+  }
+  
+  if (massivePlanets.length < 8 && !blackHole && random() < 0.005) {
+      spawnSinglePlanet();
   }
   pop();
 
