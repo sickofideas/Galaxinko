@@ -233,8 +233,18 @@ let spamBuffer = {};
 let fakeChat = [];
 const FAKE_CHAT_NAMES = ["Dave", "Arnold", "Kryten", "Cat", "Kochanski", "Holly", "Petersen", "Todhunter", "user88", "gamer_boy", "pepa_z_depa", "alien99"];
 const FAKE_CHAT_MSGS = {
-  CZ: ["Smeghead!", "Polívka gazpacho!", "Všichni jsou mrtví, Dave.", "Dejte mi kari!", "Kde je Kochanská?", "Rimmere, ty jsi pako.", "Dáme si toast?", "Křemíkové nebe!", "A co mimozemšťani?", "Více kuliček pro Listera!", "Zase Rimmer mód...", "Kosmik letí!", "Totální smeg!", "Vypněte Toustovač!"],
-  EN: ["Smeghead!", "Gazpacho soup!", "Everybody's dead, Dave.", "Get me a curry!", "Where is Kochanski?", "Rimmer, you git.", "Anyone want toast?", "Silicon heaven!", "What about aliens?", "More balls for Lister!", "Rimmer mode again...", "Starbug inbound!", "Total smeg!", "Turn off the Toaster!"]
+  CZ: [
+    "Pojďme!", "Klikejte lidi!", "Nenecháme to spadnout!", "Wow, ten top 1 jede!", "Tlačte ty lajky!", 
+    "Musíme překonat rekord!", "Štíty na max!", "Sázejte to tam!", "Kdo bude dneska první?", 
+    "Tohle kolo musíme dát!", "To je masakr!", "Jedeeeem!", "Woooow!", "Spam spam spam",
+    "{top} jede neskutečně!", "Zastavte někdo {top}!", "Dneska vyhraje {top}!"
+  ],
+  EN: [
+    "Let's go!", "Keep tapping guys!", "Don't let it drop!", "Wow, top 1 is crazy!", "Push those likes!", 
+    "We have to beat the record!", "Shields maxed!", "Spam it!", "Who will be first today?", 
+    "We gotta win this round!", "This is insane!", "Gooooo!", "Woooow!", "Spam spam spam",
+    "{top} is crushing it!", "Someone stop {top}!", "{top} is winning today!"
+  ]
 };
 
 // Premenné pre mechaniku pridávania času a anomálie
@@ -851,15 +861,27 @@ function draw() {
 
 function handleFakeChat() {
   if (random() < 0.05) {
-    fakeChat.push({ name: random(FAKE_CHAT_NAMES), msg: random(FAKE_CHAT_MSGS[currentLang]), life: 255 });
+    let msgTemplate = random(FAKE_CHAT_MSGS[currentLang]);
+    let topPlayer = "Commander";
+    let sortedKeys = Object.keys(leaderboard).sort((a, b) => leaderboard[b].score - leaderboard[a].score);
+    if (sortedKeys.length > 0) {
+      topPlayer = sortedKeys[0];
+    }
+    let finalMsg = msgTemplate.replace("{top}", topPlayer);
+    
+    fakeChat.push({ name: random(FAKE_CHAT_NAMES), msg: finalMsg, life: 255 });
     if (fakeChat.length > 5) fakeChat.shift();
   }
+  
   push();
   textAlign(LEFT, BOTTOM);
   textSize(11);
+  
+  let rCol = UI_THEMES[(roundCount - 1) % UI_THEMES.length];
+  
   for(let i = 0; i < fakeChat.length; i++) {
     let c = fakeChat[i];
-    fill(255, 200, 0, c.life);
+    fill(rCol[0], rCol[1], rCol[2], c.life);
     text(c.name + ": ", 15, H - 35 - ((fakeChat.length - 1 - i) * 16));
     fill(255, c.life);
     text(c.msg, 15 + textWidth(c.name + ": "), H - 35 - ((fakeChat.length - 1 - i) * 16));
