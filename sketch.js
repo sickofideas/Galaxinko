@@ -233,8 +233,8 @@ let spamBuffer = {};
 let fakeChat = [];
 const FAKE_CHAT_NAMES = ["Dave", "Arnold", "Kryten", "Cat", "Kochanski", "Holly", "Petersen", "Todhunter", "user88", "gamer_boy", "pepa_z_depa", "alien99"];
 const FAKE_CHAT_MSGS = {
-  CZ: ["další", "spam", "kuličky", "w", "nice", "posilam", "epic", "gooo", "lol", "gg", "šílený", "boss?", "vic odrazu"],
-  EN: ["more", "spam", "balls", "w", "nice", "sending", "epic", "gooo", "lol", "gg", "crazy", "boss?", "more bounce"]
+  CZ: ["Smeghead!", "Polívka gazpacho!", "Všichni jsou mrtví, Dave.", "Dejte mi kari!", "Kde je Kochanská?", "Rimmere, ty jsi pako.", "Dáme si toast?", "Křemíkové nebe!", "A co mimozemšťani?", "Více kuliček pro Listera!", "Zase Rimmer mód...", "Kosmik letí!", "Totální smeg!", "Vypněte Toustovač!"],
+  EN: ["Smeghead!", "Gazpacho soup!", "Everybody's dead, Dave.", "Get me a curry!", "Where is Kochanski?", "Rimmer, you git.", "Anyone want toast?", "Silicon heaven!", "What about aliens?", "More balls for Lister!", "Rimmer mode again...", "Starbug inbound!", "Total smeg!", "Turn off the Toaster!"]
 };
 
 // Premenné pre mechaniku pridávania času a anomálie
@@ -2471,6 +2471,12 @@ function resetGame() {
   starbugObj = null;
   
   if (isAutoMode) autoRandomSettings();
+  
+  if (mothershipSlider) {
+    let baseRate = (roundCount % 5) * 4; 
+    mothershipSlider.value(floor(random(baseRate, 31)));
+  }
+
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
   
