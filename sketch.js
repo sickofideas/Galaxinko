@@ -230,10 +230,17 @@ let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, ri
 
 let spamBuffer = {};
 
+let fakeChat = [];
+const FAKE_CHAT_NAMES = ["Dave", "Arnold", "Kryten", "Cat", "Kochanski", "Holly", "Petersen", "Todhunter", "user88", "gamer_boy", "pepa_z_depa", "alien99"];
+const FAKE_CHAT_MSGS = {
+  CZ: ["další", "spam", "kuličky", "w", "nice", "posilam", "epic", "gooo", "lol", "gg", "šílený", "boss?", "vic odrazu"],
+  EN: ["more", "spam", "balls", "w", "nice", "sending", "epic", "gooo", "lol", "gg", "crazy", "boss?", "more bounce"]
+};
+
 // Premenné pre mechaniku pridávania času a anomálie
 let bonusTime = 0.0;
 let roundStartTimeReal = 0;
-let nextAnomalyTime = 180; 
+let nextAnomalyTime = 60; 
 let anomalyState = 0; 
 let anomalyTimer = 0;
 let anomG = 0, anomB = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
@@ -709,7 +716,7 @@ function draw() {
       nextJokeTime = millis() + random(10000, 20000);
     }
     
-    if (random() < 0.015) {
+    if (random() < 0.045) {
       let side = floor(random(3)); let mx, my, mvx, mvy;
       if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); } 
       else if (side === 1) { mx = -50; my = random(H/2); mvx = random(15, 25); mvy = random(5, 15); } 
@@ -827,6 +834,7 @@ function draw() {
   }
 
   handleSpamBuffer();
+  handleFakeChat();
   drawProceduralHUD(); drawAntiBotOverlay();
   
   while (balls.length > 350) {
@@ -837,6 +845,25 @@ function draw() {
   if (flashEffect > 0) {
     noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(-W, -H, W*3, H*3);
     flashEffect--;
+  }
+  pop();
+}
+
+function handleFakeChat() {
+  if (random() < 0.05) {
+    fakeChat.push({ name: random(FAKE_CHAT_NAMES), msg: random(FAKE_CHAT_MSGS[currentLang]), life: 255 });
+    if (fakeChat.length > 5) fakeChat.shift();
+  }
+  push();
+  textAlign(LEFT, BOTTOM);
+  textSize(11);
+  for(let i = 0; i < fakeChat.length; i++) {
+    let c = fakeChat[i];
+    fill(255, 200, 0, c.life);
+    text(c.name + ": ", 15, H - 35 - ((fakeChat.length - 1 - i) * 16));
+    fill(255, c.life);
+    text(c.msg, 15 + textWidth(c.name + ": "), H - 35 - ((fakeChat.length - 1 - i) * 16));
+    c.life -= 1.5;
   }
   pop();
 }
@@ -864,7 +891,7 @@ function handleSpamBuffer() {
     translate(bx, by);
     let a = sp.fade;
     
-    let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.01) * 0.1 : 1;
+    let scaleVal = sp.state === 'CHARGING' ? 1 + sin(millis() * 0.007) * 0.3 : 1;
     scale(scaleVal);
     
     drawingContext.shadowBlur = 15;
@@ -895,7 +922,7 @@ function handleSpamBuffer() {
     if (sp.total >= 5) {
       drawingContext.shadowBlur = 10;
       drawingContext.shadowColor = color(255, 200, 0, a);
-      drawTxt("x" + sp.total, 0, 35, color(255, 200, 0, a), 14, CENTER);
+      drawTxt("+" + sp.total + (currentLang === "CZ" ? " LAJKŮ" : " LIKES"), 0, 35, color(255, 200, 0, a), 14, CENTER);
       drawingContext.shadowBlur = 0;
     }
     
@@ -2436,7 +2463,7 @@ function resetGame() {
   
   bonusTime = 0.0;
   roundStartTimeReal = millis();
-  nextAnomalyTime = 180;
+  nextAnomalyTime = 60;
   anomalyState = 0;
   
   devourer = null;
