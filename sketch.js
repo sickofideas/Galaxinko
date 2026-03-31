@@ -253,7 +253,7 @@ let roundStartTimeReal = 0;
 let nextAnomalyTime = 60; 
 let anomalyState = 0; 
 let anomalyTimer = 0;
-let anomG = 0, anomB = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
+let anomG = 0, anomB = 0, anomM = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
 
 // Novy Boss - Pozirac Casu
 let devourer = null;
@@ -735,7 +735,8 @@ function draw() {
     }
     
     let msRate = mothershipSlider ? mothershipSlider.value() : 0;
-    if (isMothershipMode && msRate > 0 && balls.length < 3000) {
+    let isSpamming = Object.keys(spamBuffer).some(u => spamBuffer[u].state === 'CHARGING' || spamBuffer[u].state === 'RELEASING');
+    if (isMothershipMode && msRate > 0 && balls.length < 3000 && !isSpamming) {
       if (random() < (msRate / targetFPS)) spawnBall("MOTHERSHIP");
     }
   }
@@ -847,6 +848,15 @@ function draw() {
   handleFakeChat();
   drawProceduralHUD(); drawAntiBotOverlay();
   
+  if (anomalyState === 1) {
+      drawAnomalyRoulette();
+      anomalyTimer--;
+      if (anomalyTimer <= 0) {
+          applyAnomaly();
+          anomalyState = 0;
+      }
+  }
+
   while (balls.length > 350) {
       let idx = balls.findIndex(b => b.scored);
       removeBall(balls[idx !== -1 ? idx : 0]);
@@ -1595,12 +1605,15 @@ function drawAnomalyRoulette() {
 
     let targetAngleG = map(anomG, 1, 255, 0, TWO_PI);
     let targetAngleB = map(anomB, 1, 255, 0, TWO_PI);
+    let targetAngleM = map(anomM, 0, 30, 0, TWO_PI);
 
     let spinsG = 15; 
     let spinsB = 22; 
+    let spinsM = 18;
 
     let currentAngleG = (targetAngleG - spinsG * TWO_PI) + (spinsG * TWO_PI) * easeOut;
     let currentAngleB = (targetAngleB - spinsB * TWO_PI) + (spinsB * TWO_PI) * easeOut;
+    let currentAngleM = (targetAngleM - spinsM * TWO_PI) + (spinsM * TWO_PI) * easeOut;
 
     let normG = currentAngleG % TWO_PI;
     if (normG < 0) normG += TWO_PI;
@@ -1610,11 +1623,17 @@ function drawAnomalyRoulette() {
     if (normB < 0) normB += TWO_PI;
     let currentValB = constrain(round(map(normB, 0, TWO_PI, 1, 255)), 1, 255);
 
+    let normM = currentAngleM % TWO_PI;
+    if (normM < 0) normM += TWO_PI;
+    let currentValM = constrain(round(map(normM, 0, TWO_PI, 0, 30)), 0, 30);
+
     if (t <= 60) {
         currentAngleG = targetAngleG;
         currentAngleB = targetAngleB;
+        currentAngleM = targetAngleM;
         currentValG = anomG;
         currentValB = anomB;
+        currentValM = anomM;
     } else if (frameCount % 4 === 0 && audioStarted) {
         try { fxSynth.play(random(600, 900), 0.02, 0, 0.05); } catch(e){}
     }
@@ -1685,6 +1704,18 @@ function drawAnomalyRoulette() {
     noStroke();
     triangle(115, -6, 115, 6, 130, 0);
     pop();
+
+    push();
+    rotate(currentAngleM);
+    stroke(255, 100, 255);
+    strokeWeight(3);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = color(255, 100, 255);
+    line(0, 0, 95, 0);
+    fill(255, 100, 255);
+    noStroke();
+    triangle(95, -6, 95, 6, 110, 0);
+    pop();
     
     pop(); 
 
@@ -1697,22 +1728,32 @@ function drawAnomalyRoulette() {
     noStroke();
     textAlign(CENTER, CENTER);
     
-    textSize(12);
+    textSize(9);
     fill(255, 100, 100);
-    text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", 0, -45);
-    textSize(24);
+    text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", 0, -42);
+    textSize(18);
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = color(255, 50, 50);
-    text(currentValG, 0, -25);
+    text(currentValG, 0, -26);
     
-    textSize(12);
+    textSize(9);
     fill(100, 255, 100);
     drawingContext.shadowBlur = 0;
-    text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 0, 15);
-    textSize(24);
+    text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 0, -2);
+    textSize(18);
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = color(50, 255, 50);
-    text(currentValB, 0, 35);
+    text(currentValB, 0, 14);
+
+    textSize(9);
+    fill(255, 100, 255);
+    drawingContext.shadowBlur = 0;
+    text("MOTHERSHIP", 0, 38);
+    textSize(18);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = color(255, 100, 255);
+    text(currentValM, 0, 54);
+    
     drawingContext.shadowBlur = 0;
     
     textSize(26);
@@ -1728,6 +1769,7 @@ function triggerAnomaly() {
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].ANOMALY, 2);
     anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
     anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+    anomM = floor(random(0, 31));
     anomalyAngle = 0;
 }
 
@@ -1736,6 +1778,7 @@ function applyAnomaly() {
     currentBounce = anomB;
     gravitySlider.value(currentGravity);
     bounceSlider.value(currentBounce);
+    if (mothershipSlider) mothershipSlider.value(anomM);
     if (world) world.gravity.y = currentGravity;
     shakeAmount = 30;
     flashEffect = 80;
