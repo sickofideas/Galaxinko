@@ -16,7 +16,7 @@ const T = {
     SLAY: " BOSS SLAYER", NEW_C: "🔥 NEW COMMANDER! 🔥", L_PL: "LIVE_PLAYER",
     MARQ: "🚀 LIVE SECTOR: {0} --- ACTIVE UNITS: {1} --- SEND LIKES TO POWER UP Shields! --- ",
     TTS_INC: "Incoming vessel from ", TTS_POW: "Power up from ", TTS_MET: "Warning! Incoming meteor shower!",
-    TTS_BH: "Warning! Black hole singularity forming!", TTS_COS: "Warning! Cosmic anomaly detected.",
+    TTS_BH: "Warning! Black hole singularity forming!", TTS_WH: "Warning! White hole anomaly forming!", TTS_COS: "Warning! Cosmic anomaly detected.",
     TTS_B_ENT: "VOID LEVIATHAN DETECTED. ENCOUNTER COMMENCING.", TTS_B_DEF: "Leviathan destroyed! Massive bonus awarded!",
     TTS_DEF: "Defense unit deployed.", TTS_10S: "10 seconds remaining.",
     TTS_SEC_C: "Sector operations complete.", TTS_SEC_W: "Welcome to sector ",
@@ -39,7 +39,7 @@ const T = {
     SLAY: " ZABIJÁK BOSSE", NEW_C: "🔥 NOVÝ VELITEL! 🔥", L_PL: "ŽIVÝ_HRÁČ",
     MARQ: "🚀 ŽIVÝ SEKTOR: {0} --- AKTIVNÍ JEDNOTKY: {1} --- POŠLI LIKY PRO POSÍLENÍ ŠTÍTŮ! --- ",
     TTS_INC: "Přilétá loď od ", TTS_POW: "Vylepšení od ", TTS_MET: "Varování! Blíží se meteorický roj!",
-    TTS_BH: "Varování! Formuje se singularita černé díry!", TTS_COS: "Varování! Detekována vesmírná anomálie.",
+    TTS_BH: "Varování! Formuje se singularita černé díry!", TTS_WH: "Varování! Formuje se bílá díra!", TTS_COS: "Varování! Detekována vesmírná anomálie.",
     TTS_B_ENT: "VOID LEVIATHAN DETEKOVÁN. ZAHÁJENÍ STŘETU.", TTS_B_DEF: "Leviathan zničen! Udělen obrovský bonus!",
     TTS_DEF: "Obranná jednotka nasazena.", TTS_10S: "Zbývá 10 sekund.",
     TTS_SEC_C: "Operace v sektoru dokončeny.", TTS_SEC_W: "Vítejte v sektoru ",
@@ -262,6 +262,8 @@ let devourerSpawnedThisRound = false;
 let starbugObj = null;
 let initialPegCount = 0;
 
+let planetSize = 0, currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], whiteHole = null, whSpawnTimes = [], fxSynth, audioStarted = false;
+
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
 let camOffset = { x: 0, y: 0, z: 1.0 }, targetFPS = 60, socket;
@@ -274,7 +276,6 @@ let autoButton, langButton;
 let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
 
 let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [];
-let planetSize = 0, currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], fxSynth, audioStarted = false;
 let lastSpawnSnd = 0, lastExpSnd = 0, lastSpawnTime = 0, doorOpen = 0;
 
 const W = 900, H = 1000, ZONE_H = 80;
@@ -718,7 +719,7 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
-  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer(); handleStarbugObj();
+  handleBlackHole(); handleWhiteHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer(); handleStarbugObj();
 
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
@@ -1849,6 +1850,77 @@ function handleStarbugObj() {
     if (starbugObj.x > W + 150) starbugObj = null;
 }
 
+function handleWhiteHole() {
+  if (!whiteHole) return;
+  let d = whiteHole.targetX > whiteHole.x ? 1 : -1;
+  whiteHole.x += whiteHole.speed * d;
+  let n = noise(frameCount * whiteHole.noiseSpeed + whiteHole.noiseOffset);
+  whiteHole.y = whiteHole.startY + (n - 0.5) * whiteHole.wobbleAmp * 2;
+  let jS = whiteHole.size * (1 + (n - 0.5) * 0.15);
+
+  push();
+  translate(whiteHole.x, whiteHole.y);
+  noStroke();
+  
+  push();
+  rotate(-frameCount * 0.1);
+  for (let i = 0; i < 6; i++) {
+    fill(200, 240, 255, 20);
+    ellipse(0, 0, jS * 3.5 + i * 20, jS * 1.2 + i * 8);
+  }
+  pop();
+  
+  for (let i = 8; i > 0; i--) {
+    fill(200 + i * 5, 230 + i * 3, 255, 30);
+    ellipse(0, 0, jS + i * (whiteHole.size * 0.3) + (n * 10));
+  }
+  
+  fill(255);
+  ellipse(0, 0, jS);
+  
+  stroke(200, 255, 255, 150);
+  strokeWeight(2);
+  for(let i=0; i<5; i++) {
+    let ang = random(TWO_PI);
+    let distR = random(jS*0.5, jS*2.2);
+    line(cos(ang)*(distR-15), sin(ang)*(distR-15), cos(ang)*distR, sin(ang)*distR);
+  }
+  pop();
+
+  let jS_sq_effect = (jS * 4) * (jS * 4);
+
+  if (frameCount % 8 === 0) {
+    for (let i = 0; i < pegs.length; i++) {
+      let p = pegs[i];
+      if (p.isBonus || p.isExplosive || p.isRepulsor) continue;
+      
+      let dx = whiteHole.x - p.position.x;
+      let dy = whiteHole.y - p.position.y;
+      if (dx * dx + dy * dy < jS_sq_effect && random() < 0.15) {
+         if (random() < 0.7) {
+             p.isBonus = true;
+         } else {
+             p.isExplosive = true;
+         }
+         p.glow = 255;
+         
+         push();
+         stroke(200, 255, 255, 200);
+         strokeWeight(3);
+         line(whiteHole.x, whiteHole.y, p.position.x, p.position.y);
+         pop();
+         
+         createExplosion(p.position.x, p.position.y, color(200, 255, 255));
+         if (audioStarted) { try { fxSynth.play(1200, 0.05, 0, 0.1); } catch(e){} }
+      }
+    }
+  }
+
+  if ((d === 1 && whiteHole.x > whiteHole.targetX) || (d === -1 && whiteHole.x < whiteHole.targetX)) {
+    whiteHole = null;
+  }
+}
+
 function spawnSinglePlanet(startY = null) {
   let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
   if (typeRnd < 0.1) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
@@ -2155,7 +2227,10 @@ function drawPegs() {
   }
 }
 
-function prepareSingularityEvents() { bhSpawnTimes = []; if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8))); }
+function prepareSingularityEvents() { 
+  bhSpawnTimes = []; if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8))); 
+  whSpawnTimes = []; if (random() < 0.35) whSpawnTimes.push(floor(random(5, timer * 0.8))); 
+}
 
 function checkSingularitySpawn() {
   if (bhSpawnTimes.includes(timer) && !blackHole) {
@@ -2174,6 +2249,95 @@ function checkSingularitySpawn() {
     blackHole.startY = blackHole.y; 
     bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); 
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_BH, 1);
+  }
+
+  if (whSpawnTimes.includes(timer) && !whiteHole) {
+    let fL = random() < 0.5;
+    whiteHole = { 
+        x: fL ? -200 : W + 200, 
+        y: random(200, H - 450), 
+        startY: 0, 
+        targetX: fL ? W + 300 : -300, 
+        speed: random(0.5, 1.2), 
+        size: random(50, 90), 
+        noiseOffset: random(1000), 
+        noiseSpeed: random(0.01, 0.02), 
+        wobbleAmp: random(30, 80) 
+    };
+    whiteHole.startY = whiteHole.y; 
+    whSpawnTimes = whSpawnTimes.filter(t => t !== timer); 
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_WH, 1);
+  }
+}
+
+function handleWhiteHole() {
+  if (!whiteHole) return;
+  let d = whiteHole.targetX > whiteHole.x ? 1 : -1;
+  whiteHole.x += whiteHole.speed * d;
+  let n = noise(frameCount * whiteHole.noiseSpeed + whiteHole.noiseOffset);
+  whiteHole.y = whiteHole.startY + (n - 0.5) * whiteHole.wobbleAmp * 2;
+  let jS = whiteHole.size * (1 + (n - 0.5) * 0.15);
+
+  push();
+  translate(whiteHole.x, whiteHole.y);
+  noStroke();
+  
+  push();
+  rotate(-frameCount * 0.1);
+  for (let i = 0; i < 6; i++) {
+    fill(200, 240, 255, 20);
+    ellipse(0, 0, jS * 3.5 + i * 20, jS * 1.2 + i * 8);
+  }
+  pop();
+  
+  for (let i = 8; i > 0; i--) {
+    fill(200 + i * 5, 230 + i * 3, 255, 30);
+    ellipse(0, 0, jS + i * (whiteHole.size * 0.3) + (n * 10));
+  }
+  
+  fill(255);
+  ellipse(0, 0, jS);
+  
+  stroke(200, 255, 255, 150);
+  strokeWeight(2);
+  for(let i=0; i<5; i++) {
+    let ang = random(TWO_PI);
+    let distR = random(jS*0.5, jS*2.2);
+    line(cos(ang)*(distR-15), sin(ang)*(distR-15), cos(ang)*distR, sin(ang)*distR);
+  }
+  pop();
+
+  let jS_sq_effect = (jS * 4) * (jS * 4);
+
+  if (frameCount % 8 === 0) {
+    for (let i = 0; i < pegs.length; i++) {
+      let p = pegs[i];
+      if (p.isBonus || p.isExplosive || p.isRepulsor) continue;
+      
+      let dx = whiteHole.x - p.position.x;
+      let dy = whiteHole.y - p.position.y;
+      if (dx * dx + dy * dy < jS_sq_effect && random() < 0.15) {
+         if (random() < 0.7) {
+             p.isBonus = true;
+         } else {
+             p.isExplosive = true;
+         }
+         p.glow = 255;
+         
+         push();
+         stroke(200, 255, 255, 200);
+         strokeWeight(3);
+         line(whiteHole.x, whiteHole.y, p.position.x, p.position.y);
+         pop();
+         
+         createExplosion(p.position.x, p.position.y, color(200, 255, 255));
+         if (audioStarted) { try { fxSynth.play(1200, 0.05, 0, 0.1); } catch(e){} }
+      }
+    }
+  }
+
+  if ((d === 1 && whiteHole.x > whiteHole.targetX) || (d === -1 && whiteHole.x < whiteHole.targetX)) {
+    whiteHole = null;
   }
 }
 
@@ -2370,7 +2534,7 @@ function drawGalacticBackground() {
     pop(); if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); }
   }
   
-  if (massivePlanets.length < 8 && !blackHole && random() < 0.005) {
+  if (massivePlanets.length < 8 && !blackHole && !whiteHole && random() < 0.005) {
       spawnSinglePlanet();
   }
   pop();
@@ -2576,12 +2740,12 @@ function resetGame() {
   if (isAutoMode) autoRandomSettings();
   
   if (mothershipSlider) {
-    let baseRate = (roundCount % 5) * 4; 
-    mothershipSlider.value(floor(random(baseRate, 31)));
+    let baseRate = (roundCount % 5) * 2; 
+    mothershipSlider.value(floor(random(baseRate, 12)));
   }
 
   if (world) Matter.World.clear(world, false);
-  pegs = []; walls = []; balls = []; blackHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
+  pegs = []; walls = []; balls = []; blackHole = null; whiteHole = null; cosmicEvent = null; shootingStars = []; ambientComets = []; portals = []; floatingTexts = []; shockwaves = []; boss = null; backgroundMeteors = []; followEvents = [];
   
   initGame(); generateDeepSpaceElements(); prepareSingularityEvents(); planSpaceshipForRound(); planBossForRound(); nextMeteorShowerTime = millis() + 66000; nextJokeTime = millis() + random(10000, 20000);
   
