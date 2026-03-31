@@ -254,6 +254,7 @@ let nextAnomalyTime = 60;
 let anomalyState = 0; 
 let anomalyTimer = 0;
 let anomG = 0, anomB = 0, anomM = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
+let lastLikeTime = 0;
 
 // Novy Boss - Pozirac Casu
 let devourer = null;
@@ -524,6 +525,7 @@ function connectTikfinity() {
         }
         
         if (evt === "like") {
+          lastLikeTime = millis();
           let c = d.data?.likeCount || 1;
           updateUserLikes(u, c);
           
@@ -738,7 +740,9 @@ function draw() {
     
     let msRate = mothershipSlider ? mothershipSlider.value() : 0;
     let isSpamming = Object.keys(spamBuffer).some(u => spamBuffer[u].state === 'CHARGING' || spamBuffer[u].state === 'RELEASING');
-    if (isMothershipMode && msRate > 0 && balls.length < 3000 && !isSpamming) {
+    let isLikingRecently = (millis() - lastLikeTime < 4000);
+    
+    if (isMothershipMode && msRate > 0 && balls.length < 3000 && !isSpamming && !isLikingRecently) {
       if (random() < (msRate / targetFPS)) spawnBall("MOTHERSHIP");
     }
   }
@@ -790,6 +794,11 @@ function draw() {
 
           if (!starbugObj && timer === 40) {
               spawnStarbugObj();
+          }
+          
+          let elapsedSec = (millis() - roundStartTimeReal) / 1000;
+          if (elapsedSec > nextAnomalyTime) {
+              triggerAnomaly();
           }
 
           if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
@@ -2562,6 +2571,7 @@ function resetGame() {
   devourer = null;
   devourerSpawnedThisRound = false;
   starbugObj = null;
+  lastLikeTime = 0;
   
   if (isAutoMode) autoRandomSettings();
   
