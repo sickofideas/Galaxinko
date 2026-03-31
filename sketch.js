@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.6.0";
+const GAME_VERSION = "v14.7.0";
 
 let currentLang = "CZ";
 
@@ -17,6 +17,7 @@ const T = {
     MARQ: "🚀 LIVE SECTOR: {0} --- ACTIVE UNITS: {1} --- SEND LIKES TO POWER UP Shields! --- ",
     TTS_INC: "Incoming vessel from ", TTS_POW: "Power up from ", TTS_MET: "Warning! Incoming meteor shower!",
     TTS_BH: "Warning! Black hole singularity forming!", TTS_WH: "Warning! White hole anomaly forming!", TTS_COS: "Warning! Cosmic anomaly detected.",
+    TTS_FLARE: "Warning! Massive solar flare detected!",
     TTS_B_ENT: "VOID LEVIATHAN DETECTED. ENCOUNTER COMMENCING.", TTS_B_DEF: "Leviathan destroyed! Massive bonus awarded!",
     TTS_DEF: "Defense unit deployed.", TTS_10S: "10 seconds remaining.",
     TTS_SEC_C: "Sector operations complete.", TTS_SEC_W: "Welcome to sector ",
@@ -40,6 +41,7 @@ const T = {
     MARQ: "🚀 ŽIVÝ SEKTOR: {0} --- AKTIVNÍ JEDNOTKY: {1} --- POŠLI LIKY PRO POSÍLENÍ ŠTÍTŮ! --- ",
     TTS_INC: "Přilétá loď od ", TTS_POW: "Vylepšení od ", TTS_MET: "Varování! Blíží se meteorický roj!",
     TTS_BH: "Varování! Formuje se singularita černé díry!", TTS_WH: "Varování! Formuje se bílá díra!", TTS_COS: "Varování! Detekována vesmírná anomálie.",
+    TTS_FLARE: "Varování! Blíží se sluneční erupce!",
     TTS_B_ENT: "VOID LEVIATHAN DETEKOVÁN. ZAHÁJENÍ STŘETU.", TTS_B_DEF: "Leviathan zničen! Udělen obrovský bonus!",
     TTS_DEF: "Obranná jednotka nasazena.", TTS_10S: "Zbývá 10 sekund.",
     TTS_SEC_C: "Operace v sektoru dokončeny.", TTS_SEC_W: "Vítejte v sektoru ",
@@ -258,7 +260,61 @@ const JOKES = {
     "To snad není pravda, on snad vůbec nemá mozek.",
     "Kdyby tvůj mozek byl z dynamitu, ani by ti to neurvalo čepici.",
     "Rimmere, jsi takový snob, že se ti i vlastní prdy zdají parfémované.",
-    "Když se narodil, doktor ho plácnul po zadku... a pak plácnul po zadku jeho matku, že něco takového porodila."
+    "Když se narodil, doktor ho plácnul po zadku... a pak plácnul po zadku jeho matku, že něco takového porodila.",
+    "Zajímavé. Velmi zajímavé. Zcela a naprosto ohromující. Já totiž nevím, co to je.",
+    "Je to žvást! Totální, stoprocentní a nefalšovanej žvást!",
+    "Nikdo nemůže být takhle blbej. To musí být trénink.",
+    "Rimmere, ty jsi vřed na tváři lidstva.",
+    "Listere, tvoje ponožky by se daly použít jako biologická zbraň.",
+    "Krytone, přestaň žehlit to prádlo, letí na nás kometa!",
+    "Proboha, Dave, ty jíš kari i k snídani?",
+    "Pane, směrnice 312 jasně stanoví: členové posádky se nesmí snažit zabít jeden druhého jen proto, že se nudí.",
+    "Takže, jaký je plán? Kromě toho, že umřeme?",
+    "Co je to za zvuk? - To je jen moje panikařící srdce.",
+    "Kocoure, ty seš tak ješitnej, že by ses miloval s vlastním odrazem.",
+    "To nebyl výbuch, to byla jen menší termonukleární anomálie.",
+    "Těžko říct, co je horší. Být ztraceni ve vesmíru, nebo být tu s Rimmerem.",
+    "Holly, ty jsi úplně zblbnul! - Ne, já byl vždycky takhle.",
+    "Můj bože, my tu umřeme a já nemám ani nalakované drápy!",
+    "Pane, zdá se, že nás právě sežral obrovský vesmírný červ.",
+    "Rimmere, ty bys nedokázal velet ani skupině mravenců na pískovišti.",
+    "Ještě jeden tvůj nápad, Dave, a rovnou si začnu kopat hrob.",
+    "Nechápu, proč se vždycky musíme dostat do těch nejhorších situací.",
+    "Co budeme dělat?! - Panikařit, křičet a pobíhat dokola!",
+    "Našel jsem chybu v tvém plánu. Počítá s tím, že přežijeme.",
+    "Tohle by nevyřešil ani Albert Einstein. A ten měl aspoň mozek!",
+    "Krytone, udělej něco! - Dělám, pane. Bojím se.",
+    "Moje vlasy! Moje krásné vlasy! Ten výbuch mi zničil účes!",
+    "To je neuvěřitelné. On to opravdu nevzdá, dokud nás všechny nezabije.",
+    "Vesmír má jednu vadu. Je v něm Rimmer.",
+    "Já se nechci stát prachem! Chci se stát krásnou sochou!",
+    "Dneska nezemřu. Dneska mám v plánu si dát kávu.",
+    "Pane, myslím, že byste neměl mačkat to velké červené tlačítko...",
+    "Co se může stát? - Můžeme se vypařit. - Kromě toho?",
+    "Když se podívám na Rimmera, říkám si, že evoluce je jen mýtus.",
+    "Ještě krok a začnu hysterčit!",
+    "Ty seš fakt smeghead, Listere.",
+    "Já jsem Kryton, mechanik. A momentálně i zachránce vašich zbytečných životů.",
+    "Kocoure, ty jsi neuvěřitelně línej. - Já nejsem línej, já šetřím energii pro krásu.",
+    "Zemřeme v hlubokém vesmíru a já ani neochutnám tvoji maminčinu sekanou.",
+    "Rimmere, ty seš živej důkaz toho, že reinkarnace je chyba v matrixu.",
+    "To nebyl můj nápad! Já jen stál vedle toho idiota, co to vymyslel.",
+    "Když ti řeknu 'nešahej na to', co uděláš? Jasně že na to sáhneš!",
+    "Holly, naviguj nás! - Naviguju. Momentálně letíme rovnou do slunce.",
+    "Můj radar ukazuje, že jsme v naprostém háji.",
+    "Já jsem naprosto v klidu. To, že se mi klepou kolena, je jen vedlejší efekt mé odvahy.",
+    "Nemám slov. A to je u mě co říct.",
+    "Proč prostě nemůžeme narazit na nějakou přátelskou planetu s holkama a pivem?",
+    "Takže my tu budeme sedět a čekat na smrt? Super plán.",
+    "Rimmere, i moje bota má větší šanci na úspěch než ty.",
+    "Já se s vámi odmítám bavit. Radši si půjdu povídat s tou zdí.",
+    "Vesmír. Nejhorší prázdninová destinace všech dob.",
+    "Krytone, můžeme se vrátit v čase? - Ne, pane. To by porušilo všechny zákony fyziky.",
+    "Listere, ty jsi chodící skládka toxického odpadu.",
+    "A víte, co je na tom nejlepší? Že to může být ještě horší.",
+    "Já chci zpátky na Zemi! I když tam už nic není!",
+    "Tohle nevyřeší ani hromada kari a basa piva.",
+    "Když už máme umřít, můžu si předtím aspoň dát šlofíka?"
   ],
   EN: [
     "Everybody's dead, Dave.",
@@ -318,6 +374,11 @@ let devourer = null;
 let devourerSpawnedThisRound = false;
 let starbugObj = null;
 let initialPegCount = 0;
+
+// Solar Flare mechanic
+let solarFlare = null;
+let solarFlarePlanned = false;
+let solarFlareTriggerTime = -1;
 
 let planetSize = 0, currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], whiteHole = null, whSpawnTimes = [], fxSynth, audioStarted = false;
 
@@ -445,6 +506,9 @@ function setup() {
   currentDestination = generatePlanetName();
   currentTheme = random(UI_THEMES);
   
+  solarFlarePlanned = (random() < 0.35);
+  solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
+
   roundStartTimeReal = millis(); 
   
   generateDeepSpaceElements();
@@ -776,7 +840,15 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
-  handleBlackHole(); handleWhiteHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer(); handleStarbugObj();
+  // NOTE: Order determines what is drawn on top. Spaceship is drawn last to be fully visible over Devourer.
+  handleBlackHole(); 
+  handleWhiteHole(); 
+  handleCosmicEvent(); 
+  handleBoss(); 
+  handleDevourer(); 
+  handleStarbugObj();
+  handleSolarFlare();
+  handleSpaceship();
 
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
@@ -844,6 +916,7 @@ function draw() {
 
           if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
+          if (solarFlarePlanned && !solarFlare && timer === solarFlareTriggerTime) triggerSolarFlare();
           
           if (!devourerSpawnedThisRound && timer === 60) {
               spawnDevourer();
@@ -1595,7 +1668,7 @@ function handleBoss() {
 
 function spawnDevourer() {
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_ENT, 2);
-    let w = 300, h = 100, y = H - ZONE_H - 120;
+    let w = 300, h = 100, y = H - ZONE_H - 220;
     let b = Matter.Bodies.rectangle(W/2, y, w, h, { isStatic: true, restitution: 0.2, friction: 0.5 });
     Matter.World.add(world, b);
     
@@ -1613,7 +1686,7 @@ function handleDevourer() {
     if (devourer.state === "ACTIVE") {
         devourer.timer--;
         
-        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 120) + sin(frameCount * 0.1) * 20 });
+        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 220) + sin(frameCount * 0.1) * 20 });
         
         if (devourer.hp <= 0) {
             devourer.state = "DEFEATED";
@@ -1661,12 +1734,78 @@ function handleDevourer() {
     
     pop();
     
-    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 180;
+    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 280;
     push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
     fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
     drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
     drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
     pop();
+}
+
+function triggerSolarFlare() {
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_FLARE, 2);
+    solarFlare = { y: H + 100, speed: 12, activeFrames: 0 };
+    shakeAmount = 20;
+    flashEffect = 30;
+    if (audioStarted) {
+        try { fxSynth.play(150, 0.5, 0, 2.0); } catch(e){}
+    }
+}
+
+function handleSolarFlare() {
+    if (!solarFlare) return;
+    solarFlare.y -= solarFlare.speed;
+    solarFlare.activeFrames++;
+
+    push();
+    let alpha = min(255, (H + 100 - solarFlare.y));
+    drawingContext.shadowBlur = 50;
+    drawingContext.shadowColor = color(255, 100, 0, alpha);
+    fill(255, 150, 0, alpha * 0.7);
+    noStroke();
+    beginShape();
+    vertex(-100, solarFlare.y + 200);
+    for(let x = 0; x <= W; x += 100) {
+        vertex(x, solarFlare.y + sin(frameCount * 0.2 + x) * 50);
+    }
+    vertex(W + 100, solarFlare.y + 200);
+    vertex(W + 100, H + 200);
+    vertex(-100, H + 200);
+    endShape(CLOSE);
+    
+    stroke(255, 255, 150, alpha);
+    strokeWeight(10);
+    noFill();
+    beginShape();
+    for(let x = -50; x <= W + 50; x += 50) {
+        vertex(x, solarFlare.y + sin(frameCount * 0.2 + x) * 50);
+    }
+    endShape();
+    pop();
+
+    for (let b of balls) {
+        if (b.body.position.y > solarFlare.y - 60 && b.body.position.y < solarFlare.y + 150 && b.body.position.y < H - ZONE_H - 10) {
+            Matter.Body.setVelocity(b.body, { 
+                x: b.body.velocity.x + random(-2, 2), 
+                y: random(-25, -35) 
+            });
+            b.scored = false;
+            b.zoneIndex = -1;
+            if (random() < 0.2) createExplosion(b.body.position.x, b.body.position.y, color(255, 200, 0));
+        }
+    }
+    
+    for (let d of spaceDebris) {
+        if (d.y > solarFlare.y - 60 && d.y < solarFlare.y + 150) {
+            d.vy = random(-10, -20);
+        }
+    }
+
+    if (solarFlare.y < -400) {
+        solarFlare = null;
+    } else {
+        shakeAmount = max(shakeAmount, 6);
+    }
 }
 
 function drawAnomalyRoulette() {
@@ -2793,6 +2932,10 @@ function resetGame() {
   devourerSpawnedThisRound = false;
   starbugObj = null;
   lastLikeTime = 0;
+  
+  solarFlare = null;
+  solarFlarePlanned = (random() < 0.35);
+  solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
   
   if (isAutoMode) autoRandomSettings();
   
