@@ -373,6 +373,7 @@ let lastLikeTime = 0;
 let devourer = null;
 let devourerSpawnedThisRound = false;
 let starbugObj = null;
+let starbugSpawnedThisRound = false;
 let initialPegCount = 0;
 
 // Solar Flare mechanic
@@ -756,7 +757,7 @@ function toggleAutoMode() {
 
 function autoRandomSettings() {
   let randG = random() < 0.8 ? random(50, 255) : random(1, 50);
-  currentGravity = map(randG, 1, 255, 0.01, 5.0);
+  currentGravity = Math.round(map(randG, 1, 255, 0.01, 5.0) * 100) / 100;
   currentBounce = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
@@ -785,7 +786,7 @@ function draw() {
   if (!libraryLoaded) return;
   if (!engine) initGame();
   
-  let diff = (!rimmerModeActive && (gravitySlider.value() !== currentGravity)) || 
+  let diff = (!rimmerModeActive && (abs(gravitySlider.value() - currentGravity) > 0.015)) || 
              (!rimmerModeActive && (bounceSlider.value() !== currentBounce)) || 
              (spawnPerEventSlider.value() !== spawnPerEvent) || 
              (shipChanceSlider.value() !== currentShipChance);
@@ -923,8 +924,9 @@ function draw() {
               devourerSpawnedThisRound = true;
           }
 
-          if (!starbugObj && timer === 40) {
+          if (!starbugSpawnedThisRound && timer <= 40) {
               spawnStarbugObj();
+              starbugSpawnedThisRound = true;
           }
           
           let elapsedSec = (millis() - roundStartTimeReal) / 1000;
@@ -2951,6 +2953,7 @@ function resetGame() {
   devourer = null;
   devourerSpawnedThisRound = false;
   starbugObj = null;
+  starbugSpawnedThisRound = false;
   lastLikeTime = 0;
   
   solarFlare = null;
