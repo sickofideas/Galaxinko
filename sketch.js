@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.5.0";
+const GAME_VERSION = "v14.6.0";
 
 let currentLang = "CZ";
 
@@ -8,7 +8,7 @@ const T = {
     GRAV: "Gravity:", BOUNCE: "Bounce:", SPAWN: "Spawn Limit:", CHANCE: "Boss/Ship%:",
     SFX: "SFX Vol:", TTS_VOL: "Voice Vol:", RATE: "Mothership/s:", LIVE: "🔴 LIVE ",
     SYS_ON: "SYSTEM: ONLINE", SYNC: "GEOMETRY: PROCEDURAL | DATA: SYNCED",
-    GFORCE: "G-FORCE:", BOUNCEX: "BOUNCE-X:", REC: "MISSION MILESTONES",
+    GFORCE: "G-FORCE:", BOUNCEX: "BOUNCE-X:", REC: "ALL TIME RECORDS",
     WARP_CORE: "WARP CORE:", ACT_UNITS: "DROPPED UNITS:", TOT_UNITS: "TOTAL UNITS:",
     COOL: "COOLING DOWN...", TOP: "TOP CONTRIBUTORS", WARN: "WARNING: CLEANUP",
     RET: "REMAINING UNITS RETURNING TO BASE...", COMPL: "ROUND COMPLETE",
@@ -31,7 +31,7 @@ const T = {
     GRAV: "Gravitace:", BOUNCE: "Odraz:", SPAWN: "Limit spawnu:", CHANCE: "Šance Boss/Loď%:",
     SFX: "Hlasitost SFX:", TTS_VOL: "Hlasitost robota:", RATE: "Mothership/s:", LIVE: "🔴 ŽIVĚ ",
     SYS_ON: "SYSTÉM: ONLINE", SYNC: "GEOMETRIE: PROCEDURÁLNÍ | DATA: SYNCHRO",
-    GFORCE: "G-SÍLA:", BOUNCEX: "ODRAZ-X:", REC: "DNEŠNÍ REKORDY",
+    GFORCE: "G-SÍLA:", BOUNCEX: "ODRAZ-X:", REC: "ALL TIME REKORDY",
     WARP_CORE: "WARP JÁDRO:", ACT_UNITS: "SPADLÉ KULIČKY:", TOT_UNITS: "CELKEM KULIČEK:",
     COOL: "CHLAZENÍ...", TOP: "NEJLEPŠÍ HRÁČI", WARN: "VAROVÁNÍ: ÚKLID",
     RET: "ZBYLÉ JEDNOTKY SE VRACÍ NA ZÁKLADNU...", COMPL: "KOLO DOKONČENO",
@@ -71,76 +71,144 @@ const SPAM_MSGS = {
 
 const JOKES = {
   CZ: [
-    "Všichni jsou mrtví, Dave.", "Peterson je mrtvý, Dave.", "Kochanská je mrtvá, Dave.", "A co kapitán Hollister?",
-    "Všichni. Jsou. Mrtví. Dave.", "Polívka gazpacho! Kdybych věděl, že se podává studená...",
-    "Uďte uzenáče, k snídani jsem zpátky.", "Křemíkové nebe neexistuje? A kam by potom přišly všechny ty kalkulačky?",
-    "„Kouříš?“ – „Jen po sexu.“ – „Takže vůbec.“", "Jsem naprosto spolehlivý! To jen okolnosti jsou proti mně!",
-    "To není katastrofa, to je totální smeg!", "Rimmere, ty jsi takový trouba, že bys ztratil i vlastní stín.",
-    "Krytone, přestaň být tak zatraceně poslušný!", "Jsem poslední člověk naživu… a jsem to zrovna já.",
-    "Tohle je plán? To je spíš zoufalý pokus neumřít.", "Když se něco může pokazit, Rimmer to pokazí.",
+    "Všichni jsou mrtví, Dave.",
+    "Peterson je mrtvý, Dave.",
+    "Kochanská je mrtvá, Dave.",
+    "A co kapitán Hollister?",
+    "Všichni. Jsou. Mrtví. Dave.",
+    "Polívka gazpacho! Kdybych věděl, že se podává studená...",
+    "Uďte uzenáče, k snídani jsem zpátky.",
+    "Křemíkové nebe neexistuje? A kam by potom přišly všechny ty kalkulačky?",
+    "„Kouříš?“ – „Jen po sexu.“ – „Takže vůbec.“",
+    "Jsem naprosto spolehlivý! To jen okolnosti jsou proti mně!",
+    "To není katastrofa, to je totální smeg!",
+    "Rimmere, ty jsi takový trouba, že bys ztratil i vlastní stín.",
+    "Krytone, přestaň být tak zatraceně poslušný!",
+    "Jsem poslední člověk naživu… a jsem to zrovna já.",
+    "Tohle je plán? To je spíš zoufalý pokus neumřít.",
+    "Když se něco může pokazit, Rimmer to pokazí.",
     "Tohle je nejhorší situace, v jaké jsem kdy byl… a to jsem byl Rimmerův spolubydlící.",
-    "Já nejsem zbabělec! Jen mám vysoce vyvinutý pud sebezáchovy.", "Kocoure, ty jsi úplně k ničemu. – Ale vypadám u toho skvěle.",
-    "To není problém. To je naprostá katastrofa.", "Rimmere, ty jsi chodící důkaz, že evoluce může jít i pozpátku.",
-    "Já mám plán. A je dokonce lepší než žádný plán.", "Jsme ztraceni ve vesmíru, bez šance na návrat… dá si někdo curry?",
-    "Já jsem tak skvělý, až je to skoro nespravedlivé.", "Rimmere, ty jsi úplně k ničemu… a ještě k tomu pomalý.",
-    "Tohle je přesně ten typ plánu, který končí explozí.", "Krytone, někdy bys mohl být méně dokonalý, víš?",
-    "Neříkám, že je to špatný nápad… ale ano, je to špatný nápad.", "Jsem génius! Jen to zatím nikdo nepoznal.",
-    "Tohle je tak špatné, že už to ani nemůže být horší… že?", "Rimmere, ty bys nedokázal zorganizovat ani vlastní snídani.",
-    "Já nemám problém. Já mám spoustu menších katastrof.", "Kocoure, ty myslíš někdy i na něco jiného než na sebe?",
-    "Tohle je přesně chvíle, kdy bych měl být někde úplně jinde.", "Já to zvládnu! …Dobře, nezvládnu, ale zkusím to.",
-    "Rimmere, kdybys byl ještě o trochu víc neschopný, zmizíš.", "To není panika. To je jen velmi rychlé přemýšlení.",
-    "Vesmír je nebezpečné místo. A já jsem v něm s vámi.", "Jmenuju se Rimmer. Arnold Rimmer. A jsem naprosto nepostradatelný.",
-    "Krytone, tohle je rozkaz! Přestaň poslouchat rozkazy!", "To není moje chyba! Já jsem hlasoval proti!",
-    "Já jsem hrdina! Jen jsem měl smůlu na okolnosti.", "Listere, ty jsi naprostý barbar!",
-    "Tohle není zbabělost. To je strategický ústup.", "Kocoure, ty nemáš ani špetku sebekontroly.",
-    "Já mám vždycky pravdu. Jen se to občas ukáže později.", "Tohle je naprosto bezpečné… myslím.",
-    "Krytone, analyzuj situaci! – Situace: jsme v koncích, pane.", "Já se nevzdávám! Jen… měním plán.",
-    "Tohle je typická ukázka totální neschopnosti.", "Listere, ty jsi největší prasák v celé galaxii.",
-    "Já bych to zvládl lépe… kdybych to dělal já.", "Tohle není konec. To je jen velmi špatný začátek.",
-    "Smeg.", "Vypadá to jako něco, co zbylo po výbuchu v továrně na lepidlo.", "Dáme si toast?",
-    "Nechci žádný smradlavý toast!", "A co takhle vafli?", "Jsi tak tupý, že by sis uřízl ruku o lžíci.",
-    "Jaká je šance? Asi jako najít pannu v bordelu.", "Pravidlo vesmírného sboru 196156: Kdokoli, kdo zachrání lodní majetek, má právo na pivo.",
-    "My nikoho nezachraňujeme, my utíkáme.", "Měl jsem krásný sen. Všichni jste v něm zemřeli.",
-    "Listere, jsi odporný. Je to vědecký fakt.", "To byl můj nejlepší oblek!",
-    "Moje IQ má stejnou hodnotu jako počet učitelů tělocviku v galaxii.", "Krytone, já chci své slipy.",
-    "Tohle se mi nelíbí. A když se mi něco nelíbí, obvykle to vybuchne.", "Tenhle dopis je od Výboru pro odškodnění.",
-    "Dneska je ryba. Pstruh a la creme.", "Zemřeme. Všichni zemřeme.", "Bílá díra? Takže z ní vychází čas?",
-    "Co to je? Bílá díra!", "Dám si na to trochu pálivé omáčky.", "Máš mozek z bramborové kaše.",
-    "A co mimozemšťani? Třeba jsou to mimozemšťani!", "Změňte žárovku na červenou!", "Ty jsi muž bez špetky cti.",
-    "Proč mě všichni tak nenávidí?", "To jsi celý ty, Rimmere.", "A co takhle malý kompromis: já přežiju a vy ne.",
-    "Je to horší než špatné. Je to katastrofální.", "Kdo uvařil to kari? Dá se s tím řezat kov.",
-    "Tři miliony let... to je zatraceně dlouhá doba.", "Moje noha má větší mozek než ty.",
-    "Nechci tě znervózňovat, ale jsme naprosto v háji.", "Listere, proč je v mém lůžku kari?",
-    "Protože v lednici už nebylo místo.", "Já jsem Holly, lodní počítač s IQ 6000.", "Zavři klapačku, Holly!",
+    "Já nejsem zbabělec! Jen mám vysoce vyvinutý pud sebezáchovy.",
+    "Kocoure, ty jsi úplně k ničemu. – Ale vypadám u toho skvěle.",
+    "To není problém. To je naprostá katastrofa.",
+    "Rimmere, ty jsi chodící důkaz, že evoluce může jít i pozpátku.",
+    "Já mám plán. A je dokonce lepší než žádný plán.",
+    "Jsme ztraceni ve vesmíru, bez šance na návrat… dá si někdo curry?",
+    "Já jsem tak skvělý, až je to skoro nespravedlivé.",
+    "Rimmere, ty jsi úplně k ničemu… a ještě k tomu pomalý.",
+    "Tohle je přesně ten typ plánu, který končí explozí.",
+    "Krytone, někdy bys mohl být méně dokonalý, víš?",
+    "Neříkám, že je to špatný nápad… ale ano, je to špatný nápad.",
+    "Jsem génius! Jen to zatím nikdo nepoznal.",
+    "Tohle je tak špatné, že už to ani nemůže být horší… že?",
+    "Rimmere, ty bys nedokázal zorganizovat ani vlastní snídani.",
+    "Já nemám problém. Já mám spoustu menších katastrof.",
+    "Kocoure, ty myslíš někdy i na něco jiného než na sebe?",
+    "Tohle je přesně chvíle, kdy bych měl být někde úplně jinde.",
+    "Já to zvládnu! …Dobře, nezvládnu, ale zkusím to.",
+    "Rimmere, kdybys byl ještě o trochu víc neschopný, zmizíš.",
+    "To není panika. To je jen velmi rychlé přemýšlení.",
+    "Vesmír je nebezpečné místo. A já jsem v něm s vámi.",
+    "Jmenuju se Rimmer. Arnold Rimmer. A jsem naprosto nepostradatelný.",
+    "Krytone, tohle je rozkaz! Přestaň poslouchat rozkazy!",
+    "To není moje chyba! Já jsem hlasoval proti!",
+    "Já jsem hrdina! Jen jsem měl smůlu na okolnosti.",
+    "Listere, ty jsi naprostý barbar!",
+    "Tohle není zbabělost. To je strategický ústup.",
+    "Kocoure, ty nemáš ani špetku sebekontroly.",
+    "Já mám vždycky pravdu. Jen se to občas ukáže později.",
+    "Tohle je naprosto bezpečné… myslím.",
+    "Krytone, analyzuj situaci! – Situace: jsme v koncích, pane.",
+    "Já se nevzdávám! Jen… měním plán.",
+    "Tohle je typická ukázka totální neschopnosti.",
+    "Listere, ty jsi největší prasák v celé galaxii.",
+    "Já bych to zvládl lépe… kdybych to dělal já.",
+    "Tohle není konec. To je jen velmi špatný začátek.",
+    "Smeg.",
+    "Vypadá to jako něco, co zbylo po výbuchu v továrně na lepidlo.",
+    "Dáme si toast?",
+    "Nechci žádný smradlavý toast!",
+    "A co takhle vafli?",
+    "Jsi tak tupý, že by sis uřízl ruku o lžíci.",
+    "Jaká je šance? Asi jako najít pannu v bordelu.",
+    "Pravidlo vesmírného sboru 196156: Kdokoli, kdo zachrání lodní majetek, má právo na pivo.",
+    "My nikoho nezachraňujeme, my utíkáme.",
+    "Měl jsem krásný sen. Všichni jste v něm zemřeli.",
+    "Listere, jsi odporný. Je to vědecký fakt.",
+    "To byl můj nejlepší oblek!",
+    "Moje IQ má stejnou hodnotu jako počet učitelů tělocviku v galaxii.",
+    "Krytone, já chci své slipy.",
+    "Tohle se mi nelíbí. A když se mi něco nelíbí, obvykle to vybuchne.",
+    "Tenhle dopis je od Výboru pro odškodnění.",
+    "Dneska je ryba. Pstruh a la creme.",
+    "Zemřeme. Všichni zemřeme.",
+    "Bílá díra? Takže z ní vychází čas?",
+    "Co to je? Bílá díra!",
+    "Dám si na to trochu pálivé omáčky.",
+    "Máš mozek z bramborové kaše.",
+    "A co mimozemšťani? Třeba jsou to mimozemšťani!",
+    "Změňte žárovku na červenou!",
+    "Ty jsi muž bez špetky cti.",
+    "Proč mě všichni tak nenávidí?",
+    "To jsi celý ty, Rimmere.",
+    "A co takhle malý kompromis: já přežiju a vy ne.",
+    "Je to horší než špatné. Je to katastrofální.",
+    "Kdo uvařil to kari? Dá se s tím řezat kov.",
+    "Tři miliony let... to je zatraceně dlouhá doba.",
+    "Moje noha má větší mozek než ty.",
+    "Nechci tě znervózňovat, ale jsme naprosto v háji.",
+    "Listere, proč je v mém lůžku kari?",
+    "Protože v lednici už nebylo místo.",
+    "Já jsem Holly, lodní počítač s IQ 6000.",
+    "Zavři klapačku, Holly!",
     "Hej vy tam! Potřebujeme kuličky! Nejsme tady na vesmírném pikniku!",
     "Klikejte na tu obrazovku! Moje babička by klikala rychleji a to je už mrtvá!",
     "Ztrácíme energii! Pošlete okamžitě kuličky, nebo nás to vcucne do černé díry!",
     "Vesmírná anomálie? Ne, to je jen vaše lenost! Klikat, klikat, klikat!",
-    "Potřebujeme energii na štíty! Posádko, do boje!", "Nepanikařte! Já panikařím za nás za všechny!",
-    "Slyšíte tu hudbu? To je ticho z prázdných chlívků!", "Klikat! Víc kuliček rovná se víc naděje pro lidstvo!",
-    "Kdo nekliká, jako by nežil. Dave, klikej!", "Můj účes právě ztratil tvar z nedostatku kuliček na obrazovce!",
-    "Rimmere, i tahle obrazovka má víc charizmatu než ty.", "Štíty na 20 procent! Přidat kuličky, vy smegheadi!",
-    "Krytone, co dělají naši diváci? Nudí se!", "Jestli nepošlete kuličku, začnu zpívat. A vy víte, co to znamená.",
-    "Lajky, lidi, lajky! To je palivo budoucnosti!", "Pamatujte na pravidlo sboru: pokud něco bliká, klikejte na to!",
-    "Zírám do propasti a propast zírá na mě.", "Navrhuji, abychom zalezli pod stůl a brečeli.",
-    "Ty jsi absolutní, naprostý, stoprocentní magor.", "Jediná věc, která nás dělí od jisté smrti, je tenhle kus plechu.",
+    "Potřebujeme energii na štíty! Posádko, do boje!",
+    "Nepanikařte! Já panikařím za nás za všechny!",
+    "Slyšíte tu hudbu? To je ticho z prázdných chlívků!",
+    "Klikat! Víc kuliček rovná se víc naděje pro lidstvo!",
+    "Kdo nekliká, jako by nežil. Dave, klikej!",
+    "Můj účes právě ztratil tvar z nedostatku kuliček na obrazovce!",
+    "Rimmere, i tahle obrazovka má víc charizmatu než ty.",
+    "Štíty na 20 procent! Přidat kuličky, vy smegheadi!",
+    "Krytone, co dělají naši diváci? Nudí se!",
+    "Jestli nepošlete kuličku, začnu zpívat. A vy víte, co to znamená.",
+    "Lajky, lidi, lajky! To je palivo budoucnosti!",
+    "Pamatujte na pravidlo sboru: pokud něco bliká, klikejte na to!",
+    "Zírám do propasti a propast zírá na mě.",
+    "Navrhuji, abychom zalezli pod stůl a brečeli.",
+    "Ty jsi absolutní, naprostý, stoprocentní magor.",
+    "Jediná věc, která nás dělí od jisté smrti, je tenhle kus plechu.",
     "Víš, co se stane, když zmáčkneš tohle tlačítko? Vymažeš nás z existence.",
-    "To je úžasné, on to fakt dokázal zkazit ještě víc.", "Listere, máš tolik šarmu jako přejetý jezevec.",
+    "To je úžasné, on to fakt dokázal zkazit ještě víc.",
+    "Listere, máš tolik šarmu jako přejetý jezevec.",
     "Vesmír je obrovský, chladný a my v něm nemáme žádný smysl. Dáme si párek?",
     "Zemřeme. Všichni zemřeme. Ale aspoň u toho budeme dobře vypadat!",
     "Nikdo mě nemá rád. Všichni mě nenávidí. Půjdu na zahradu a sním žížalu.",
-    "Nejsem zbabělec, jsem jen extrémně opatrný.", "Víš, co je tvůj problém? Jsi úplně k ničemu.",
-    "Mám nápad! Můžeme se vzdát.", "Jestli tohle přežijeme, slibuju, že už nikdy nebudu jíst Listerovo kari.",
-    "Byl to jen takový malý výbuch. Nic vážného.", "Takže my tu prostě sedíme a čekáme na smrt?",
-    "Když jsem byl malý, chtěl jsem být pes.", "Budeme žít navždy... nebo aspoň do úterý.",
-    "Co budeme dělat? Panikařit?", "Nouzový protokol zahájen: Všichni běhejte v kruzích a mávejte rukama.",
+    "Nejsem zbabělec, jsem jen extrémně opatrný.",
+    "Víš, co je tvůj problém? Jsi úplně k ničemu.",
+    "Mám nápad! Můžeme se vzdát.",
+    "Jestli tohle přežijeme, slibuju, že už nikdy nebudu jíst Listerovo kari.",
+    "Byl to jen takový malý výbuch. Nic vážného.",
+    "Takže my tu prostě sedíme a čekáme na smrt?",
+    "Když jsem byl malý, chtěl jsem být pes.",
+    "Budeme žít navždy... nebo aspoň do úterý.",
+    "Co budeme dělat? Panikařit?",
+    "Nouzový protokol zahájen: Všichni běhejte v kruzích a mávejte rukama.",
     "Krytone, sundej si ten převlek. - Tohle není převlek, to je moje tvář.",
-    "Jsi tak blbej, že by sis zapomněl dýchat.", "Tohle je horší než hrát Scrabble s hologramem.",
-    "Jsem naštvaný, unavený a chci svoje kuře vindaloo!", "Může někdo vypnout toho zatraceného Toustovače?!"
+    "Jsi tak blbej, že by sis zapomněl dýchat.",
+    "Tohle je horší než hrát Scrabble s hologramem.",
+    "Jsem naštvaný, unavený a chci svoje kuře vindaloo!",
+    "Může někdo vypnout toho zatraceného Toustovače?!"
   ],
   EN: [
-    "Everybody's dead, Dave.", "Watch out, {0} is tapping like crazy!", "Commander {0} must have a finger cramp!",
-    "{0} is heating up the display to the max!", "Someone stop {0} before the glass breaks!"
+    "Everybody's dead, Dave.",
+    "Watch out, {0} is tapping like crazy!",
+    "Commander {0} must have a finger cramp!",
+    "{0} is heating up the display to the max!",
+    "Someone stop {0} before the glass breaks!"
   ]
 };
 
@@ -162,18 +230,17 @@ let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, ri
 
 let spamBuffer = {};
 
-// --- NOVE PROMENNE PRO UPGRADY ---
+// Premenné pre mechaniku pridávania času a anomálie
 let bonusTime = 0.0;
 let roundStartTimeReal = 0;
 let nextAnomalyTime = 180; 
 let anomalyState = 0; 
 let anomalyTimer = 0;
-let anomG = 0, anomB = 0, anomalyAngle = 0;
-let initialPegCount = 0;
+let anomG = 0, anomB = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
 
+// Novy Boss - Pozirac Casu
 let devourer = null;
 let devourerSpawnedThisRound = false;
-let starbugObj = null;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -187,8 +254,8 @@ let autoButton, langButton;
 let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
 
 let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [];
-let currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], fxSynth, audioStarted = false;
-let lastSpawnSnd = 0, lastExpSnd = 0, lastSpawnTime = 0;
+let planetSize = 0, currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], fxSynth, audioStarted = false;
+let lastSpawnSnd = 0, lastExpSnd = 0, lastSpawnTime = 0, doorOpen = 0;
 
 const W = 900, H = 1000, ZONE_H = 80;
 
@@ -360,11 +427,17 @@ function speakAnnouncer(p, pri = 0) {
   if (env.length > 0) u.voice = random(env);
   
   let voiceType = random(["ROBOT", "WOMAN", "MAN", "ALIEN", "NORMAL"]);
-  if (voiceType === "ROBOT") { u.pitch = 0.3; u.rate = 0.8; } 
-  else if (voiceType === "WOMAN") { u.pitch = 1.7; u.rate = 1.1; } 
-  else if (voiceType === "ALIEN") { u.pitch = 0.1; u.rate = 0.6; } 
-  else if (voiceType === "MAN") { u.pitch = 0.7; u.rate = 0.9; } 
-  else { u.pitch = 1.0; u.rate = 1.0; }
+  if (voiceType === "ROBOT") {
+    u.pitch = 0.3; u.rate = 0.8;
+  } else if (voiceType === "WOMAN") {
+    u.pitch = 1.7; u.rate = 1.1;
+  } else if (voiceType === "ALIEN") {
+    u.pitch = 0.1; u.rate = 0.6;
+  } else if (voiceType === "MAN") {
+    u.pitch = 0.7; u.rate = 0.9;
+  } else {
+    u.pitch = 1.0; u.rate = 1.0;
+  }
   
   u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0;
   window.speechSynthesis.speak(u);
@@ -390,11 +463,17 @@ function speakName(n) {
   }
   
   let voiceType = random(["ROBOT", "WOMAN", "MAN", "ALIEN", "NORMAL"]);
-  if (voiceType === "ROBOT") { u.pitch = 0.3; u.rate = 0.8; } 
-  else if (voiceType === "WOMAN") { u.pitch = 1.7; u.rate = 1.1; } 
-  else if (voiceType === "ALIEN") { u.pitch = 0.1; u.rate = 0.6; } 
-  else if (voiceType === "MAN") { u.pitch = 0.7; u.rate = 0.9; } 
-  else { u.pitch = 1.0; u.rate = 1.0; }
+  if (voiceType === "ROBOT") {
+    u.pitch = 0.3; u.rate = 0.8;
+  } else if (voiceType === "WOMAN") {
+    u.pitch = 1.7; u.rate = 1.1;
+  } else if (voiceType === "ALIEN") {
+    u.pitch = 0.1; u.rate = 0.6;
+  } else if (voiceType === "MAN") {
+    u.pitch = 0.7; u.rate = 0.9;
+  } else {
+    u.pitch = 1.0; u.rate = 1.0;
+  }
 
   u.volume = ttsSlider ? parseFloat(ttsSlider.value()) : 1.0; 
   window.speechSynthesis.speak(u);
@@ -539,6 +618,7 @@ function autoRandomSettings() {
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
+  if (mothershipSlider) mothershipSlider.value(floor(random(0, 31)));
   if (world) world.gravity.y = currentGravity;
 }
 
@@ -617,7 +697,7 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
-  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer(); handleStarbugObj();
+  handleBlackHole(); handleCosmicEvent(); handleSpaceship(); handleBoss(); handleDevourer();
 
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
@@ -629,11 +709,6 @@ function draw() {
       nextJokeTime = millis() + random(10000, 20000);
     }
     
-    if (!devourerSpawnedThisRound && roundTotalBalls > 400 && !boss && !rimmerModeActive && anomalyState === 0) {
-        spawnDevourer();
-        devourerSpawnedThisRound = true;
-    }
-
     if (random() < 0.015) {
       let side = floor(random(3)); let mx, my, mvx, mvy;
       if (side === 0) { mx = random(W); my = -50; mvx = random(-4, 4); mvy = random(15, 25); } 
@@ -688,10 +763,6 @@ function draw() {
           if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
           
-          if (pegs.length < initialPegCount * 0.6 && !starbugObj && random() < 0.2) {
-              spawnStarbugObj();
-          }
-
           if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
           if (random() < 0.11) spawnRareLegend();
           if (timer === 10) speakAnnouncer(T[currentLang].TTS_10S, 1);
@@ -701,10 +772,6 @@ function draw() {
             speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
           }
           
-          let elapsed = floor((millis() - roundStartTimeReal) / 1000);
-          if (elapsed >= nextAnomalyTime) {
-              triggerAnomaly();
-          }
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -743,7 +810,7 @@ function draw() {
   
   if (rimmerModeActive) {
     let f = (frameCount % 10 < 5) ? 255 : 100;
-    drawTxt(`${T[currentLang].RIM_MODE} ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
+    drawTxt(typeof T !== 'undefined' ? `${T[currentLang].RIM_MODE} ${rimmerModeTimer}s` : `RIMMER MODE ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
   }
 
   if (meteorWarningTimer > 0) {
@@ -767,300 +834,11 @@ function draw() {
       removeBall(balls[idx !== -1 ? idx : 0]);
   }
   
-  if (anomalyState === 1) {
-      drawAnomalyRoulette();
-      anomalyTimer--;
-      if (anomalyTimer <= 0) {
-          anomalyState = 0;
-          applyAnomaly();
-      }
-  }
-
   if (flashEffect > 0) {
     noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(-W, -H, W*3, H*3);
     flashEffect--;
   }
   pop();
-}
-
-function spawnDevourer() {
-    speakAnnouncer(T[currentLang].TTS_DEV_ENT, 2);
-    let w = 300, h = 100, y = H - ZONE_H - 120;
-    let b = Matter.Bodies.rectangle(W/2, y, w, h, { isStatic: true, restitution: 0.2, friction: 0.5 });
-    Matter.World.add(world, b);
-    
-    let bossHp = 50000 + (roundTotalBalls * 50);
-    devourer = { body: b, w: w, h: h, x: W/2, y: y, maxHp: bossHp, hp: bossHp, timer: 60 * targetFPS, state: "ACTIVE", hitFlash: 0 };
-    shakeAmount = 25; flashEffect = 40;
-}
-
-function handleDevourer() {
-    if (!devourer) return;
-    let pos = devourer.body.position;
-    devourer.x = pos.x; devourer.y = pos.y;
-    
-    if (devourer.state === "ACTIVE") {
-        devourer.timer--;
-        
-        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 120) + sin(frameCount * 0.1) * 20 });
-        
-        if (devourer.hp <= 0) {
-            devourer.state = "DEFEATED";
-            speakAnnouncer(T[currentLang].TTS_DEV_DEF, 2);
-            shakeAmount = 40; playJackpotSound();
-            triggerMeteorShower();
-            for(let player in leaderboard) {
-                updateScore(player, 50000, leaderboard[player].color);
-            }
-            Matter.World.remove(world, devourer.body);
-        } else if (devourer.timer <= 0) {
-            devourer.state = "FAILED";
-            speakAnnouncer(T[currentLang].TTS_DEV_FAIL, 2);
-            shakeAmount = 50; flashEffect = 100; playExplosionSound();
-            
-            timer = Math.floor(timer / 2);
-            bonusTime = bonusTime / 2;
-            let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 10);
-            for(let i=0; i<sorted.length; i++) {
-                leaderboard[sorted[i][0]].score = Math.floor(leaderboard[sorted[i][0]].score * 0.8);
-            }
-            Matter.World.remove(world, devourer.body);
-        }
-    } else if (devourer.state === "DEFEATED" || devourer.state === "FAILED") {
-        createExplosion(devourer.x + random(-150, 150), devourer.y + random(-50, 50), color(200, 0, 255));
-        if (frameCount % 5 === 0) devourer = null; 
-        return;
-    }
-
-    push(); translate(devourer.x, devourer.y);
-    if (devourer.hitFlash > 0) { devourer.hitFlash--; drawingContext.shadowBlur = 40; drawingContext.shadowColor = color(255); }
-    else { drawingContext.shadowBlur = 30; drawingContext.shadowColor = color(0, 0, 0); }
-    
-    fill(10, 0, 20); stroke(150, 0, 255); strokeWeight(4);
-    ellipse(0, 0, devourer.w, devourer.h);
-    
-    let pulse = sin(frameCount * 0.2) * 10;
-    fill(0); noStroke();
-    ellipse(0, 0, devourer.w * 0.8 + pulse, devourer.h * 0.6 + pulse);
-    
-    fill(255, 0, 0);
-    for(let i=0; i<5; i++) {
-        ellipse(random(-50, 50), random(-10, 10), 8, 8);
-    }
-    
-    pop();
-    
-    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 180;
-    push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
-    fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
-    drawTxt(T[currentLang].DEVOURER, W/2, barY - 10, color(255), 10, CENTER);
-    drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
-    pop();
-}
-
-function spawnStarbugObj() {
-    speakAnnouncer(T[currentLang].TTS_STARBUG_ENT, 1);
-    starbugObj = { x: -100, y: random(150, H/2 - 100), speed: 3, activeFrames: 0 };
-}
-
-function handleStarbugObj() {
-    if (!starbugObj) return;
-    starbugObj.x += starbugObj.speed;
-    starbugObj.activeFrames++;
-
-    push();
-    translate(starbugObj.x, starbugObj.y);
-    let s = 50;
-    noStroke();
-    fill(50, 200, 50); ellipse(s*0.3, 0, s*0.6, s*0.4); 
-    ellipse(-s*0.1, 0, s*0.8, s*0.6); 
-    ellipse(-s*0.6, 0, s*0.4, s*0.5);
-    fill(150, 255, 255, 150); ellipse(s*0.4, -s*0.05, s*0.2, s*0.1);
-    
-    fill(255, 150, 0, 150 + sin(frameCount * 0.5) * 100);
-    ellipse(-s*0.85, 0, s*0.3, s*0.2);
-    pop();
-
-    if (starbugObj.activeFrames % 20 === 0 && random() < 0.7 && starbugObj.x > 100 && starbugObj.x < W - 100) {
-        let py = starbugObj.y + random(80, 300);
-        let valid = true;
-        for (let pg of pegs) {
-            if (dist(starbugObj.x, py, pg.position.x, pg.position.y) < 35) { valid = false; break; }
-        }
-        if (valid) {
-            let pg = Matter.Bodies.circle(starbugObj.x, py, 6, { isStatic: true, restitution: map(currentBounce, 1, 255, 0.1, 2.0), collisionFilter: { category: 2 } });
-            pg.isBonus = true;
-            pg.glow = 255;
-            pegs.push(pg);
-            Matter.World.add(world, pg);
-            createExplosion(starbugObj.x, starbugObj.y + 10, color(50, 255, 50));
-            if (audioStarted) { try { fxSynth.play(800, 0.05, 0, 0.1); } catch(e){} }
-        }
-    }
-
-    if (starbugObj.x > W + 150) starbugObj = null;
-}
-
-function drawAnomalyRoulette() {
-    push();
-    fill(0, 0, 10, 220); 
-    rect(-W, -H, W*3, H*3);
-    
-    translate(W/2, H/2);
-    
-    let t = anomalyTimer; 
-    let p = map(t, 300, 60, 0, 1); 
-    p = constrain(p, 0, 1);
-    let easeOut = 1 - Math.pow(1 - p, 4); 
-
-    let targetAngleG = map(anomG, 1, 255, 0, TWO_PI);
-    let targetAngleB = map(anomB, 1, 255, 0, TWO_PI);
-
-    let spinsG = 15; 
-    let spinsB = 22; 
-
-    let currentAngleG = (targetAngleG - spinsG * TWO_PI) + (spinsG * TWO_PI) * easeOut;
-    let currentAngleB = (targetAngleB - spinsB * TWO_PI) + (spinsB * TWO_PI) * easeOut;
-
-    let normG = currentAngleG % TWO_PI;
-    if (normG < 0) normG += TWO_PI;
-    let currentValG = constrain(round(map(normG, 0, TWO_PI, 1, 255)), 1, 255);
-
-    let normB = currentAngleB % TWO_PI;
-    if (normB < 0) normB += TWO_PI;
-    let currentValB = constrain(round(map(normB, 0, TWO_PI, 1, 255)), 1, 255);
-
-    if (t <= 60) {
-        currentAngleG = targetAngleG;
-        currentAngleB = targetAngleB;
-        currentValG = anomG;
-        currentValB = anomB;
-    } else if (frameCount % 4 === 0 && audioStarted) {
-        try { fxSynth.play(random(600, 900), 0.02, 0, 0.05); } catch(e){}
-    }
-
-    push();
-    rotate(frameCount * 0.01);
-    stroke(0, 150, 255, 80);
-    strokeWeight(2);
-    noFill();
-    ellipse(0, 0, 390, 390);
-    for(let i=0; i<36; i++) {
-        line(0, -195, 0, -205);
-        rotate(TWO_PI/36);
-    }
-    pop();
-
-    push();
-    rotate(-HALF_PI); 
-    
-    textAlign(CENTER, CENTER);
-    for(let i = 1; i <= 255; i++) {
-        let isMajor = (i === 1 || i % 25 === 0 || i === 255);
-        let isMid = (i % 5 === 0);
-        
-        if (isMajor || isMid) {
-            let ang = map(i, 1, 255, 0, TWO_PI);
-            let rInner = isMajor ? 140 : 150;
-            let rOuter = 160;
-            
-            stroke(isMajor ? color(255) : color(0, 255, 255, 120));
-            strokeWeight(isMajor ? 2 : 1);
-            line(cos(ang)*rInner, sin(ang)*rInner, cos(ang)*rOuter, sin(ang)*rOuter);
-            
-            if (isMajor) {
-                noStroke();
-                fill(200, 255, 255);
-                let rText = 175;
-                textSize(10);
-                push();
-                translate(cos(ang)*rText, sin(ang)*rText);
-                rotate(ang + HALF_PI);
-                text(i, 0, 0);
-                pop();
-            }
-        }
-    }
-    
-    push();
-    rotate(currentAngleG);
-    stroke(255, 50, 50);
-    strokeWeight(3);
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = color(255, 50, 50);
-    line(0, 0, 135, 0);
-    fill(255, 50, 50);
-    noStroke();
-    triangle(135, -6, 135, 6, 150, 0);
-    pop();
-
-    push();
-    rotate(currentAngleB);
-    stroke(50, 255, 50);
-    strokeWeight(3);
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = color(50, 255, 50);
-    line(0, 0, 115, 0);
-    fill(50, 255, 50);
-    noStroke();
-    triangle(115, -6, 115, 6, 130, 0);
-    pop();
-    
-    pop(); 
-
-    fill(10, 10, 30, 230);
-    stroke(0, 255, 255, 100);
-    strokeWeight(2);
-    ellipse(0, 0, 140, 140);
-    
-    fill(255);
-    noStroke();
-    textAlign(CENTER, CENTER);
-    
-    textSize(12);
-    fill(255, 100, 100);
-    text(T[currentLang].GRAV, 0, -45);
-    textSize(24);
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = color(255, 50, 50);
-    text(currentValG, 0, -25);
-    
-    textSize(12);
-    fill(100, 255, 100);
-    drawingContext.shadowBlur = 0;
-    text(T[currentLang].BOUNCE, 0, 15);
-    textSize(24);
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = color(50, 255, 50);
-    text(currentValB, 0, 35);
-    drawingContext.shadowBlur = 0;
-    
-    textSize(26);
-    fill(255, 200, 0, 150 + sin(frameCount * 0.2) * 100);
-    text(T[currentLang].ANOMALY, 0, -230);
-    pop();
-}
-
-function triggerAnomaly() {
-    anomalyState = 1;
-    anomalyTimer = 300;
-    nextAnomalyTime += 60;
-    speakAnnouncer(T[currentLang].ANOMALY, 2);
-    anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
-    anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
-    anomalyAngle = 0;
-}
-
-function applyAnomaly() {
-    currentGravity = map(anomG, 1, 255, 0.01, 5.0);
-    currentBounce = anomB;
-    gravitySlider.value(currentGravity);
-    bounceSlider.value(currentBounce);
-    if (world) world.gravity.y = currentGravity;
-    shakeAmount = 30;
-    flashEffect = 80;
-    playJackpotSound();
-    speakAnnouncer(T[currentLang].PHYS_ALT, 2);
 }
 
 function handleSpamBuffer() {
@@ -1410,7 +1188,7 @@ function checkAllTimeRecords(n, s, c) {
   if (i !== -1) { if (s > allTimeRecords[i].score) allTimeRecords[i].score = s; } 
   else { allTimeRecords.push({ name: n, score: s, color: [red(c), green(c), blue(c)] }); }
   allTimeRecords.sort((a, b) => b.score - a.score);
-  allTimeRecords = allTimeRecords.slice(0, 5);
+  allTimeRecords = allTimeRecords.slice(0, 12);
   localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords));
 }
 
@@ -1452,7 +1230,7 @@ function drawUI() {
   pop();
   
   push(); translate(10, 85);
-  let ml = allTimeRecords.slice(0, 5); let lH = 45 + max(1, ml.length) * 26;
+  let ml = allTimeRecords.slice(0, 12); let lH = 45 + max(1, ml.length) * 26;
   
   fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 240, lH, 8);
   noStroke(); textAlign(CENTER); textSize(12); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 122, 27);
@@ -1676,6 +1454,287 @@ function handleBoss() {
   fill(255, 50, 50); rect(barX, barY, barW * (max(0, boss.hp) / boss.maxHp), barH, 5);
   drawTxt(typeof T !== 'undefined' ? T[currentLang].LEVI : "BOSS HP", W/2, barY + 10, color(255), 10, CENTER);
   pop();
+}
+
+function spawnDevourer() {
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_ENT, 2);
+    let w = 300, h = 100, y = H - ZONE_H - 120;
+    let b = Matter.Bodies.rectangle(W/2, y, w, h, { isStatic: true, restitution: 0.2, friction: 0.5 });
+    Matter.World.add(world, b);
+    
+    let bossHp = 50000 + (roundTotalBalls * 50);
+    devourer = { body: b, w: w, h: h, x: W/2, y: y, maxHp: bossHp, hp: bossHp, timer: 60 * targetFPS, state: "ACTIVE", hitFlash: 0 };
+    shakeAmount = 25; flashEffect = 40;
+}
+
+function handleDevourer() {
+    if (!devourer) return;
+    let pos = devourer.body.position;
+    devourer.x = pos.x;
+    devourer.y = pos.y;
+    
+    if (devourer.state === "ACTIVE") {
+        devourer.timer--;
+        
+        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 120) + sin(frameCount * 0.1) * 20 });
+        
+        if (devourer.hp <= 0) {
+            devourer.state = "DEFEATED";
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_DEF, 2);
+            shakeAmount = 40; playJackpotSound();
+            triggerMeteorShower();
+            for(let player in leaderboard) {
+                updateScore(player, 50000, leaderboard[player].color);
+            }
+            Matter.World.remove(world, devourer.body);
+        } else if (devourer.timer <= 0) {
+            devourer.state = "FAILED";
+            if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_FAIL, 2);
+            shakeAmount = 50; flashEffect = 100; playExplosionSound();
+            
+            timer = Math.floor(timer / 2);
+            bonusTime = bonusTime / 2;
+            let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 10);
+            for(let i=0; i<sorted.length; i++) {
+                leaderboard[sorted[i][0]].score = Math.floor(leaderboard[sorted[i][0]].score * 0.8);
+            }
+            Matter.World.remove(world, devourer.body);
+        }
+    } else if (devourer.state === "DEFEATED" || devourer.state === "FAILED") {
+        createExplosion(devourer.x + random(-150, 150), devourer.y + random(-50, 50), color(200, 0, 255));
+        if (frameCount % 5 === 0) devourer = null; 
+        return;
+    }
+
+    push(); translate(devourer.x, devourer.y);
+    if (devourer.hitFlash > 0) { devourer.hitFlash--; drawingContext.shadowBlur = 40; drawingContext.shadowColor = color(255); }
+    else { drawingContext.shadowBlur = 30; drawingContext.shadowColor = color(0, 0, 0); }
+    
+    fill(10, 0, 20); stroke(150, 0, 255); strokeWeight(4);
+    ellipse(0, 0, devourer.w, devourer.h);
+    
+    let pulse = sin(frameCount * 0.2) * 10;
+    fill(0); noStroke();
+    ellipse(0, 0, devourer.w * 0.8 + pulse, devourer.h * 0.6 + pulse);
+    
+    fill(255, 0, 0);
+    for(let i=0; i<5; i++) {
+        ellipse(random(-50, 50), random(-10, 10), 8, 8);
+    }
+    
+    pop();
+    
+    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 180;
+    push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
+    fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
+    drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
+    drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
+    pop();
+}
+
+function drawAnomalyRoulette() {
+    push();
+    fill(0, 0, 10, 220); 
+    rect(-W, -H, W*3, H*3);
+    
+    translate(W/2, H/2);
+    
+    let t = anomalyTimer; 
+    let p = map(t, 300, 60, 0, 1); 
+    p = constrain(p, 0, 1);
+    let easeOut = 1 - Math.pow(1 - p, 4); 
+
+    let targetAngleG = map(anomG, 1, 255, 0, TWO_PI);
+    let targetAngleB = map(anomB, 1, 255, 0, TWO_PI);
+
+    let spinsG = 15; 
+    let spinsB = 22; 
+
+    let currentAngleG = (targetAngleG - spinsG * TWO_PI) + (spinsG * TWO_PI) * easeOut;
+    let currentAngleB = (targetAngleB - spinsB * TWO_PI) + (spinsB * TWO_PI) * easeOut;
+
+    let normG = currentAngleG % TWO_PI;
+    if (normG < 0) normG += TWO_PI;
+    let currentValG = constrain(round(map(normG, 0, TWO_PI, 1, 255)), 1, 255);
+
+    let normB = currentAngleB % TWO_PI;
+    if (normB < 0) normB += TWO_PI;
+    let currentValB = constrain(round(map(normB, 0, TWO_PI, 1, 255)), 1, 255);
+
+    if (t <= 60) {
+        currentAngleG = targetAngleG;
+        currentAngleB = targetAngleB;
+        currentValG = anomG;
+        currentValB = anomB;
+    } else if (frameCount % 4 === 0 && audioStarted) {
+        try { fxSynth.play(random(600, 900), 0.02, 0, 0.05); } catch(e){}
+    }
+
+    push();
+    rotate(frameCount * 0.01);
+    stroke(0, 150, 255, 80);
+    strokeWeight(2);
+    noFill();
+    ellipse(0, 0, 390, 390);
+    for(let i=0; i<36; i++) {
+        line(0, -195, 0, -205);
+        rotate(TWO_PI/36);
+    }
+    pop();
+
+    push();
+    rotate(-HALF_PI); 
+    
+    textAlign(CENTER, CENTER);
+    for(let i = 1; i <= 255; i++) {
+        let isMajor = (i === 1 || i % 25 === 0 || i === 255);
+        let isMid = (i % 5 === 0);
+        
+        if (isMajor || isMid) {
+            let ang = map(i, 1, 255, 0, TWO_PI);
+            let rInner = isMajor ? 140 : 150;
+            let rOuter = 160;
+            
+            stroke(isMajor ? color(255) : color(0, 255, 255, 120));
+            strokeWeight(isMajor ? 2 : 1);
+            line(cos(ang)*rInner, sin(ang)*rInner, cos(ang)*rOuter, sin(ang)*rOuter);
+            
+            if (isMajor) {
+                noStroke();
+                fill(200, 255, 255);
+                let rText = 175;
+                textSize(10);
+                push();
+                translate(cos(ang)*rText, sin(ang)*rText);
+                rotate(ang + HALF_PI);
+                text(i, 0, 0);
+                pop();
+            }
+        }
+    }
+    
+    push();
+    rotate(currentAngleG);
+    stroke(255, 50, 50);
+    strokeWeight(3);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = color(255, 50, 50);
+    line(0, 0, 135, 0);
+    fill(255, 50, 50);
+    noStroke();
+    triangle(135, -6, 135, 6, 150, 0);
+    pop();
+
+    push();
+    rotate(currentAngleB);
+    stroke(50, 255, 50);
+    strokeWeight(3);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = color(50, 255, 50);
+    line(0, 0, 115, 0);
+    fill(50, 255, 50);
+    noStroke();
+    triangle(115, -6, 115, 6, 130, 0);
+    pop();
+    
+    pop(); 
+
+    fill(10, 10, 30, 230);
+    stroke(0, 255, 255, 100);
+    strokeWeight(2);
+    ellipse(0, 0, 140, 140);
+    
+    fill(255);
+    noStroke();
+    textAlign(CENTER, CENTER);
+    
+    textSize(12);
+    fill(255, 100, 100);
+    text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", 0, -45);
+    textSize(24);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = color(255, 50, 50);
+    text(currentValG, 0, -25);
+    
+    textSize(12);
+    fill(100, 255, 100);
+    drawingContext.shadowBlur = 0;
+    text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 0, 15);
+    textSize(24);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = color(50, 255, 50);
+    text(currentValB, 0, 35);
+    drawingContext.shadowBlur = 0;
+    
+    textSize(26);
+    fill(255, 200, 0, 150 + sin(frameCount * 0.2) * 100);
+    text(typeof T !== 'undefined' ? T[currentLang].ANOMALY : "ANOMALY", 0, -230);
+    pop();
+}
+
+function triggerAnomaly() {
+    anomalyState = 1;
+    anomalyTimer = 300;
+    nextAnomalyTime += 60;
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].ANOMALY, 2);
+    anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+    anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+    anomalyAngle = 0;
+}
+
+function applyAnomaly() {
+    currentGravity = map(anomG, 1, 255, 0.01, 5.0);
+    currentBounce = anomB;
+    gravitySlider.value(currentGravity);
+    bounceSlider.value(currentBounce);
+    if (world) world.gravity.y = currentGravity;
+    shakeAmount = 30;
+    flashEffect = 80;
+    playJackpotSound();
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].PHYS_ALT, 2);
+}
+
+function spawnStarbugObj() {
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_STARBUG_ENT, 1);
+    starbugObj = { x: -100, y: random(150, H/2 - 100), speed: 3, activeFrames: 0 };
+}
+
+function handleStarbugObj() {
+    if (!starbugObj) return;
+    starbugObj.x += starbugObj.speed;
+    starbugObj.activeFrames++;
+
+    push();
+    translate(starbugObj.x, starbugObj.y);
+    let s = 50;
+    noStroke();
+    fill(50, 200, 50); ellipse(s*0.3, 0, s*0.6, s*0.4); 
+    ellipse(-s*0.1, 0, s*0.8, s*0.6); 
+    ellipse(-s*0.6, 0, s*0.4, s*0.5);
+    fill(150, 255, 255, 150); ellipse(s*0.4, -s*0.05, s*0.2, s*0.1);
+    
+    fill(255, 150, 0, 150 + sin(frameCount * 0.5) * 100);
+    ellipse(-s*0.85, 0, s*0.3, s*0.2);
+    pop();
+
+    if (starbugObj.activeFrames % 20 === 0 && random() < 0.7 && starbugObj.x > 100 && starbugObj.x < W - 100) {
+        let py = starbugObj.y + random(80, 300);
+        let valid = true;
+        for (let pg of pegs) {
+            if (dist(starbugObj.x, py, pg.position.x, pg.position.y) < 35) { valid = false; break; }
+        }
+        if (valid) {
+            let pg = Matter.Bodies.circle(starbugObj.x, py, 6, { isStatic: true, restitution: map(currentBounce, 1, 255, 0.1, 2.0), collisionFilter: { category: 2 } });
+            pg.isBonus = true;
+            pg.glow = 255;
+            pegs.push(pg);
+            Matter.World.add(world, pg);
+            createExplosion(starbugObj.x, starbugObj.y + 10, color(50, 255, 50));
+            if (audioStarted) { try { fxSynth.play(800, 0.05, 0, 0.1); } catch(e){} }
+        }
+    }
+
+    if (starbugObj.x > W + 150) starbugObj = null;
 }
 
 function planSpaceshipForRound() {
@@ -2238,6 +2297,12 @@ function drawGalacticBackground() {
   pop();
 }
 
+function drawGravityDust() {
+  let r = map(currentGravity, 0.01, 5.0, 100, 255), g = map(currentGravity, 0.01, 5.0, 200, 100), b = map(currentGravity, 0.01, 5.0, 255, 50);
+  fill(r, g, b, 150); noStroke(); let dustSpeed = currentGravity * 3 * currentTravelSpeed;
+  for (let d of dust) { d.y += dustSpeed; if (d.y > H) { d.y = 0; d.x = random(W); } rect(d.x, d.y, d.s, d.s); }
+}
+
 function triggerMeteorShower() {
   if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_MET, 2); shakeAmount = 15;
   meteorWarningTimer = 180; 
@@ -2392,5 +2457,5 @@ function mouseClicked() {
   if (!audioStarted) startSpaceAudio(); 
   if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(random(TEST_BOTS)); else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; } return; } 
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
-  if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 345) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
+  if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 450) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
