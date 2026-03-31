@@ -667,18 +667,18 @@ function draw() {
   if (audioStarted) outputVolume(volumeSlider.value() * 0.3);
 
   push();
-  camOffset.x = (noise(frameCount * 0.005) - 0.5) * 40;
-  camOffset.y = (noise(frameCount * 0.005 + 100) - 0.5) * 40;
-  camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.05;
+  camOffset.x = (noise(frameCount * 0.005) - 0.5) * 10;
+  camOffset.y = (noise(frameCount * 0.005 + 100) - 0.5) * 10;
+  camOffset.z = 1.0 + (noise(frameCount * 0.002) - 0.5) * 0.02;
   
   translate(W / 2, H / 2); scale(camOffset.z); translate(-W / 2 + camOffset.x, -H / 2 + camOffset.y);
   
   if (shakeAmount > 0) {
     translate(random(-shakeAmount, shakeAmount), random(-shakeAmount, shakeAmount));
-    shakeAmount *= 0.92;
+    shakeAmount *= 0.85;
   }
   
-  translate(sin(frameCount * 0.013) * 2.5, cos(frameCount * 0.017) * 2.5);
+  translate(sin(frameCount * 0.013) * 1.0, cos(frameCount * 0.017) * 1.0);
 
   updateWinnerColor(); updateTravelSpeed();
   
