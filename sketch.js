@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.7.0";
+const GAME_VERSION = "v14.7.2";
 
 let currentLang = "CZ";
 
@@ -1988,6 +1988,13 @@ function triggerAnomaly() {
     anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
     anomM = floor(random(0, 31));
     anomalyAngle = 0;
+    if (audioStarted) {
+        try {
+            fxSynth.play('C4', 0.1, 0, 0.5);
+            setTimeout(() => { try { fxSynth.play('G4', 0.1, 0, 0.5); } catch(e){} }, 100);
+            setTimeout(() => { try { fxSynth.play('C5', 0.1, 0, 0.5); } catch(e){} }, 200);
+        } catch(e) {}
+    }
 }
 
 function applyAnomaly() {
@@ -2095,8 +2102,10 @@ function handleWhiteHole() {
       if (dx * dx + dy * dy < jS_sq_effect && random() < 0.15) {
          if (random() < 0.7) {
              p.isBonus = true;
+             p.tempBonusTimer = 600; 
          } else {
              p.isExplosive = true;
+             p.tempExplosiveTimer = 600; 
          }
          p.glow = 255;
          
@@ -2414,6 +2423,15 @@ function drawAntiBotOverlay() {
 function drawPegs() {
   noStroke(); let pR = map(currentGravity, 0.01, 5.0, 0, 255), pG = map(currentGravity, 0.01, 5.0, 255, 100), pB = map(currentGravity, 0.01, 5.0, 255, 0), pC = color(pR, pG, pB);
   for (let p of pegs) {
+    if (p.tempBonusTimer > 0) {
+        p.tempBonusTimer--;
+        if (p.tempBonusTimer <= 0) p.isBonus = false;
+    }
+    if (p.tempExplosiveTimer > 0) {
+        p.tempExplosiveTimer--;
+        if (p.tempExplosiveTimer <= 0) p.isExplosive = false;
+    }
+
     p.glow = p.glow || 0;
     if (p.glow > 0) { fill(pR, pG + 50, pB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; }
     if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } 
@@ -2515,8 +2533,10 @@ function handleWhiteHole() {
       if (dx * dx + dy * dy < jS_sq_effect && random() < 0.15) {
          if (random() < 0.7) {
              p.isBonus = true;
+             p.tempBonusTimer = 600; 
          } else {
              p.isExplosive = true;
+             p.tempExplosiveTimer = 600; 
          }
          p.glow = 255;
          
