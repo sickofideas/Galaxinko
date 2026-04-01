@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.11"; // více vesmírného prachu, častější komety, přidán měsíc s planetkami
+const GAME_VERSION = "v14.9.12"; // více vesmírného prachu, častější komety, přidán měsíc s planetkami
 
 // change log:
 // v14.9.11 - více prachu (500 místo 300), častější komety (0.12 místo 0.06), přidán měsíc s 5 planetkami
@@ -63,6 +63,28 @@ const T = {
     TTS_ORBITAL_ENT: "Pozor, deorbitujeme staré sovětské satelity!", ORBITAL_MODE: "ORBITÁLNÍ BOMBARDROVÁNÍ",
     TTS_GAZPACHO: "Selhání chlazení! Inicializováno kryogenní zmražení!", GAZ_MODE: "KRYO ZMRAŽENÍ"
   }
+};
+
+// TTS variace pro oslovení vítěze na konci
+const TTS_WINNER_VARIATIONS = {
+  EN: [
+    "Mission over! The ultimate astronaut is ",
+    "We have a champion! The victorious space explorer is ",
+    "Incredible performance! The top pilot of the cosmos is ",
+    "Congratulations to our space hero, ",
+    "The galaxy's finest has spoken! Meet ",
+    "Outstanding mission! Your commander is ",
+    "The cosmos bows to, "
+  ],
+  CZ: [
+    "Mise skončila! Nejlepším astronautem je ",
+    "Máme šampiona! Vítězný vesmírný průzkumník je ",
+    "Neuvěřitelný výkon! Nejlepší vesmírný pilot je ",
+    "Gratulujeme naši vesmírné hvězdě, ",
+    "Galaxie se skláním před ",
+    "Skvělá mise! Váš velitel je ",
+    "Ty jsi legenda vesmíru, "
+  ]
 };
 
 const W = 900, H = 1000, ZONE_H = 80;
@@ -950,7 +972,11 @@ function draw() {
     if (balls.length === 0 || (millis() - waitStartTime) / 1000 > 10) {
       gameState = "RESULTS"; resultsTimer = 10;
       let s = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
-      if (s.length > 0) { speakAnnouncer(T[currentLang].TTS_R_O, 2); speakName(s[0][0]); }
+      if (s.length > 0) { 
+        let winnerPhrase = TTS_WINNER_VARIATIONS[currentLang][floor(Math.random() * TTS_WINNER_VARIATIONS[currentLang].length)];
+        speakAnnouncer(winnerPhrase, 2); 
+        speakName(s[0][0]); 
+      }
     }
   }
 
