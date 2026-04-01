@@ -936,7 +936,7 @@ function draw() {
           
           if (orbitalDropPlanned && !orbitalDropActive && timer === orbitalDropTriggerTime) spawnOrbitalDrop();
 
-          if (!devourerSpawnedThisRound && timer === 60) {
+          if (!devourerSpawnedThisRound && !boss && timer === 60) {
               spawnDevourer();
               devourerSpawnedThisRound = true;
           }
@@ -951,8 +951,8 @@ function draw() {
               triggerAnomaly();
           }
 
-          if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.17) triggerCosmicEvent();
-          if (random() < 0.11) spawnRareLegend();
+          if (!eventOccurredThisRound && timer < (timer * 0.7) && random() < 0.08) triggerCosmicEvent();
+          if (random() < 0.06) spawnRareLegend();
           if (timer === 10) speakAnnouncer(T[currentLang].TTS_10S, 1);
           if (timer <= 0) {
             gameState = "WAITING"; waitStartTime = millis(); shakeAmount = 6;
