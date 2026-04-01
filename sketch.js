@@ -746,7 +746,7 @@ function drawCallToAction() {
     alpha = map(inactiveTime, 15000, 20000, 0, 255);
   }
   
-  let texts = currentLang === "CZ" ? ["KLÍČ K VESMÍRU JE NA TVÝCH RUKOU!", "LÉTY SI CHYBĚJÍ? POŠLI LIKE!", "GALAXIE ČEKÁ NA TVOJE GESTO!", "JEDNU CHVÍLI! DOTEKNI SE HRY!", "OVLÁDNI GRAVITACI - KLIKNI!", "POSLOUCHÁM... TVŮJ TAH!", "PŘIPRAVENÉ STŘELY? HRAJ!"] : ["THE KEY TO THE COSMOS IS IN YOUR HANDS!", "MISSING SOME FLIGHT? SEND LIKES!", "THE GALAXY AWAITS YOUR TOUCH!", "ONE MOMENT! TAP TO ENGAGE!", "MASTER GRAVITY - CLICK NOW!", "LISTENING... YOUR MOVE!", "WEAPONS READY? PLAY!"];
+  let texts = currentLang === "CZ" ? ["KLIKEJ NA DISPLEJ!", "TAP TAP = TVOJE KULIČKA!", "NAPIŠ COKOLIV = HRAJEŠ!"] : ["TAP THE SCREEN TO PLAY!"];
   let textIndex = floor(millis() / 4000) % texts.length;
   let displayText = texts[textIndex];
   
