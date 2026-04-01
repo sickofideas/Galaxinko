@@ -720,23 +720,36 @@ function drawCallToAction() {
   let displayText = texts[textIndex];
   
   let pulse = sin(frameCount * 0.1) * 0.5 + 1;
-  let textSizeVal = 24 * pulse;
+  let textSizeVal = 32 + pulse * 12;
   
   colorMode(HSB);
-  let hue = (millis() * 0.001) % 360;
-  let textColor = color(hue, 100, 100, alpha);
+  let hue = (millis() * 0.002) % 360;
+  let textColor = color(hue, 95, 100, alpha);
   colorMode(RGB);
   
   push();
   textAlign(CENTER, CENTER);
   textSize(textSizeVal);
-  
-  // Stín
-  fill(0, 0, 0, alpha * 0.5);
-  text(displayText, W / 2 + 2, H / 2 - 100 + 2);
-  
+  textStyle(BOLD);
+  noStroke();
+
+  // tmavé pozadí pro čitelnost (poloprůhledný box)
+  let boxW = textWidth(displayText) + 56;
+  let boxH = textSizeVal + 30;
+  fill(0, 0, 0, min(190, alpha * 0.8));
+  rectMode(CENTER);
+  rect(W / 2, H / 2 - 100, boxW, boxH, 16);
+
+  // silný stín pro text
+  drawingContext.shadowBlur = 24;
+  drawingContext.shadowColor = `rgba(0,0,0,${alpha / 255})`;
+
+  stroke(255);
+  strokeWeight(3);
   fill(textColor);
   text(displayText, W / 2, H / 2 - 100);
+
+  drawingContext.shadowBlur = 0;
   pop();
 }
 
