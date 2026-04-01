@@ -251,7 +251,7 @@ let sporeParticles = []; // For visual effect of the toxic spot
 let spamBuffer = {};
 
 let fakeChat = [];
-const FAKE_CHAT_NAMES = ["Dave", "Arnold", "Kryten", "Cat", "Kochanski", "Holly", "Petersen", "Todhunter", "user88", "gamer_boy", "pepa_z_depa", "alien99"];
+const FAKE_CHAT_NAMES = ["Astro", "Nova", "Cosmo", "Luna", "Orion", "Stella", "Comet", "Nebula", "user88", "gamer_boy", "pepa_z_depa", "alien99"];
 const FAKE_CHAT_MSGS = {
   CZ: [
     "Pojďme!", "Klikejte lidi!", "Nenecháme to spadnout!", "Wow, ten top 1 jede!", "Tlačte ty lajky!", 
