@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.12"; // více vesmírného prachu, častější komety, přidán měsíc s planetkami
+const GAME_VERSION = "v14.9.13"; // lepší CTA hlášky, menší text, vyšší pozice // více vesmírného prachu, častější komety, přidán měsíc s planetkami
 
 // change log:
 // v14.9.11 - více prachu (500 místo 300), častější komety (0.12 místo 0.06), přidán měsíc s 5 planetkami
@@ -746,12 +746,12 @@ function drawCallToAction() {
     alpha = map(inactiveTime, 15000, 20000, 0, 255);
   }
   
-  let texts = currentLang === "CZ" ? ["KLIKEJ NA DISPLEJ!", "POŠLI LIKE PRO KULIČKU!", "NAPIŠ KOMENTÁŘ = HRAJEŠ!"] : ["TAP THE SCREEN TO PLAY!", "SEND LIKES FOR BALLS!", "COMMENT TO JOIN THE GAME!"];
+  let texts = currentLang === "CZ" ? ["KLÍČ K VESMÍRU JE NA TVÝCH RUKOU!", "LÉTY SI CHYBĚJÍ? POŠLI LIKE!", "GALAXIE ČEKÁ NA TVOJE GESTO!", "JEDNU CHVÍLI! DOTEKNI SE HRY!", "OVLÁDNI GRAVITACI - KLIKNI!", "POSLOUCHÁM... TVŮJ TAH!", "PŘIPRAVENÉ STŘELY? HRAJ!"] : ["THE KEY TO THE COSMOS IS IN YOUR HANDS!", "MISSING SOME FLIGHT? SEND LIKES!", "THE GALAXY AWAITS YOUR TOUCH!", "ONE MOMENT! TAP TO ENGAGE!", "MASTER GRAVITY - CLICK NOW!", "LISTENING... YOUR MOVE!", "WEAPONS READY? PLAY!"];
   let textIndex = floor(millis() / 4000) % texts.length;
   let displayText = texts[textIndex];
   
-  let pulse = sin(frameCount * 0.1) * 0.3 + 1; // zmenšeno z 0.5 pro menší zvětšování
-  let textSizeVal = 40 + pulse * 12; // zmenšeno z 48+16 pro menší max velikost
+  let pulse = sin(frameCount * 0.1) * 0.25 + 1; // ještě menší efekt
+  let textSizeVal = 32 + pulse * 8; // zmenšeno pro vyšší text
   
   // duhová barva pro větší pozornost
   let hue = (millis() * 0.002) % 360;
@@ -760,10 +760,10 @@ function drawCallToAction() {
   colorMode(RGB, 255);
   
   let cX = W / 2;
-  let cY = H / 2 - 250; // posunuto ještě výše
+  let cY = H / 2 - 300; // posunuto vysoko nad nové hráče
 
-  let boxW = max(textWidth(displayText) + 140, 500);
-  let boxH = textSizeVal + 60;
+  let boxW = max(textWidth(displayText) + 120, 550);
+  let boxH = textSizeVal + 50;
   let cornerRadius = 30;
 
   push();
