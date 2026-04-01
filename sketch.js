@@ -1,6 +1,9 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.2";
+const GAME_VERSION = "v14.9.3"; // upgrade po přidání AFK CTA a lepší čitelnosti v Chrome
 
+// change log:
+// v14.9.3 - přidaná drawCallToAction + AFK fade-in + duhový text + pozadí + outline
+// v14.9.2 - přidány kosmické anomálie a eventy
 let currentLang = "CZ";
 
 const T = {
