@@ -1,7 +1,8 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.4"; // oprava chyb s předčasným použitím proměnných
+const GAME_VERSION = "v14.9.5"; // oprava CTA textu - normální font bez obrysu, posunuto výše
 
 // change log:
+// v14.9.5 - CTA text: normální font (Arial), odstraněn obrys a BOLD, posunuto výše nad nové hráče
 // v14.9.4 - oprava chyb s W, H, allTimeRecords použitými před deklarací
 // v14.9.3 - přidaná drawCallToAction + AFK fade-in + duhový text + pozadí + outline
 // v14.9.2 - přidány kosmické anomálie a eventy
@@ -736,13 +737,13 @@ function drawCallToAction() {
   let textColor = color(255, 255, 255, alpha);
   
   let cX = W / 2;
-  let cY = H / 2 - 140; // posunuto nahoru, aby se neškrtalo dolní UI s příchody hráčů
+  let cY = H / 2 - 200; // posunuto výše nad zobrazení nových hráčů
 
   push();
   textAlign(CENTER, CENTER);
   textSize(textSizeVal);
-  textStyle(BOLD);
-  textFont('Impact, sans-serif'); // silnější font pro lepší čitelnost
+  textStyle(NORMAL);
+  textFont('Arial, sans-serif'); // normální font pro lepší čitelnost
   noStroke();
 
   // pozadí - tmavé s vysokým kontrastem
@@ -753,9 +754,7 @@ function drawCallToAction() {
   rectMode(CENTER);
   rect(cX, cY, boxW, boxH, cornerRadius);
 
-  // silný bílý obrys kolem textu
-  stroke(255, alpha);
-  strokeWeight(4);
+  // text bez obrysu pro lepší čitelnost
   fill(textColor);
   text(displayText, cX, cY);
 
