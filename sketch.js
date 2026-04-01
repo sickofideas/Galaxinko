@@ -730,27 +730,39 @@ function drawCallToAction() {
   let textColor = color(hue, 95, 100, alpha);
   colorMode(RGB);
   
+  let cX = W / 2;
+  let cY = H / 2 - 140; // posunuto nahoru, aby se neškrtalo dolní UI s příchody hráčů
+
   push();
   textAlign(CENTER, CENTER);
   textSize(textSizeVal);
   textStyle(BOLD);
   noStroke();
 
-  // tmavé pozadí pro čitelnost (poloprůhledný box)
-  let boxW = textWidth(displayText) + 56;
-  let boxH = textSizeVal + 30;
-  fill(0, 0, 0, min(190, alpha * 0.8));
+  // pozadí - barevný gradient blok s hranou
+  let boxW = max(textWidth(displayText) + 80, 360);
+  let boxH = textSizeVal + 36;
+
+  // jemná duhová pruhovaná výplň
+  for (let i = 0; i < boxH; i += 4) {
+    let subHue = (hue + i * 1.4) % 360;
+    fill(color(subHue, 100, 90, alpha * 0.4));
+    rectMode(CENTER);
+    rect(cX, cY, boxW, 4, 8);
+  }
+
+  fill(0, 0, 0, min(170, alpha * 0.6));
   rectMode(CENTER);
-  rect(W / 2, H / 2 - 100, boxW, boxH, 16);
+  rect(cX, cY, boxW, boxH, 22);
 
-  // silný stín pro text
-  drawingContext.shadowBlur = 24;
-  drawingContext.shadowColor = `rgba(0,0,0,${alpha / 255})`;
-
-  stroke(255);
+  // outline a stín
+  drawingContext.shadowBlur = 26;
+  drawingContext.shadowColor = `rgba(0,0,0,${alpha / 255 * 0.8})`;
+  stroke(255, alpha * 0.8);
   strokeWeight(3);
+
   fill(textColor);
-  text(displayText, W / 2, H / 2 - 100);
+  text(displayText, cX, cY);
 
   drawingContext.shadowBlur = 0;
   pop();
