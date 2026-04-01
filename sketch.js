@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.7.2";
+const GAME_VERSION = "v14.7.3";
 
 let currentLang = "CZ";
 
@@ -762,7 +762,7 @@ function autoRandomSettings() {
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
-  if (mothershipSlider) mothershipSlider.value(floor(random(0, 31)));
+  if (mothershipSlider) mothershipSlider.value(floor(random(1, 31)));
   if (world) world.gravity.y = currentGravity;
 }
 
@@ -841,7 +841,6 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
-  // NOTE: Order determines what is drawn on top. Spaceship is drawn last to be fully visible over Devourer.
   handleBlackHole(); 
   handleWhiteHole(); 
   handleCosmicEvent(); 
@@ -2559,6 +2558,437 @@ function handleWhiteHole() {
   }
 }
 
+function spawnSinglePlanet(startY = null) {
+  let typeRnd = random(), pType = 'PLANET', pSize = random(40, 100), pCol = color(random(30, 200), random(30, 200), random(30, 200), 220), hasR = random() < 0.3, numMoons = floor(random(0, 3));
+  if (typeRnd < 0.1) { pType = 'SUN'; pSize = random(100, 200); pCol = color(255, 230, 150); hasR = false; numMoons = 0; } 
+  else if (typeRnd < 0.2) { pType = 'JUPITER'; pSize = random(250, 400); pCol = color(180, 140, 100, 230); hasR = false; numMoons = floor(random(4, 8)); } 
+  else if (typeRnd < 0.3) { pType = 'SATURN'; pSize = random(200, 350); pCol = color(220, 200, 150, 230); hasR = true; numMoons = floor(random(3, 7)); } 
+  else if (typeRnd < 0.5) { pType = 'MARS'; pSize = random(80, 180); pCol = color(200, 60, 40, 220); hasR = false; numMoons = floor(random(1, 3)); } 
+  else if (typeRnd < 0.7) { pType = 'ICE_GIANT'; pSize = random(150, 300); pCol = color(60, 180, 255, 220); hasR = true; numMoons = floor(random(2, 5)); } 
+  else if (typeRnd < 0.8) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
+  
+  let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
+  massivePlanets.push({ x: random(W), y: startY !== null ? startY : -pSize * 3, size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), speed: random(0.001, 0.008), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
+}
+
+function planSpaceshipForRound() {
+  shipPlanned = (random(100) < currentShipChance); shipSpawnAt = shipPlanned ? floor(random(10, timer - 10)) : -1;
+}
+
+function spawnSpaceship() {
+  let w = 160, h = 30, y = H - ZONE_H - 150;
+  let b = Matter.Bodies.rectangle(-200, y, w, h, { isStatic: true, restitution: 1.5, friction: 0 });
+  Matter.World.add(world, b);
+  starship = { body: b, w: w, h: h, y: y, targetX: W / 2, speed: 8, activeFrames: 0, maxFrames: 1500, state: "ENTERING" };
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEF, 1);
+}
+
+function handleSpaceship() {
+  if (!starship) return;
+  starship.activeFrames++;
+  
+  if (frameCount % 5 === 0 && starship.state === "ACTIVE") {
+    let tgt = null, maxY = 0;
+    for (let b of balls) {
+      if (b.body.position.y > maxY && b.body.position.y < starship.y - 10 && b.body.velocity.y > 0) { maxY = b.body.position.y; tgt = b; }
+    }
+    starship.targetX = tgt ? tgt.body.position.x : W / 2 + sin(frameCount * 0.02) * 200;
+  }
+  
+  if (starship.state === "ENTERING") {
+    starship.targetX = W / 2; if (abs(starship.body.position.x - W / 2) < 20) starship.state = "ACTIVE";
+  } else if (starship.state === "ACTIVE" && starship.activeFrames > starship.maxFrames) {
+    starship.state = "LEAVING";
+  } else if (starship.state === "LEAVING") {
+    starship.targetX = W + 300;
+    if (starship.body.position.x > W + 150) { Matter.World.remove(world, starship.body); starship = null; return; }
+  }
+  
+  let dx = starship.targetX - starship.body.position.x;
+  Matter.Body.setPosition(starship.body, { x: starship.body.position.x + (abs(dx) > starship.speed ? (dx > 0 ? starship.speed : -starship.speed) : 0), y: starship.y });
+  
+  push(); translate(starship.body.position.x, starship.y); noStroke();
+  fill(0, 255, 255, random(150, 255)); ellipse(0, starship.h / 2 + 5, starship.w * 0.6, 25);
+  fill(255); ellipse(0, starship.h / 2 + 5, starship.w * 0.2, 10);
+  fill(80); ellipse(0, 0, starship.w, starship.h * 1.2);
+  fill(120); ellipse(0, -starship.h * 0.2, starship.w * 0.8, starship.h * 0.8);
+  fill(40); ellipse(0, starship.h * 0.2, starship.w * 0.7, starship.h * 0.6);
+  fill(0, 200, 255, 120); arc(0, -starship.h * 0.2, starship.w * 0.5, starship.h * 2, PI, 0);
+  fill(50, 255, 50); ellipse(0, -starship.h * 0.6, 15, 20);
+  fill(0); ellipse(-4, -starship.h * 0.65, 5, 8); ellipse(4, -starship.h * 0.65, 5, 8);
+  for (let l = 0; l < 5; l++) {
+    fill((frameCount + l * 10) % 20 < 10 ? color(255, 50, 50) : color(50, 255, 50));
+    ellipse(map(l, 0, 4, -starship.w / 2.2, starship.w / 2.2), 0, 6);
+  }
+  pop();
+}
+
+function onUserJoin(u, img) {
+  let isNew = !viewerSpaceObjects.find(o => o.name === u);
+  if (img && !userAvatars[u]) {
+    loadImage(img, l => {
+      userAvatars[u] = l;
+      if (isNew) {
+        viewerSpaceObjects.push({ name: u, x: random(100, W - 100), y: random(150, H - 300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3), baseSize: 60, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: l, angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255 });
+        joinPopupQueue.push({ name: u, img: l });
+      }
+    }, () => {});
+  } else if (isNew) {
+    viewerSpaceObjects.push({ name: u, x: random(100, W - 100), y: random(150, H - 300), vx: random(-0.3, 0.3), vy: random(-0.3, 0.3), baseSize: 60, extraSize: 0, color: [random(100, 255), random(100, 255), random(255)], img: userAvatars[u] || null, angle: random(TWO_PI), lastActiveTime: millis(), alpha: 255 });
+    joinPopupQueue.push({ name: u, img: userAvatars[u] || null });
+  }
+}
+
+function updateUserLikes(u, c) {
+  let o = viewerSpaceObjects.find(ob => ob.name === u);
+  if (o) { o.extraSize = min(150, o.extraSize + c * 2); o.lastActiveTime = millis(); o.alpha = 255; } 
+  else { onUserJoin(u, null); setTimeout(() => updateUserLikes(u, c), 500); }
+}
+
+function onUserQuit(username) { viewerSpaceObjects = viewerSpaceObjects.filter(o => o.name !== username); }
+
+function triggerFollowEvent(name, silent = false) {
+  let s = floor(random(3)), sx, sy;
+  if (s === 0) { sx = random(100, W - 100); sy = -50; } 
+  else if (s === 1) { sx = W + 50; sy = random(100, H / 3); } 
+  else { sx = -50; sy = random(100, H / 3); }
+  
+  let tx = W / 2 + random(-200, 200), ty = H / 2 + random(-250, 50), a = atan2(ty - sy, tx - sx), sp = random(18, 28);
+  followEvents.push({ name: name, x: sx, y: sy, vx: cos(a) * sp, vy: sin(a) * sp, targetX: tx, targetY: ty, color: color(random(150, 255), random(100, 255), random(150, 255)), exploded: false, timer: 100, trail: [] });
+  if (!silent && random() < 0.3 && typeof T !== 'undefined') { speakAnnouncer(T[currentLang].TTS_INC, 0); speakName(name); }
+}
+
+function handleFollowEvents() {
+  for (let i = followEvents.length - 1; i >= 0; i--) {
+    let f = followEvents[i];
+    if (!f.exploded) {
+      f.trail.push({ x: f.x, y: f.y }); if (f.trail.length > 15) f.trail.shift();
+      noStroke();
+      for (let t = 0; t < f.trail.length; t++) {
+        fill(red(f.color), green(f.color), blue(f.color), map(t, 0, f.trail.length, 0, 150));
+        ellipse(f.trail[t].x, f.trail[t].y, map(t, 0, f.trail.length, 5, 25));
+      }
+      fill(255); ellipse(f.x, f.y, 25); fill(f.color); ellipse(f.x, f.y, 18);
+      f.x += f.vx; f.y += f.vy;
+      if (dist(f.x, f.y, f.targetX, f.targetY) < 30) {
+        f.exploded = true; playExplosionSound(); shakeAmount = 5;
+        for (let e = 0; e < 50; e++) explosions.push({ x: f.x, y: f.y, vx: random(-12, 12), vy: random(-12, 12), life: 255, col: f.color });
+      }
+    } else {
+      push(); translate(f.targetX, f.targetY); scale(map(f.timer, 100, 0, 1, 4.5)); textAlign(CENTER, CENTER);
+      drawingContext.shadowBlur = 20; drawingContext.shadowColor = f.color;
+      fill(0, 150); text(f.name, 2, 2); fill(255, map(f.timer, 100, 0, 300, -50)); text(f.name, 0, 0);
+      drawingContext.shadowBlur = 0;
+      if (f.timer % 4 === 0) { noStroke(); fill(f.color); ellipse(random(-40, 40), random(-40, 40), random(2, 5)); }
+      pop();
+      f.timer--; if (f.timer <= 0) followEvents.splice(i, 1);
+    }
+  }
+}
+
+function handleJoinPopups() {
+  if (!activeJoinPopup && joinPopupQueue.length > 0) {
+    activeJoinPopup = joinPopupQueue.shift(); activeJoinPopup.timer = 180;
+    if (audioStarted && millis() - lastExpSnd > 50) { try { fxSynth.play(random([800, 1000, 1200]), 0.1, 0, 0.5); } catch(e) {} lastExpSnd = millis(); }
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_WELC + sanitizeText(activeJoinPopup.name), 2);
+  }
+  
+  if (activeJoinPopup) {
+    let p = activeJoinPopup; p.timer--; let progress = p.timer / 180, sc = 1;
+    if (progress > 0.9) sc = map(progress, 1, 0.9, 0, 1);
+    if (progress < 0.1) sc = map(progress, 0.1, 0, 1, 0);
+    
+    push(); translate(W / 2, H / 2 - 80); scale(sc); let pulse = sin(frameCount * 0.2) * 15;
+    drawingContext.shadowBlur = 30 + pulse; drawingContext.shadowColor = color(currentTheme[0], currentTheme[1], currentTheme[2]);
+    fill(10, 10, 30, 240); stroke(currentTheme[0], currentTheme[1], currentTheme[2]); strokeWeight(4);
+    rectMode(CENTER); rect(0, 0, 500 + pulse, 120 + pulse, 15); rectMode(CORNER); drawingContext.shadowBlur = 0;
+    
+    if (p.img) { imageMode(CENTER); image(p.img, -180, 0, 80, 80); } 
+    else {
+      fill(100); noStroke(); ellipse(-180, 0, 80, 80); fill(0, 150); textAlign(CENTER, CENTER); textSize(30);
+      text(p.name[0], -180 + 2, 2); fill(255); text(p.name[0], -180, 0);
+    }
+    
+    textAlign(LEFT, CENTER); noStroke(); textSize(16); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].NEW_C : "NEW COMMANDER", -120 + 2, -25 + 2);
+    fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].NEW_C : "NEW COMMANDER", -120, -25);
+    textSize(35); fill(0, 150); text(p.name, -120 + 2, 15 + 2); fill(255); text(p.name, -120, 15);
+    pop();
+    if (p.timer <= 0) activeJoinPopup = null;
+  }
+}
+
+function addFloatingText(txt, x, y, col, isJackpot = false) {
+  floatingTexts.push({ text: txt, x: x, y: y, life: 255, color: col, scale: isJackpot ? 1.5 : 1, vy: isJackpot ? -2 : -1 });
+}
+
+function handleFloatingTexts() {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    let ft = floatingTexts[i];
+    push(); translate(ft.x, ft.y); drawTxt(ft.text, 0, 0, color(red(ft.color), green(ft.color), blue(ft.color), ft.life), 14 * ft.scale, CENTER); pop();
+    ft.y += ft.vy; ft.life -= 4; if (ft.life <= 0) floatingTexts.splice(i, 1);
+  }
+}
+
+function createShockwave(x, y) { shockwaves.push({ x: x, y: y, radius: 0, maxRadius: 300, life: 255 }); }
+
+function handleShockwaves() {
+  noFill(); strokeWeight(4);
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    let sw = shockwaves[i]; stroke(255, 255, 255, sw.life); ellipse(sw.x, sw.y, sw.radius * 2);
+    sw.radius += 10; sw.life -= 8; if (sw.life <= 0) shockwaves.splice(i, 1);
+  }
+}
+
+function drawPortals() {
+  if (portals.length < 2) return;
+  for (let i = 0; i < portals.length; i++) {
+    let pt = portals[i];
+    push(); 
+    let wobbleX = sin(frameCount * 0.2 + i * 10) * 3;
+    let wobbleY = cos(frameCount * 0.15 + i * 10) * 3;
+    translate(pt.x + wobbleX, pt.y + wobbleY); 
+    rotate(frameCount * 0.05 * (i === 0 ? 1 : -1));
+    
+    let baseCol = i === 0 ? color(0, 150, 255) : color(255, 150, 0);
+    let pulse = sin(frameCount * 0.1) * 15;
+    
+    noStroke();
+    for(let j = 4; j > 0; j--) {
+      fill(red(baseCol), green(baseCol), blue(baseCol), 40);
+      ellipse(0, 0, 70 + pulse + j * 15);
+    }
+    
+    fill(red(baseCol), green(baseCol), blue(baseCol), 200); 
+    ellipse(0, 0, 50 + pulse * 0.5);
+    fill(0); 
+    ellipse(0, 0, 30); 
+    pop();
+  }
+}
+
+function drawViewerObjects() {
+  for (let i = viewerSpaceObjects.length - 1; i >= 0; i--) {
+    let o = viewerSpaceObjects[i], ia = millis() - o.lastActiveTime;
+    if (ia > 60000) { viewerSpaceObjects.splice(i, 1); continue; }
+    o.alpha = ia > 50000 ? map(ia, 50000, 60000, 255, 0) : 255;
+  }
+  for (let o of viewerSpaceObjects) {
+    o.x += o.vx + sin(frameCount * 0.01) * 0.1; o.y += o.vy + cos(frameCount * 0.01) * 0.1; o.angle += 0.005;
+    if (o.x < 50 || o.x > W - 50) o.vx *= -1; if (o.y < 100 || o.y > H - 250) o.vy *= -1;
+    push(); translate(o.x, o.y); rotate(o.angle);
+    let tS = o.baseSize + o.extraSize; noStroke(); fill(o.color[0], o.color[1], o.color[2], 40 * (o.alpha / 255)); ellipse(0, 0, tS + 20);
+    if (o.img) { imageMode(CENTER); tint(255, o.alpha); image(o.img, 0, 0, tS, tS); } 
+    else { fill(o.color[0], o.color[1], o.color[2], o.alpha); ellipse(0, 0, tS); drawTxt(o.name[0], 0, 0, color(255, o.alpha), tS * 0.3, CENTER); }
+    rotate(-o.angle); drawTxt(o.name, 0, tS / 2 + 15, color(255, o.alpha), 10, CENTER); pop();
+  }
+}
+
+function drawWalls() { stroke(100); strokeWeight(2); for (let w of walls) line(w.position.x, H - ZONE_H, w.position.x, H); }
+
+function createExplosion(x, y, c) {
+  let col = c || color(255, random(100, 255), 0);
+  for (let i = 0; i < 25; i++) explosions.push({ x: x, y: y, vx: random(-5, 5), vy: random(-5, 5), life: 255, col: col });
+}
+
+function drawExplosions() {
+  noStroke();
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    let e = explosions[i]; fill(red(e.col), green(e.col), blue(e.col), e.life); rect(e.x, e.y, 6, 6);
+    e.x += e.vx; e.y += e.vy; e.life -= 5; if (e.life <= 0) explosions.splice(i, 1);
+  }
+}
+
+function drawLegendShape(d) {
+  noStroke(); fill(d.color); let s = d.size;
+  switch (d.legendId) {
+    case "STARMAN": rect(-s / 2, -s / 4, s, s / 2, 5); fill(255); ellipse(-s / 4, -s / 4, s / 5); break;
+    case "HAWKING": fill(100); rect(-s / 2, 0, s, s / 4); fill(d.color); rect(-s / 4, -s / 2, s / 2, s / 2); break;
+    case "LAIKA": fill(150, 100); ellipse(0, 0, s, s); fill(d.color); ellipse(0, -s / 6, s / 2); break;
+    case "ET": fill(100, 50, 0); rect(-s / 2, 0, s, s / 2); fill(255); ellipse(0, -s / 4, s / 2); break;
+    case "NYAN": fill(255, 200, 150); rect(-s / 2, -s / 3, s, s / 1.5, 3); break;
+    case "VOYAGER": fill(180); ellipse(0, 0, s / 2); fill(212, 175, 55); ellipse(0, 0, s / 3); break;
+    case "STARBUG": fill(50, 200, 50); ellipse(s*0.3, 0, s*0.6, s*0.4); ellipse(-s*0.1, 0, s*0.8, s*0.6); ellipse(-s*0.6, 0, s*0.4, s*0.5); break;
+    case "RED_DWARF": fill(200, 50, 50); rect(-s, -s/4, s*2, s/2, 2); fill(150, 30, 30); rect(-s/2, -s/3, s, s/1.5, 2); fill(100); rect(s*0.8, -s/8, s/2, s/4); break;
+  }
+}
+
+function drawProceduralHUD() {
+  push(); stroke(255, 10); strokeWeight(1); for (let i = 0; i < H; i += 4) line(0, i + (frameCount % 4), W, i + (frameCount % 4));
+  fill(0, 255, 0, 150); textSize(8); textAlign(LEFT);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, H - 40); text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, H - 30); text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, H - 20);
+  textAlign(RIGHT); text(`SENS_TEMP: ${(24 + noise(frameCount * 0.01) * 5).toFixed(1)}°C`, W - 20, H - 30); text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, H - 20); pop();
+}
+
+function drawPixelAvatar(x, y, w, h) {
+  push(); translate(x, y); noStroke();
+  let vlasy = color(240, 220, 110), kuze = color(245, 200, 170), triko = color(currentTheme[0], currentTheme[1], currentTheme[2]), stin = color(0, 0, 0, 50), oci = color(40);
+  let pw = w / 20, ph = h / 15, sway = sin(frameCount * 0.05) * 2, handMove = sin(frameCount * 0.2) * 4, eyesOpen = (frameCount % 120 > 5);
+  
+  fill(triko); rect(pw * 5 + sway, ph * 7, pw * 10, ph * 8, 2); fill(stin); rect(pw * 7 + sway, ph * 7, pw * 6, ph * 1);
+  let headSway = sway * 0.5; fill(kuze); rect(pw * 6 + headSway, ph * 2, pw * 8, ph * 6, 3);
+  fill(vlasy); rect(pw * 5 + headSway, ph * 1, pw * 10, ph * 3, 2); rect(pw * 5 + headSway, ph * 3, pw * 2, ph * 7, 2); rect(pw * 13 + headSway, ph * 3, pw * 2, ph * 7, 2);
+  
+  if (eyesOpen) { fill(oci); rect(pw * 8 + headSway, ph * 4, pw * 1, ph * 2); rect(pw * 11 + headSway, ph * 4, pw * 1, ph * 2); } 
+  else { fill(stin); rect(pw * 8 + headSway, ph * 5, pw * 1, ph * 1); rect(pw * 11 + headSway, ph * 5, pw * 1, ph * 1); }
+  
+  fill(color(200, 100, 100)); rect(pw * 9 + headSway, ph * 7, pw * 2, ph * 1);
+  fill(kuze); rect(pw * 3, ph * 8 + handMove, pw * 3, ph * 4, 2); rect(pw * 14, ph * 8 - handMove, pw * 3, ph * 4, 2); pop();
+}
+
+function drawAntiBotOverlay() {
+  push(); stroke(0, 15); strokeWeight(1); let offset = frameCount % 4; for (let i = 0; i < H; i += 4) line(0, i + offset, W, i + offset);
+  noStroke(); for (let i = 0; i < 20; i++) { fill(255, random(5, 25)); rect(random(W), random(H), random(1, 3), random(1, 3)); }
+  for (let i = 0; i < 10; i++) { fill(currentTheme[0], currentTheme[1], currentTheme[2], random(5, 15)); rect(random(W), random(H), random(1, 4), random(1, 4)); }
+  if (random() < 0.08) { fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); rect(0, random(H), W, random(1, 6)); }
+  let camX = W - 110, camY = H - 185;
+  fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5); drawPixelAvatar(camX + 5, camY + 5, 90, 65); noStroke();
+  for (let cx = 0; cx < 100; cx += 5) for (let cy = 0; cy < 75; cy += 5) { if (noise(cx * 0.1, cy * 0.1, frameCount * 0.1) > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } }
+  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(typeof T !== 'undefined' ? T[currentLang].L_PL : "PLAYER", camX + 5, camY + 5);
+  if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
+  textFont('Press Start 2P'); textStyle(NORMAL);
+  let marqueeText = typeof T !== 'undefined' ? T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls) : currentDestination;
+  let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
+  fill(5, 5, 15, 230); noStroke(); rect(0, H - 12, W, 12);
+  drawTxt(marqueeText + marqueeText, scrollX, H - 6, color(currentTheme), 8, LEFT); pop();
+}
+
+function drawPegs() {
+  noStroke(); let pR = map(currentGravity, 0.01, 5.0, 0, 255), pG = map(currentGravity, 0.01, 5.0, 255, 100), pB = map(currentGravity, 0.01, 5.0, 255, 0), pC = color(pR, pG, pB);
+  for (let p of pegs) {
+    if (p.tempBonusTimer > 0) {
+        p.tempBonusTimer--;
+        if (p.tempBonusTimer <= 0) p.isBonus = false;
+    }
+    if (p.tempExplosiveTimer > 0) {
+        p.tempExplosiveTimer--;
+        if (p.tempExplosiveTimer <= 0) p.isExplosive = false;
+    }
+
+    p.glow = p.glow || 0;
+    if (p.glow > 0) { fill(pR, pG + 50, pB + 50, p.glow); rect(p.position.x - 6, p.position.y - 6, 12, 12); p.glow -= 20; }
+    if (p.isExplosive) { fill(255, 100, 0); rect(p.position.x - 4, p.position.y - 4, 8, 8); } 
+    else if (p.isRepulsor) { fill(255, 50, 200); ellipse(p.position.x, p.position.y, 12 + sin(frameCount * 0.2) * 3); } 
+    else if (p.isBonus) { fill(50, 255, 50); ellipse(p.position.x, p.position.y, 12 + sin(frameCount * 0.3) * 4); }
+    else { fill(pC); rect(p.position.x - 4, p.position.y - 4, 8, 8); }
+  }
+}
+
+function prepareSingularityEvents() { 
+  bhSpawnTimes = []; if (random() < 0.4) bhSpawnTimes.push(floor(random(5, timer * 0.8))); 
+  whSpawnTimes = []; if (random() < 0.35) whSpawnTimes.push(floor(random(5, timer * 0.8))); 
+}
+
+function checkSingularitySpawn() {
+  if (bhSpawnTimes.includes(timer) && !blackHole) {
+    let fL = random() < 0.5;
+    blackHole = { 
+        x: fL ? -200 : W + 200, 
+        y: random(200, H - 450), 
+        startY: 0, 
+        targetX: fL ? W + 300 : -300, 
+        speed: random(0.4, 0.9), 
+        size: random(45, 80), 
+        noiseOffset: random(1000), 
+        noiseSpeed: random(0.01, 0.02), 
+        wobbleAmp: random(40, 90) 
+    };
+    blackHole.startY = blackHole.y; 
+    bhSpawnTimes = bhSpawnTimes.filter(t => t !== timer); 
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_BH, 1);
+  }
+
+  if (whSpawnTimes.includes(timer) && !whiteHole) {
+    let fL = random() < 0.5;
+    whiteHole = { 
+        x: fL ? -200 : W + 200, 
+        y: random(200, H - 450), 
+        startY: 0, 
+        targetX: fL ? W + 300 : -300, 
+        speed: random(0.5, 1.2), 
+        size: random(50, 90), 
+        noiseOffset: random(1000), 
+        noiseSpeed: random(0.01, 0.02), 
+        wobbleAmp: random(30, 80) 
+    };
+    whiteHole.startY = whiteHole.y; 
+    whSpawnTimes = whSpawnTimes.filter(t => t !== timer); 
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_WH, 1);
+  }
+}
+
+function handleWhiteHole() {
+  if (!whiteHole) return;
+  let d = whiteHole.targetX > whiteHole.x ? 1 : -1;
+  whiteHole.x += whiteHole.speed * d;
+  let n = noise(frameCount * whiteHole.noiseSpeed + whiteHole.noiseOffset);
+  whiteHole.y = whiteHole.startY + (n - 0.5) * whiteHole.wobbleAmp * 2;
+  let jS = whiteHole.size * (1 + (n - 0.5) * 0.15);
+
+  push();
+  translate(whiteHole.x, whiteHole.y);
+  noStroke();
+  
+  push();
+  rotate(-frameCount * 0.1);
+  for (let i = 0; i < 6; i++) {
+    fill(200, 240, 255, 20);
+    ellipse(0, 0, jS * 3.5 + i * 20, jS * 1.2 + i * 8);
+  }
+  pop();
+  
+  for (let i = 8; i > 0; i--) {
+    fill(200 + i * 5, 230 + i * 3, 255, 30);
+    ellipse(0, 0, jS + i * (whiteHole.size * 0.3) + (n * 10));
+  }
+  
+  fill(255);
+  ellipse(0, 0, jS);
+  
+  stroke(200, 255, 255, 150);
+  strokeWeight(2);
+  for(let i=0; i<5; i++) {
+    let ang = random(TWO_PI);
+    let distR = random(jS*0.5, jS*2.2);
+    line(cos(ang)*(distR-15), sin(ang)*(distR-15), cos(ang)*distR, sin(ang)*distR);
+  }
+  pop();
+
+  let jS_sq_effect = (jS * 4) * (jS * 4);
+
+  if (frameCount % 8 === 0) {
+    for (let i = 0; i < pegs.length; i++) {
+      let p = pegs[i];
+      if (p.isBonus || p.isExplosive || p.isRepulsor) continue;
+      
+      let dx = whiteHole.x - p.position.x;
+      let dy = whiteHole.y - p.position.y;
+      if (dx * dx + dy * dy < jS_sq_effect && random() < 0.15) {
+         if (random() < 0.7) {
+             p.isBonus = true;
+             p.tempBonusTimer = 600; 
+         } else {
+             p.isExplosive = true;
+             p.tempExplosiveTimer = 600; 
+         }
+         p.glow = 255;
+         
+         push();
+         stroke(200, 255, 255, 200);
+         strokeWeight(3);
+         line(whiteHole.x, whiteHole.y, p.position.x, p.position.y);
+         pop();
+         
+         createExplosion(p.position.x, p.position.y, color(200, 255, 255));
+         if (audioStarted) { try { fxSynth.play(1200, 0.05, 0, 0.1); } catch(e){} }
+      }
+    }
+  }
+
+  if ((d === 1 && whiteHole.x > whiteHole.targetX) || (d === -1 && whiteHole.x < whiteHole.targetX)) {
+    whiteHole = null;
+  }
+}
+
 function handleBlackHole() {
   if (!blackHole) return;
   let d = blackHole.targetX > blackHole.x ? 1 : -1;
@@ -2953,7 +3383,6 @@ function resetGame() {
   devourer = null;
   devourerSpawnedThisRound = false;
   starbugObj = null;
-  starbugSpawnedThisRound = false;
   lastLikeTime = 0;
   
   solarFlare = null;
