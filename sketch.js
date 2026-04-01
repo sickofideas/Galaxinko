@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.1";
+const GAME_VERSION = "v14.9.2";
 
 let currentLang = "CZ";
 
@@ -29,6 +29,7 @@ const T = {
     TTS_STARBUG_ENT: "Mars Rover inbound to repair modules!",
     TTS_RD_ENT: "Warning! Apollo Saturn V passing through the sector.", 
     TTS_A51_ENT: "Activating illegal Area 51 shields!", A51_MODE: "AREA 51 SHIELD",
+    TTS_ORBITAL_ENT: "Warning, deorbiting old Soviet satellites!", ORBITAL_MODE: "ORBITAL BOMBARDMENT",
     TTS_GAZPACHO: "Cooling systems breached! Cryogenic freeze initiated!", GAZ_MODE: "CRYO FREEZE"
   },
   CZ: {
@@ -56,6 +57,7 @@ const T = {
     TTS_STARBUG_ENT: "Mars Rover přilétá opravit moduly!",
     TTS_RD_ENT: "Varování! Sektorem prolétá Apollo Saturn V.", 
     TTS_A51_ENT: "Aktivuji nelegální štíty z Oblasti 51!", A51_MODE: "ŠTÍT Z OBLASTI 51",
+    TTS_ORBITAL_ENT: "Pozor, deorbitujeme staré sovětské satelity!", ORBITAL_MODE: "ORBITÁLNÍ BOMBARDROVÁNÍ",
     TTS_GAZPACHO: "Selhání chlazení! Inicializováno kryogenní zmražení!", GAZ_MODE: "KRYO ZMRAŽENÍ"
   }
 };
@@ -239,6 +241,8 @@ let nextMeteorShowerTime = 0, nextJokeTime = 0, meteorWarningTimer = 0, backgrou
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
+
+let orbitalDropActive = false, orbitalDropPlanned = false, orbitalDropTriggerTime = -1, orbitalProjectiles = [];
 
 let spamBuffer = {};
 
@@ -762,6 +766,7 @@ function draw() {
   handleStarbugObj();
   handleSolarFlare();
   handleSpaceship();
+  handleOrbitalProjectiles();
 
   if (gameState === "PLAYING") {
     if (millis() > nextMeteorShowerTime) {
@@ -832,6 +837,8 @@ function draw() {
           if (solarFlarePlanned && !solarFlare && timer === solarFlareTriggerTime) triggerSolarFlare();
           if (rdPlanned && !redDwarf && timer === rdSpawnAt) spawnRedDwarf();
           
+          if (orbitalDropPlanned && !orbitalDropActive && timer === orbitalDropTriggerTime) spawnOrbitalDrop();
+
           if (!devourerSpawnedThisRound && timer === 60) {
               spawnDevourer();
               devourerSpawnedThisRound = true;
@@ -895,6 +902,11 @@ function draw() {
   if (rimmerModeActive) {
     let f = (frameCount % 10 < 5) ? 255 : 100;
     drawTxt(typeof T !== 'undefined' ? `${T[currentLang].RIM_MODE} ${rimmerModeTimer}s` : `RIMMER MODE ${rimmerModeTimer}s`, 0, 150, color(255, 50, 50, f), 45, CENTER);
+  }
+
+  if (orbitalDropActive && orbitalProjectiles.length > 0) {
+    let f = (frameCount % 10 < 5) ? 255 : 150;
+    drawTxt(typeof T !== 'undefined' ? `${T[currentLang].ORBITAL_MODE}` : `ORBITAL DROP`, 0, 200, color(255, 100, 0, f), 35, CENTER);
   }
 
   if (meteorWarningTimer > 0) {
@@ -2197,6 +2209,63 @@ function handleSpaceship() {
   pop();
 }
 
+function spawnOrbitalDrop() {
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_ORBITAL_ENT, 2);
+  let count = floor(random(3, 7));
+  for(let i=0; i<count; i++) {
+    let sx = random(100, W - 100);
+    let sy = -200 - (i * 150);
+    let size = random(35, 55);
+    let b = Matter.Bodies.rectangle(sx, sy, size, size, { density: 0.8, frictionAir: 0.005, restitution: 0.1 });
+    Matter.World.add(world, b);
+    orbitalProjectiles.push({ body: b, size: size, trail: [] });
+  }
+  orbitalDropActive = true;
+  shakeAmount = 25;
+}
+
+function handleOrbitalProjectiles() {
+  for (let i = orbitalProjectiles.length - 1; i >= 0; i--) {
+    let op = orbitalProjectiles[i];
+    let pos = op.body.position;
+    op.trail.push({ x: pos.x, y: pos.y });
+    if (op.trail.length > 20) op.trail.shift();
+    
+    push();
+    for (let t = 0; t < op.trail.length; t++) {
+      let alpha = map(t, 0, op.trail.length, 0, 180);
+      fill(255, 100 + random(50), 0, alpha);
+      noStroke();
+      ellipse(op.trail[t].x + random(-5,5), op.trail[t].y + random(-5,5), op.size * (t/op.trail.length) * 1.5);
+    }
+    
+    translate(pos.x, pos.y);
+    rotate(op.body.angle + frameCount * 0.1);
+    fill(100, 90, 80); stroke(50); strokeWeight(2);
+    rect(-op.size/2, -op.size/2, op.size, op.size, 5);
+    fill(200, 50, 50); ellipse(0, 0, op.size * 0.4); // Red Star / Emblem
+    fill(255, 150, 0, 200); ellipse(0, 0, op.size * 1.3, op.size * 0.7); // Fire glow
+    pop();
+    
+    // Destruction logic for pegs
+    for (let j = pegs.length - 1; j >= 0; j--) {
+      let pg = pegs[j];
+      let dx = pos.x - pg.position.x;
+      let dy = pos.y - pg.position.y;
+      if (dx*dx + dy*dy < (op.size * 0.8) * (op.size * 0.8)) {
+        createExplosion(pg.position.x, pg.position.y, color(255, 150, 0));
+        Matter.World.remove(world, pg);
+        pegs.splice(j, 1);
+        if (audioStarted) playExplosionSound();
+        shakeAmount = 4;
+      }
+    }
+    
+    if (pos.y > H + 300) { Matter.World.remove(world, op.body); orbitalProjectiles.splice(i, 1); }
+  }
+  if (orbitalDropActive && orbitalProjectiles.length === 0) orbitalDropActive = false;
+}
+
 function onUserJoin(u, img) {
   let isNew = !viewerSpaceObjects.find(o => o.name === u);
   if (img && !userAvatars[u]) {
@@ -3398,6 +3467,11 @@ function resetGame() {
   cryoActive = false; cryoBallsMult = false; iceParticles = [];
   cryoPlanned = (random() < 0.15);
   cryoTriggerTime = cryoPlanned ? floor(random(15, timer - 15)) : -1;
+
+  orbitalDropActive = false;
+  orbitalProjectiles = [];
+  orbitalDropPlanned = (random() < 0.12);
+  orbitalDropTriggerTime = orbitalDropPlanned ? floor(random(10, timer - 10)) : -1;
 
   if (isAutoMode) autoRandomSettings();
   
