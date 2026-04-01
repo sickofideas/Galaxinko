@@ -3468,7 +3468,8 @@ function resetGame() {
   solarFlarePlanned = (random() < 0.35);
   solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
   
-  cryoActive = false; cryoBallsMult = false; iceParticles = [];
+  game.events.forEach(e => e.onEnd()); // Obnovit bezpečnostní stav před zahájením nového kola
+  game.events = [];
   cryoPlanned = (random() < 0.15);
   cryoTriggerTime = cryoPlanned ? floor(random(15, timer - 15)) : -1;
 
