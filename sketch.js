@@ -275,6 +275,7 @@ let anomalyState = 0;
 let anomalyTimer = 0;
 let anomG = 0, anomB = 0, anomM = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
 let lastLikeTime = 0;
+let lastPlayerActionTime = 0;
 
 // Novy Boss - Pozirac Casu
 let devourer = null;
@@ -377,9 +378,9 @@ function setup() {
   langButton.style('cursor', 'pointer');
   langButton.mousePressed(toggleLang);
 
-  let randG = random() < 0.8 ? random(50, 255) : random(1, 50);
+  let randG = random() < 0.7 ? random(30, 100) : random(10, 200);
   currentGravity = map(randG, 1, 255, 0.01, 5.0);
-  currentBounce = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+  currentBounce = floor(random() < 0.7 ? random(20, 80) : random(80, 150));
 
   lblGrav = createSpan(T[currentLang].GRAV); lblGrav.parent(adminBar);
   gravitySlider = createSlider(0.01, 5.0, currentGravity, 0.01); gravitySlider.parent(adminBar);
@@ -404,7 +405,7 @@ function setup() {
   autoButton.mousePressed(toggleAutoMode);
 
   lblMother = createSpan(T[currentLang].RATE); lblMother.parent(adminBar);
-  let initialMothership = floor(random(0, 31));
+  let initialMothership = floor(random() < 0.7 ? random(0, 3) : random(3, 21));
   mothershipSlider = createSlider(0, 30, initialMothership, 1); mothershipSlider.parent(adminBar);
 
   let cvs = createCanvas(W, H);
@@ -426,6 +427,7 @@ function setup() {
   solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
 
   roundStartTimeReal = millis(); 
+  lastPlayerActionTime = millis();
   
   generateDeepSpaceElements();
   prepareSingularityEvents();
@@ -677,13 +679,13 @@ function toggleAutoMode() {
 }
 
 function autoRandomSettings() {
-  let randG = random() < 0.8 ? random(50, 255) : random(1, 50);
+  let randG = random() < 0.7 ? random(30, 100) : random(10, 200);
   currentGravity = Math.round(map(randG, 1, 255, 0.01, 5.0) * 100) / 100;
-  currentBounce = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
+  currentBounce = floor(random() < 0.7 ? random(20, 80) : random(80, 150));
   spawnPerEvent = floor(random(1, 4)); currentShipChance = floor(random(0, 101));
   gravitySlider.value(currentGravity); bounceSlider.value(currentBounce);
   spawnPerEventSlider.value(spawnPerEvent); shipChanceSlider.value(currentShipChance);
-  if (mothershipSlider) mothershipSlider.value(floor(random(1, 31)));
+  if (mothershipSlider) mothershipSlider.value(floor(random() < 0.7 ? random(0, 3) : random(3, 21)));
   if (world) world.gravity.y = currentGravity;
 }
 
@@ -701,6 +703,41 @@ function updateWinnerColor() {
 function updateTravelSpeed() {
   let target = (gameState === "PLAYING" ? 1.0 : 0.2);
   currentTravelSpeed = lerp(currentTravelSpeed, target, 0.01);
+}
+
+function drawCallToAction() {
+  if (gameState !== "PLAYING") return;
+  let inactiveTime = millis() - lastPlayerActionTime;
+  if (inactiveTime < 15000) return;
+  
+  let alpha = 255;
+  if (inactiveTime < 20000) {
+    alpha = map(inactiveTime, 15000, 20000, 0, 255);
+  }
+  
+  let texts = currentLang === "CZ" ? ["KLIKEJ NA DISPLEJ!", "POŠLI LIKE PRO KULIČKU!", "NAPIŠ KOMENTÁŘ = HRAJEŠ!"] : ["TAP THE SCREEN TO PLAY!", "SEND LIKES FOR BALLS!", "COMMENT TO JOIN THE GAME!"];
+  let textIndex = floor(millis() / 4000) % texts.length;
+  let displayText = texts[textIndex];
+  
+  let pulse = sin(frameCount * 0.1) * 0.5 + 1;
+  let textSizeVal = 24 * pulse;
+  
+  colorMode(HSB);
+  let hue = (millis() * 0.001) % 360;
+  let textColor = color(hue, 100, 100, alpha);
+  colorMode(RGB);
+  
+  push();
+  textAlign(CENTER, CENTER);
+  textSize(textSizeVal);
+  
+  // Stín
+  fill(0, 0, 0, alpha * 0.5);
+  text(displayText, W / 2 + 2, H / 2 - 100 + 2);
+  
+  fill(textColor);
+  text(displayText, W / 2, H / 2 - 100);
+  pop();
 }
 
 function draw() {
@@ -950,6 +987,7 @@ function draw() {
     noStroke(); fill(20, 40, 100, map(flashEffect, 0, 60, 0, 100)); rect(-W, -H, W*3, H*3);
     flashEffect--;
   }
+  drawCallToAction();
   pop();
 }
 
@@ -1078,6 +1116,7 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
     totalBallsFired++; 
     roundTotalBalls++; 
     playerSpawnCount[userName] = (playerSpawnCount[userName] || 0) + 1;
+    lastPlayerActionTime = millis();
   }
   if (!audioStarted) startSpaceAudio();
   
@@ -2174,9 +2213,9 @@ function triggerAnomaly() {
     anomalyTimer = 300;
     nextAnomalyTime += 60;
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].ANOMALY, 2);
-    anomG = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
-    anomB = floor(random() < 0.8 ? random(50, 255) : random(1, 50));
-    anomM = floor(random(0, 31));
+    anomG = floor(random() < 0.7 ? random(30, 100) : random(10, 200));
+    anomB = floor(random() < 0.7 ? random(20, 80) : random(80, 150));
+    anomM = floor(random() < 0.7 ? random(0, 3) : random(3, 21));
     anomalyAngle = 0;
     if (audioStarted) {
         try {
@@ -3631,6 +3670,7 @@ function resetGame() {
   devourerSpawnedThisRound = false;
   starbugObj = null;
   lastLikeTime = 0;
+  lastPlayerActionTime = millis();
   
   solarFlare = null;
   solarFlarePlanned = (random() < 0.35);
@@ -3649,8 +3689,8 @@ function resetGame() {
   if (isAutoMode) autoRandomSettings();
   
   if (mothershipSlider) {
-    let baseRate = (roundCount % 5) * 2; 
-    mothershipSlider.value(floor(random(baseRate, 12)));
+    let newRate = random() < 0.7 ? floor(random(0, 3)) : floor(random(3, 21));
+    mothershipSlider.value(newRate);
   }
 
   if (world) Matter.World.clear(world, false);
