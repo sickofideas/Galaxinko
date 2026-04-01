@@ -1,9 +1,9 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.8"; // oprava chyb: random() -> Math.random(), inicializace buttonů na null
+const GAME_VERSION = "v14.9.10"; // oprava chyb: odstraněno 'l' na konci, přidána definice boxW/boxH, oprava random(TEST_BOTS)
 
 // change log:
-// v14.9.8 - oprava p5.js chyb: random() nahrazeno Math.random(), buttony inicializovány na null
-// v14.9.7 - CTA: posunuto výše (H/2-250), zmenšeno zvětšování (max 52px), duhová barva textu a pozadí
+// v14.9.10 - oprava p5.js chyb: odstraněno 'l', definice boxW/boxH v drawCallToAction, random(TEST_BOTS) -> pole[index]
+// v14.9.9 - HP bary přímo na bossu a kosmickém smetí, větší pohyb pro smetí
 let currentLang = "CZ";
 
 const T = {
@@ -739,6 +739,10 @@ function drawCallToAction() {
   
   let cX = W / 2;
   let cY = H / 2 - 250; // posunuto ještě výše
+
+  let boxW = max(textWidth(displayText) + 140, 500);
+  let boxH = textSizeVal + 60;
+  let cornerRadius = 30;
 
   push();
   textAlign(CENTER, CENTER);
@@ -1750,10 +1754,10 @@ function handleBoss() {
   ellipse(boss.w * 0.25, 0, 15, 15);
   pop();
   
-  let barW = 400, barH = 20, barX = W/2 - barW/2, barY = 90;
-  push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
-  fill(255, 50, 50); rect(barX, barY, barW * (max(0, boss.hp) / boss.maxHp), barH, 5);
-  drawTxt(typeof T !== 'undefined' ? T[currentLang].LEVI : "BOSS HP", W/2, barY + 10, color(255), 10, CENTER);
+  let barW = 200, barH = 15, barX = boss.x - barW/2, barY = boss.y - boss.h/2 - 25;
+  push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 3);
+  fill(255, 50, 50); rect(barX, barY, barW * (max(0, boss.hp) / boss.maxHp), barH, 3);
+  drawTxt(typeof T !== 'undefined' ? T[currentLang].LEVI : "BOSS HP", boss.x, barY + 7, color(255), 8, CENTER);
   pop();
 }
 
@@ -1777,7 +1781,7 @@ function handleDevourer() {
     if (devourer.state === "ACTIVE") {
         devourer.timer--;
         
-        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 350) + sin(frameCount * 0.1) * 20 });
+        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.03) * 100, y: (H - ZONE_H - 350) + sin(frameCount * 0.07) * 50 });
         
         if (devourer.hp <= 0) {
             devourer.state = "DEFEATED";
@@ -1825,9 +1829,11 @@ function handleDevourer() {
     
     pop();
     
-    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 410;
-    push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
-    fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
+    let barW = 200, barH = 12, barX = devourer.x - barW/2, barY = devourer.y - devourer.h/2 - 20;
+    push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 3);
+    fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 3);
+    drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "DEVOURER HP", devourer.x, barY + 6, color(255), 8, CENTER);
+    pop();
     drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
     drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
     pop();
@@ -3863,7 +3869,7 @@ function resetGame() {
 
 function mouseClicked() { 
   if (!audioStarted) startSpaceAudio(); 
-  if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(random(TEST_BOTS)); else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; } return; } 
+  if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(TEST_BOTS[floor(Math.random() * TEST_BOTS.length)]); else { spawnBall(TEST_BOTS[floor(Math.random() * TEST_BOTS.length)]); shakeAmount = 2; } return; } 
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 450) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
 }
