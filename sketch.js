@@ -1,7 +1,8 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.3"; // upgrade po přidání AFK CTA a lepší čitelnosti v Chrome
+const GAME_VERSION = "v14.9.4"; // oprava chyb s předčasným použitím proměnných
 
 // change log:
+// v14.9.4 - oprava chyb s W, H, allTimeRecords použitými před deklarací
 // v14.9.3 - přidaná drawCallToAction + AFK fade-in + duhový text + pozadí + outline
 // v14.9.2 - přidány kosmické anomálie a eventy
 let currentLang = "CZ";
@@ -64,6 +65,10 @@ const T = {
     TTS_GAZPACHO: "Selhání chlazení! Inicializováno kryogenní zmražení!", GAZ_MODE: "KRYO ZMRAŽENÍ"
   }
 };
+
+const W = 900, H = 1000, ZONE_H = 80;
+
+let allTimeRecords = [];
 
 const SPAM_MSGS = {
   CZ: [
@@ -243,6 +248,8 @@ let cosmicEvent = null, eventOccurredThisRound = false, followEvents = [], avail
 let nextMeteorShowerTime = 0, nextJokeTime = 0, meteorWarningTimer = 0, backgroundMeteors = [];
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
+let blackHoleConsumed = {pegs: 0, planets: 0, debris: 0};
+
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
 
 let orbitalDropActive = false, orbitalDropPlanned = false, orbitalDropTriggerTime = -1, orbitalProjectiles = [];
@@ -300,6 +307,9 @@ let solarFlareTriggerTime = -1;
 let game = { events: [] };
 
 let planetSize = 0, currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], whiteHole = null, whSpawnTimes = [], fxSynth, audioStarted = false;
+let blackHoleLastPosition = { x: W / 2, y: H / 2 };
+let blackHoleReplenishQueue = [];
+let blackHoleDynamicObjects = [];
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
 
@@ -315,8 +325,6 @@ let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
 let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [];
 let lastSpawnSnd = 0, lastExpSnd = 0, lastSpawnTime = 0, doorOpen = 0;
 
-const W = 900, H = 1000, ZONE_H = 80;
-
 const RARE_POOL = [
   { id: "STARMAN", name: "ELON'S TESLA", col: [200, 0, 0], size: 28 },
   { id: "HAWKING", name: "S. HAWKING", col: [50, 50, 255], size: 22 },
@@ -326,7 +334,6 @@ const RARE_POOL = [
   { id: "STARBUG", name: "KOSMIK", col: [50, 200, 50], size: 30 },
   { id: "RED_DWARF", name: "CERVENY TRPASLIK", col: [220, 50, 50], size: 45 }
 ];
-let allTimeRecords = [];
 
 const SHAPES = {
   "HEART": [
@@ -723,12 +730,10 @@ function drawCallToAction() {
   let displayText = texts[textIndex];
   
   let pulse = sin(frameCount * 0.1) * 0.5 + 1;
-  let textSizeVal = 32 + pulse * 12;
+  let textSizeVal = 48 + pulse * 16; // větší základní velikost
   
-  colorMode(HSB);
-  let hue = (millis() * 0.002) % 360;
-  let textColor = color(hue, 95, 100, alpha);
-  colorMode(RGB);
+  // pevná bílá barva pro lepší čitelnost
+  let textColor = color(255, 255, 255, alpha);
   
   let cX = W / 2;
   let cY = H / 2 - 140; // posunuto nahoru, aby se neškrtalo dolní UI s příchody hráčů
@@ -737,36 +742,28 @@ function drawCallToAction() {
   textAlign(CENTER, CENTER);
   textSize(textSizeVal);
   textStyle(BOLD);
-  textFont('Arial, sans-serif');
-  fill(255);
+  textFont('Impact, sans-serif'); // silnější font pro lepší čitelnost
   noStroke();
 
-  // pozadí - silný kontrast
-  let boxW = max(textWidth(displayText) + 120, 420);
-  let boxH = textSizeVal + 48;
-  let gradientAlpha = min(220, alpha * 0.85);
-
-  let cornerRadius = 24;
-  fill(0, 0, 0, gradientAlpha);
+  // pozadí - tmavé s vysokým kontrastem
+  let boxW = max(textWidth(displayText) + 140, 500);
+  let boxH = textSizeVal + 60;
+  let cornerRadius = 30;
+  fill(0, 0, 0, min(240, alpha * 0.9)); // tmavší pozadí
   rectMode(CENTER);
   rect(cX, cY, boxW, boxH, cornerRadius);
 
-  // jasné orámování
-  noFill();
-  stroke(255, 225);
-  strokeWeight(3);
-  rect(cX, cY, boxW + 6, boxH + 6, cornerRadius);
-
-  // text se stínem
-  drawingContext.shadowBlur = 36;
-  drawingContext.shadowColor = `rgba(0,0,0,${alpha / 255 * 0.9})`;
-  stroke(0, alpha * 0.7);
+  // silný bílý obrys kolem textu
+  stroke(255, alpha);
   strokeWeight(4);
-
   fill(textColor);
   text(displayText, cX, cY);
 
-  drawingContext.shadowBlur = 0;
+  // další vrstva pro extra viditelnost
+  noStroke();
+  fill(255, 255, 255, alpha * 0.3);
+  text(displayText, cX + 1, cY + 1);
+
   pop();
 }
 
@@ -831,10 +828,12 @@ function draw() {
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
   // NOTE: Order determines what is drawn on top.
-  handleBlackHole(); 
-  handleWhiteHole(); 
-  handleCosmicEvent(); 
-  handleBoss(); 
+  handleBlackHole();
+  processBlackHoleReplenish();
+  handleBlackHoleDynamicObjects();
+  handleWhiteHole();
+  handleCosmicEvent();
+  handleBoss();
   handleDevourer(); 
   handleStarbugObj();
   handleSolarFlare();
@@ -3306,6 +3305,10 @@ function handleWhiteHole() {
 
 function handleBlackHole() {
   if (!blackHole) return;
+  // aktualizace poslední pozice černé díry, aby objekty létaly kolem ní když se uzavře
+  blackHoleLastPosition.x = blackHole.x;
+  blackHoleLastPosition.y = blackHole.y;
+
   let d = blackHole.targetX > blackHole.x ? 1 : -1;
   blackHole.x += blackHole.speed * d;
   let n = noise(frameCount * blackHole.noiseSpeed + blackHole.noiseOffset);
@@ -3355,6 +3358,7 @@ function handleBlackHole() {
     let dy = blackHole.y - p.position.y;
     if (dx * dx + dy * dy < jS_sq25 && random() < 0.02) {
        suckedPegs = true;
+       blackHoleConsumed.pegs++;
        Matter.Composite.remove(world, p);
        createExplosion(p.position.x, p.position.y, color(150, 50, 255));
        pegs.splice(i, 1);
@@ -3396,6 +3400,7 @@ function handleBlackHole() {
       p.y += dy * 0.005;
       p.size *= 0.99; 
       if (distSq < jS_sq15 || p.size < 5) {
+        blackHoleConsumed.planets++;
         massivePlanets.splice(i, 1);
         shakeAmount = 15; 
         if(audioStarted) playExplosionSound();
@@ -3414,6 +3419,7 @@ function handleBlackHole() {
       p.vx += dx * 0.003;
       p.vy += dy * 0.003;
       if (distSq < jS_sq15) {
+        blackHoleConsumed.debris++;
         spaceDebris.splice(i, 1);
       }
     }
@@ -3421,8 +3427,125 @@ function handleBlackHole() {
 
   if ((d === 1 && blackHole.x > blackHole.targetX) || (d === -1 && blackHole.x < blackHole.targetX)) {
     blackHole = null;
+    if (blackHoleConsumed.pegs + blackHoleConsumed.planets + blackHoleConsumed.debris > 0) {
+      enqueueBlackHoleReplenish(blackHoleLastPosition.x, blackHoleLastPosition.y);
+    }
+    blackHoleConsumed = {pegs: 0, planets: 0, debris: 0};
   } else {
     shakeAmount = max(shakeAmount, jS * 0.02);
+  }
+}
+
+function enqueueBlackHoleReplenish(originX, originY) {
+  let total = blackHoleConsumed.pegs + blackHoleConsumed.planets + blackHoleConsumed.debris;
+  total = min(total, 25);
+  for (let i = 0; i < total; i++) {
+    blackHoleReplenishQueue.push({ type: random(['DEBRIS','PLANET','PEG']), priority: i, originX: originX, originY: originY });
+  }
+}
+
+function processBlackHoleReplenish() {
+  if (blackHoleReplenishQueue.length === 0) return;
+  if (frameCount % 12 !== 0) return;
+  let item = blackHoleReplenishQueue.shift();
+
+  let originX = item.originX || random(100, W - 100);
+  let originY = item.originY || random(100, H - 250);
+
+  let baseAngle = random(TWO_PI);
+  let curveSize = random(100, 160);
+
+  let obj = {
+    type: item.type,
+    originX: originX,
+    originY: originY,
+    angle: baseAngle,
+    pathRadius: curveSize,
+    speed: random(0.01, 0.035),
+    rotDir: random() < 0.5 ? -1 : 1,
+    size: item.type === 'PLANET' ? random(32, 60) : item.type === 'DEBRIS' ? random(12, 24) : 10,
+    color: item.type === 'PEG' ? color(200, 255, 100) : item.type === 'PLANET' ? color(random(120, 255), random(120, 255), random(120, 255)) : color(180, 180, 220),
+    age: 0,
+    bonusTriggered: false,
+    bonusReady: false,
+    x: originX + cos(baseAngle) * curveSize,
+    y: originY + sin(baseAngle) * curveSize,
+  };
+
+  blackHoleDynamicObjects.push(obj);
+}
+
+function handleBlackHoleDynamicObjects() {
+  if (blackHoleDynamicObjects.length === 0) return;
+
+  for (let i = blackHoleDynamicObjects.length - 1; i >= 0; i--) {
+    let o = blackHoleDynamicObjects[i];
+    o.age++;
+    o.angle += o.speed * o.rotDir;
+
+    // Křivka kolem místa černé díry
+    let wobble = sin(o.age * 0.04) * 22;
+    o.x = o.originX + cos(o.angle) * o.pathRadius + wobble;
+    o.y = o.originY + sin(o.angle) * o.pathRadius + sin(o.age * 0.03) * 18;
+
+    // mírný přesun k centru aby se neuzavíralo přímo kolem hrany
+    o.originX = lerp(o.originX, W / 2, 0.001);
+    o.originY = lerp(o.originY, H / 2 - 120, 0.001);
+
+    // po určitém čase se aktivuje bonusní režim "minigame"
+    if (o.age > 180 && !o.bonusReady) {
+      o.bonusReady = true;
+      o.bonusTimer = 210;
+      if (audioStarted) try { fxSynth.play(1000, 0.2, 0, 0.1); } catch(e) {}
+    }
+
+    // pokud bonus je aktivní, vygeneruj body pro již existující hráče každých 60 frameů
+    if (o.bonusReady && o.bonusTimer > 0) {
+      o.bonusTimer--;
+      if (o.bonusTimer % 60 === 0) {
+        let best = Object.keys(leaderboard).sort((a, b) => (leaderboard[b].score || 0) - (leaderboard[a].score || 0))[0];
+        if (best) {
+          updateScore(best, 150 * (o.type === 'PLANET' ? 2 : 1), color(255, 255, 100));
+          addFloatingText(`BONUS ${o.type}`, o.x, o.y, color(255, 255, 100), true);
+        }
+      }
+      if (o.bonusTimer <= 0) {
+        o.bonusTriggered = true;
+      }
+    }
+
+    // výkres
+    push();
+    noStroke();
+    if (o.type === 'PLANET') {
+      fill(o.color.levels ? o.color : color(150, 150, 255), 230);
+      ellipse(o.x, o.y, o.size * 1.1 + sin(frameCount * 0.1) * 3);
+      fill(255, 255, 255, 180); ellipse(o.x + 12, o.y - 8, o.size * 0.2, o.size * 0.2);
+    } else if (o.type === 'DEBRIS') {
+      fill(o.color.levels ? o.color : color(220), 210);
+      rect(o.x, o.y, o.size, o.size * 0.4, 3);
+      fill(255, 255, 180, 190); ellipse(o.x + sin(frameCount * 0.12) * 4, o.y - 2, 4, 4);
+    } else {
+      fill(255, 230, 100, 220);
+      ellipse(o.x, o.y, 14 + sin(frameCount * 0.25) * 2);
+      fill(255, 255, 255, 200); ellipse(o.x + 3, o.y - 2, 5, 5);
+    }
+
+    if (o.bonusReady) {
+      noFill();
+      stroke(255, 220, 20, 150 + sin(frameCount * 0.3) * 80);
+      strokeWeight(2);
+      ellipse(o.x, o.y, o.size + 18);
+      fill(255, 255, 255, 220);
+      noStroke();
+      textAlign(CENTER, CENTER); textSize(10);
+      text(`#${o.bonusTimer}`, o.x, o.y - o.size - 12);
+    }
+    pop();
+
+    if (o.bonusTriggered || o.age > 900) {
+      blackHoleDynamicObjects.splice(i, 1);
+    }
   }
 }
 
