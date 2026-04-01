@@ -1830,6 +1830,102 @@ function handleSolarFlare() {
     }
 }
 
+function triggerAlienAbduction() {
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_UFO, 2);
+    ufoEvent = { x: W/2, y: -100, targetY: 100, activeFrames: 0, state: "ENTERING" };
+    shakeAmount = 15; flashEffect = 30;
+    if (audioStarted) {
+        try { fxSynth.play(300, 0.5, 0, 2.0); } catch(e){}
+    }
+    
+    // Vybrat všechny zapadlé kuličky
+    for (let b of balls) {
+        if (b.body.position.y > H - 300 && (b.body.isSleeping || b.body.velocity.y < 0.5) && !b.scored && !b.isBeingAbducted) {
+            b.isBeingAbducted = true;
+            b.scored = true; // Zamezit běžnému zónovému skórování
+            b.zoneIndex = -1;
+            b.body.collisionFilter.mask = 0; // Vypne kolize se zdmi/pegy, aby kuličky mohly hladce stoupat
+            Matter.Body.setSleeping(b.body, false);
+        }
+    }
+}
+
+function handleAlienAbduction() {
+    if (!ufoEvent) return;
+    ufoEvent.activeFrames++;
+    
+    if (ufoEvent.state === "ENTERING") {
+        ufoEvent.y = lerp(ufoEvent.y, ufoEvent.targetY, 0.05);
+        if (abs(ufoEvent.y - ufoEvent.targetY) < 2) ufoEvent.state = "ABDUCTING";
+    } else if (ufoEvent.state === "ABDUCTING") {
+        ufoEvent.x = W/2 + sin(frameCount * 0.05) * 150;
+        let stillAbducting = false;
+        
+        // Trakční paprsek (světelný pás)
+        push();
+        noStroke();
+        fill(100, 255, 100, 80 + sin(frameCount * 0.2) * 40);
+        beginShape();
+        vertex(ufoEvent.x - 40, ufoEvent.y + 20);
+        vertex(ufoEvent.x + 40, ufoEvent.y + 20);
+        vertex(ufoEvent.x + 200, H);
+        vertex(ufoEvent.x - 200, H);
+        endShape(CLOSE);
+        pop();
+
+        for (let i = balls.length - 1; i >= 0; i--) {
+            let b = balls[i];
+            if (b.isBeingAbducted) {
+                stillAbducting = true;
+                let dx = ufoEvent.x - b.body.position.x;
+                // Aplikace obrácené gravitace
+                Matter.Body.setVelocity(b.body, { x: dx * 0.05, y: -12 });
+                
+                // Odstranění z plochy a "Výzkumný bonus"
+                if (b.body.position.y < ufoEvent.y + 50) {
+                    let pts = 1000 * b.multiplier;
+                    if (b.name !== "MOTHERSHIP") {
+                        updateScore(b.name, pts, b.color);
+                        addFloatingText("+" + pts + (typeof T !== 'undefined' ? T[currentLang].UFO_BONUS : ""), ufoEvent.x, ufoEvent.y, color(100, 255, 100), true);
+                    }
+                    createExplosion(ufoEvent.x, ufoEvent.y, color(100, 255, 100));
+                    if (audioStarted && random() < 0.3) playSpawnSound();
+                    removeBall(b);
+                }
+            }
+        }
+        
+        if (!stillAbducting && ufoEvent.activeFrames > 180) {
+            ufoEvent.state = "LEAVING";
+        }
+    } else if (ufoEvent.state === "LEAVING") {
+        ufoEvent.y -= 5;
+        for (let i = balls.length - 1; i >= 0; i--) {
+            let b = balls[i];
+            if (b.isBeingAbducted) removeBall(b);
+        }
+        if (ufoEvent.y < -200) ufoEvent = null;
+        return;
+    }
+
+    // Vykreslení UFO
+    push();
+    translate(ufoEvent.x, ufoEvent.y);
+    noStroke();
+    fill(100, 255, 100, 150); ellipse(0, 20, 80, 30);
+    fill(60); ellipse(0, 0, 160, 60);
+    fill(40); ellipse(0, 5, 120, 40);
+    fill(150, 200, 255, 200); arc(0, -5, 80, 80, PI, 0);
+    
+    for (let l = 0; l < 7; l++) {
+        let lx = map(l, 0, 6, -60, 60);
+        let ly = sin(acos(lx/80)) * 20; 
+        if ((frameCount + l * 10) % 30 < 15) fill(255, 50, 50); else fill(50, 255, 50);
+        ellipse(lx, ly, 8, 8);
+    }
+    pop();
+}
+
 function drawAnomalyRoulette() {
     push();
     fill(0, 0, 10, 220); 
