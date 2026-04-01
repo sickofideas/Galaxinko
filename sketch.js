@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.7.3";
+const GAME_VERSION = "v14.8.0";
 
 let currentLang = "CZ";
 
@@ -26,7 +26,8 @@ const T = {
     ANOMALY: "TEMPORAL ANOMALY", PHYS_ALT: "Physics altered!",
     TTS_DEV_ENT: "WARNING! TIME DEVOURER DETECTED!", TTS_DEV_DEF: "DEVOURER DESTROYED! TIME SAVED!",
     TTS_DEV_FAIL: "TIME CONSUMED! ROUND SHORTENED!", DEVOURER: "TIME DEVOURER",
-    TTS_STARBUG_ENT: "Starbug inbound to repair obstacles!"
+    TTS_STARBUG_ENT: "Starbug inbound to repair obstacles!",
+    TTS_RD_ENT: "Warning! JMC Red Dwarf entering the sector."
   },
   CZ: {
     GRAV: "Gravitace:", BOUNCE: "Odraz:", SPAWN: "Limit spawnu:", CHANCE: "Šance Boss/Loď%:",
@@ -50,7 +51,8 @@ const T = {
     ANOMALY: "ČASOVÁ ANOMÁLIE", PHYS_ALT: "Fyzika změněna!",
     TTS_DEV_ENT: "VAROVÁNÍ! POŽÍRAČ ČASU DETEKOVÁN!", TTS_DEV_DEF: "POŽÍRAČ ZNIČEN! ČAS ZACHRÁNĚN!",
     TTS_DEV_FAIL: "ČAS ZKONZUMOVÁN! KOLO ZKRÁCENO!", DEVOURER: "POŽÍRAČ ČASU",
-    TTS_STARBUG_ENT: "Kosmik přilétá obnovit překážky!"
+    TTS_STARBUG_ENT: "Kosmik přilétá obnovit překážky!",
+    TTS_RD_ENT: "Varování! Těžební loď Červený trpaslík vstupuje do sektoru."
   }
 };
 
@@ -326,7 +328,7 @@ const JOKES = {
 };
 
 let engine, world;
-let balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {};
+let balls = [], pegs = [], zones = [], walls = [], explosions = [], leaderboard = {}, playerSpawnCount = {};
 let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFired = 0, roundTotalBalls = 0, roundCount = 1;
 let gameState = "PLAYING", libraryLoaded = false, winnerColor, flashEffect = 0, shakeAmount = 0;
 let currentDestination = "", currentGravity = 0.6, currentBounce = 80, spawnPerEvent = 1, currentShipChance = 30;
@@ -375,6 +377,11 @@ let devourerSpawnedThisRound = false;
 let starbugObj = null;
 let starbugSpawnedThisRound = false;
 let initialPegCount = 0;
+
+// Red Dwarf mechanic
+let redDwarf = null;
+let rdPlanned = false;
+let rdSpawnAt = -1;
 
 // Solar Flare mechanic
 let solarFlare = null;
@@ -516,6 +523,7 @@ function setup() {
   prepareSingularityEvents();
   planSpaceshipForRound();
   planBossForRound();
+  planRedDwarfForRound();
   initTTS();
   connectTikfinity();
   
@@ -660,14 +668,19 @@ function connectTikfinity() {
           sp.state = 'CHARGING';
           sp.fade = 255;
           
-          if (sp.total < 4 && c < 5) {
-              for (let i = 0; i < c; i++) {
+          let canDropImmediately = Math.max(0, 5 - sp.total);
+          let dropNow = Math.min(c, canDropImmediately);
+
+          if (dropNow > 0) {
+              for (let i = 0; i < dropNow; i++) {
                  setTimeout(() => { for (let j = 0; j < spawnPerEvent; j++) spawnBall(u); }, i * 120);
               }
-              sp.total += c;
-          } else {
-              sp.total += c;
-              sp.buffered += c;
+          }
+
+          sp.total += c;
+          let bufferNow = c - dropNow;
+          if (bufferNow > 0) {
+              sp.buffered += bufferNow;
           }
 
           if (sp.total >= 5 && !sp.announced) {
@@ -679,7 +692,7 @@ function connectTikfinity() {
               }
           }
 
-          if (millis() - lastSpokeTime > 9000 && sp.total < 5) {
+          if (sp.total < 5 && millis() - lastSpokeTime > 9000) {
             speakAnnouncer(T[currentLang].TTS_POW, 0); speakName(s); lastSpokeTime = millis();
           }
         }
@@ -829,6 +842,7 @@ function draw() {
   background(bgR, bgG, bgB);
   
   drawGalacticBackground(); 
+  handleRedDwarf(); 
   drawViewerObjects(); 
   handleBackgroundMeteors();
 
@@ -841,6 +855,7 @@ function draw() {
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
+  // NOTE: Order determines what is drawn on top.
   handleBlackHole(); 
   handleWhiteHole(); 
   handleCosmicEvent(); 
@@ -917,6 +932,7 @@ function draw() {
           if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
           if (solarFlarePlanned && !solarFlare && timer === solarFlareTriggerTime) triggerSolarFlare();
+          if (rdPlanned && !redDwarf && timer === rdSpawnAt) spawnRedDwarf();
           
           if (!devourerSpawnedThisRound && timer === 60) {
               spawnDevourer();
@@ -1113,7 +1129,7 @@ function handleSpamBuffer() {
     drawTxt(u.substring(0, 8), 0, -30, color(red(uCol), green(uCol), blue(uCol), a), 10, CENTER);
     pop();
     
-    if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
+    if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 2000) {
       sp.state = 'RELEASING';
       if (sp.buffered > 0) {
         let count = Math.min(sp.buffered, 5); 
@@ -1142,7 +1158,11 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") { if (spawnQueue.length < 500) spawnQueue.push(userName); return; }
   if (balls.length > 700) return;
-  if (userName !== "MOTHERSHIP") { totalBallsFired++; roundTotalBalls++; }
+  if (userName !== "MOTHERSHIP") { 
+    totalBallsFired++; 
+    roundTotalBalls++; 
+    playerSpawnCount[userName] = (playerSpawnCount[userName] || 0) + 1;
+  }
   if (!audioStarted) startSpaceAudio();
   
   let isR = random() < 0.03;
@@ -1220,7 +1240,11 @@ function drawBalls() {
       }
       noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-b.size/2 - 5, -b.size/2 - 5, b.size + 10, b.size + 10, 6);
       fill(drawCol); stroke(255); strokeWeight(2); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
-      noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
+      
+      if (playerSpawnCount[b.name] && playerSpawnCount[b.name] > 500) {
+        noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
+      }
+      
       drawingContext.shadowBlur = 0;
       
       if (b.multiplier >= 2) {
@@ -1558,6 +1582,87 @@ function drawResultsOverlay() {
   drawTxt(typeof T !== 'undefined' ? `${T[currentLang].NEXT} ${resultsTimer}s` : `NEXT: ${resultsTimer}s`, W / 2, H - 120, color(255, 50, 50), 24, CENTER);
 }
 
+function planRedDwarfForRound() {
+  rdPlanned = (random(100) < 25); 
+  rdSpawnAt = rdPlanned ? floor(random(15, timer - 15)) : -1;
+}
+
+function spawnRedDwarf() {
+  if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_RD_ENT, 2);
+  redDwarf = { x: -400, y: 150, speed: 2, activeFrames: 0 };
+  shakeAmount = 15;
+}
+
+function handleRedDwarf() {
+  if (!redDwarf) return;
+  redDwarf.x += redDwarf.speed;
+  redDwarf.activeFrames++;
+
+  push();
+  translate(redDwarf.x, redDwarf.y);
+  
+  fill(160, 30, 30);
+  rect(-150, -40, 300, 80, 10);
+  fill(120, 20, 20);
+  rect(-100, -25, 200, 50);
+  
+  fill(80);
+  rect(150, -30, 60, 60, 5); 
+  fill(200, 255, 255);
+  rect(180, -10, 15, 15); 
+  
+  fill(50);
+  rect(-170, -30, 20, 20);
+  rect(-170, 10, 20, 20);
+  
+  fill(255, 100, 0, 150 + sin(frameCount * 0.5) * 100);
+  ellipse(-180, -20, 20, 30);
+  ellipse(-180, 20, 20, 30);
+  
+  fill(255);
+  textSize(24);
+  textAlign(CENTER, CENTER);
+  text("JMC", -20, 0);
+  pop();
+
+  let laserX = redDwarf.x + 100;
+  if (laserX > 0 && laserX < W) {
+      if (redDwarf.activeFrames % 15 === 0 && audioStarted) {
+          try { fxSynth.play(150, 0.05, 0, 0.1); } catch(e){}
+      }
+      
+      push();
+      strokeWeight(15 + sin(frameCount) * 5);
+      stroke(255, 50, 50, 200);
+      line(laserX, redDwarf.y + 40, laserX, H - ZONE_H);
+      strokeWeight(5);
+      stroke(255);
+      line(laserX, redDwarf.y + 40, laserX, H - ZONE_H);
+      
+      fill(255, 100, 100);
+      noStroke();
+      ellipse(laserX, H - ZONE_H, 40 + random(20), 20 + random(10));
+      pop();
+      
+      for (let z of zones) {
+          if (laserX >= z.x && laserX <= z.x + z.w) {
+              if (!z.upgradedByRD) {
+                  z.upgradedByRD = true;
+                  z.score *= 2;
+                  z.baseColor = color(150, 20, 20, 200);
+                  z.flash = 255;
+                  z.flashColor = color(255, 100, 100);
+                  createExplosion(z.x + z.w/2, H - ZONE_H, color(255, 50, 50));
+              }
+          }
+      }
+  }
+
+  if (redDwarf.x > W + 200) {
+      redDwarf = null;
+  }
+}
+
 function planBossForRound() {
   bossPlanned = (random(100) < currentShipChance); bossSpawnAt = bossPlanned ? floor(random(15, timer - 15)) : -1;
 }
@@ -1567,7 +1672,9 @@ function spawnBoss() {
   let w = 240, h = 80, startY = -150;
   let b = Matter.Bodies.rectangle(W/2, startY, w, h, { isStatic: true, restitution: 1.2, friction: 0 });
   Matter.World.add(world, b);
-  boss = { body: b, w: w, h: h, x: W/2, y: startY, targetX: W/2, targetY: 200, maxHp: 10000, hp: 10000, state: "ENTERING", activeFrames: 0, hitFlash: 0 };
+  
+  let bossHp = 150000 + (roundTotalBalls * 200);
+  boss = { body: b, w: w, h: h, x: W/2, y: startY, targetX: W/2, targetY: 200, maxHp: bossHp, hp: bossHp, state: "ENTERING", activeFrames: 0, hitFlash: 0 };
   shakeAmount = 20; flashEffect = 30;
 }
 
@@ -1669,11 +1776,11 @@ function handleBoss() {
 
 function spawnDevourer() {
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_DEV_ENT, 2);
-    let w = 300, h = 100, y = H - ZONE_H - 220;
+    let w = 300, h = 100, y = H - ZONE_H - 350;
     let b = Matter.Bodies.rectangle(W/2, y, w, h, { isStatic: true, restitution: 0.2, friction: 0.5 });
     Matter.World.add(world, b);
     
-    let bossHp = 50000 + (roundTotalBalls * 50);
+    let bossHp = 250000 + (roundTotalBalls * 300);
     devourer = { body: b, w: w, h: h, x: W/2, y: y, maxHp: bossHp, hp: bossHp, timer: 60 * targetFPS, state: "ACTIVE", hitFlash: 0 };
     shakeAmount = 25; flashEffect = 40;
 }
@@ -1687,7 +1794,7 @@ function handleDevourer() {
     if (devourer.state === "ACTIVE") {
         devourer.timer--;
         
-        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 220) + sin(frameCount * 0.1) * 20 });
+        Matter.Body.setPosition(devourer.body, { x: W/2 + sin(frameCount * 0.05) * 50, y: (H - ZONE_H - 350) + sin(frameCount * 0.1) * 20 });
         
         if (devourer.hp <= 0) {
             devourer.state = "DEFEATED";
@@ -1735,7 +1842,7 @@ function handleDevourer() {
     
     pop();
     
-    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 280;
+    let barW = 400, barH = 15, barX = W/2 - barW/2, barY = H - ZONE_H - 410;
     push(); fill(0, 150); noStroke(); rect(barX, barY, barW, barH, 5);
     fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 5);
     drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
@@ -3374,6 +3481,7 @@ function resetGame() {
   rimmerModePlanned = (random() < 0.08);
   rimmerModeTriggerTime = rimmerModePlanned ? floor(random(15, timer - 15)) : -1;
   spamBuffer = {};
+  playerSpawnCount = {};
   
   bonusTime = 0.0;
   roundStartTimeReal = millis();
@@ -3410,4 +3518,5 @@ function mouseClicked() {
   if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(random(TEST_BOTS)); else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; } return; } 
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 450) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
-}
+}l
+
