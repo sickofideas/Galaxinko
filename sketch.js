@@ -737,29 +737,31 @@ function drawCallToAction() {
   textAlign(CENTER, CENTER);
   textSize(textSizeVal);
   textStyle(BOLD);
+  textFont('Arial, sans-serif');
+  fill(255);
   noStroke();
 
-  // pozadí - barevný gradient blok s hranou
-  let boxW = max(textWidth(displayText) + 80, 360);
-  let boxH = textSizeVal + 36;
+  // pozadí - silný kontrast
+  let boxW = max(textWidth(displayText) + 120, 420);
+  let boxH = textSizeVal + 48;
+  let gradientAlpha = min(220, alpha * 0.85);
 
-  // jemná duhová pruhovaná výplň
-  for (let i = 0; i < boxH; i += 4) {
-    let subHue = (hue + i * 1.4) % 360;
-    fill(color(subHue, 100, 90, alpha * 0.4));
-    rectMode(CENTER);
-    rect(cX, cY, boxW, 4, 8);
-  }
-
-  fill(0, 0, 0, min(170, alpha * 0.6));
+  let cornerRadius = 24;
+  fill(0, 0, 0, gradientAlpha);
   rectMode(CENTER);
-  rect(cX, cY, boxW, boxH, 22);
+  rect(cX, cY, boxW, boxH, cornerRadius);
 
-  // outline a stín
-  drawingContext.shadowBlur = 26;
-  drawingContext.shadowColor = `rgba(0,0,0,${alpha / 255 * 0.8})`;
-  stroke(255, alpha * 0.8);
+  // jasné orámování
+  noFill();
+  stroke(255, 225);
   strokeWeight(3);
+  rect(cX, cY, boxW + 6, boxH + 6, cornerRadius);
+
+  // text se stínem
+  drawingContext.shadowBlur = 36;
+  drawingContext.shadowColor = `rgba(0,0,0,${alpha / 255 * 0.9})`;
+  stroke(0, alpha * 0.7);
+  strokeWeight(4);
 
   fill(textColor);
   text(displayText, cX, cY);
@@ -3346,15 +3348,21 @@ function handleBlackHole() {
   let jS_sq15 = (jS * 1.5) * (jS * 1.5);
   let jS_sq6 = (jS * 6) * (jS * 6);
 
+  let suckedPegs = false;
   for (let i = pegs.length - 1; i >= 0; i--) {
     let p = pegs[i];
     let dx = blackHole.x - p.position.x;
     let dy = blackHole.y - p.position.y;
     if (dx * dx + dy * dy < jS_sq25 && random() < 0.02) {
+       suckedPegs = true;
        Matter.Composite.remove(world, p);
        createExplosion(p.position.x, p.position.y, color(150, 50, 255));
        pegs.splice(i, 1);
     }
+  }
+  if (suckedPegs && !starbugObj) {
+    // Automaticky přivolat kouska (STARBUG/KOSMIK), aby přinesl nové pegy po žrání
+    spawnStarbugObj();
   }
 
   for (let i = balls.length - 1; i >= 0; i--) {
