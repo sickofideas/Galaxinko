@@ -1,11 +1,9 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.5"; // oprava CTA textu - normální font bez obrysu, posunuto výše
+const GAME_VERSION = "v14.9.8"; // oprava chyb: random() -> Math.random(), inicializace buttonů na null
 
 // change log:
-// v14.9.5 - CTA text: normální font (Arial), odstraněn obrys a BOLD, posunuto výše nad nové hráče
-// v14.9.4 - oprava chyb s W, H, allTimeRecords použitými před deklarací
-// v14.9.3 - přidaná drawCallToAction + AFK fade-in + duhový text + pozadí + outline
-// v14.9.2 - přidány kosmické anomálie a eventy
+// v14.9.8 - oprava p5.js chyb: random() nahrazeno Math.random(), buttony inicializovány na null
+// v14.9.7 - CTA: posunuto výše (H/2-250), zmenšeno zvětšování (max 52px), duhová barva textu a pozadí
 let currentLang = "CZ";
 
 const T = {
@@ -281,7 +279,7 @@ const FAKE_CHAT_MSGS = {
 // Premenné pre mechaniku pridávania času a anomálie
 let bonusTime = 0.0;
 let roundStartTimeReal = 0;
-let nextAnomalyTime = 60; 
+let nextAnomalyTime = Math.random() * 30 + 30; // random čas pro první anomálii 
 let anomalyState = 0; 
 let anomalyTimer = 0;
 let anomG = 0, anomB = 0, anomM = 0, dispG = 0, dispB = 0, anomalyAngle = 0;
@@ -320,7 +318,7 @@ const TIKFINITY_URL = "ws://localhost:21213/";
 
 let isAutoMode = true, isMothershipMode = true;
 let gravitySlider, bounceSlider, spawnPerEventSlider, shipChanceSlider, volumeSlider, ttsSlider, mothershipSlider;
-let autoButton, langButton;
+let autoButton = null, langButton = null;
 let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
 
 let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [];
@@ -730,14 +728,17 @@ function drawCallToAction() {
   let textIndex = floor(millis() / 4000) % texts.length;
   let displayText = texts[textIndex];
   
-  let pulse = sin(frameCount * 0.1) * 0.5 + 1;
-  let textSizeVal = 48 + pulse * 16; // větší základní velikost
+  let pulse = sin(frameCount * 0.1) * 0.3 + 1; // zmenšeno z 0.5 pro menší zvětšování
+  let textSizeVal = 40 + pulse * 12; // zmenšeno z 48+16 pro menší max velikost
   
-  // pevná bílá barva pro lepší čitelnost
-  let textColor = color(255, 255, 255, alpha);
+  // duhová barva pro větší pozornost
+  let hue = (millis() * 0.002) % 360;
+  colorMode(HSB, 360, 100, 100, 255);
+  let textColor = color(hue, 80, 100, alpha);
+  colorMode(RGB, 255);
   
   let cX = W / 2;
-  let cY = H / 2 - 200; // posunuto výše nad zobrazení nových hráčů
+  let cY = H / 2 - 250; // posunuto ještě výše
 
   push();
   textAlign(CENTER, CENTER);
@@ -746,11 +747,10 @@ function drawCallToAction() {
   textFont('Arial, sans-serif'); // normální font pro lepší čitelnost
   noStroke();
 
-  // pozadí - tmavé s vysokým kontrastem
-  let boxW = max(textWidth(displayText) + 140, 500);
-  let boxH = textSizeVal + 60;
-  let cornerRadius = 30;
-  fill(0, 0, 0, min(240, alpha * 0.9)); // tmavší pozadí
+  // pozadí - barevné s vysokým kontrastem pro větší pozornost
+  colorMode(HSB, 360, 100, 100, 255);
+  fill(hue, 60, 30, min(240, alpha * 0.9)); // tmavší barevné pozadí
+  colorMode(RGB, 255);
   rectMode(CENTER);
   rect(cX, cY, boxW, boxH, cornerRadius);
 
@@ -2145,7 +2145,7 @@ function drawAnomalyRoulette() {
                 noStroke();
                 fill(200, 255, 255);
                 let rText = 175;
-                textSize(10);
+                textSize(12); // zvětšeno z 10 pro lepší čitelnost
                 push();
                 translate(cos(ang)*rText, sin(ang)*rText);
                 rotate(ang + HALF_PI);
@@ -2158,37 +2158,37 @@ function drawAnomalyRoulette() {
     push();
     rotate(currentAngleG);
     stroke(255, 50, 50);
-    strokeWeight(3);
+    strokeWeight(4); // zvětšeno z 3
     drawingContext.shadowBlur = 15;
     drawingContext.shadowColor = color(255, 50, 50);
     line(0, 0, 135, 0);
     fill(255, 50, 50);
     noStroke();
-    triangle(135, -6, 135, 6, 150, 0);
+    triangle(135, -8, 135, 8, 155, 0); // zvětšeno z -6,6,150
     pop();
 
     push();
     rotate(currentAngleB);
     stroke(50, 255, 50);
-    strokeWeight(3);
+    strokeWeight(4); // zvětšeno z 3
     drawingContext.shadowBlur = 15;
     drawingContext.shadowColor = color(50, 255, 50);
     line(0, 0, 115, 0);
     fill(50, 255, 50);
     noStroke();
-    triangle(115, -6, 115, 6, 130, 0);
+    triangle(115, -8, 115, 8, 135, 0); // zvětšeno z -6,6,130
     pop();
 
     push();
     rotate(currentAngleM);
     stroke(255, 100, 255);
-    strokeWeight(3);
+    strokeWeight(4); // zvětšeno z 3
     drawingContext.shadowBlur = 15;
     drawingContext.shadowColor = color(255, 100, 255);
     line(0, 0, 95, 0);
     fill(255, 100, 255);
     noStroke();
-    triangle(95, -6, 95, 6, 110, 0);
+    triangle(95, -8, 95, 8, 115, 0); // zvětšeno z -6,6,110
     pop();
     
     pop(); 
@@ -2205,7 +2205,7 @@ function drawAnomalyRoulette() {
     textSize(9);
     fill(255, 100, 100);
     text(typeof T !== 'undefined' ? T[currentLang].GRAV : "GRAVITY", 0, -42);
-    textSize(18);
+    textSize(t <= 60 ? 22 : 18); // zvětšeno na konci pro zvýraznění
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = color(255, 50, 50);
     text(currentValG, 0, -26);
@@ -2214,7 +2214,7 @@ function drawAnomalyRoulette() {
     fill(100, 255, 100);
     drawingContext.shadowBlur = 0;
     text(typeof T !== 'undefined' ? T[currentLang].BOUNCE : "BOUNCE", 0, -2);
-    textSize(18);
+    textSize(t <= 60 ? 22 : 18); // zvětšeno na konci
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = color(50, 255, 50);
     text(currentValB, 0, 14);
@@ -2223,7 +2223,7 @@ function drawAnomalyRoulette() {
     fill(255, 100, 255);
     drawingContext.shadowBlur = 0;
     text("MOTHERSHIP", 0, 38);
-    textSize(18);
+    textSize(t <= 60 ? 22 : 18); // zvětšeno na konci
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = color(255, 100, 255);
     text(currentValM, 0, 54);
@@ -2239,7 +2239,8 @@ function drawAnomalyRoulette() {
 function triggerAnomaly() {
     anomalyState = 1;
     anomalyTimer = 300;
-    nextAnomalyTime += 60;
+    let elapsedSec = (millis() - roundStartTimeReal) / 1000;
+    nextAnomalyTime = elapsedSec + Math.random() * 30 + 30; // random čas pro další anomálii
     if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].ANOMALY, 2);
     anomG = floor(random() < 0.7 ? random(30, 100) : random(10, 200));
     anomB = floor(random() < 0.7 ? random(20, 80) : random(80, 150));
