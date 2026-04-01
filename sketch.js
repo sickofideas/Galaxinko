@@ -293,6 +293,8 @@ let solarFlare = null;
 let solarFlarePlanned = false;
 let solarFlareTriggerTime = -1;
 
+let game = { events: [] };
+
 let planetSize = 0, currentTravelSpeed = 1.0, blackHole = null, bhSpawnTimes = [], whiteHole = null, whSpawnTimes = [], fxSynth, audioStarted = false;
 
 const badWordsRegex = /(n[i1l]gg[e3]r|n[i1l]gg[a4]|f[u4]ck|sh[i1]t|b[i1]tch|c[u4]nt|wh[o0]re|sl[u4]t|f[a4]g|d[i1]ck|c[o0]ck|p[u4]ssy|r[e3]t[a4]rd|r[a4]p[e3]|s[u4]ck|k[i1]ll|n[a4]z[i1]|j[e3]w|h[i1]tl[e3]r)/gi;
@@ -1924,6 +1926,76 @@ function handleAlienAbduction() {
         ellipse(lx, ly, 8, 8);
     }
     pop();
+}
+
+function triggerAlienSpores() {
+    alienSporesActive = true;
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_SPORES_ENT, 2);
+    sporeSource = { x: random(200, W - 200), y: random(150, H/2), r: 70, activeFrames: 0 };
+    shakeAmount = 15; flashEffect = 30;
+    if (audioStarted) { try { fxSynth.play(150, 0.5, 0, 2.0); } catch(e){} }
+}
+
+function handleAlienSpores() {
+    if (!alienSporesActive) return;
+    if (sporeSource) {
+        sporeSource.activeFrames++;
+        push(); translate(sporeSource.x, sporeSource.y); noStroke();
+        let pulse = sin(frameCount * 0.1) * 20;
+        fill(50, 255, 50, 80 + pulse); ellipse(0, 0, sporeSource.r * 2.5);
+        fill(20, 200, 20, 150); ellipse(0, 0, sporeSource.r * 1.5 + pulse);
+        fill(100, 255, 100);
+        for(let i=0; i<5; i++) ellipse(random(-sporeSource.r/2, sporeSource.r/2), random(-sporeSource.r/2, sporeSource.r/2), random(3, 8));
+        pop();
+        for (let b of balls) {
+            if (!b.infected && b.body.position.y > sporeSource.y - sporeSource.r && b.body.position.y < sporeSource.y + sporeSource.r) {
+                let dx = b.body.position.x - sporeSource.x; let dy = b.body.position.y - sporeSource.y;
+                if (dx * dx + dy * dy < sporeSource.r * sporeSource.r) {
+                    b.infected = true;
+                    if (audioStarted && random() < 0.3) { try { fxSynth.play(900, 0.05, 0, 0.1); } catch(e){} }
+                }
+            }
+        }
+    }
+    if (frameCount % 4 === 0) { // Optimalizované šíření dotykem
+        let infectedBalls = balls.filter(b => b.infected);
+        let uninfectedBalls = balls.filter(b => !b.infected);
+        for (let ib of infectedBalls) {
+            for (let ub of uninfectedBalls) {
+                if (abs(ib.body.position.y - ub.body.position.y) > 30) continue; // Optimalizace vzdálenosti
+                let dx = ib.body.position.x - ub.body.position.x; let dy = ib.body.position.y - ub.body.position.y;
+                let minDist = (ib.size + ub.size) / 2 + 5;
+                if (dx * dx + dy * dy < minDist * minDist) ub.infected = true;
+            }
+        }
+    }
+}
+
+function decontaminateSpores() {
+    if (!alienSporesActive) return;
+    alienSporesActive = false; sporeSource = null;
+    if (typeof T !== 'undefined') speakAnnouncer(T[currentLang].TTS_SPORES_CLR, 2);
+    shakeAmount = 25; flashEffect = 50;
+    for (let b of balls) {
+        if (b.infected) {
+            createExplosion(b.body.position.x, b.body.position.y, color(50, 255, 50));
+            if (audioStarted && random() < 0.1) playExplosionSound();
+            for (let j = pegs.length - 1; j >= 0; j--) {
+                let pg = pegs[j];
+                let dx = b.body.position.x - pg.position.x; let dy = b.body.position.y - pg.position.y;
+                if (dx * dx + dy * dy < 10000) { // Radius 100 okolo nakažené kuličky
+                    createExplosion(pg.position.x, pg.position.y, color(50, 255, 50));
+                    Matter.World.remove(world, pg); pegs.splice(j, 1);
+                    if (b.name !== "MOTHERSHIP") updateScore(b.name, 150 * b.multiplier, color(50, 255, 50));
+                }
+            }
+            if (b.name !== "MOTHERSHIP") {
+                updateScore(b.name, 2000 * b.multiplier, color(50, 255, 50));
+                addFloatingText("+2000", b.body.position.x, b.body.position.y, color(50, 255, 50), true);
+            }
+            b.infected = false; // Reset nákazy po dekontaminaci
+        }
+    }
 }
 
 function drawAnomalyRoulette() {
@@ -3595,4 +3667,4 @@ function mouseClicked() {
   if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(random(TEST_BOTS)); else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; } return; } 
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 450) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
-}l
+}
