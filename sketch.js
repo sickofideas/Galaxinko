@@ -1,9 +1,9 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.10"; // oprava chyb: odstraněno 'l' na konci, přidána definice boxW/boxH, oprava random(TEST_BOTS)
+const GAME_VERSION = "v14.9.11"; // více vesmírného prachu, častější komety, přidán měsíc s planetkami
 
 // change log:
+// v14.9.11 - více prachu (500 místo 300), častější komety (0.12 místo 0.06), přidán měsíc s 5 planetkami
 // v14.9.10 - oprava p5.js chyb: odstraněno 'l', definice boxW/boxH v drawCallToAction, random(TEST_BOTS) -> pole[index]
-// v14.9.9 - HP bary přímo na bossu a kosmickém smetí, větší pohyb pro smetí
 let currentLang = "CZ";
 
 const T = {
@@ -321,7 +321,7 @@ let gravitySlider, bounceSlider, spawnPerEventSlider, shipChanceSlider, volumeSl
 let autoButton = null, langButton = null;
 let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
 
-let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [];
+let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [], moon = null;
 let lastSpawnSnd = 0, lastExpSnd = 0, lastSpawnTime = 0, doorOpen = 0;
 
 const RARE_POOL = [
@@ -426,7 +426,7 @@ function setup() {
   fxSynth = new p5.PolySynth();
   
   for (let i = 0; i < 100; i++) stars.push({ x: random(W), y: random(H), s: random(1, 2.5), speed: random(0.1, 0.4) });
-  for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
+  for (let i = 0; i < 500; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 1.5) });
   
   timer = floor(random(50, 181));
   currentDestination = generatePlanetName();
@@ -3635,6 +3635,35 @@ function drawGalacticBackground() {
   if (massivePlanets.length < 8 && !blackHole && !whiteHole && random() < 0.005) {
       spawnSinglePlanet();
   }
+  
+  // Měsíc s planetkami
+  if (!moon) {
+    moon = { x: W / 2 + 200, y: H / 2 - 150, size: 80, rot: 0, moons: [] };
+    for (let i = 0; i < 5; i++) {
+      moon.moons.push({ dist: random(120, 180), speed: random(0.01, 0.03), phase: random(TWO_PI), size: random(5, 15), col: color(random(100, 200), random(100, 200), random(100, 200)) });
+    }
+  }
+  push();
+  translate(moon.x, moon.y);
+  moon.rot += 0.005;
+  rotate(moon.rot);
+  fill(200, 200, 220);
+  ellipse(0, 0, moon.size);
+  fill(150, 150, 170, 150);
+  ellipse(-moon.size * 0.2, moon.size * 0.1, moon.size * 0.3);
+  ellipse(moon.size * 0.1, -moon.size * 0.2, moon.size * 0.2);
+  rotate(-moon.rot);
+  for (let m of moon.moons) {
+    let mx = cos(frameCount * m.speed + m.phase) * m.dist;
+    let my = sin(frameCount * m.speed + m.phase) * m.dist * 0.4;
+    fill(m.col);
+    noStroke();
+    ellipse(mx, my, m.size);
+    fill(0, 100);
+    arc(mx, my, m.size, m.size, HALF_PI, -HALF_PI);
+  }
+  pop();
+  
   pop();
 
   push();
@@ -3649,7 +3678,7 @@ function drawGalacticBackground() {
     let s = shootingStars[i]; stroke(255, s.life); strokeWeight(1.5); line(s.x, s.y, s.x - s.vx * (s.len / 20), s.y - s.vy * (s.len / 20)); s.x += s.vx; s.y += s.vy; s.life -= 10; if (s.life <= 0) shootingStars.splice(i, 1); noStroke();
   }
   
-  if (gameState === "PLAYING" && random() < 0.06) { let fL = random() < 0.5; ambientComets.push({ x: fL ? -50 : W + 50, y: random(-100, H / 2), vx: fL ? random(2, 5) : random(-5, -2), vy: random(2, 4), s: random(4, 8), life: 255, col: color(random(150, 255), random(200, 255), 255) }); }
+  if (gameState === "PLAYING" && random() < 0.12) { let fL = random() < 0.5; ambientComets.push({ x: fL ? -50 : W + 50, y: random(-100, H / 2), vx: fL ? random(2, 5) : random(-5, -2), vy: random(2, 4), s: random(4, 8), life: 255, col: color(random(150, 255), random(200, 255), 255) }); }
   for (let i = ambientComets.length - 1; i >= 0; i--) {
     let c = ambientComets[i]; c.x += c.vx * currentTravelSpeed; c.y += c.vy * currentTravelSpeed; c.life -= 1.5; noStroke();
     for(let t = 1; t <= 8; t++) { fill(red(c.col), green(c.col), blue(c.col), map(t, 1, 8, 150, 0)); ellipse(c.x - c.vx * t * 2, c.y - c.vy * t * 2, c.s * map(t, 1, 8, 1.5, 0.2)); }
