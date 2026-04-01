@@ -96,57 +96,7 @@ const JOKES = {
     "Tlak v kabině klesá. Zhluboka dýchejte.",
     "Zasekl se mi skafandr. Bude to muset počkat do pátku.",
     "Proč mimozemšťani neodpovídají? Asi si přečetli naše recenze.",
-    "Navigační systém hlásí: Jste v cíli. Všude je tma.",
-    "Ztratil jsem spojení. Zkuste to vypojit ze zásuvky a zapojit zpět.",
-    "Proč je ve stavu beztíže tak těžké najít čisté ponožky?",
-    "Můj rover má najeto víc než moje staré auto.",
-    "Našli jsme vodu na Marsu. Kdy se bude vařit káva?",
-    "Houston hlásí, že dneska pizzu nedoručí.",
-    "Měsíční chůze je fajn, ale zkuste si tu zatančit Macarenu.",
-    "Už 300 dní jsem nepotkal nikoho živého. Ideální dovolená.",
-    "Varování: Hladina kofeinu v krvi astronauta kriticky klesla!",
-    "Naše solární panely chytají lepší Wi-Fi než sluneční svit.",
-    "Komu z posádky zase uletěl kartáček na zuby?",
-    "Může mi někdo poslat návod, jak paralelně zaparkovat raketoplán?",
-    "Hvězdokupa vypadá dobře, ale chybí tam RGB podsvícení.",
-    "Můj skafandr má update softwaru. Prosím, nedýchejte.",
-    "Třetí den na ISS: Pořád hledám, kde se splachuje.",
-    "Kdo do palubního rozhlasu pustil výtahovou hudbu?",
-    "Astronauti, nezapomeňte dneska vynést vesmírné smetí.",
-    "Dám za království a raketu jednu normální sprchu.",
-    "Mimozemské formy života měly prezenční listinu, my jsme se nepodepsali.",
-    "Oběžná dráha dosažena. Můžu si už rozepnout pás?",
-    "Tahle raketa má víc tlačítek než můj herní ovladač.",
-    "Povedlo se! Přistáli jsme. Může mě teď někdo vyzvednout?",
-    "Koukám na Zemi a přemýšlím, jestli jsem zamkl dveře.",
-    "Vesmírný závod nevyhrajeme, došla nám izolepa.",
-    "Našli jsme mimozemskou základnu. Heslo na Wi-Fi mají 123456.",
-    "Kdo mi na helmu nalepil lístek 'Zkouška mikrofonu'?",
-    "Teleskop zachytil podivný úkaz. Byla to moucha na čočce.",
-    "Zapomněli jsme na Zemi padák. Snad bude dole měkko.",
-    "Houston, prosím, potvrďte: Máme tu gravitaci zapnout, nebo vypnout?",
-    "Na ISS dnes vaříme z dehydrovaných slz.",
-    "Náš laser na asteroidy momentálně slouží jako ukazovátko při prezentaci.",
-    "Časová dilatace je super, aspoň nestárnu tak rychle jako vy dole.",
-    "Odpočet zrušen. Někdo zakopl o prodlužovačku.",
-    "Nahlášen únik helia. Všichni tu teď mluvíme jako Šmoulové.",
-    "Potvrzujeme kontakt s mimozemšťany. Chtějí nám prodat prodlouženou záruku na loď.",
-    "Můj stav beztíže byl sponzorován dnešní porcí fazolí.",
-    "Výstup do volného vesmíru odložen, nemám co na sebe.",
-    "Je normální, že z hlavního motoru kape olej?",
-    "Houstone, ten manuál k raketě je v Ikeištině.",
-    "Posílám na Zemi fotku černý díry. Má to 0 megapixelů.",
-    "Kdybych měl za každý meteorit dolar, mohl bych si koupit víc paliva.",
-    "Kdo zaparkoval satelit na mém místě vyhrazeném pro velitele?",
-    "Gravitace je pro slabochy. My tu poletujeme.",
-    "Omlouvám se za zpoždění signálu, vesmírný lag je šílený.",
-    "Na Měsíci je nuda. Ani jedna hospoda v okolí 300 000 kilometrů.",
-    "Vesmírné jídlo chutná jako prach, ale aspoň se po něm netloustne.",
-    "Odstraňuji vesmírný odpad stěrači.",
-    "Právě mi kolem hlavy proletěl sendvič z minulé mise.",
-    "Detekuji silné gama záření... nebo mi jen pípá mobil.",
-    "Ztrácíme výšku! Ne, počkat, jen někdo otočil mapu vzhůru nohama.",
-    "Pokud nás neslyšíte, jsme na odvrácené straně... nebo u kávovaru."
+    "Navigační systém hlásí: Jste v cíli. Všude je tma."
   ],
   EN: [
     "Houston, we have a problem.",
@@ -168,57 +118,7 @@ const JOKES = {
     "Cabin pressure dropping. Breathe deeply.",
     "My spacesuit zipper is stuck. It'll have to wait until Friday.",
     "Why aren't the aliens answering? They probably read our reviews.",
-    "Nav system reports: You have arrived. It's completely dark.",
-    "Lost connection. Try unplugging the universe and plugging it back in.",
-    "Why is it so hard to find clean socks in zero gravity?",
-    "My rover has more mileage than my old car.",
-    "Found water on Mars. When are we brewing coffee?",
-    "Houston reports that pizza delivery is canceled for today.",
-    "Moonwalking is cool, but try doing the Macarena here.",
-    "Haven't seen a living soul for 300 days. Perfect vacation.",
-    "Warning: Astronaut's blood caffeine level is critically low!",
-    "Our solar panels catch better Wi-Fi than sunlight.",
-    "Which crew member let their toothbrush float away again?",
-    "Can someone send a tutorial on how to parallel park a space shuttle?",
-    "The star cluster looks good, but it needs more RGB lighting.",
-    "My spacesuit is updating its software. Please hold your breath.",
-    "Day 3 on ISS: Still looking for the flush button.",
-    "Who put elevator music on the ship's intercom?",
-    "Astronauts, don't forget to take out the space trash today.",
-    "My kingdom and a rocket for one normal shower.",
-    "Alien life forms had an attendance sheet, we forgot to sign.",
-    "Orbit achieved. Can I unbuckle my seatbelt now?",
-    "This rocket has more buttons than my gaming controller.",
-    "We did it! We landed. Can someone pick me up now?",
-    "Looking at Earth and wondering if I locked the front door.",
-    "We won't win the space race, we ran out of duct tape.",
-    "Found an alien base. Their Wi-Fi password is 123456.",
-    "Who put a 'Mic test' sticky note on my helmet?",
-    "Telescope captured a strange anomaly. It was a fly on the lens.",
-    "We forgot the parachute on Earth. Hope the ground is soft.",
-    "Houston, please confirm: Do we turn gravity on or off here?",
-    "Today on the ISS, we are cooking with dehydrated tears.",
-    "Our asteroid laser is currently being used as a presentation pointer.",
-    "Time dilation is great, at least I'm not aging as fast as you down there.",
-    "Countdown canceled. Someone tripped over the extension cord.",
-    "Helium leak reported. We all sound like Smurfs now.",
-    "Alien contact confirmed. They want to sell us extended ship warranty.",
-    "My zero gravity was sponsored by today's portion of beans.",
-    "Spacewalk delayed, I have nothing to wear.",
-    "Is it normal for the main engine to leak oil?",
-    "Houston, the rocket manual is written in IKEA-ish.",
-    "Sending Earth a photo of a black hole. It has 0 megapixels.",
-    "If I had a dollar for every meteorite, I could buy more fuel.",
-    "Who parked a satellite in my Commander-reserved spot?",
-    "Gravity is for the weak. We float up here.",
-    "Sorry for the signal delay, the space lag is insane.",
-    "The Moon is boring. Not a single pub within a 200,000-mile radius.",
-    "Space food tastes like dust, but at least it's low calorie.",
-    "Clearing space debris with the windshield wipers.",
-    "A sandwich from the previous mission just floated past my head.",
-    "Detecting strong gamma rays... or my phone is just ringing.",
-    "We are losing altitude! No wait, someone just held the map upside down.",
-    "If you can't hear us, we are on the dark side... or by the coffee machine."
+    "Nav system reports: You have arrived. It's completely dark."
   ]
 };
 
@@ -237,6 +137,10 @@ let nextMeteorShowerTime = 0, nextJokeTime = 0, meteorWarningTimer = 0, backgrou
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
+
+let area51ShieldActive = false, area51ShieldTimer = 0, area51ShieldPlanned = false, area51ShieldTriggerTime = -1, area51ShieldBody = null, area51ShieldHitFlash = 0;
+
+let cryoActive = false, cryoTimer = 0, cryoPlanned = false, cryoTriggerTime = -1, cryoBallsMult = false, cryoBallsTimer = 0, iceParticles = [];
 
 let spamBuffer = {};
 
@@ -3393,10 +3297,6 @@ function resetGame() {
   solarFlarePlanned = (random() < 0.35);
   solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
   
-  cryoActive = false; cryoBallsMult = false; iceParticles = [];
-  cryoPlanned = (random() < 0.15);
-  cryoTriggerTime = cryoPlanned ? floor(random(15, timer - 15)) : -1;
-
   if (isAutoMode) autoRandomSettings();
   
   if (mothershipSlider) {
@@ -3418,4 +3318,4 @@ function mouseClicked() {
   if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(random(TEST_BOTS)); else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; } return; } 
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 450) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
-}l
+}
