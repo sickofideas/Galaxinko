@@ -244,6 +244,10 @@ let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, ri
 
 let orbitalDropActive = false, orbitalDropPlanned = false, orbitalDropTriggerTime = -1, orbitalProjectiles = [];
 
+let alienSporesActive = false, alienSporesPlanned = false, alienSporesTriggerTime = -1;
+let sporeSource = null; // Matter.js body for the toxic spot
+let sporeParticles = []; // For visual effect of the toxic spot
+
 let spamBuffer = {};
 
 let fakeChat = [];
@@ -3494,4 +3498,4 @@ function mouseClicked() {
   if (mouseY <= 75) { if (mouseX < 100) triggerFollowEvent(random(TEST_BOTS)); else { spawnBall(random(TEST_BOTS)); shakeAmount = 2; } return; } 
   if (mouseX > W - 280 && mouseX < W && mouseY > 85 && mouseY < 405) { leaderboard = {}; shakeAmount = 4; return; } 
   if (mouseX > 10 && mouseX < 280 && mouseY > 85 && mouseY < 450) { allTimeRecords = []; localStorage.setItem('galaxinko_records', JSON.stringify(allTimeRecords)); shakeAmount = 5; return; } 
-}
+}l
