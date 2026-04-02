@@ -97,14 +97,96 @@ const SPAM_MSGS = {
     "Houston, máme tu problém, {0} to tam sází jako o život!",
     "Astronaut {0} hlásí maximální tah!",
     "{0} žhaví motory na maximum!",
-    "Zastavte někdo {0}, nebo nám praskne trup!"
+    "Zastavte někdo {0}, nebo nám praskne trup!",
+    "{0} likuje víc než Hubbleův teleskop vidí hvězd!",
+    "Pozor, {0} přetěžuje reaktor jadernou energií!",
+    "NASA si právě poznamenala jméno {0} do rekordu!",
+    "{0} generuje více tahu než Saturn 5!",
+    "Zajistěte si dýchací přístroj, {0} nám sežere kyslík!",
+    "Sluneční erupce zaznamenána u hráče {0}!",
+    "{0} se chystá proletět asteroid porádně!",
+    "Mise skončí dřív, {0} nás vyletí z oběžné dráhy!",
+    "Nastavuji štíty na maximum, {0} útočí!",
+    "{0} je jako černá díra - všechno do ní padá!",
+    "Gravitační anomálie detekována - to je {0}!",
+    "{0} likuje jako robot, který nese smrtelný virus!",
+    "Všechny čidla hlásí: {0} je v CRANKED modu!",
+    "Vesmírná dopravní policejka signalizuje {0}!",
+    "{0} tady, {0} se chystá k vesmírné expedici!",
+    "Marťané si zavolali zásilku, {0} ji pošle letěním!",
+    "{0} právě překonal rekord Juri Gagarina!",
+    "Telemetrie hlásí: {0} je poprv bez zábran!",
+    "Vědecký tým hlásí: {0} se chystá do volného vesmíru!",
+    "{0} si hraje se všemi kybernetickými systémy!",
+    "Kosmický rad jednohlasně hlasuje pro {0}!",
+    "{0} je jako kosmická smrt v kostýmu!",
+    "Objekty jsou bezpečnější od {0}, když je liká!",
+    "Vypískal jsem alarm - {0} likuje jako blázen!",
+    "{0} je horší než sluneční bouře!",
+    "Pojistka vzala za vděk - {0} to tu pálí!",
+    "{0} se právě liká cestou na Mars!",
+    "Přední pozice obsazena - to je {0}!",
+    "Vesmírné zákoníky porušuje {0} ze sekundy!",
+    "{0} transformuje místo v krupobití kuliček!",
+    "Senzory ukazují: {0} je mega turbocharged!",
+    "{0} jede na plný plyn bez brzdy!",
+    "Kryogenní systémy selhaly, {0} je příliš horký!",
+    "Navigujeme mimo dráhu - {0} nás vytlačuje!",
+    "{0} je jako pulsar - neustále bliká liky!",
+    "Nástroj pro měření ukazuje: {0} off the scale!",
+    "Radiační pás se zvýšil - viníkem je {0}!",
+    "{0} jede jako supernova!",
+    "Žádej vyšší sílu - {0} je příliš mocný!",
+    "Vesmírný samit - hlava v hlavě s {0}!",
+    "{0} je absolutní zázrak fyziky!"
   ],
   EN: [
     "{0} is overloading the systems!",
     "Watch out, {0} is tapping like crazy!",
     "Astronaut {0} reports maximum thrust!",
     "{0} is heating up the engines to the max!",
-    "Someone stop {0} before the hull breaches!"
+    "Someone stop {0} before the hull breaches!",
+    "{0} is liking more than Hubble can see stars!",
+    "Alert: {0} is overloading the reactor!",
+    "NASA just recorded {0} in the books of legends!",
+    "{0} generates more thrust than Saturn 5!",
+    "Grab a oxygen mask, {0} is eating all our air!",
+    "Solar flare detected courtesy of {0}!",
+    "{0} is about to send that asteroid flying!",
+    "Mission ending early, {0} will eject us from orbit!",
+    "Raising shields to maximum, {0} is attacking!",
+    "{0} is like a black hole - everything falls in!",
+    "Gravitational anomaly detected - it's {0}!",
+    "{0} is tapping like a killer robot!",
+    "All sensors report: {0} is in BEAST MODE!",
+    "Space traffic control flagging {0}!",
+    "{0} here, ready for a space expedition!",
+    "Martians ordered a delivery, {0} will fly it there!",
+    "{0} just broke Yuri Gagarin's record!",
+    "Telemetry shows: {0} is unleashed!",
+    "Science team announces: {0} is going EVA!",
+    "{0} is playing with all cybernetic systems!",
+    "Cosmic council unanimously votes for {0}!",
+    "{0} is like death in a spacesuit!",
+    "Things are safer away from {0}'s likes!",
+    "Alarm triggered - {0} is mashing those buttons!",
+    "{0} is worse than a solar storm!",
+    "Circuit breaker gave up - {0} is burning it down!",
+    "{0} is liking their way to Mars!",
+    "Top position secured - that's {0}!",
+    "Space regulations being violated by {0} every second!",
+    "{0} transforms this place into a hailstorm of balls!",
+    "Sensors show: {0} is mega turbocharged!",
+    "{0} is pedal to the metal, no brakes!",
+    "Cryogenic systems failed, {0} is too hot!",
+    "Drifting off course - {0} is pushing us out!",
+    "{0} is like a pulsar - constantly blinking likes!",
+    "Measurement tools show: {0} off the scale!",
+    "Radiation belt increased - the culprit is {0}!",
+    "{0} is running like a supernova!",
+    "Call higher authority - {0} is too powerful!",
+    "Space summit - head to head with {0}!",
+    "{0} is an absolute physics miracle!"
   ]
 };
 
@@ -285,16 +367,69 @@ let fakeChat = [];
 const FAKE_CHAT_NAMES = ["Astro", "Nova", "Cosmo", "Luna", "Orion", "Stella", "Comet", "Nebula", "user88", "gamer_boy", "pepa_z_depa", "alien99"];
 const FAKE_CHAT_MSGS = {
   CZ: [
-    "Pojďme!", "Klikejte lidi!", "Nenecháme to spadnout!", "Wow, ten top 1 jede!", "Tlačte ty lajky!", 
+    "Pojďme!", "Klikejte lidi!", "Nenecháme to spadnout!", "Wow, ten top 1 jede!", "Tlačte to tam!", 
     "Musíme překonat rekord!", "Štíty na max!", "Sázejte to tam!", "Kdo bude dneska první?", 
-    "Tohle kolo musíme dát!", "To je masakr!", "Jedeeeem!", "Woooow!", "Spam spam spam",
-    "{top} jede neskutečně!", "Zastavte někdo {top}!", "Dneska vyhraje {top}!"
+    "Tohle kolo musíme dát!", "To je masakr!", "Jedeeeem!", "Woooow!", "Obrovská síla!",
+    "{top} jede neskutečně!", "Zastavte někdo {top}!", "Dneska vyhraje {top}!",
+    "Pro Galaxy!",
+    "Dalších 100 akcí!",
+    "Nespusťte motory!",
+    "Plná síla dopředu!",
+    "Kosmická mise za nás!",
+    "Všichni do toho!",
+    "Raketa letí!",
+    "Průpastné hvězdy čekají!",
+    "Poslední push!",
+    "Motory na maximum!",
+    "Vesmír volá!",
+    "Mezihvězdná cesta!",
+    "Další hvězda!",
+    "Asteroid čeká!",
+    "Orbit dosažen!",
+    "Telemetrie zelená!",
+    "Palivo na max!",
+    "Oběhnutí Měsíce!",
+    "Mars je blízko!",
+    "Vesmírný rekord!",
+    "Silné pole energie!",
+    "Více tahů!",
+    "Superkombináce nyní!",
+    "Gravitace na nulu!",
+    "Nejvyšší orbit!",
+    "Bez frází - do akce!",
+    "Pozemská hranice za námi!",
+    "Atmosféra překročena!"
   ],
   EN: [
-    "Let's go!", "Keep tapping guys!", "Don't let it drop!", "Wow, top 1 is crazy!", "Push those likes!", 
+    "Let's go!", "Keep tapping guys!", "Don't let it drop!", "Wow, top 1 is crazy!", "Push it!", 
     "We have to beat the record!", "Shields maxed!", "Spam it!", "Who will be first today?", 
-    "We gotta win this round!", "This is insane!", "Gooooo!", "Woooow!", "Spam spam spam",
-    "{top} is crushing it!", "Someone stop {top}!", "{top} is winning today!"
+    "We gotta win this round!", "This is insane!", "Gooooo!", "Woooow!", "Massive power!",
+    "{top} is crushing it!", "Someone stop {top}!", "{top} is winning today!",
+    "For the Galaxy!",
+    "Hundred more actions!",
+    "Fire up those engines!",
+    "Full throttle ahead!",
+    "Cosmic mission on!",
+    "Everyone attack!",
+    "Rockets launching!",
+    "Stars are calling!",
+    "Intergalactic journey!",
+    "Next star awaits!",
+    "Asteroid incoming!",
+    "Orbit secured!",
+    "Telemetry green!",
+    "Fuel at maximum!",
+    "Circling the Moon!",
+    "Mars is close!",
+    "Space record time!",
+    "Energy field strong!",
+    "More thrust needed!",
+    "Combo streak now!",
+    "Gravity at zero!",
+    "Peak altitude reached!",
+    "Let's make it count!",
+    "Earth line crossed!",
+    "Atmosphere breached!"
   ]
 };
 
@@ -609,19 +744,19 @@ function connectTikfinity() {
           sp.state = 'CHARGING';
           sp.fade = 255;
           
-          let canDropImmediately = Math.max(0, 5 - sp.total);
-          let dropNow = Math.min(c, canDropImmediately);
-
-          if (dropNow > 0) {
-              for (let i = 0; i < dropNow; i++) {
-                 setTimeout(() => { for (let j = 0; j < spawnPerEvent; j++) spawnBall(u); }, i * 120);
+          // Prvních 1-10 liků: okamžitě padne random počet kuliček (2-9)
+          if (sp.total < 10) {
+              let randomBalls = floor(random(2, 10));
+              for (let i = 0; i < randomBalls; i++) {
+                  setTimeout(() => { spawnBall(u); }, i * 80);
               }
           }
 
           sp.total += c;
-          let bufferNow = c - dropNow;
-          if (bufferNow > 0) {
-              sp.buffered += bufferNow;
+          
+          // Od 11. liku dál: všechno se buffěřuje
+          if (sp.total >= 10) {
+              sp.buffered += c;
           }
 
           if (sp.total >= 5 && !sp.announced) {
