@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.13"; // lepší CTA hlášky, menší text, vyšší pozice // více vesmírného prachu, častější komety, přidán měsíc s planetkami
+const GAME_VERSION = "v14.9.14"; // přidány nové objekty na pozadí (astronaut, cargo, sonda, velryba)
 
 // change log:
 // v14.9.11 - více prachu (500 místo 300), častější komety (0.12 místo 0.06), přidán měsíc s 5 planetkami
@@ -4199,7 +4199,7 @@ function generateDeepSpaceElements() {
   }
   
   spaceDebris = [];
-  for (let i = 0; i < 20; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
+  for (let i = 0; i < 30; i++) spaceDebris.push({ x: random(W), y: random(H), type: random(["UFO", "SATELLITE", "ASTEROID", "CRUISER", "FIGHTER", "CROSS_FIGHTER", "TWIN_ION", "EXPLORER_SHIP", "ASTRONAUT", "CARGO_POD", "ALIEN_PROBE", "SPACE_WHALE"]), size: random(15, 50), vy: random(-2, 2), vx: random(-2, 2), wobble: random(0.01, 0.05), rot: random(TWO_PI), rotSpeed: random(-0.03, 0.03) });
 }
 
 function drawGalacticBackground() {
@@ -4305,6 +4305,10 @@ function drawGalacticBackground() {
     else if (d.type === "EXPLORER_SHIP") { fill(220); ellipse(d.size*0.6, 0, d.size*1.2, d.size*0.5); rect(-d.size*0.3, -d.size*0.1, d.size*0.8, d.size*0.2, 5); stroke(180); strokeWeight(d.size*0.1); line(-d.size*0.1, 0, -d.size*0.7, d.size*0.4); line(-d.size*0.1, 0, -d.size*0.7, -d.size*0.4); noStroke(); fill(100, 200, 255, 200); rect(-d.size*0.9, d.size*0.3, d.size*0.6, d.size*0.2, 3); rect(-d.size*0.9, -d.size*0.5, d.size*0.6, d.size*0.2, 3); fill(255, 50, 50, 200); ellipse(-d.size*0.3, d.size*0.4, d.size*0.15); ellipse(-d.size*0.3, -d.size*0.4, d.size*0.15); } 
     else if (d.type === "UFO") { d.x += sin(frameCount * d.wobble) * 2; fill(0, 255, 100, 150); rect(-d.size / 2, -d.size / 6, d.size, d.size / 3, 2); ellipse(0, -d.size / 6, d.size / 2, d.size / 2); } 
     else if (d.type === "SATELLITE") { stroke(200, 200, 255, 120); strokeWeight(1); noFill(); rect(-d.size / 4, -d.size / 4, d.size / 2, d.size / 2); line(-d.size, 0, d.size, 0); rect(-d.size, -d.size / 6, d.size / 2, d.size / 3); rect(d.size / 2, -d.size / 6, d.size / 2, d.size / 3); } 
+    else if (d.type === "ASTRONAUT") { fill(240); rect(-d.size/4, -d.size/2, d.size/2, d.size, 5); fill(200); rect(-d.size/2, -d.size/3, d.size/4, d.size*0.6, 2); fill(255, 200, 0); ellipse(0, -d.size/4, d.size*0.4, d.size*0.3); }
+    else if (d.type === "CARGO_POD") { fill(120); rect(-d.size/2, -d.size/2, d.size, d.size, 2); fill(255, 150, 0); rect(-d.size/2, -d.size/6, d.size, d.size/3); fill(40); rect(-d.size/4, -d.size/4, d.size/2, d.size/2); }
+    else if (d.type === "ALIEN_PROBE") { fill(30, 10, 50); triangle(0, -d.size/2, -d.size/2, d.size/2, d.size/2, d.size/2); fill(0, 255, 255, 150 + sin(frameCount * 0.1) * 100); ellipse(0, d.size/6, d.size/3); }
+    else if (d.type === "SPACE_WHALE") { fill(50, 150, 255, 200); beginShape(); vertex(d.size/2, 0); quadraticVertex(0, -d.size/3, -d.size/2, -d.size/6); quadraticVertex(-d.size, 0, -d.size/2, d.size/6); quadraticVertex(0, d.size/3, d.size/2, 0); endShape(CLOSE); fill(0, 255, 255, 200); ellipse(d.size/3, -d.size/8, d.size/10); }
     else { fill(80, 150); noStroke(); rect(-d.size / 2, -d.size / 2, d.size, d.size, 3); }
     pop();
     if (d.y > H + 150 || d.y < -150 || d.x > W + 150 || d.x < -150) { 
