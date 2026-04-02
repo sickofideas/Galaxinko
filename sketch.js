@@ -429,8 +429,6 @@ let cosmicEvent = null, eventOccurredThisRound = false, followEvents = [], avail
 let nextMeteorShowerTime = 0, nextJokeTime = 0, meteorWarningTimer = 0, backgroundMeteors = [];
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
-let sputnik = null, sputnikPlanned = false, sputnikSpawnAt = -1, sputnikLastShotFrame = 0, sputnikLasers = [];
-
 let blackHoleConsumed = {pegs: 0, planets: 0, debris: 0};
 
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
@@ -1084,7 +1082,6 @@ function draw() {
   handleBoss();
   handleDevourer(); 
   handleStarbugObj();
-  handleSputnik();
   handleSolarFlare();
   handleSpaceship();
   handleOrbitalProjectiles();
@@ -1155,7 +1152,6 @@ function draw() {
 
           if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
-          if (sputnikPlanned && !sputnik && timer === sputnikSpawnAt) triggerSputnik();
           if (solarFlarePlanned && !solarFlare && timer === solarFlareTriggerTime) triggerSolarFlare();
           if (rdPlanned && !redDwarf && timer === rdSpawnAt) spawnRedDwarf();
           
@@ -2168,117 +2164,6 @@ function handleBoss() {
   fill(255, 50, 50); rect(barX, barY, barW * (max(0, boss.hp) / boss.maxHp), barH, 3);
   drawTxt(typeof T !== 'undefined' ? T[currentLang].LEVI : "BOSS HP", boss.x, barY + 7, color(255), 8, CENTER);
   pop();
-}
-
-function triggerSputnik() {
-    sputnik = {
-        name: "⚠️ SPUTNIK-1",
-        x: W / 2,
-        y: H - ZONE_H - 120,
-        radius: 28,
-        color: color(255, 20, 180),
-        activeTimer: 10 * targetFPS,
-        glow: 200,
-        lastShotTime: frameCount
-    };
-    if (typeof T !== 'undefined') speakAnnouncer("Warning! Sputnik-1 Saboteur detected! Target: All units!", 2);
-    leaderboard[sputnik.name] = leaderboard[sputnik.name] || { score: 0, color: color(255, 20, 180) };
-}
-
-function handleSputnik() {
-    if (!sputnik) return;
-
-    sputnik.activeTimer--;
-    sputnik.x = W / 2 + sin(frameCount * 0.05) * (W / 2 - 100);
-    sputnik.glow = 100 + sin(frameCount * 0.3) * 80;
-
-    // 3x za sekundu
-    if (frameCount - sputnikLastShotFrame >= Math.floor(targetFPS / 3)) {
-        sputnikLastShotFrame = frameCount;
-
-        let potentialTargets = [];
-        for (let b of balls) {
-            if (b.name !== "MOTHERSHIP") {
-                let d = dist(sputnik.x, sputnik.y, b.body.position.x, b.body.position.y);
-                if (d < 280) potentialTargets.push({ type: 'ball', obj: b, distance: d });
-            }
-        }
-
-        for (let p of pegs) {
-            let d = dist(sputnik.x, sputnik.y, p.position.x, p.position.y);
-            if (d < 220) potentialTargets.push({ type: 'peg', obj: p, distance: d });
-        }
-
-        if (potentialTargets.length > 0) {
-            potentialTargets.sort((a, b) => a.distance - b.distance);
-            let target = potentialTargets[floor(random(min(3, potentialTargets.length)))];
-            let tx, ty;
-
-            if (target.type === 'ball') {
-                tx = target.obj.body.position.x;
-                ty = target.obj.body.position.y;
-
-                removeBall(target.obj);
-                updateScore(sputnik.name, 500, sputnik.color);
-                addFloatingText("+500", tx, ty, color(255, 120, 0), true);
-                createExplosion(tx, ty, color(255, 120, 50));
-
-            } else if (target.type === 'peg') {
-                tx = target.obj.position.x;
-                ty = target.obj.position.y;
-
-                Matter.World.remove(world, target.obj);
-                let pegIndex = pegs.indexOf(target.obj);
-                if (pegIndex !== -1) pegs.splice(pegIndex, 1);
-
-                updateScore(sputnik.name, 100, sputnik.color);
-                addFloatingText("+100", tx, ty, color(255, 75, 180), true);
-                createExplosion(tx, ty, color(255, 75, 180));
-            }
-
-            sputnikLasers.push({ x1: sputnik.x, y1: sputnik.y, x2: tx, y2: ty, life: 12 });
-        }
-    }
-
-    // Draw Sputnik
-    push();
-    translate(sputnik.x, sputnik.y);
-    noStroke();
-    fill(255, 0, 170, 40);
-    ellipse(0, 0, sputnik.radius * 3.3);
-
-    drawingContext.shadowBlur = 30;
-    drawingContext.shadowColor = color(255, 0, 220, 200);
-    fill(30, 0, 70, 180);
-    ellipse(0, 0, sputnik.radius * 2.3);
-
-    drawingContext.shadowBlur = 0;
-    stroke(255, 160, 200); strokeWeight(3);
-    ellipse(0, 0, sputnik.radius * 2);
-
-    // Antény
-    stroke(255, 80, 255); strokeWeight(2);
-    line(0, -sputnik.radius, 0, -sputnik.radius - 30);
-    line(0, sputnik.radius, 0, sputnik.radius + 30);
-    line(-sputnik.radius, 0, -sputnik.radius - 30, 0);
-    line(sputnik.radius, 0, sputnik.radius + 30, 0);
-
-    pop();
-
-    // Draw laser beams
-    for (let i = sputnikLasers.length - 1; i >= 0; i--) {
-        let l = sputnikLasers[i];
-        stroke(255, 0, 255, map(l.life, 0, 12, 0, 255));
-        strokeWeight(2 + (l.life / 12) * 4);
-        line(l.x1, l.y1, l.x2, l.y2);
-        l.life--;
-        if (l.life <= 0) sputnikLasers.splice(i, 1);
-    }
-
-    if (sputnik.activeTimer <= 0) {
-        sputnik = null;
-        sputnikPlanned = false;
-    }
 }
 
 function handleChatBotResponse(player, msg) {
@@ -4473,13 +4358,6 @@ function resetGame() {
   solarFlarePlanned = (random() < 0.35);
   solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
 
-  sputnik = null;
-  sputnikPlanned = (random() < 0.04);
-  sputnikSpawnAt = sputnikPlanned ? floor(random(15, 31)) : -1;
-  sputnikLastShotFrame = frameCount;
-  sputnikLasers = [];
-  leaderboard["⚠️ SPUTNIK-1"] = { score: 0, color: color(255, 50, 180) };
-  
   game.events.forEach(e => e.onEnd()); // Obnovit bezpečnostní stav před zahájením nového kola
   game.events = [];
   cryoPlanned = (random() < 0.15);
