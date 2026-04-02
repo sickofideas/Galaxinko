@@ -66,6 +66,29 @@ const T = {
 };
 
 // TTS variace pro oslovení vítěze na konci
+const CHATBOT_REPLIES = {
+  CZ: [
+    "Sputnik hlásí: Teď právě čtu vaše depeše, piloté!",
+    "KOMUNIKACE: Vesmírný kanál otevřen, {player}.",
+    "Hijack: {player}, někdo právě křičí v kosmu a já to slyším!",
+    "ROBOT: Pozor plukovníku, tohle vypadá jako planety trolling.",
+    "Vesmírné AI zaznamenalo váš vzkaz, {player}. Odpověď: NEURO-NEBOJTE SE!",
+    "Čau {player}, Sputnik oponuje: víc statik, méně gravitace.",
+    "Příkaz přijat. Odesílám zpět emisi “LOL”.",
+    "Tato zpráva byla přetížena (load 4/5). Zpracování se chystá..."
+  ],
+  EN: [
+    "Sputnik says: I see your chat signal, commander!",
+    "ROBOT: Received your transmission, {player}. Stay cosmic.",
+    "Attention to all units: light-speed meme detected.",
+    "AI NOTE: Too much banter, engaging anti-gravity shields.",
+    "Greetings {player}, your text has been archived in asteroid logs.",
+    "Sputnik reporting: your message is 42% funnier than last one.",
+    "The chat channel has been encrypted with space chives.",
+    "Alert: cosmic popcorn loading from {player}."
+  ]
+};
+
 const TTS_WINNER_VARIATIONS = {
   EN: [
     "Mission over! The ultimate astronaut is ",
@@ -394,6 +417,7 @@ let spawnQueue = [], portals = [], floatingTexts = [], shockwaves = [], joinPopu
 let lastPlayerSpawnTimes = {}, lastTeamComboTime = 0;
 let avatarRibbon = []; // Běhající páska s avatary hráčů (1 like = 1 hodina zobrazení)
 let lastCommentaryTime = 0; // Poslední čas když jsme komentovali skóre
+let lastChatResponseTime = 0; // Poslední čas, kdy robot odpověděl na chat
 let scoredPlayers = {}; // Tracking hráčů co právě skotovali - {playerName: timestamp}
 const UI_THEMES = [[0, 255, 255], [255, 50, 255], [50, 255, 50], [255, 200, 0], [255, 100, 50], [150, 100, 255]];
 let currentTheme = UI_THEMES[0];
@@ -781,6 +805,7 @@ function connectTikfinity() {
           if (millis() - lastSpokeTime > 8000) {
             speakAnnouncer(getHoustonStory(s), 0); speakName(s); lastSpokeTime = millis();
           }
+          handleChatBotResponse(u, d?.data?.comment || "");
         } else if (evt !== "like") {
           for (let j = 0; j < spawnPerEvent; j++) spawnBall(u);
         }
@@ -2253,6 +2278,19 @@ function handleSputnik() {
         sputnik = null;
         sputnikPlanned = false;
     }
+}
+
+function handleChatBotResponse(player, msg) {
+    if (millis() - lastChatResponseTime < 5000) return;
+    if (random() > 0.35) return; // občasná reakce
+
+    let base = random(CHATBOT_REPLIES[currentLang]);
+    base = base.replace("{player}", player);
+    let text = `${base}`;
+
+    lastChatResponseTime = millis();
+    if (typeof T !== 'undefined') speakAnnouncer(text, 0);
+    addFloatingText("SPUTNIK: " + text, W/2, H - ZONE_H - 150, color(255, 120, 220), true);
 }
 
 function spawnDevourer() {
