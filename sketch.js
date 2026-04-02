@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.16"; // dynamičtější plovoucí pohyb planet, měsíce a mlhovin
+const GAME_VERSION = "v14.9.17"; // majestátnější planety, lepší kontrast plochy a aktivní anti-ban kosmický prach
 
 // change log:
 // v14.9.11 - více prachu (500 místo 300), častější komety (0.12 místo 0.06), přidán měsíc s 5 planetkami
@@ -1064,9 +1064,9 @@ function draw() {
   drawViewerObjects(); 
   handleBackgroundMeteors();
 
-  // Lehký permanentní stín pro vyniknutí popředí, který při spamu kuliček ještě ztmavne
-  let dimAlpha = map(min(balls.length, 800), 0, 800, 30, 110); 
-  fill(0, 0, 0, dimAlpha);
+  // Temnější stín s lehkým modrým nádechem pro perfektní kontrast hrací plochy a neonů
+  let dimAlpha = map(min(balls.length, 800), 0, 800, 80, 170); 
+  fill(0, 5, 15, dimAlpha);
   noStroke();
   rect(-W, -H, W * 3, H * 3);
 
@@ -2883,7 +2883,7 @@ function spawnSinglePlanet(startY = null) {
   else if (typeRnd < 0.8) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
   
   let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
-  massivePlanets.push({ x: random(W), y: startY !== null ? startY : -pSize * 3, size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), vy: random(0.2, 1.2), vx: random(-0.3, 0.3), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
+  massivePlanets.push({ x: random(W), y: startY !== null ? startY : -pSize * 3, size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), vy: random(0.1, 0.5), vx: random(-0.1, 0.1), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
 }
 
 function planSpaceshipForRound() {
@@ -4077,7 +4077,7 @@ function generateDeepSpaceElements() {
     else if (typeRnd < 0.55) { pType = 'DEATH_STAR'; pSize = random(120, 250); pCol = color(120); hasR = false; numMoons = 0; }
     
     let moons = []; for (let m = 0; m < numMoons; m++) moons.push({ dist: random(pSize * 0.6, pSize * 2.5), size: random(4, 15), speed: random(0.005, 0.03) * random([-1, 1]), phase: random(TWO_PI), col: color(random(150, 255)) });
-    massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), vy: random(0.2, 1.2), vx: random(-0.3, 0.3), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
+    massivePlanets.push({ x: random(W), y: random(H), size: pSize, color: pCol, type: pType, hasRing: hasR, ringColor: color(random(150, 255), random(150, 255), random(150, 255), 180), vy: random(0.1, 0.5), vx: random(-0.1, 0.1), rot: random(TWO_PI), rotSpeed: random(-0.005, 0.005), moons: moons });
   }
   
   spaceDebris = [];
@@ -4105,14 +4105,14 @@ function drawGalacticBackground() {
   massivePlanets.sort((a, b) => a.size - b.size);
   for (let p of massivePlanets) {
     push(); 
-    // Parallax efekt: čím větší (blíž), tím rychlejší pohyb
-    let parallax = map(p.size, 40, 400, 0.5, 3.5);
+    // Parallax efekt: Pomalejší a majestátnější pohyb pro zachování uvěřitelnosti masivních objektů
+    let parallax = map(p.size, 40, 400, 0.2, 1.2);
     p.y += p.vy * currentTravelSpeed * parallax; 
     p.x += p.vx * currentTravelSpeed * parallax;
     p.rot += p.rotSpeed * currentTravelSpeed;
     
-    // Ztmavení do dálky: malé planety mají alpha 0.05 (skoro neviditelné), velké 0.75 (jasné)
-    drawingContext.globalAlpha = map(p.size, 40, 400, 0.05, 0.75);
+    // Ztmavení do dálky pro lepší splynutí s pozadím
+    drawingContext.globalAlpha = map(p.size, 40, 400, 0.1, 0.6);
     
     translate(p.x, p.y); 
     if (p.type === 'SUN') {
@@ -4130,7 +4130,7 @@ function drawGalacticBackground() {
       for (let m of p.moons) { let mx = cos(frameCount * m.speed + m.phase) * m.dist, my = sin(frameCount * m.speed + m.phase) * m.dist * 0.4; fill(m.col); noStroke(); ellipse(mx, my, m.size); fill(0, 150); arc(mx, my, m.size, m.size, HALF_PI, -HALF_PI); }
     }
     pop(); 
-    if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); p.vx = random(-0.3, 0.3); }
+    if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); p.vx = random(-0.1, 0.1); p.vy = random(0.1, 0.5); }
     if (p.x < -p.size * 3) p.x = W + p.size * 3;
     if (p.x > W + p.size * 3) p.x = -p.size * 3;
   }
@@ -4179,6 +4179,17 @@ function drawGalacticBackground() {
   fill(255, 120);
   for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
   
+  // Anti-Ban vrstva: "Vesmírný prach". Zajišťuje neustálý organický pohyb na celé obrazovce proti detekci botem.
+  drawingContext.globalAlpha = 0.6;
+  for (let d of dust) {
+    d.x += (noise(d.x * 0.01, frameCount * 0.002) - 0.5) * 1.5;
+    d.y += d.s * 0.5 + (noise(d.y * 0.01, frameCount * 0.002) - 0.5) * 1.5;
+    if (d.y > H + 50) { d.y = -50; d.x = random(W); }
+    if (d.x > W + 50) d.x = -50; else if (d.x < -50) d.x = W + 50;
+    fill(150, 200, 255, 50 + sin(frameCount * 0.05 + d.x) * 50);
+    ellipse(d.x, d.y, d.s * 1.5);
+  }
+
   drawingContext.globalAlpha = 0.8;
   if (gameState === "PLAYING" && random() < 0.08) shootingStars.push({ x: random(W), y: random(-50, H / 2), vx: random(10, 25), vy: random(10, 25), life: 255, len: random(20, 100) });
   for (let i = shootingStars.length - 1; i >= 0; i--) {
