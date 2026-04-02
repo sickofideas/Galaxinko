@@ -419,6 +419,8 @@ let avatarRibbon = []; // Běhající páska s avatary hráčů (1 like = 1 hodi
 let lastCommentaryTime = 0; // Poslední čas když jsme komentovali skóre
 let lastChatResponseTime = 0; // Poslední čas, kdy robot odpověděl na chat
 let scoredPlayers = {}; // Tracking hráčů co právě skotovali - {playerName: timestamp}
+let ambientBackgroundObjects = [];
+let lastAmbientSpawnCheck = 0;
 const UI_THEMES = [[0, 255, 255], [255, 50, 255], [50, 255, 50], [255, 200, 0], [255, 100, 50], [150, 100, 255]];
 let currentTheme = UI_THEMES[0];
 
@@ -1061,6 +1063,7 @@ function draw() {
   }
   background(bgR, bgG, bgB);
   
+  handleAmbientBackground();
   drawGalacticBackground(); 
   handleRedDwarf(); 
   drawViewerObjects(); 
@@ -2291,6 +2294,71 @@ function handleChatBotResponse(player, msg) {
     lastChatResponseTime = millis();
     if (typeof T !== 'undefined') speakAnnouncer(text, 0);
     addFloatingText("SPUTNIK: " + text, W/2, H - ZONE_H - 150, color(255, 120, 220), true);
+}
+
+function spawnAmbientObject() {
+    let fromLeft = random() < 0.5;
+    let size = random(300, 600);
+    let speed = random(0.2, 0.5);
+    let y = random(80, H / 2);
+    let colorChoice = random([color(180, 90, 255, random(20, 50)), color(40, 80, 220, random(20, 50)), color(255, 130, 240, random(20, 50))]);
+    let type = random() < 0.5 ? "Nebula" : "GasGiant";
+
+    ambientBackgroundObjects.push({
+        x: fromLeft ? -size - random(50, 150) : W + size + random(50, 150),
+        y: y,
+        size: size,
+        speed: speed * (fromLeft ? 1 : -1),
+        alpha: random(20, 50),
+        color: colorChoice,
+        type: type,
+        life: 0
+    });
+}
+
+function handleAmbientBackground() {
+    // spawn cca jednou za 2 minuty s 12% šancí
+    if (millis() - lastAmbientSpawnCheck > 120000) {
+        lastAmbientSpawnCheck = millis();
+        if (random() < 0.12) {
+            spawnAmbientObject();
+        }
+    }
+
+    for (let i = ambientBackgroundObjects.length - 1; i >= 0; i--) {
+        let o = ambientBackgroundObjects[i];
+        o.x += o.speed;
+        o.life++;
+
+        let c = o.color;
+        if (o.type === "Nebula") {
+            drawingContext.shadowBlur = 40;
+            drawingContext.shadowColor = color(red(c), green(c), blue(c), o.alpha);
+            for (let j = 0; j < 6; j++) {
+                let offsetX = random(-o.size * 0.2, o.size * 0.2);
+                let offsetY = random(-o.size * 0.2, o.size * 0.2);
+                let s = o.size * random(0.35, 0.7);
+                noStroke(); fill(red(c), green(c), blue(c), o.alpha * random(0.5, 1));
+                ellipse(o.x + offsetX, o.y + offsetY, s, s * random(0.45, 0.8));
+            }
+            drawingContext.shadowBlur = 0;
+        } else {
+            drawingContext.shadowBlur = 50;
+            drawingContext.shadowColor = color(red(c), green(c), blue(c), o.alpha);
+            noStroke();
+            for (let r = 0; r < 5; r++) {
+                let t = map(r, 0, 4, 1, 0.2);
+                fill(red(c), green(c), blue(c), o.alpha * t);
+                ellipse(o.x, o.y, o.size * (1 - r * 0.15), o.size * (1 - r * 0.15));
+            }
+            drawingContext.shadowBlur = 0;
+        }
+
+        // remove když je mimo obrazovku
+        if (o.x < -o.size * 2 || o.x > W + o.size * 2) {
+            ambientBackgroundObjects.splice(i, 1);
+        }
+    }
 }
 
 function spawnDevourer() {
