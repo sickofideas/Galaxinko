@@ -87,6 +87,54 @@ const TTS_WINNER_VARIATIONS = {
   ]
 };
 
+// Komentáře k výkonům hráčů - Interactive hype system
+const SCORE_COMMENTARY = {
+  CZ: [
+    "{player} dosáhl takového skóre, že to v naší galaxii nemá obdoby!",
+    "Jak si to {player} vláknout dovoluješ? Ty jsi zázrak fyziky!",
+    "{player} právě přeskočil všechny naše kalkulace! Legenda!",
+    "Vědecký tým vzývá slitování - {player} je příliš mocný!",
+    "{player}, příště se určitě dostaneš na první místo - věřím v tebe!",
+    "Toto skóre {player} není normální! Jsi z budoucnosti?",
+    "Systémy hlásí anomálii - její jméno je {player}!",
+    "{player}, takový výkon si zaslouží místo v síňi slávy!",
+    "Všichni se budete snažit - {player} právě nastavil novou laťku!",
+    "{player} hraje jako hvězda! Příště určitě zvítězíš!",
+    "Vzdáváme se - {player} je mnohem chytřejší než naše AI!",
+    "Takový výkon by měl být zakázaný! Dobré práce, {player}!",
+    "{player}, ty jsi absolutní základ pro tým! Pokračuj tak dál!",
+    "Skóre {player} je až kosmické! Jsi mistrem galaxie!",
+    "Při takovém výkonu {player} by mohl pilotovat hvězdný ostřelovač!",
+    "{player}, příště si určitě vezmeš trůn a budeš být první!",
+    "Toto není lidský výkon - {player} je mimo naše pojetí!",
+    "Galaxie si připravuje triumfální vítězství pro {player}!",
+    "{player} hraje jako bůh - příště budeš vítězem!",
+    "Všem ostatním hráčům: Naučte se od {player} a vítězství bude vaše!"
+  ],
+  EN: [
+    "{player} achieved a score that has no match in our galaxy!",
+    "How dare you, {player}! You're a miracle of physics!",
+    "{player} just broke all our calculations! Legend!",
+    "The science team is begging for mercy - {player} is too powerful!",
+    "{player}, next time you'll definitely take first place - I believe in you!",
+    "This score from {player} isn't normal! Are you from the future?",
+    "Systems report an anomaly - its name is {player}!",
+    "{player}, such performance deserves a place in the hall of fame!",
+    "Everyone will need to work harder - {player} just raised the bar!",
+    "{player} plays like a star! Victory is yours next time!",
+    "We surrender - {player} is way smarter than our AI!",
+    "Such a performance should be illegal! Great work, {player}!",
+    "{player}, you are absolute foundation for the team! Keep it up!",
+    "{player}'s score is cosmic! You are the galaxy's master!",
+    "With such performance, {player} could pilot a starfighter!",
+    "{player}, next time you'll definitely take the throne and be first!",
+    "This isn't human performance - {player} is beyond our comprehension!",
+    "The galaxy is preparing a triumphal victory for {player}!",
+    "{player} plays like a god - you'll be the victor next time!",
+    "All other players: Learn from {player} and victory will be yours!"
+  ]
+};
+
 const W = 900, H = 1000, ZONE_H = 80;
 
 let allTimeRecords = [];
@@ -343,6 +391,10 @@ let timer = 40, resultsTimer = 10, lastTick = 0, waitStartTime = 0, totalBallsFi
 let gameState = "PLAYING", libraryLoaded = false, winnerColor, flashEffect = 0, shakeAmount = 0;
 let currentDestination = "", currentGravity = 0.6, currentBounce = 80, spawnPerEvent = 1, currentShipChance = 30;
 let spawnQueue = [], portals = [], floatingTexts = [], shockwaves = [], joinPopupQueue = [], activeJoinPopup = null;
+let lastPlayerSpawnTimes = {}, lastTeamComboTime = 0;
+let avatarRibbon = []; // Běhající páska s avatary hráčů (1 like = 1 hodina zobrazení)
+let lastCommentaryTime = 0; // Poslední čas když jsme komentovali skóre
+let scoredPlayers = {}; // Tracking hráčů co právě skotovali - {playerName: timestamp}
 const UI_THEMES = [[0, 255, 255], [255, 50, 255], [50, 255, 50], [255, 200, 0], [255, 100, 50], [150, 100, 255]];
 let currentTheme = UI_THEMES[0];
 
@@ -738,6 +790,15 @@ function connectTikfinity() {
           
           if (!spamBuffer[u]) {
               spamBuffer[u] = { total: 0, buffered: 0, lastUpdate: millis(), state: 'CHARGING', fade: 255, announced: false };
+              // Přidej uživatele do pásky avatarů když poprvé dá like
+              if (userAvatars[u]) {
+                avatarRibbon.push({
+                  name: u,
+                  color: leaderboard[u] ? leaderboard[u].color : color(255, 100, 100),
+                  addedTime: millis(),
+                  displayUntil: millis() + 3600000 // 1 hodina
+                });
+              }
           }
           let sp = spamBuffer[u];
           sp.lastUpdate = millis();
@@ -1160,6 +1221,7 @@ function draw() {
 
   handleSpamBuffer();
   handleFakeChat();
+  drawAvatarRibbon();
   drawProceduralHUD(); drawAntiBotOverlay();
   
   if (anomalyState === 1) {
@@ -1212,6 +1274,75 @@ function handleFakeChat() {
     text(c.msg, 15 + textWidth(c.name + ": "), H - 35 - ((fakeChat.length - 1 - i) * 16));
     c.life -= 1.5;
   }
+  pop();
+}
+
+function drawAvatarRibbon() {
+  // Vyčisti staré avatary
+  avatarRibbon = avatarRibbon.filter(a => millis() < a.displayUntil);
+  if (avatarRibbon.length === 0) return;
+  
+  // Běhující páska s avatary - kreslí se dole
+  push();
+  let ribbonY = H - 50;
+  let avatarSize = 60;
+  let spacing = 90;
+  let scrollSpeed = 0.5; // pixelů za frame
+  let scrollOffset = (frameCount * scrollSpeed) % (spacing * 3); // Opakující se scroll
+  
+  // Pozadí pásky
+  fill(0, 0, 20, 220);
+  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150);
+  strokeWeight(2);
+  rect(0, ribbonY - 40, W, 50, 8);
+  
+  noStroke();
+  for (let i = 0; i < avatarRibbon.length; i++) {
+    let avatar = avatarRibbon[i];
+    let x = i * spacing - scrollOffset;
+    
+    // Vykreslí se i mimo obrazovku pro plynulý scroll
+    if (x < W + avatarSize && x > -avatarSize) {
+      let alpha = 255;
+      
+      // Fade-out efekt na okrajích
+      if (x < 100) alpha = map(x, 0, 100, 0, 255);
+      if (x > W - 100) alpha = map(x, W - 100, W, 255, 0);
+      
+      push();
+      translate(x + avatarSize / 2, ribbonY);
+      
+      // Halo efekt
+      drawingContext.shadowBlur = 20;
+      drawingContext.shadowColor = color(red(avatar.color), green(avatar.color), blue(avatar.color), alpha * 0.6);
+      
+      // Avatar obrázek
+      if (userAvatars[avatar.name]) {
+        drawingContext.save();
+        drawingContext.beginPath();
+        drawingContext.arc(0, 0, avatarSize / 2, 0, TWO_PI);
+        drawingContext.clip();
+        tint(255, alpha);
+        imageMode(CENTER);
+        image(userAvatars[avatar.name], 0, 0, avatarSize, avatarSize);
+        drawingContext.restore();
+        
+        // Kruh kolem avataru
+        stroke(avatar.color);
+        strokeWeight(2);
+        noFill();
+        ellipse(0, 0, avatarSize, avatarSize);
+      } else {
+        // Fallback - barevný kruh
+        fill(red(avatar.color), green(avatar.color), blue(avatar.color), alpha * 0.5);
+        ellipse(0, 0, avatarSize, avatarSize);
+      }
+      
+      drawingContext.shadowBlur = 0;
+      pop();
+    }
+  }
+  
   pop();
 }
 
@@ -1296,7 +1427,18 @@ function handleSpamBuffer() {
     
     if (sp.state === 'RELEASING') {
       sp.fade -= 5;
-      if (sp.fade <= 0) delete spamBuffer[u];
+      if (sp.fade <= 0) {
+        // Přidej avatar do pásku když hráč opustí spam buffer
+        if (sp.total > 0 && userAvatars[u]) {
+          avatarRibbon.push({
+            name: u,
+            color: leaderboard[u] ? leaderboard[u].color : color(255, 100, 100),
+            addedTime: millis(),
+            displayUntil: millis() + 3600000 // 1 hodina
+          });
+        }
+        delete spamBuffer[u];
+      }
     }
   }
 }
@@ -1305,6 +1447,40 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") { if (spawnQueue.length < 500) spawnQueue.push(userName); return; }
   if (balls.length > 700) return;
+  
+  // Team Combo detection - kontrola zda se hráč spawnguje zároveň s další
+  if (userName !== "MOTHERSHIP") {
+    let now = millis();
+    let recentPlayers = Object.keys(lastPlayerSpawnTimes).filter(p => now - lastPlayerSpawnTimes[p] < 2000 && p !== userName);
+    
+    if (recentPlayers.length > 0 && random() < 0.05 && now - lastTeamComboTime > 5000) {
+      // 5% šance na Team Combo hlášku
+      let teamComboMsgs = {
+        CZ: [
+          "Vesmírná aliance! Týmová síla!",
+          "Společný útok! Kosmické spojení!",
+          "Tábor vítězů! Spojené síly!",
+          "Galaxie se sjednocuje!",
+          "Superhvězdy v akci!",
+          "Vesmírná spolupráce!",
+          "Společný zážeh motorů!"
+        ],
+        EN: [
+          "Cosmic alliance! Team power!",
+          "Combined strike! Space connection!",
+          "Camp of victors! United forces!",
+          "Galaxy unites!",
+          "Superstars in action!",
+          "Space cooperation!",
+          "Synchronized engine ignition!"
+        ]
+      };
+      speakAnnouncer(random(teamComboMsgs[currentLang]), 1);
+      lastTeamComboTime = now;
+    }
+    lastPlayerSpawnTimes[userName] = now;
+  }
+  
   if (userName !== "MOTHERSHIP") { 
     totalBallsFired++; 
     roundTotalBalls++; 
@@ -1330,7 +1506,7 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
   }
   let ballColor = (userName === "MOTHERSHIP") ? color(120, 120, 130) : (leaderboard[userName] || (leaderboard[userName] = { score: 0, color: color(random(100, 255), random(100, 255), random(100, 255)) })).color;
   
-  balls.push({ body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, lastBossHit: 0, spawnTime: millis(), isRainbow: isR, trail: [], rainbowExplodeTime: null, portalCooldown: 0, scoreTime: null, zoneIndex: -1, multiplier: mult, size: bSize });
+  balls.push({ body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, lastBossHit: 0, spawnTime: millis(), isRainbow: isR, trail: [], rainbowExplodeTime: null, portalCooldown: 0, scoreTime: null, zoneIndex: -1, multiplier: mult, size: bSize, magneticStuckTo: null, magneticStuckTime: 0, magneticCollisionCount: 0 });
   Matter.World.add(world, ballBody);
 }
 
@@ -1470,27 +1646,71 @@ function drawBalls() {
           let p = pegs[j];
           let dx = pos.x - p.position.x;
           let dy = pos.y - p.position.y;
+          let distSq = dx * dx + dy * dy;
           let colDistSq = p.isBonus ? 400 : 324;
-          if (dx * dx + dy * dy < colDistSq) {
-            p.glow = 255; b.combo += 1; b.lastHitTime = millis();
-            if (p.isBonus) {
-              b.combo += 2;
-              if (b.name !== "MOTHERSHIP") {
-                let pts = 250 * b.multiplier;
-                updateScore(b.name, pts, b.color);
-                addFloatingText("+" + pts, p.position.x, p.position.y, color(50, 255, 100));
+          
+          if (distSq < colDistSq) {
+            p.glow = 255; b.lastHitTime = millis();
+            
+            if (p.isMagnetic && !b.magneticStuckTo) {
+              // Količka se přilepí na magnetický kolík - prostě a jednoduše
+              b.magneticStuckTo = p;
+              b.magneticStuckTime = millis();
+              createExplosion(p.position.x, p.position.y, color(0, 200, 255));
+              playSpawnSound();
+            } else if (!p.isMagnetic) {
+              // Normální pegs
+              b.combo += 1;
+              if (p.isBonus) {
+                b.combo += 2;
+                if (b.name !== "MOTHERSHIP") {
+                  let pts = 250 * b.multiplier;
+                  updateScore(b.name, pts, b.color);
+                  addFloatingText("+" + pts, p.position.x, p.position.y, color(50, 255, 100));
+                }
+                Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.035));
+                createExplosion(p.position.x, p.position.y, color(50, 255, 100));
+                if (audioStarted) playSpawnSound();
+              } else if (p.isExplosive) {
+                createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
+                Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
+                Matter.World.remove(world, p); pegs.splice(j, 1);
+              } else if (p.isRepulsor) {
+                b.body.velocity.y = 0;
+                Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
+                createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
               }
-              Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.035));
-              createExplosion(p.position.x, p.position.y, color(50, 255, 100));
-              if (audioStarted) playSpawnSound();
-            } else if (p.isExplosive) {
-              createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
-              Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
-              Matter.World.remove(world, p); pegs.splice(j, 1);
-            } else if (p.isRepulsor) {
-              b.body.velocity.y = 0;
-              Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
-              createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
+            }
+          }
+        }
+        
+        // Zpracování magneticky přilepených kuliček - jednoduché lepidlo
+        for (let b of balls) {
+          if (b.magneticStuckTo) {
+            let stuckTime = millis() - b.magneticStuckTime;
+            let pegPos = b.magneticStuckTo.position;
+            
+            // Koule se přilepí na kolík a pomalu padá dolů
+            let fallSpeed = 0.15; // pixelů za frame
+            let totalDrop = stuckTime * fallSpeed;
+            totalDrop = min(totalDrop, 50); // Max 50px dolů
+            
+            // Lehké houpání při pádu
+            let sway = sin(stuckTime * 0.01) * 3; // Lehký sin wave pro efekt houpání
+            
+            // Ručně nastavíme pozici - bez fyziky!
+            b.body.position.x = pegPos.x + sway;
+            b.body.position.y = pegPos.y + totalDrop;
+            b.body.velocity.x = 0;
+            b.body.velocity.y = 0;
+            b.body.angularVelocity = 0;
+            b.body.angle = 0;
+            
+            // Po 5 sekundách se uvolní
+            if (stuckTime > 5000) {
+              b.magneticStuckTo = null;
+              b.magneticStuckTime = 0;
+              Matter.Body.setVelocity(b.body, {x: random(-5, 5), y: random(2, 8)});
             }
           }
         }
@@ -1550,6 +1770,17 @@ function drawBalls() {
     
     if (b.scored && b.scoreTime && b.name === "MOTHERSHIP" && millis() - b.scoreTime > 5000) { removeBall(b); continue; }
     if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) removeBall(b);
+  }
+  
+  // Kreslení magnetických kolíků se zvlnama
+  noStroke();
+  for (let p of pegs) {
+    if (p.isMagnetic) {
+      fill(0, 150, 255, 200); ellipse(p.position.x, p.position.y, 10);
+      stroke(0, 200, 255); strokeWeight(1); noFill(); 
+      ellipse(p.position.x, p.position.y, 8 + cos(frameCount * 0.1) * 3);
+      noStroke();
+    }
   }
 }
 
@@ -1683,6 +1914,42 @@ function drawUI() {
     drawTxt(e[1].score.toLocaleString(), 225, y, color(255), i < 3 ? 10 : 9, RIGHT);
   });
   pop();
+  
+  // Občasný komentář k výkonům - Interactive hype system
+  handleScoreCommentary();
+}
+
+function handleScoreCommentary() {
+  if (gameState !== "PLAYING") return;
+  if (millis() - lastCommentaryTime < 15000) return; // 15 sekund cooldown mezi komentáři
+  
+  // Vyber náhodně hráče z TOP 5 leaderboardu
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
+  if (sorted.length === 0) return;
+  
+  let randomPlayer = sorted[floor(random(sorted.length))];
+  let playerName = randomPlayer[0];
+  let playerScore = randomPlayer[1].score;
+  
+  // Vyber něco jiného podle pozice
+  let commentary = "";
+  if (playerScore > 50000) {
+    // Ultra vysoké skóre
+    commentary = random(SCORE_COMMENTARY[currentLang]);
+  } else if (playerScore > 20000) {
+    // Vysoké skóre
+    commentary = random(SCORE_COMMENTARY[currentLang]);
+  } else {
+    // Normální skóre
+    commentary = random(SCORE_COMMENTARY[currentLang]);
+  }
+  
+  // Nahraď {player} skutečným jménem
+  commentary = commentary.replace("{player}", playerName);
+  
+  // Zavolej TTS
+  speakAnnouncer(commentary, 1);
+  lastCommentaryTime = millis();
 }
 
 function drawZones() {
@@ -3949,7 +4216,7 @@ function initGame() {
       for (let c = 0; c < cls; c++) {
         if (sh[r][c] === '*') {
           let pg = Matter.Bodies.circle(sx + c * sp + random(-1, 1), sy + r * sp + random(-1, 1), 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } });
-          pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg);
+          pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pg.isMagnetic = !pg.isExplosive && !pg.isRepulsor && random() < 0.05; pegs.push(pg); Matter.World.add(world, pg);
         }
       }
     }
@@ -3982,7 +4249,7 @@ function initGame() {
           if (!tc) v = true;
         } else if (a > 45) break;
       }
-      if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
+      if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pg.isMagnetic = !pg.isExplosive && !pg.isRepulsor && random() < 0.05; pegs.push(pg); Matter.World.add(world, pg); }
     }
   }
   
@@ -3993,7 +4260,7 @@ function initGame() {
       let dy = py - ot.position.y;
       if (dx * dx + dy * dy < 1225) { v = false; break; } 
     }
-    if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
+    if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pg.isMagnetic = !pg.isExplosive && !pg.isRepulsor && random() < 0.05; pegs.push(pg); Matter.World.add(world, pg); }
   }
   
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000], cX = 0; zones = [];
