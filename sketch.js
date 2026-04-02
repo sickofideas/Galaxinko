@@ -821,12 +821,9 @@ function connectTikfinity() {
               spamBuffer[u] = { total: 0, buffered: 0, lastUpdate: millis(), state: 'CHARGING', fade: 255, announced: false };
               // Přidej uživatele do pásky avatarů když poprvé dá like
               if (userAvatars[u]) {
-                avatarRibbon.push({
-                  name: u,
-                  color: leaderboard[u] ? leaderboard[u].color : color(255, 100, 100),
-                  addedTime: millis(),
-                  displayUntil: millis() + 3600000 // 1 hodina
-                });
+                let existing = avatarRibbon.find(a => a.name === u);
+                if (existing) existing.displayUntil = millis() + 3600000;
+                else avatarRibbon.push({ name: u, color: leaderboard[u] ? leaderboard[u].color : color(255, 100, 100), addedTime: millis(), displayUntil: millis() + 3600000 });
               }
           }
           let sp = spamBuffer[u];
@@ -1316,62 +1313,66 @@ function drawAvatarRibbon() {
   
   // Běhující páska s avatary - kreslí se dole
   push();
-  let ribbonY = H - 50;
-  let avatarSize = 60;
-  let spacing = 90;
+  let ribbonY = H - 20; // Posunuto níž pod text chlívečků
+  let avatarSize = 24;  // Zmenšeno, aby nezakrývalo text
+  let spacing = 45;
   let scrollSpeed = 0.5; // pixelů za frame
-  let scrollOffset = (frameCount * scrollSpeed) % (spacing * 3); // Opakující se scroll
+  
+  let totalWidth = max(1, avatarRibbon.length) * spacing;
+  let scrollOffset = (frameCount * scrollSpeed) % max(totalWidth, W); 
   
   // Pozadí pásky
-  fill(0, 0, 20, 220);
-  stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150);
-  strokeWeight(2);
-  rect(0, ribbonY - 40, W, 50, 8);
+  fill(0, 0, 20, 160);
+  noStroke();
+  rect(0, ribbonY - 15, W, 30);
   
   noStroke();
-  for (let i = 0; i < avatarRibbon.length; i++) {
-    let avatar = avatarRibbon[i];
-    let x = i * spacing - scrollOffset;
-    
-    // Vykreslí se i mimo obrazovku pro plynulý scroll
-    if (x < W + avatarSize && x > -avatarSize) {
-      let alpha = 255;
+  // Dvojitý cyklus zajišťuje plynulý wrap-around efekt na konci plátna
+  for (let loop = 0; loop < 2; loop++) {
+    for (let i = 0; i < avatarRibbon.length; i++) {
+      let avatar = avatarRibbon[i];
+      let x = (i * spacing) - scrollOffset + (loop * max(totalWidth, W));
       
-      // Fade-out efekt na okrajích
-      if (x < 100) alpha = map(x, 0, 100, 0, 255);
-      if (x > W - 100) alpha = map(x, W - 100, W, 255, 0);
-      
-      push();
-      translate(x + avatarSize / 2, ribbonY);
-      
-      // Halo efekt
-      drawingContext.shadowBlur = 20;
-      drawingContext.shadowColor = color(red(avatar.color), green(avatar.color), blue(avatar.color), alpha * 0.6);
-      
-      // Avatar obrázek
-      if (userAvatars[avatar.name]) {
-        drawingContext.save();
-        drawingContext.beginPath();
-        drawingContext.arc(0, 0, avatarSize / 2, 0, TWO_PI);
-        drawingContext.clip();
-        tint(255, alpha);
-        imageMode(CENTER);
-        image(userAvatars[avatar.name], 0, 0, avatarSize, avatarSize);
-        drawingContext.restore();
+      // Vykreslí se i mimo obrazovku pro plynulý scroll
+      if (x < W + avatarSize && x > -avatarSize) {
+        let alpha = 255;
         
-        // Kruh kolem avataru
-        stroke(avatar.color);
-        strokeWeight(2);
-        noFill();
-        ellipse(0, 0, avatarSize, avatarSize);
-      } else {
-        // Fallback - barevný kruh
-        fill(red(avatar.color), green(avatar.color), blue(avatar.color), alpha * 0.5);
-        ellipse(0, 0, avatarSize, avatarSize);
+        // Fade-out efekt na okrajích
+        if (x < 40) alpha = map(x, 0, 40, 0, 255);
+        if (x > W - 40) alpha = map(x, W - 40, W, 255, 0);
+        
+        push();
+        translate(x + avatarSize / 2, ribbonY);
+        
+        // Halo efekt
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = color(red(avatar.color), green(avatar.color), blue(avatar.color), alpha * 0.8);
+        
+        // Avatar obrázek
+        if (userAvatars[avatar.name]) {
+          drawingContext.save();
+          drawingContext.beginPath();
+          drawingContext.arc(0, 0, avatarSize / 2, 0, TWO_PI);
+          drawingContext.clip();
+          tint(255, alpha);
+          imageMode(CENTER);
+          image(userAvatars[avatar.name], 0, 0, avatarSize, avatarSize);
+          drawingContext.restore();
+          
+          // Kruh kolem avataru
+          stroke(avatar.color);
+          strokeWeight(1.5);
+          noFill();
+          ellipse(0, 0, avatarSize, avatarSize);
+        } else {
+          // Fallback - barevný kruh
+          fill(red(avatar.color), green(avatar.color), blue(avatar.color), alpha * 0.5);
+          ellipse(0, 0, avatarSize, avatarSize);
+        }
+        
+        drawingContext.shadowBlur = 0;
+        pop();
       }
-      
-      drawingContext.shadowBlur = 0;
-      pop();
     }
   }
   
@@ -1462,12 +1463,9 @@ function handleSpamBuffer() {
       if (sp.fade <= 0) {
         // Přidej avatar do pásku když hráč opustí spam buffer
         if (sp.total > 0 && userAvatars[u]) {
-          avatarRibbon.push({
-            name: u,
-            color: leaderboard[u] ? leaderboard[u].color : color(255, 100, 100),
-            addedTime: millis(),
-            displayUntil: millis() + 3600000 // 1 hodina
-          });
+          let existing = avatarRibbon.find(a => a.name === u);
+          if (existing) existing.displayUntil = millis() + 3600000;
+          else avatarRibbon.push({ name: u, color: leaderboard[u] ? leaderboard[u].color : color(255, 100, 100), addedTime: millis(), displayUntil: millis() + 3600000 });
         }
         delete spamBuffer[u];
       }
