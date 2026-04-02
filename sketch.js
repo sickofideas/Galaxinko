@@ -403,6 +403,8 @@ let cosmicEvent = null, eventOccurredThisRound = false, followEvents = [], avail
 let nextMeteorShowerTime = 0, nextJokeTime = 0, meteorWarningTimer = 0, backgroundMeteors = [];
 let boss = null, bossPlanned = false, bossSpawnAt = -1, userAvatars = {}; 
 
+let sputnik = null, sputnikPlanned = false, sputnikSpawnAt = -1, sputnikLastShotFrame = 0, sputnikLasers = [];
+
 let blackHoleConsumed = {pegs: 0, planets: 0, debris: 0};
 
 let rimmerModeActive = false, rimmerModeTimer = 0, rimmerModePlanned = false, rimmerModeTriggerTime = -1, originalGravity = 0.6, originalBounce = 80;
@@ -1057,6 +1059,7 @@ function draw() {
   handleBoss();
   handleDevourer(); 
   handleStarbugObj();
+  handleSputnik();
   handleSolarFlare();
   handleSpaceship();
   handleOrbitalProjectiles();
@@ -1127,6 +1130,7 @@ function draw() {
 
           if (shipPlanned && !starship && timer === shipSpawnAt) spawnSpaceship();
           if (bossPlanned && !boss && timer === bossSpawnAt) spawnBoss();
+          if (sputnikPlanned && !sputnik && timer === sputnikSpawnAt) triggerSputnik();
           if (solarFlarePlanned && !solarFlare && timer === solarFlareTriggerTime) triggerSolarFlare();
           if (rdPlanned && !redDwarf && timer === rdSpawnAt) spawnRedDwarf();
           
@@ -1506,7 +1510,7 @@ function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null
   }
   let ballColor = (userName === "MOTHERSHIP") ? color(120, 120, 130) : (leaderboard[userName] || (leaderboard[userName] = { score: 0, color: color(random(100, 255), random(100, 255), random(100, 255)) })).color;
   
-  balls.push({ body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, lastBossHit: 0, spawnTime: millis(), isRainbow: isR, trail: [], rainbowExplodeTime: null, portalCooldown: 0, scoreTime: null, zoneIndex: -1, multiplier: mult, size: bSize, magneticStuckTo: null, magneticStuckTime: 0, magneticCollisionCount: 0 });
+  balls.push({ body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, lastHitTime: 0, lastShipHit: 0, lastBossHit: 0, spawnTime: millis(), isRainbow: isR, trail: [], rainbowExplodeTime: null, portalCooldown: 0, scoreTime: null, zoneIndex: -1, multiplier: mult, size: bSize });
   Matter.World.add(world, ballBody);
 }
 
@@ -1530,7 +1534,7 @@ function drawBalls() {
 
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
-    if (!b.body || isNaN(b.body.position.x) || isNaN(b.body.position.y)) { removeBall(b); continue; }
+    if (!b.body || isNaN(b.body.position.x) || isNaN(b.body.position.y)) { removeBall(b); }
     
     let pos = b.body.position;
     if (b.scored && b.body.velocity.y < -2 && pos.y < H - ZONE_H - 50) b.scored = false;
@@ -1652,68 +1656,30 @@ function drawBalls() {
           if (distSq < colDistSq) {
             p.glow = 255; b.lastHitTime = millis();
             
-            if (p.isMagnetic && !b.magneticStuckTo) {
-              // Količka se přilepí na magnetický kolík - prostě a jednoduše
-              b.magneticStuckTo = p;
-              b.magneticStuckTime = millis();
-              createExplosion(p.position.x, p.position.y, color(0, 200, 255));
-              playSpawnSound();
-            } else if (!p.isMagnetic) {
-              // Normální pegs
-              b.combo += 1;
-              if (p.isBonus) {
-                b.combo += 2;
-                if (b.name !== "MOTHERSHIP") {
-                  let pts = 250 * b.multiplier;
-                  updateScore(b.name, pts, b.color);
-                  addFloatingText("+" + pts, p.position.x, p.position.y, color(50, 255, 100));
-                }
-                Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.035));
-                createExplosion(p.position.x, p.position.y, color(50, 255, 100));
-                if (audioStarted) playSpawnSound();
-              } else if (p.isExplosive) {
-                createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
-                Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
-                Matter.World.remove(world, p); pegs.splice(j, 1);
-              } else if (p.isRepulsor) {
-                b.body.velocity.y = 0;
-                Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
-                createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
+            // Normální pegs
+            b.combo += 1;
+            if (p.isBonus) {
+              b.combo += 2;
+              if (b.name !== "MOTHERSHIP") {
+                let pts = 250 * b.multiplier;
+                updateScore(b.name, pts, b.color);
+                addFloatingText("+" + pts, p.position.x, p.position.y, color(50, 255, 100));
               }
+              Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.035));
+              createExplosion(p.position.x, p.position.y, color(50, 255, 100));
+              if (audioStarted) playSpawnSound();
+            } else if (p.isExplosive) {
+              createExplosion(p.position.x, p.position.y, color(255, 150, 0)); playExplosionSound();
+              Matter.Body.applyForce(b.body, pos, Matter.Vector.mult(Matter.Vector.normalise({x: dx, y: dy}), 0.025));
+              Matter.World.remove(world, p); pegs.splice(j, 1);
+            } else if (p.isRepulsor) {
+              b.body.velocity.y = 0;
+              Matter.Body.applyForce(b.body, pos, { x: dx * 0.002, y: -0.04 });
+              createExplosion(p.position.x, p.position.y, color(255, 50, 200)); playSpawnSound();
             }
           }
         }
         
-        // Zpracování magneticky přilepených kuliček - jednoduché lepidlo
-        for (let b of balls) {
-          if (b.magneticStuckTo) {
-            let stuckTime = millis() - b.magneticStuckTime;
-            let pegPos = b.magneticStuckTo.position;
-            
-            // Koule se přilepí na kolík a pomalu padá dolů
-            let fallSpeed = 0.15; // pixelů za frame
-            let totalDrop = stuckTime * fallSpeed;
-            totalDrop = min(totalDrop, 50); // Max 50px dolů
-            
-            // Lehké houpání při pádu
-            let sway = sin(stuckTime * 0.01) * 3; // Lehký sin wave pro efekt houpání
-            
-            // Ručně nastavíme pozici - bez fyziky!
-            b.body.position.x = pegPos.x + sway;
-            b.body.position.y = pegPos.y + totalDrop;
-            b.body.velocity.x = 0;
-            b.body.velocity.y = 0;
-            b.body.angularVelocity = 0;
-            b.body.angle = 0;
-            
-            // Po 5 sekundách se uvolní
-            if (stuckTime > 5000) {
-              b.magneticStuckTo = null;
-              b.magneticStuckTime = 0;
-              Matter.Body.setVelocity(b.body, {x: random(-5, 5), y: random(2, 8)});
-            }
-          }
-        }
     }
     
     let isStuckInPile = pos.y > H - 250 && b.body.isSleeping;
@@ -1765,22 +1731,11 @@ function drawBalls() {
           Matter.Body.applyForce(ob.body, ob.body.position, Matter.Vector.mult(Matter.Vector.normalise({ x: dx, y: dy - 40 }), 0.015));
         }
       }
-      b.rainbowExplodeTime = null; removeBall(b); continue;
+      b.rainbowExplodeTime = null; removeBall(b);
     }
     
-    if (b.scored && b.scoreTime && b.name === "MOTHERSHIP" && millis() - b.scoreTime > 5000) { removeBall(b); continue; }
+    if (b.scored && b.scoreTime && b.name === "MOTHERSHIP" && millis() - b.scoreTime > 5000) { removeBall(b); }
     if (pos.y > H + 150 || pos.x < -150 || pos.x > W + 150) removeBall(b);
-  }
-  
-  // Kreslení magnetických kolíků se zvlnama
-  noStroke();
-  for (let p of pegs) {
-    if (p.isMagnetic) {
-      fill(0, 150, 255, 200); ellipse(p.position.x, p.position.y, 10);
-      stroke(0, 200, 255); strokeWeight(1); noFill(); 
-      ellipse(p.position.x, p.position.y, 8 + cos(frameCount * 0.1) * 3);
-      noStroke();
-    }
   }
 }
 
@@ -2187,6 +2142,117 @@ function handleBoss() {
   fill(255, 50, 50); rect(barX, barY, barW * (max(0, boss.hp) / boss.maxHp), barH, 3);
   drawTxt(typeof T !== 'undefined' ? T[currentLang].LEVI : "BOSS HP", boss.x, barY + 7, color(255), 8, CENTER);
   pop();
+}
+
+function triggerSputnik() {
+    sputnik = {
+        name: "⚠️ SPUTNIK-1",
+        x: W / 2,
+        y: H - ZONE_H - 120,
+        radius: 28,
+        color: color(255, 20, 180),
+        activeTimer: 10 * targetFPS,
+        glow: 200,
+        lastShotTime: frameCount
+    };
+    if (typeof T !== 'undefined') speakAnnouncer("Warning! Sputnik-1 Saboteur detected! Target: All units!", 2);
+    leaderboard[sputnik.name] = leaderboard[sputnik.name] || { score: 0, color: color(255, 20, 180) };
+}
+
+function handleSputnik() {
+    if (!sputnik) return;
+
+    sputnik.activeTimer--;
+    sputnik.x = W / 2 + sin(frameCount * 0.05) * (W / 2 - 100);
+    sputnik.glow = 100 + sin(frameCount * 0.3) * 80;
+
+    // 3x za sekundu
+    if (frameCount - sputnikLastShotFrame >= Math.floor(targetFPS / 3)) {
+        sputnikLastShotFrame = frameCount;
+
+        let potentialTargets = [];
+        for (let b of balls) {
+            if (b.name !== "MOTHERSHIP") {
+                let d = dist(sputnik.x, sputnik.y, b.body.position.x, b.body.position.y);
+                if (d < 280) potentialTargets.push({ type: 'ball', obj: b, distance: d });
+            }
+        }
+
+        for (let p of pegs) {
+            let d = dist(sputnik.x, sputnik.y, p.position.x, p.position.y);
+            if (d < 220) potentialTargets.push({ type: 'peg', obj: p, distance: d });
+        }
+
+        if (potentialTargets.length > 0) {
+            potentialTargets.sort((a, b) => a.distance - b.distance);
+            let target = potentialTargets[floor(random(min(3, potentialTargets.length)))];
+            let tx, ty;
+
+            if (target.type === 'ball') {
+                tx = target.obj.body.position.x;
+                ty = target.obj.body.position.y;
+
+                removeBall(target.obj);
+                updateScore(sputnik.name, 500, sputnik.color);
+                addFloatingText("+500", tx, ty, color(255, 120, 0), true);
+                createExplosion(tx, ty, color(255, 120, 50));
+
+            } else if (target.type === 'peg') {
+                tx = target.obj.position.x;
+                ty = target.obj.position.y;
+
+                Matter.World.remove(world, target.obj);
+                let pegIndex = pegs.indexOf(target.obj);
+                if (pegIndex !== -1) pegs.splice(pegIndex, 1);
+
+                updateScore(sputnik.name, 100, sputnik.color);
+                addFloatingText("+100", tx, ty, color(255, 75, 180), true);
+                createExplosion(tx, ty, color(255, 75, 180));
+            }
+
+            sputnikLasers.push({ x1: sputnik.x, y1: sputnik.y, x2: tx, y2: ty, life: 12 });
+        }
+    }
+
+    // Draw Sputnik
+    push();
+    translate(sputnik.x, sputnik.y);
+    noStroke();
+    fill(255, 0, 170, 40);
+    ellipse(0, 0, sputnik.radius * 3.3);
+
+    drawingContext.shadowBlur = 30;
+    drawingContext.shadowColor = color(255, 0, 220, 200);
+    fill(30, 0, 70, 180);
+    ellipse(0, 0, sputnik.radius * 2.3);
+
+    drawingContext.shadowBlur = 0;
+    stroke(255, 160, 200); strokeWeight(3);
+    ellipse(0, 0, sputnik.radius * 2);
+
+    // Antény
+    stroke(255, 80, 255); strokeWeight(2);
+    line(0, -sputnik.radius, 0, -sputnik.radius - 30);
+    line(0, sputnik.radius, 0, sputnik.radius + 30);
+    line(-sputnik.radius, 0, -sputnik.radius - 30, 0);
+    line(sputnik.radius, 0, sputnik.radius + 30, 0);
+
+    pop();
+
+    // Draw laser beams
+    for (let i = sputnikLasers.length - 1; i >= 0; i--) {
+        let l = sputnikLasers[i];
+        stroke(255, 0, 255, map(l.life, 0, 12, 0, 255));
+        strokeWeight(2 + (l.life / 12) * 4);
+        line(l.x1, l.y1, l.x2, l.y2);
+        l.life--;
+        if (l.life <= 0) sputnikLasers.splice(i, 1);
+    }
+
+    if (sputnik.activeTimer <= 0) {
+        sputnik = null;
+        sputnikPlanned = false;
+    }
 }
 
 function spawnDevourer() {
@@ -4216,7 +4282,7 @@ function initGame() {
       for (let c = 0; c < cls; c++) {
         if (sh[r][c] === '*') {
           let pg = Matter.Bodies.circle(sx + c * sp + random(-1, 1), sy + r * sp + random(-1, 1), 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } });
-          pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pg.isMagnetic = !pg.isExplosive && !pg.isRepulsor && random() < 0.05; pegs.push(pg); Matter.World.add(world, pg);
+          pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg);
         }
       }
     }
@@ -4249,7 +4315,7 @@ function initGame() {
           if (!tc) v = true;
         } else if (a > 45) break;
       }
-      if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pg.isMagnetic = !pg.isExplosive && !pg.isRepulsor && random() < 0.05; pegs.push(pg); Matter.World.add(world, pg); }
+      if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
     }
   }
   
@@ -4260,7 +4326,7 @@ function initGame() {
       let dy = py - ot.position.y;
       if (dx * dx + dy * dy < 1225) { v = false; break; } 
     }
-    if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pg.isMagnetic = !pg.isExplosive && !pg.isRepulsor && random() < 0.05; pegs.push(pg); Matter.World.add(world, pg); }
+    if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
   }
   
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000], cX = 0; zones = [];
@@ -4297,6 +4363,13 @@ function resetGame() {
   solarFlare = null;
   solarFlarePlanned = (random() < 0.35);
   solarFlareTriggerTime = solarFlarePlanned ? floor(random(15, timer - 15)) : -1;
+
+  sputnik = null;
+  sputnikPlanned = (random() < 0.04);
+  sputnikSpawnAt = sputnikPlanned ? floor(random(15, 31)) : -1;
+  sputnikLastShotFrame = frameCount;
+  sputnikLasers = [];
+  leaderboard["⚠️ SPUTNIK-1"] = { score: 0, color: color(255, 50, 180) };
   
   game.events.forEach(e => e.onEnd()); // Obnovit bezpečnostní stav před zahájením nového kola
   game.events = [];
