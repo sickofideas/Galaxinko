@@ -1,5 +1,5 @@
 const GAME_TITLE = "GALAXINKO";
-const GAME_VERSION = "v14.9.14"; // přidány nové objekty na pozadí (astronaut, cargo, sonda, velryba)
+const GAME_VERSION = "v14.9.15"; // hloubka ostrosti pozadí (čím dál, tím tmavší)
 
 // change log:
 // v14.9.11 - více prachu (500 místo 300), častější komety (0.12 místo 0.06), přidán měsíc s 5 planetkami
@@ -1064,12 +1064,11 @@ function draw() {
   drawViewerObjects(); 
   handleBackgroundMeteors();
 
-  let dimAlpha = map(min(balls.length, 800), 0, 800, 0, 90);
-  if (dimAlpha > 0) {
-    fill(0, 0, 0, dimAlpha);
-    noStroke();
-    rect(-W, -H, W * 3, H * 3);
-  }
+  // Lehký permanentní stín pro vyniknutí popředí, který při spamu kuliček ještě ztmavne
+  let dimAlpha = map(min(balls.length, 800), 0, 800, 30, 110); 
+  fill(0, 0, 0, dimAlpha);
+  noStroke();
+  rect(-W, -H, W * 3, H * 3);
 
   try { Matter.Engine.update(engine, 1000 / 60); } catch (e) {}
   
@@ -4128,6 +4127,7 @@ function drawGalacticBackground() {
     }
   }
   push();
+  drawingContext.globalAlpha = 0.4;
   translate(moon.x, moon.y);
   moon.rot += 0.005;
   rotate(moon.rot);
@@ -4152,8 +4152,8 @@ function drawGalacticBackground() {
 
   push();
   translate(-camOffset.x * 0.3, -camOffset.y * 0.3);
-  drawingContext.globalAlpha = 0.8;
   
+  drawingContext.globalAlpha = 0.5; // Hvězdy a menší objekty se posunou více do pozadí
   fill(255, 120);
   for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
   
@@ -4180,6 +4180,7 @@ function drawGalacticBackground() {
   
   for (let i = spaceDebris.length - 1; i >= 0; i--) {
     let d = spaceDebris[i]; push(); translate(d.x, d.y); d.x += d.vx * currentTravelSpeed; d.y += d.vy * currentTravelSpeed; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
+    drawingContext.globalAlpha = map(d.size, 15, 50, 0.15, 0.9); // Dynamická průhlednost smetí podle jeho vzdálenosti
     if (d.type === "LEGEND") drawLegendShape(d); 
     else if (d.type === "CRUISER") { fill(90); rect(-d.size, -d.size/4, d.size*2, d.size/2, 3); fill(60); rect(-d.size/2, -d.size/2, d.size, d.size/4); fill(50, 200, 255, 200); ellipse(-d.size, 0, d.size/3, d.size/2); } 
     else if (d.type === "FIGHTER") { fill(120); triangle(d.size/2, 0, -d.size/2, -d.size/2, -d.size/2, d.size/2); fill(255, 100, 50, 200); ellipse(-d.size/2, 0, d.size/3); } 
