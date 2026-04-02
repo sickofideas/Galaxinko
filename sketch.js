@@ -4087,7 +4087,9 @@ function generateDeepSpaceElements() {
 function drawGalacticBackground() {
   push();
   translate(-camOffset.x * 0.6, -camOffset.y * 0.6);
-  drawingContext.globalAlpha = 0.3;
+  
+  // Mlhoviny jsou úplně nejdál, proto mají pevnou a velmi nízkou průhlednost
+  drawingContext.globalAlpha = 0.15;
   noStroke();
   for (let n of nebulas) {
     n.y += 0.2 * currentTravelSpeed; if (n.y > H + n.s) n.y = -n.s;
@@ -4096,8 +4098,20 @@ function drawGalacticBackground() {
     if (n.type === 'SPIRAL_GALAXY') { push(); translate(n.x, n.y); rotate(frameCount * 0.001 * n.rotDir); for (let i = 0; i < 5; i++) { rotate(TWO_PI / 5); ellipse(n.s * 0.3, 0, n.s * 0.8, n.s * 0.2); } pop(); } 
     else { ellipse(n.x, n.y, n.s, n.s * 0.6); }
   }
+  
+  // Planety seřadíme podle velikosti (menší = dál = kreslí se první)
+  massivePlanets.sort((a, b) => a.size - b.size);
   for (let p of massivePlanets) {
-    push(); translate(p.x, p.y); p.y += p.speed * currentTravelSpeed * (p.size > 100 ? 1.5 : 5); p.rot += p.rotSpeed * currentTravelSpeed;
+    push(); 
+    // Parallax efekt: čím větší (blíž), tím rychlejší pohyb
+    let parallax = map(p.size, 40, 400, 0.5, 3.5);
+    p.y += p.speed * currentTravelSpeed * 5 * parallax; 
+    p.rot += p.rotSpeed * currentTravelSpeed;
+    
+    // Ztmavení do dálky: malé planety mají alpha 0.05 (skoro neviditelné), velké 0.75 (jasné)
+    drawingContext.globalAlpha = map(p.size, 40, 400, 0.05, 0.75);
+    
+    translate(p.x, p.y); 
     if (p.type === 'SUN') {
       for (let i = 5; i > 0; i--) { fill(red(p.color), green(p.color), 100, 25 / i); ellipse(0, 0, p.size * (1 + i * 0.6)); }
       fill(255, 255, 220, 150); ellipse(0, 0, p.size * 0.6);
@@ -4112,7 +4126,8 @@ function drawGalacticBackground() {
       rotate(-p.rot); 
       for (let m of p.moons) { let mx = cos(frameCount * m.speed + m.phase) * m.dist, my = sin(frameCount * m.speed + m.phase) * m.dist * 0.4; fill(m.col); noStroke(); ellipse(mx, my, m.size); fill(0, 150); arc(mx, my, m.size, m.size, HALF_PI, -HALF_PI); }
     }
-    pop(); if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); }
+    pop(); 
+    if (p.y > H + p.size * 3) { p.y = -p.size * 3; p.x = random(W); }
   }
   
   if (massivePlanets.length < 8 && !blackHole && !whiteHole && random() < 0.005) {
@@ -4153,10 +4168,11 @@ function drawGalacticBackground() {
   push();
   translate(-camOffset.x * 0.3, -camOffset.y * 0.3);
   
-  drawingContext.globalAlpha = 0.5; // Hvězdy a menší objekty se posunou více do pozadí
+  drawingContext.globalAlpha = 0.4; // Hvězdy více do pozadí
   fill(255, 120);
   for (let s of stars) { s.y += s.speed * currentTravelSpeed * 5; if (s.y > H) { s.y = 0; s.x = random(W); } ellipse(s.x, s.y, s.s); }
   
+  drawingContext.globalAlpha = 0.8;
   if (gameState === "PLAYING" && random() < 0.08) shootingStars.push({ x: random(W), y: random(-50, H / 2), vx: random(10, 25), vy: random(10, 25), life: 255, len: random(20, 100) });
   for (let i = shootingStars.length - 1; i >= 0; i--) {
     let s = shootingStars[i]; stroke(255, s.life); strokeWeight(1.5); line(s.x, s.y, s.x - s.vx * (s.len / 20), s.y - s.vy * (s.len / 20)); s.x += s.vx; s.y += s.vy; s.life -= 10; if (s.life <= 0) shootingStars.splice(i, 1); noStroke();
@@ -4178,9 +4194,21 @@ function drawGalacticBackground() {
     }
   }
   
+  // Seřadit kosnmické smetí (největší nejdřív, takže při zpětném loopu se kreslí nejmenší jako první)
+  spaceDebris.sort((a, b) => b.size - a.size);
   for (let i = spaceDebris.length - 1; i >= 0; i--) {
-    let d = spaceDebris[i]; push(); translate(d.x, d.y); d.x += d.vx * currentTravelSpeed; d.y += d.vy * currentTravelSpeed; d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
-    drawingContext.globalAlpha = map(d.size, 15, 50, 0.15, 0.9); // Dynamická průhlednost smetí podle jeho vzdálenosti
+    let d = spaceDebris[i]; 
+    push(); 
+    
+    // Ztmavení a parallax u kosmického smetí
+    drawingContext.globalAlpha = map(d.size, 15, 50, 0.15, 0.95); 
+    let zSpeed = map(d.size, 15, 50, 0.5, 1.5);
+    d.x += d.vx * currentTravelSpeed * zSpeed; 
+    d.y += d.vy * currentTravelSpeed * zSpeed; 
+    
+    translate(d.x, d.y); 
+    d.rot += d.rotSpeed * currentTravelSpeed; rotate(d.rot);
+    
     if (d.type === "LEGEND") drawLegendShape(d); 
     else if (d.type === "CRUISER") { fill(90); rect(-d.size, -d.size/4, d.size*2, d.size/2, 3); fill(60); rect(-d.size/2, -d.size/2, d.size, d.size/4); fill(50, 200, 255, 200); ellipse(-d.size, 0, d.size/3, d.size/2); } 
     else if (d.type === "FIGHTER") { fill(120); triangle(d.size/2, 0, -d.size/2, -d.size/2, -d.size/2, d.size/2); fill(255, 100, 50, 200); ellipse(-d.size/2, 0, d.size/3); } 
