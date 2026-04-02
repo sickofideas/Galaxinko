@@ -2366,8 +2366,9 @@ function handleDevourer() {
     fill(150, 0, 255); rect(barX, barY, barW * (max(0, devourer.hp) / devourer.maxHp), barH, 3);
     drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "DEVOURER HP", devourer.x, barY + 6, color(255), 8, CENTER);
     pop();
-    drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
-    drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
+    // Drivetime UI hidden, timer still counts internally:
+    // drawTxt(typeof T !== 'undefined' ? T[currentLang].DEVOURER : "TIME DEVOURER", W/2, barY - 10, color(255), 10, CENTER);
+    // drawTxt(Math.ceil(devourer.timer / targetFPS) + "s", W/2, barY + 7, color(255), 10, CENTER);
     pop();
 }
 
