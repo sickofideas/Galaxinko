@@ -556,7 +556,7 @@ let gravitySlider, bounceSlider, spawnPerEventSlider, shipChanceSlider, volumeSl
 let autoButton = null, langButton = null;
 let lblGrav, lblBounce, lblSpawn, lblBoss, lblVol, lblTTS, lblMother;
 
-let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [], moon = null;
+let stars = [], dust = [], massivePlanets = [], spaceDebris = [], nebulas = [], shootingStars = [], ambientComets = [], moon = null, earth = null;
 let lastSpawnSnd = 0, lastExpSnd = 0, lastSpawnTime = 0, doorOpen = 0;
 
 const RARE_POOL = [
