@@ -1312,18 +1312,18 @@ function drawAvatarRibbon() {
   
   // Běhující páska s avatary - kreslí se dole
   push();
-  let ribbonY = H - 20; // Posunuto níž pod text chlívečků
-  let avatarSize = 24;  // Zmenšeno, aby nezakrývalo text
-  let spacing = 45;
+  let ribbonY = H - 30; // Na úrovni textu chlívečků
+  let avatarSize = 50;  // Zvětšeno, proplouvá přes text
+  let spacing = 80;
   let scrollSpeed = 0.5; // pixelů za frame
   
   let totalWidth = max(1, avatarRibbon.length) * spacing;
   let scrollOffset = (frameCount * scrollSpeed) % max(totalWidth, W); 
   
   // Pozadí pásky
-  fill(0, 0, 20, 160);
+  fill(0, 0, 20, 100); // Více průhledné, aby skóre prosvítalo
   noStroke();
-  rect(0, ribbonY - 15, W, 30);
+  rect(0, ribbonY - 30, W, 60);
   
   noStroke();
   // Dvojitý cyklus zajišťuje plynulý wrap-around efekt na konci plátna
