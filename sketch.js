@@ -815,6 +815,9 @@ function connectTikfinity() {
           let c = d.data?.likeCount || 1;
           updateUserLikes(u, c);
           
+          if (!leaderboard[u]) leaderboard[u] = { score: 0, color: color(random(100, 255), random(100, 255), random(100, 255)), likes: 0 };
+          leaderboard[u].likes = (leaderboard[u].likes || 0) + c;
+          
           if (!spamBuffer[u]) {
               spamBuffer[u] = { total: 0, buffered: 0, lastUpdate: millis(), state: 'CHARGING', fade: 255, announced: false };
               // Přidej uživatele do pásky avatarů když poprvé dá like
@@ -829,19 +832,22 @@ function connectTikfinity() {
           sp.state = 'CHARGING';
           sp.fade = 255;
           
-          // Prvních 1-10 liků: okamžitě padne random počet kuliček (2-9)
-          if (sp.total < 10) {
-              let randomBalls = floor(random(2, 10));
-              for (let i = 0; i < randomBalls; i++) {
+          let prevTotal = sp.total;
+          sp.total += c;
+          
+          // Prvních 1-10 liků: přesný počet kuliček (1 like = 1 kulička)
+          if (prevTotal < 10) {
+              let directSpawns = min(c, 10 - prevTotal);
+              for (let i = 0; i < directSpawns; i++) {
                   setTimeout(() => { spawnBall(u); }, i * 80);
               }
           }
-
-          sp.total += c;
           
           // Od 11. liku dál: všechno se buffěřuje
-          if (sp.total >= 10) {
-              sp.buffered += c;
+          if (sp.total > 10) {
+              let bufferedAdd = c;
+              if (prevTotal < 10) bufferedAdd = sp.total - 10;
+              sp.buffered += bufferedAdd;
           }
 
           if (sp.total >= 5 && !sp.announced) {
@@ -1587,15 +1593,23 @@ function drawBalls() {
     
     let isPlayer = b.name !== "MOTHERSHIP";
     if (isPlayer) {
+      let likesCount = leaderboard[b.name] ? (leaderboard[b.name].likes || 0) : 0;
+      let isAdvanced = likesCount >= 100 || playerSpawnCount[b.name] >= 100;
+      
       if (b.multiplier >= 2) {
         drawingContext.shadowBlur = 15;
         drawingContext.shadowColor = drawCol;
       }
-      noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-b.size/2 - 5, -b.size/2 - 5, b.size + 10, b.size + 10, 6);
-      fill(drawCol); stroke(255); strokeWeight(2); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
       
-      if (playerSpawnCount[b.name] && playerSpawnCount[b.name] > 500) {
-        noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
+      if (isAdvanced) {
+        noStroke(); fill(red(drawCol), green(drawCol), blue(drawCol), 120); rect(-b.size/2 - 5, -b.size/2 - 5, b.size + 10, b.size + 10, 6);
+        fill(drawCol); stroke(255); strokeWeight(2); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
+        
+        if (playerSpawnCount[b.name] && playerSpawnCount[b.name] > 500) {
+          noStroke(); fill(255, 220); ellipse(0, 0, b.size * 0.4, b.size * 0.4);
+        }
+      } else {
+        noStroke(); fill(drawCol); rect(-b.size/2, -b.size/2, b.size, b.size, 2);
       }
       
       drawingContext.shadowBlur = 0;
@@ -1824,6 +1838,52 @@ function drawUI() {
   pop();
   
   push(); translate(10, 85);
+  
+  // --- NOVÝ BOX PRO ČAS MISE ---
+  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, 75, 8);
+  noStroke();
+  
+  if (gameState === "PLAYING") {
+    textAlign(CENTER, CENTER);
+    textSize(9);
+    let lbl = typeof T !== 'undefined' ? T[currentLang].WARP_CORE : "MISSION TIME:";
+    fill(200); text(lbl.replace(":", ""), 90, 15);
+    
+    textSize(24);
+    let tColor = timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2]);
+    fill(0, 150); text(`${timer}s`, 90 + 2, 38 + 2);
+    fill(tColor); text(`${timer}s`, 90, 38);
+    
+    if (bonusTime > 0) {
+      textSize(9);
+      let bTxt = `+${bonusTime.toFixed(1)}s`;
+      fill(0, 150); text(bTxt, 45 + 2, 60 + 2);
+      fill(50, 255, 50); text(bTxt, 45, 60);
+      
+      let uTxt = `${currentLang === "CZ" ? "K" : "U"}: ${roundTotalBalls}`;
+      fill(0, 150); text(uTxt, 135 + 2, 60 + 2);
+      fill(150, 255, 150); text(uTxt, 135, 60);
+    } else {
+      textSize(8);
+      let uTxt = typeof T !== 'undefined' ? `${T[currentLang].ACT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`;
+      fill(0, 150); text(uTxt, 90 + 2, 60 + 2);
+      fill(150, 255, 150); text(uTxt, 90, 60);
+    }
+  } else {
+    textAlign(CENTER, CENTER);
+    textSize(10);
+    let cTxt = typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN";
+    fill(0, 150); text(cTxt, 90 + 2, 25 + 2);
+    fill(255, 200, 0); text(cTxt, 90, 25);
+    
+    textSize(8);
+    let uTxt = typeof T !== 'undefined' ? `${T[currentLang].TOT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`;
+    fill(0, 150); text(uTxt, 90 + 2, 50 + 2);
+    fill(150, 255, 150); text(uTxt, 90, 50);
+  }
+  
+  translate(0, 90); // Posun dolů pro tabulku rekordů
+  
   let ml = allTimeRecords.slice(0, 12); let lH = 45 + max(1, ml.length) * 26;
   
   fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, lH, 8);
@@ -1848,29 +1908,6 @@ function drawUI() {
     }
   });
   
-  translate(0, lH + 15);
-  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, 60, 8);
-  noStroke(); textSize(9);
-  
-  if (gameState === "PLAYING") {
-    textAlign(LEFT, CENTER); fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s` : `TIME: ${timer}s`, 15 + 2, 20 + 2);
-    fill(timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2])); 
-    text(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s` : `TIME: ${timer}s`, 15, 20);
-    
-    if (bonusTime > 0) {
-      let tW = textWidth(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s ` : `TIME: ${timer}s `);
-      fill(0, 150); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW + 2, 20 + 2);
-      fill(50, 255, 50); text(`[+${bonusTime.toFixed(1)}s]`, 15 + tW, 20);
-    }
-    
-    fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].ACT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15 + 2, 40 + 2);
-    fill(50, 255, 50); text(typeof T !== 'undefined' ? `${T[currentLang].ACT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15, 40);
-  } else {
-    textAlign(LEFT, CENTER); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN", 15 + 2, 20 + 2);
-    fill(255, 200, 0); text(typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN", 15, 20);
-    fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].TOT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15 + 2, 40 + 2);
-    fill(50, 255, 50); text(typeof T !== 'undefined' ? `${T[currentLang].TOT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`, 15, 40);
-  }
   pop();
   
   push(); translate(W - 190, 85);
