@@ -4315,8 +4315,8 @@ function initGame() {
   engine = Matter.Engine.create({ enableSleeping: true }); world = engine.world; let opts = { isStatic: true, restitution: 2.2, friction: 0 };
   Matter.World.add(world, [ Matter.Bodies.rectangle(-25, H / 2, 50, H * 2, opts), Matter.Bodies.rectangle(W + 25, H / 2, 50, H * 2, opts), Matter.Bodies.rectangle(W / 2, H + 48, W, 100, { isStatic: true, friction: 1 }) ]);
   
-  const p = ["SPIRAL", "WAVES", "HOURGLASS", "GALAXY", "DIAMOND", "HYPERCUBE", "DNA_HELIX", "SATURN_RINGS", "HEXAGON_GRID", "PYRAMID", "FRACTAL_TREE", "SHAPE_HEART", "SHAPE_APPLE", "SHAPE_ALIEN"];
-  const mode = random(p); let nP = floor(random(300, 450)), pR = map(currentBounce, 1, 255, 0.1, 2.0);
+  const p = ["GRID", "PYRAMID", "FUNNEL", "DIAMOND", "HOURGLASS", "HEXAGON", "WAVES", "BLOCKS", "SHAPE_HEART", "SHAPE_APPLE"];
+  const mode = random(p); let pR = map(currentBounce, 1, 255, 0.1, 2.0);
   
   let blocker = Matter.Bodies.circle(W / 2, 130, 4, { isStatic: true, restitution: pR }); pegs.push(blocker); Matter.World.add(world, blocker);
   if (random() < 0.2) portals = [{ x: random(100, W - 100), y: random(200, H / 2 - 100) }, { x: random(100, W - 100), y: random(H / 2 + 100, H - 250) }];
@@ -4336,46 +4336,45 @@ function initGame() {
       }
     }
   } else {
-    for (let i = 0; i < nP; i++) {
-      let px, py, v = false, a = 0;
-      while (!v && a < 50) {
-        a++;
+    let spacingX = 38;
+    let spacingY = 38;
+    let startY = 220;
+    let rows = Math.floor((H - 350) / spacingY);
+    let cols = Math.floor((W - 100) / spacingX);
+    let startX = (W - (cols * spacingX)) / 2;
+
+    for (let r = 0; r < rows; r++) {
+      let rowCols = cols;
+      let isOffset = (r % 2 === 1);
+      if (isOffset) rowCols -= 1;
+      let rStartX = startX + (isOffset ? spacingX / 2 : 0);
+
+      for (let c = 0; c < rowCols; c++) {
+        let px = rStartX + c * spacingX;
+        let py = startY + r * spacingY;
+        let placePeg = false;
+        let cDist = Math.abs(c - rowCols / 2);
+
         switch (mode) {
-          case "SPIRAL": let an = i * 0.15, r = 15 + i * 2.0; px = W / 2 + cos(an) * r; py = 200 + i * 2.5; break;
-          case "WAVES": px = map(i % 20, 0, 20, 50, W - 50); py = 220 + floor(i / 20) * 60 + sin(i * 0.5) * 40; break;
-          case "HOURGLASS": let rH = floor(i / 15), cH = i % 15, shk = abs(rH - 15) * 12; px = map(cH, 0, 15, 100 + shk, W - 100 - shk); py = 200 + rH * 40; break;
-          case "GALAXY": let aG = random(TWO_PI), rd = pow(random(), 0.5) * 400; px = W / 2 + cos(aG) * rd; py = 500 + sin(aG) * rd; break;
-          case "DIAMOND": let rD = floor(i / 18), cD = i % 18; px = W / 2 + (cD - 9) * 22; py = 200 + rD * 40 + abs(cD - 9) * 12; break;
-          case "PYRAMID": let lP = floor(i / 20), pL = i % 20; px = W / 2 + (pL - 10) * (22 - lP * 1.5); py = 200 + lP * 40; break;
-          case "HYPERCUBE": let ix = i % 10, iy = floor(i / 10) % 10, iz = floor(i / 100); px = W / 2 - 200 + ix * 40 + iz * 20; py = 250 + iy * 40 + iz * 20; break;
-          case "DNA_HELIX": let t = i * 0.1, sD = (i % 2 === 0) ? 1 : -1; px = W / 2 + sD * cos(t) * 150; py = 200 + i * 6; break;
-          case "SATURN_RINGS": let aS = random(TWO_PI), dS = (i < nP / 2) ? random(80, 150) : random(250, 350); px = W / 2 + cos(aS) * dS; py = 500 + sin(aS) * dS * 0.4; break;
-          case "HEXAGON_GRID": let hR = floor(i / 12), hC = i % 12; px = 100 + hC * 60 + (hR % 2) * 30; py = 200 + hR * 60; break;
-          case "FRACTAL_TREE": let lv = floor(log(i + 1) / log(2)); px = W / 2 + (i % pow(2, lv) - pow(2, lv) / 2) * (W / pow(2, lv)); py = 200 + lv * 80; break;
-          default: px = random(60, W - 60); py = random(180, H - 220); break;
+          case "GRID": placePeg = true; break;
+          case "PYRAMID": if (cDist <= (r + 1) / 1.5) placePeg = true; break;
+          case "FUNNEL": if (cDist >= (r - 2) / 1.5) placePeg = true; break;
+          case "DIAMOND": let midR = rows / 2; let rDist = Math.abs(r - midR); if (cDist + rDist * 0.8 <= cols / 2) placePeg = true; break;
+          case "HOURGLASS": let midRH = rows / 2; let rDistH = Math.abs(r - midRH); if (cDist >= rDistH * 0.8 - 1) placePeg = true; break;
+          case "HEXAGON": let midRHex = rows / 2; let rDistHex = Math.abs(r - midRHex); if (cDist + rDistHex * 0.5 <= cols / 1.8) placePeg = true; break;
+          case "WAVES": let waveCenter = (rowCols/2) + Math.sin(r * 0.6) * 4; if (Math.abs(c - waveCenter) < 4) placePeg = true; break;
+          case "BLOCKS": if ((Math.floor(r/3) + Math.floor(c/3)) % 2 === 0) placePeg = true; break;
         }
-        if (py > 150 && py < H - 150 && px > 40 && px < W - 40) {
-          let tc = false; 
-          for (let ot of pegs) { 
-            let dx = px - ot.position.x;
-            let dy = py - ot.position.y;
-            if (dx * dx + dy * dy < 1225) { tc = true; break; } 
-          }
-          if (!tc) v = true;
-        } else if (a > 45) break;
+
+        if (placePeg) {
+           // Přidáme jen drobounký šum na X (1px), aby kuličky nepadaly úplně rovně "do zblbnutí"
+           let finalPx = px + random(-1, 1);
+           let pg = Matter.Bodies.circle(finalPx, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } });
+           pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04;
+           pegs.push(pg); Matter.World.add(world, pg);
+        }
       }
-      if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
     }
-  }
-  
-  for (let i = 0; i < 150; i++) {
-    let px = random(60, W - 60), py = random(180, H - 200), v = true;
-    for (let ot of pegs) { 
-      let dx = px - ot.position.x;
-      let dy = py - ot.position.y;
-      if (dx * dx + dy * dy < 1225) { v = false; break; } 
-    }
-    if (v) { let pg = Matter.Bodies.circle(px, py, 4, { isStatic: true, restitution: pR, collisionFilter: { category: 2 } }); pg.isExplosive = random() < 0.04; pg.isRepulsor = !pg.isExplosive && random() < 0.04; pegs.push(pg); Matter.World.add(world, pg); }
   }
   
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000], cX = 0; zones = [];
