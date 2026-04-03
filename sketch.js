@@ -1826,29 +1826,31 @@ function drawUI() {
   push(); translate(10, 85);
   let ml = allTimeRecords.slice(0, 12); let lH = 45 + max(1, ml.length) * 26;
   
-  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 240, lH, 8);
-  noStroke(); textAlign(CENTER); textSize(12); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 122, 27);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 120, 25);
-  stroke(255, 30); strokeWeight(1); line(10, 40, 230, 40);
+  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, lH, 8);
+  noStroke(); textAlign(CENTER); textSize(11); fill(0, 150); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 92, 27);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].REC : "RECORDS", 90, 25);
+  stroke(255, 30); strokeWeight(1); line(10, 40, 170, 40);
   
   noStroke(); textAlign(LEFT);
   ml.forEach((r, i) => {
-    let y = 65 + i * 26; let txt = `${i === 0 ? '👑 ' : ''}${i + 1}. ${r.name}`;
+    let y = 65 + i * 26; 
+    let dName = r.name.length > 8 ? r.name.substring(0, 8) + '.' : r.name;
+    let txt = `${i === 0 ? '👑 ' : ''}${i + 1}. ${dName}`;
     if (userAvatars[r.name]) {
       push(); imageMode(CENTER); tint(255); drawingContext.save(); drawingContext.beginPath();
-      drawingContext.arc(245, y - 2, 16, 0, TWO_PI); drawingContext.clip();
-      image(userAvatars[r.name], 245, y - 2, 32, 32); drawingContext.restore(); pop();
-      drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 10 : 9, LEFT);
-      drawTxt(r.score.toLocaleString(), 220, y, color(255), i < 3 ? 10 : 9, RIGHT);
+      drawingContext.arc(185, y - 2, 16, 0, TWO_PI); drawingContext.clip();
+      image(userAvatars[r.name], 185, y - 2, 32, 32); drawingContext.restore(); pop();
+      drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 8 : 7, LEFT);
+      drawTxt(r.score.toLocaleString(), 165, y, color(255), i < 3 ? 8 : 7, RIGHT);
     } else {
-      drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 10 : 9, LEFT);
-      drawTxt(r.score.toLocaleString(), 225, y, color(255), i < 3 ? 10 : 9, RIGHT);
+      drawTxt(txt, 15, y, color(r.color[0], r.color[1], r.color[2]), i < 3 ? 8 : 7, LEFT);
+      drawTxt(r.score.toLocaleString(), 175, y, color(255), i < 3 ? 8 : 7, RIGHT);
     }
   });
   
   translate(0, lH + 15);
-  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 240, 60, 8);
-  noStroke(); textSize(11);
+  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, 60, 8);
+  noStroke(); textSize(9);
   
   if (gameState === "PLAYING") {
     textAlign(LEFT, CENTER); fill(0, 150); text(typeof T !== 'undefined' ? `${T[currentLang].WARP_CORE} ${timer}s` : `TIME: ${timer}s`, 15 + 2, 20 + 2);
@@ -1871,27 +1873,29 @@ function drawUI() {
   }
   pop();
   
-  push(); translate(W - 250, 85);
+  push(); translate(W - 190, 85);
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 25);
   let rH = 45 + max(1, sorted.length) * 22;
   
-  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 240, rH, 8);
-  noStroke(); fill(0, 150); textAlign(CENTER); textSize(12); text(typeof T !== 'undefined' ? T[currentLang].TOP : "TOP", 122, 27);
-  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].TOP : "TOP", 120, 25);
-  stroke(255, 30); strokeWeight(1); line(10, 40, 230, 40);
+  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, rH, 8);
+  noStroke(); fill(0, 150); textAlign(CENTER); textSize(11); text(typeof T !== 'undefined' ? T[currentLang].TOP : "TOP", 92, 27);
+  fill(currentTheme[0], currentTheme[1], currentTheme[2]); text(typeof T !== 'undefined' ? T[currentLang].TOP : "TOP", 90, 25);
+  stroke(255, 30); strokeWeight(1); line(10, 40, 170, 40);
   
   noStroke(); textAlign(LEFT);
   sorted.forEach((e, i) => {
-    let y = 65 + i * 22; let txt = `${i === 0 ? '👑 ' : ''}${nf(i + 1, 2)}. ${e[0]}`;
+    let y = 65 + i * 22; 
+    let dName = e[0].length > 8 ? e[0].substring(0, 8) + '.' : e[0];
+    let txt = `${i === 0 ? '👑 ' : ''}${nf(i + 1, 2)}. ${dName}`;
     if (userAvatars[e[0]]) {
       push(); imageMode(CENTER); tint(255); drawingContext.save(); drawingContext.beginPath();
       drawingContext.arc(-5, y - 2, 16, 0, TWO_PI); drawingContext.clip();
       image(userAvatars[e[0]], -5, y - 2, 32, 32); drawingContext.restore(); pop();
-      drawTxt(txt, 25, y, color(e[1].color), i < 3 ? 10 : 9, LEFT);
+      drawTxt(txt, 20, y, color(e[1].color), i < 3 ? 8 : 7, LEFT);
     } else {
-      drawTxt(txt, 15, y, color(e[1].color), i < 3 ? 10 : 9, LEFT);
+      drawTxt(txt, 10, y, color(e[1].color), i < 3 ? 8 : 7, LEFT);
     }
-    drawTxt(e[1].score.toLocaleString(), 225, y, color(255), i < 3 ? 10 : 9, RIGHT);
+    drawTxt(e[1].score.toLocaleString(), 175, y, color(255), i < 3 ? 8 : 7, RIGHT);
   });
   pop();
   
