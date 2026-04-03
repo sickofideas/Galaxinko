@@ -2590,6 +2590,15 @@ function drawAnomalyRoulette() {
     
     translate(W/2, H/2);
     
+    // Ztmavení pouze pod ruletou (radiální gradient do ztracena)
+    noStroke();
+    for (let r = 600; r > 400; r -= 20) {
+        fill(0, 0, 10, map(r, 600, 400, 0, 220));
+        ellipse(0, 0, r, r);
+    }
+    fill(0, 0, 10, 220);
+    ellipse(0, 0, 400, 400);
+    
     let t = anomalyTimer; 
     let p = map(t, 300, 60, 0, 1); 
     p = constrain(p, 0, 1);
