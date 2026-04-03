@@ -1091,8 +1091,12 @@ function draw() {
     }
     
     if (!rimmerModeActive && millis() > nextJokeTime) {
-      speakAnnouncer(random(JOKES[currentLang]), 0);
-      nextJokeTime = millis() + random(10000, 20000);
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        nextJokeTime = millis() + 4000; // Pokud zrovna mluví, zkus vtip znovu za 4 vteřiny
+      } else {
+        speakAnnouncer(random(JOKES[currentLang]), 0);
+        nextJokeTime = millis() + random(12000, 22000);
+      }
     }
     
     if (random() < 0.045) {
@@ -1897,7 +1901,7 @@ function drawUI() {
 
 function handleScoreCommentary() {
   if (gameState !== "PLAYING") return;
-  if (millis() - lastCommentaryTime < 15000) return; // 15 sekund cooldown mezi komentáři
+  if (millis() - lastCommentaryTime < 55000) return; // 55 sekund cooldown (méně často, více prostoru pro vtipy)
   
   // Vyber náhodně hráče z TOP 5 leaderboardu
   let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
