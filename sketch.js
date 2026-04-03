@@ -2601,8 +2601,6 @@ function decontaminateSpores() {
 
 function drawAnomalyRoulette() {
     push();
-    fill(0, 0, 10, 220); 
-    rect(-W, -H, W*3, H*3);
     
     translate(W/2, H/2);
     
