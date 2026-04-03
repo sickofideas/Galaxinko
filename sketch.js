@@ -1849,37 +1849,23 @@ function drawUI() {
     let lbl = typeof T !== 'undefined' ? T[currentLang].WARP_CORE : "MISSION TIME:";
     fill(200); text(lbl.replace(":", ""), 90, 15);
     
-    textSize(24);
+    textSize(32);
     let tColor = timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2]);
-    fill(0, 150); text(`${timer}s`, 90 + 2, 38 + 2);
-    fill(tColor); text(`${timer}s`, 90, 38);
+    fill(0, 150); text(`${timer}s`, 90 + 2, 42 + 2);
+    fill(tColor); text(`${timer}s`, 90, 42);
     
     if (bonusTime > 0) {
-      textSize(9);
+      textSize(11);
       let bTxt = `+${bonusTime.toFixed(1)}s`;
-      fill(0, 150); text(bTxt, 45 + 2, 60 + 2);
-      fill(50, 255, 50); text(bTxt, 45, 60);
-      
-      let uTxt = `${currentLang === "CZ" ? "K" : "U"}: ${roundTotalBalls}`;
-      fill(0, 150); text(uTxt, 135 + 2, 60 + 2);
-      fill(150, 255, 150); text(uTxt, 135, 60);
-    } else {
-      textSize(8);
-      let uTxt = typeof T !== 'undefined' ? `${T[currentLang].ACT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`;
-      fill(0, 150); text(uTxt, 90 + 2, 60 + 2);
-      fill(150, 255, 150); text(uTxt, 90, 60);
+      fill(0, 150); text(bTxt, 90 + 2, 64 + 2);
+      fill(50, 255, 50); text(bTxt, 90, 64);
     }
   } else {
     textAlign(CENTER, CENTER);
-    textSize(10);
+    textSize(12);
     let cTxt = typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN";
-    fill(0, 150); text(cTxt, 90 + 2, 25 + 2);
-    fill(255, 200, 0); text(cTxt, 90, 25);
-    
-    textSize(8);
-    let uTxt = typeof T !== 'undefined' ? `${T[currentLang].TOT_UNITS} ${roundTotalBalls}` : `UNITS: ${roundTotalBalls}`;
-    fill(0, 150); text(uTxt, 90 + 2, 50 + 2);
-    fill(150, 255, 150); text(uTxt, 90, 50);
+    fill(0, 150); text(cTxt, 90 + 2, 37 + 2);
+    fill(255, 200, 0); text(cTxt, 90, 37);
   }
   
   translate(0, 90); // Posun dolů pro tabulku rekordů
