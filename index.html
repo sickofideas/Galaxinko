@@ -56,6 +56,9 @@
       font-weight: bold;
       border-radius: 3px;
     }
+    #resetBtn {
+      background: #f44336 !important;
+    }
   </style>
 </head>
 <body>
@@ -66,6 +69,7 @@
       <span>Bounce: <input type="range" id="bounceSlider" min="0.1" max="1.5" step="0.1" value="0.8"></span>
       <span>Vol: <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.5"></span>
       <button id="autoBtn">AUTO: ON</button>
+      <button id="resetBtn">RESET SCORES</button>
     </div>
   </div>
 
@@ -74,7 +78,7 @@
 // GALAXINKO LITE - PURE DOPAMINE EDITION
 // ==========================================
 const GAME_TITLE = "GALAXINKO LITE";
-const GAME_VERSION = "v15.0.0"; 
+const GAME_VERSION = "v15.0.1"; 
 
 let currentLang = "CZ";
 const W = 900;
@@ -131,6 +135,7 @@ let stars = [], dust = [], shootingStars = [];
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 let availableVoices = [];
+let camOffset = { x: 0, y: 0, z: 1.0 }; // Pro hud
 
 function setup() {
   let cvs = createCanvas(W, H);
@@ -159,6 +164,11 @@ function setupDOMControls() {
     isAutoMode = !isAutoMode;
     document.getElementById('autoBtn').innerText = isAutoMode ? 'AUTO: ON' : 'AUTO: OFF';
     document.getElementById('autoBtn').style.background = isAutoMode ? '#4CAF50' : '#555';
+  };
+  document.getElementById('resetBtn').onclick = () => {
+    leaderboard = {};
+    giftLeaderboard = {};
+    avatarRibbon = [];
   };
 }
 
@@ -383,7 +393,9 @@ function draw() {
   handleJoinPopups();
   
   drawUI();
-  drawVIPGifterBar(); // NEW VIP BAR AT THE BOTTOM
+  drawVIPGifterBar();
+  drawProceduralHUD();
+  drawAntiBotOverlay();
   
   if (gameState === "WAITING") {
     drawTxt(T[currentLang].WARN, W/2, PLAY_H/2, color(255, 50, 50), 30, CENTER);
@@ -565,7 +577,7 @@ function drawVIPGifterBar() {
 
   push();
   let barHeight = 90;
-  let barY = PLAY_H + 5; // Start drawing just below the play area
+  let barY = PLAY_H + 5; 
   
   fill(10, 10, 20, 240); stroke(255, 215, 0); strokeWeight(3);
   rect(10, barY, W - 20, barHeight, 15);
@@ -587,7 +599,6 @@ function drawVIPGifterBar() {
 
     push(); translate(px, barY + 50);
     
-    // Avatar
     if (userAvatars[u] && userAvatars[u] !== "loaded") {
       drawingContext.save(); drawingContext.beginPath(); arc(-40, 0, 16, 0, TWO_PI); drawingContext.clip();
       imageMode(CENTER); image(userAvatars[u], -40, 0, 32, 32); drawingContext.restore();
@@ -647,17 +658,105 @@ function drawUI() {
   
   // Leaderboard (Top Right)
   translate(W - 220, 85);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 15);
-  fill(0, 0, 15, 200); stroke(currentTheme); rect(0, 0, 210, 40 + max(1, sorted.length) * 20, 8);
+  // Get top 100
+  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 100);
+  
+  // Fixed box height (up to 15 items visually fit well)
+  let boxCapacity = 15;
+  let visibleItems = min(boxCapacity, max(1, sorted.length));
+  let rH = 45 + visibleItems * 20; 
+  
+  fill(0, 0, 15, 200); stroke(currentTheme); rect(0, 0, 210, rH, 8);
   noStroke(); fill(currentTheme); textAlign(CENTER); textSize(11); text(T[currentLang].TOP, 105, 25);
   stroke(255, 30); line(10, 35, 200, 35);
   
   noStroke(); textAlign(LEFT);
-  sorted.forEach((e, i) => {
+  
+  // Draw Top 5 statically
+  let top5 = sorted.slice(0, 5);
+  top5.forEach((e, i) => {
     let y = 55 + i * 20; 
-    drawTxt(`${i + 1}. ${e[0].substring(0,8)}`, 10, y, e[1].color, 10, LEFT);
+    drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,8)}`, 10, y, e[1].color, 10, LEFT);
     drawTxt(e[1].score.toLocaleString(), 200, y, color(255), 10, RIGHT);
   });
+
+  // Draw Scrolling rest (from index 5 onwards)
+  let rest = sorted.slice(5);
+  if (rest.length > 0) {
+      let scrollAreaY = 55 + 5 * 20; // Start after top 5
+      let scrollAreaH = rH - scrollAreaY - 5; // Remaining height in box
+      let totalRestH = rest.length * 20;
+      
+      let scrollOffset = 0;
+      // Scroll only if it exceeds the area
+      if (totalRestH > scrollAreaH) {
+          // Speed multiplier 0.5, pauses briefly when looping
+          scrollOffset = (frameCount * 0.5) % (totalRestH + scrollAreaH);
+      }
+      
+      // Clipping mask to keep text inside the box
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(0, scrollAreaY - 10, 210, scrollAreaH + 10);
+      drawingContext.clip();
+      
+      rest.forEach((e, i) => {
+          // Calculate Y pos and offset. Start from bottom of the box and move up
+          let y = scrollAreaY + (i * 20) - scrollOffset + scrollAreaH;
+          
+          // Draw only if somewhat visible (optimization)
+          if (y > scrollAreaY - 20 && y < scrollAreaY + scrollAreaH + 20) {
+              drawTxt(`${i + 6}. ${e[0].substring(0,8)}`, 10, y, e[1].color, 10, LEFT);
+              drawTxt(e[1].score.toLocaleString(), 200, y, color(255), 10, RIGHT);
+          }
+      });
+      drawingContext.restore();
+  }
+  
+  pop();
+}
+
+function drawProceduralHUD() {
+  push(); 
+  stroke(255, 10); strokeWeight(1); 
+  for (let i = 0; i < H; i += 4) line(0, i + (frameCount % 4), W, i + (frameCount % 4));
+  fill(0, 255, 0, 150); textSize(8); textAlign(LEFT);
+  text(`POS_X: ${camOffset.x.toFixed(4)}`, 20, PLAY_H - 40); 
+  text(`POS_Y: ${camOffset.y.toFixed(4)}`, 20, PLAY_H - 30); 
+  text(`ZOOM: ${camOffset.z.toFixed(4)}`, 20, PLAY_H - 20);
+  textAlign(RIGHT); 
+  text(`SENS_TEMP: ${(24 + noise(frameCount * 0.01) * 5).toFixed(1)}°C`, W - 20, PLAY_H - 30); 
+  text(`BUFFER_LOAD: ${balls.length * 2}%`, W - 20, PLAY_H - 20); 
+  pop();
+}
+
+function drawPixelAvatar(x, y, w, h) {
+  push(); translate(x, y); noStroke();
+  let vlasy = color(240, 220, 110), kuze = color(245, 200, 170), triko = color(currentTheme[0], currentTheme[1], currentTheme[2]), stin = color(0, 0, 0, 50), oci = color(40);
+  let pw = w / 20, ph = h / 15, sway = sin(frameCount * 0.05) * 2, handMove = sin(frameCount * 0.2) * 4, eyesOpen = (frameCount % 120 > 5);
+  
+  fill(triko); rect(pw * 5 + sway, ph * 7, pw * 10, ph * 8, 2); fill(stin); rect(pw * 7 + sway, ph * 7, pw * 6, ph * 1);
+  let headSway = sway * 0.5; fill(kuze); rect(pw * 6 + headSway, ph * 2, pw * 8, ph * 6, 3);
+  fill(vlasy); rect(pw * 5 + headSway, ph * 1, pw * 10, ph * 3, 2); rect(pw * 5 + headSway, ph * 3, pw * 2, ph * 7, 2); rect(pw * 13 + headSway, ph * 3, pw * 2, ph * 7, 2);
+  
+  if (eyesOpen) { fill(oci); rect(pw * 8 + headSway, ph * 4, pw * 1, ph * 2); rect(pw * 11 + headSway, ph * 4, pw * 1, ph * 2); } 
+  else { fill(stin); rect(pw * 8 + headSway, ph * 5, pw * 1, ph * 1); rect(pw * 11 + headSway, ph * 5, pw * 1, ph * 1); }
+  
+  fill(color(200, 100, 100)); rect(pw * 9 + headSway, ph * 7, pw * 2, ph * 1);
+  fill(kuze); rect(pw * 3, ph * 8 + handMove, pw * 3, ph * 4, 2); rect(pw * 14, ph * 8 - handMove, pw * 3, ph * 4, 2); pop();
+}
+
+function drawAntiBotOverlay() {
+  push(); 
+  noStroke(); 
+  for (let i = 0; i < 20; i++) { fill(255, random(5, 25)); rect(random(W), random(H), random(1, 3), random(1, 3)); }
+  for (let i = 0; i < 10; i++) { fill(currentTheme[0], currentTheme[1], currentTheme[2], random(5, 15)); rect(random(W), random(H), random(1, 4), random(1, 4)); }
+  if (random() < 0.08) { fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); rect(0, random(H), W, random(1, 6)); }
+  let camX = W - 110, camY = PLAY_H - 185;
+  fill(10, 10, 10, 200); stroke(50); strokeWeight(2); rect(camX, camY, 100, 75, 5); drawPixelAvatar(camX + 5, camY + 5, 90, 65); noStroke();
+  for (let cx = 0; cx < 100; cx += 5) for (let cy = 0; cy < 75; cy += 5) { if (noise(cx * 0.1, cy * 0.1, frameCount * 0.1) > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } }
+  fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(T[currentLang].L_PL, camX + 5, camY + 5);
+  if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
   pop();
 }
 
@@ -680,7 +779,7 @@ function drawCallToAction() {
   let pulse = sin(frameCount * 0.1) * 0.2 + 1;
   push(); textAlign(CENTER, CENTER); textSize(24 * pulse);
   fill(255, 255, 255, 150);
-  text("TAP SCREEN OR COMMENT TO DROP!", W/2, H/2 - 100);
+  text("TAP SCREEN OR COMMENT TO DROP!", W/2, PLAY_H/2 - 100);
   pop();
 }
 
@@ -757,7 +856,7 @@ function handleJoinPopups() {
 }
 
 function resetGame() {
-  leaderboard = {}; roundCount++; gameState = "PLAYING"; resultsTimer = 10; timer = 180;
+  roundCount++; gameState = "PLAYING"; resultsTimer = 10; timer = 180;
   spamBuffer = {}; avatarRibbon = [];
   if (world) Matter.World.clear(world, false);
   pegs = []; walls = []; balls = []; portals = []; explosions = [];
@@ -766,7 +865,7 @@ function resetGame() {
 
 function mouseClicked() { 
   if (!audioStarted) startSpaceAudio(); 
-  if (mouseY > 40 && mouseY < H - 100) spawnBall("Player" + floor(random(100))); 
+  if (mouseY > 40 && mouseY < PLAY_H - 100) spawnBall("Player" + floor(random(100))); 
 }
 
 // ======================
