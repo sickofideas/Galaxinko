@@ -1592,7 +1592,18 @@ function drawBalls() {
     if (b.isRainbow) colorMode(RGB);
     
     let isPlayer = b.name !== "MOTHERSHIP";
-    if (isPlayer) {
+    if (b.isGiftBall) {
+      drawingContext.shadowBlur = 30;
+      drawingContext.shadowColor = drawCol;
+      noStroke(); 
+      fill(drawCol);
+      rect(-b.size/2, -b.size/2, b.size, b.size, 5);
+      drawingContext.shadowBlur = 0;
+      fill(0);
+      textAlign(CENTER, CENTER);
+      textSize(10);
+      text("🎁", 0, 0);
+    } else if (isPlayer) {
       let likesCount = leaderboard[b.name] ? (leaderboard[b.name].likes || 0) : 0;
       let isAdvanced = likesCount >= 100 || playerSpawnCount[b.name] >= 100;
       
@@ -1730,8 +1741,16 @@ function drawBalls() {
       if (czIndex !== -1) {
         let cz = zones[czIndex];
         b.scored = true; b.scoreTime = millis(); b.zoneIndex = czIndex;
-        let fs = cz.score * b.multiplier; 
-        if (b.isRainbow) { fs *= 2; b.rainbowExplodeTime = millis() + 2500; }
+        
+        if (b.isGiftBall) {
+            let fs = 50000;
+            updateScore(b.name, fs, b.color);
+            addFloatingText("+" + fs.toLocaleString(), pos.x, pos.y, color(255, 215, 0), true);
+            cz.flash = 255; cz.flashColor = color(255, 215, 0);
+            shakeAmount = 8; playJackpotSound();
+        } else {
+            let fs = cz.score * b.multiplier; 
+            if (b.isRainbow) { fs *= 2; b.rainbowExplodeTime = millis() + 2500; }
         
         let isJp = fs >= (5000 * b.multiplier); 
         
@@ -1755,6 +1774,7 @@ function drawBalls() {
         
         cz.flash = 255; cz.flashColor = b.isRainbow ? color(255, 255, 255) : b.color;
         if (isJp) { shakeAmount = 8; playJackpotSound(); }
+        }
       }
     }
     
