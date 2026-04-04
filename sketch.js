@@ -158,7 +158,7 @@ const SCORE_COMMENTARY = {
   ]
 };
 
-const W = 900, H = 1000, ZONE_H = 80;
+const W = 900, H = 1100, ZONE_H = 80;
 
 let allTimeRecords = [];
 
@@ -3255,11 +3255,7 @@ function drawAntiBotOverlay() {
   for (let cx = 0; cx < 100; cx += 5) for (let cy = 0; cy < 75; cy += 5) { if (noise(cx * 0.1, cy * 0.1, frameCount * 0.1) > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } }
   fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(typeof T !== 'undefined' ? T[currentLang].L_PL : "PLAYER", camX + 5, camY + 5);
   if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
-  textFont('Press Start 2P'); textStyle(NORMAL);
-  let marqueeText = typeof T !== 'undefined' ? T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls) : currentDestination;
-  let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
-  fill(5, 5, 15, 230); noStroke(); rect(0, H - 12, W, 12);
-  drawTxt(marqueeText + marqueeText, scrollX, H - 6, color(currentTheme), 8, LEFT); pop();
+  pop();
 }
 
 function drawPegs() {
