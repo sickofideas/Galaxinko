@@ -78,7 +78,7 @@
 // GALAXINKO LITE - PURE DOPAMINE EDITION
 // ==========================================
 const GAME_TITLE = "GALAXINKO LITE";
-const GAME_VERSION = "v15.1.0"; 
+const GAME_VERSION = "v15.1.1"; 
 
 let currentLang = "CZ";
 const W = 900;
@@ -216,7 +216,7 @@ function connectTikfinity() {
 
 function handleLikes(u, c) {
   if (!spamBuffer[u]) {
-    spamBuffer[u] = { total: 0, buffered: 0, state: 'CHARGING', fade: 255 };
+    spamBuffer[u] = { total: 0, buffered: 0, state: 'CHARGING', fade: 255, lastUpdate: millis() };
     if (!avatarRibbon.find(a => a.name === u)) {
       avatarRibbon.push({ name: u, color: color(random(100,255), random(100,255), random(100,255)), displayUntil: millis() + 3600000 });
     }
@@ -224,6 +224,7 @@ function handleLikes(u, c) {
   let sp = spamBuffer[u];
   sp.state = 'CHARGING';
   sp.fade = 255;
+  sp.lastUpdate = millis();
   sp.total += c;
   
   if (sp.total < 10) {
@@ -645,6 +646,16 @@ function handleSpamBuffer() {
     fill(uCol); textSize(9); text(u.substring(0,6), 0, 30);
     pop();
 
+    // VYPUŠTĚNÍ PO 1,5s NEAKTIVITĚ
+    if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
+        sp.state = 'RELEASING';
+        if (sp.buffered > 0) {
+            for (let j = 0; j < sp.buffered; j++) {
+                setTimeout(() => spawnBall(u), j * 80); // Vypouští se postupně
+            }
+        }
+    }
+
     if (sp.state === 'RELEASING') {
       sp.fade -= 10; if (sp.fade <= 0) delete spamBuffer[u];
     }
@@ -658,7 +669,6 @@ function drawUI() {
   
   textAlign(LEFT, CENTER); fill(currentTheme); textSize(40); text(GAME_TITLE, 15, 35);
   
-  // PŘIDÁNA VERZE A KOLO
   textSize(12); fill(150); 
   text(GAME_VERSION + " - " + T[currentLang].ROUND + roundCount, 15, 60);
   
