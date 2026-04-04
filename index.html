@@ -78,7 +78,7 @@
 // GALAXINKO LITE - PURE DOPAMINE EDITION
 // ==========================================
 const GAME_TITLE = "GALAXINKO LITE";
-const GAME_VERSION = "v15.1.1"; 
+const GAME_VERSION = "v15.2.0"; // Přidány kulaté kuličky a pulzující anti-ban barvy
 
 let currentLang = "CZ";
 const W = 900;
@@ -251,7 +251,8 @@ function spawnGiftBalls(userName, amount) {
   for (let i = 0; i < amount; i++) {
     setTimeout(() => {
       let bSize = 22; 
-      let b = Matter.Bodies.rectangle(W/2 + random(-150, 150), 30, bSize, bSize, { 
+      // Změna na circle (kruh)
+      let b = Matter.Bodies.circle(W/2 + random(-150, 150), 30, bSize/2, { 
         restitution: 0.5, friction: 0.1, density: 0.05 
       });
       let bCol = (i % 2 === 0) ? color(255, 215, 0) : color(random(100,255), random(100,255), 255);
@@ -273,7 +274,8 @@ function spawnBall(userName, mult = 1) {
   playSpawnSound();
   
   let bSize = 14; 
-  let ballBody = Matter.Bodies.rectangle(W/2 + random(-30, 30), 40, bSize, bSize, { 
+  // Změna na circle (kruh)
+  let ballBody = Matter.Bodies.circle(W/2 + random(-30, 30), 40, bSize/2, { 
     restitution: currentBounce, friction: 0.2, density: 0.001 
   });
   
@@ -516,15 +518,23 @@ function drawBalls() {
     }
 
     push(); translate(pos.x, pos.y); rotate(b.body.angle);
-    let drawCol = b.isRainbow ? color((frameCount*15)%360, 255, 255) : b.color;
+    
+    // ANTI-BAN PULZOVÁNÍ BAREV
+    let pulseR = sin(frameCount * 0.1 + b.spawnTime) * 30;
+    let pulseG = cos(frameCount * 0.13 + b.spawnTime) * 30;
+    let pulseB = sin(frameCount * 0.17 + b.spawnTime) * 30;
+    
+    let drawCol = b.isRainbow ? color((frameCount*15)%360, 255, 255) : color(red(b.color) + pulseR, green(b.color) + pulseG, blue(b.color) + pulseB);
     if (b.isRainbow) colorMode(HSB);
 
     if (b.isGiftBall) {
       drawingContext.shadowBlur = 20; drawingContext.shadowColor = drawCol;
-      fill(drawCol); noStroke(); rect(-b.size/2, -b.size/2, b.size, b.size, 4);
+      fill(drawCol); noStroke(); 
+      ellipse(0, 0, b.size, b.size); // Kulatý tvar dárku
       drawingContext.shadowBlur = 0; fill(0); textAlign(CENTER, CENTER); textSize(12); text("🎁", 0, 0);
     } else {
-      fill(drawCol); noStroke(); rect(-b.size/2, -b.size/2, b.size, b.size, 2);
+      fill(drawCol); noStroke(); 
+      ellipse(0, 0, b.size, b.size); // Kulatý tvar pro běžné
     }
     
     if (b.isRainbow) colorMode(RGB);
