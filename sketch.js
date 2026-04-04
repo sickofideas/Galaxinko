@@ -3278,6 +3278,78 @@ function drawPixelAvatar(x, y, w, h) {
   fill(kuze); rect(pw * 3, ph * 8 + handMove, pw * 3, ph * 4, 2); rect(pw * 14, ph * 8 - handMove, pw * 3, ph * 4, 2); pop();
 }
 
+function drawVIPGifterBar() {
+  let now = millis();
+  for (let user in giftLeaderboard) {
+    if (now > giftLeaderboard[user].expireTime) {
+      delete giftLeaderboard[user];
+    }
+  }
+
+  let gifters = Object.keys(giftLeaderboard);
+  if (gifters.length === 0) return;
+
+  push();
+  let barHeight = 80;
+  let barY = H - barHeight;
+  
+  fill(10, 10, 20, 240);
+  stroke(255, 215, 0);
+  strokeWeight(3);
+  rect(10, barY + 5, W - 20, barHeight - 10, 15);
+
+  textAlign(CENTER, CENTER);
+  textSize(14);
+  fill(255, 215, 0);
+  noStroke();
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = color(255, 215, 0);
+  text("🏆 VIP SPONSORS 🏆", W / 2, barY + 20);
+  drawingContext.shadowBlur = 0;
+
+  let maxDisplay = 6;
+  let displayGifters = gifters.slice(0, maxDisplay);
+  let spacing = (W - 40) / displayGifters.length;
+  let startX = 20 + spacing / 2;
+
+  for (let i = 0; i < displayGifters.length; i++) {
+    let u = displayGifters[i];
+    let gData = giftLeaderboard[u];
+    let px = startX + i * spacing;
+
+    push();
+    translate(px, barY + 50);
+    if (userAvatars[u]) {
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.arc(-40, 0, 16, 0, TWO_PI);
+      drawingContext.clip();
+      imageMode(CENTER);
+      image(userAvatars[u], -40, 0, 32, 32);
+      drawingContext.restore();
+      stroke(255, 215, 0);
+      strokeWeight(2);
+      noFill();
+      ellipse(-40, 0, 32, 32);
+    } else {
+      fill(200);
+      ellipse(-40, 0, 32, 32);
+    }
+
+    textAlign(LEFT, CENTER);
+    textSize(11);
+    fill(255);
+    noStroke();
+    let shortName = u.length > 8 ? u.substring(0, 8) + '.' : u;
+    text(shortName, -18, -8);
+    fill(255, 215, 0);
+    textSize(10);
+    text(gData.totalGifts + " GIFTS", -18, 8);
+    pop();
+  }
+  pop();
+}
+
 function drawAntiBotOverlay() {
   push(); stroke(0, 15); strokeWeight(1); let offset = frameCount % 4; for (let i = 0; i < H; i += 4) line(0, i + offset, W, i + offset);
   noStroke(); for (let i = 0; i < 20; i++) { fill(255, random(5, 25)); rect(random(W), random(H), random(1, 3), random(1, 3)); }
@@ -3715,11 +3787,7 @@ function drawAntiBotOverlay() {
   for (let cx = 0; cx < 100; cx += 5) for (let cy = 0; cy < 75; cy += 5) { if (noise(cx * 0.1, cy * 0.1, frameCount * 0.1) > 0.6) { fill(255, 255, 255, 30); rect(camX + cx, camY + cy, 5, 5); } }
   fill(255, 50, 50); textFont('Courier New'); textStyle(BOLD); textSize(10); textAlign(LEFT, TOP); text(typeof T !== 'undefined' ? T[currentLang].L_PL : "PLAYER", camX + 5, camY + 5);
   if (frameCount % 60 < 30) { fill(255, 0, 0); noStroke(); ellipse(camX + 90, camY + 10, 6, 6); }
-  textFont('Press Start 2P'); textStyle(NORMAL);
-  let marqueeText = typeof T !== 'undefined' ? T[currentLang].MARQ.replace("{0}", currentDestination).replace("{1}", roundTotalBalls) : currentDestination;
-  let scrollX = W - ((frameCount * 3) % (textWidth(marqueeText) + W));
-  fill(5, 5, 15, 230); noStroke(); rect(0, H - 12, W, 12);
-  drawTxt(marqueeText + marqueeText, scrollX, H - 6, color(currentTheme), 8, LEFT); pop();
+  pop();
 }
 
 function drawPegs() {
