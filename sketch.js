@@ -1652,7 +1652,7 @@ function drawBalls() {
       }
     }
     
-    if (boss && boss.state === "ACTIVE" && abs(pos.x - boss.x) < boss.w / 2 + 10 && abs(pos.y - boss.y) < boss.h / 2 + 10) {
+    if (!b.isGiftBall && boss && boss.state === "ACTIVE" && abs(pos.x - boss.x) < boss.w / 2 + 10 && abs(pos.y - boss.y) < boss.h / 2 + 10) {
       if (millis() - (b.lastBossHit || 0) > 200) {
         b.lastBossHit = millis(); 
         
@@ -1669,7 +1669,7 @@ function drawBalls() {
       }
     }
     
-    if (devourer && devourer.state === "ACTIVE" && abs(pos.x - devourer.x) < devourer.w / 2 + 20 && abs(pos.y - devourer.y) < devourer.h / 2 + 20) {
+    if (!b.isGiftBall && devourer && devourer.state === "ACTIVE" && abs(pos.x - devourer.x) < devourer.w / 2 + 20 && abs(pos.y - devourer.y) < devourer.h / 2 + 20) {
         if (millis() - (b.lastDevHit || 0) > 200) {
             b.lastDevHit = millis(); 
             if (b.name !== "MOTHERSHIP") {
@@ -2117,7 +2117,7 @@ function handleBoss() {
     let closestBallDist = Infinity;
     let closestBall = null;
     for (let b of balls) {
-       if (b.body.position.y < boss.y && b.body.velocity.y > 0 && abs(b.body.position.x - boss.x) < boss.w) {
+       if (!b.isGiftBall && b.body.position.y < boss.y && b.body.velocity.y > 0 && abs(b.body.position.x - boss.x) < boss.w) {
            let distY = boss.y - b.body.position.y;
            if (distY < 300 && distY < closestBallDist) {
                closestBallDist = distY;
@@ -2395,7 +2395,7 @@ function handleSolarFlare() {
     pop();
 
     for (let b of balls) {
-        if (b.body.position.y > solarFlare.y - 60 && b.body.position.y < solarFlare.y + 150 && b.body.position.y < H - ZONE_H - 10) {
+        if (!b.isGiftBall && b.body.position.y > solarFlare.y - 60 && b.body.position.y < solarFlare.y + 150 && b.body.position.y < H - ZONE_H - 10) {
             Matter.Body.setVelocity(b.body, { 
                 x: b.body.velocity.x + random(-2, 2), 
                 y: random(-25, -35) 
@@ -2429,7 +2429,7 @@ function triggerAlienAbduction() {
     
     // Vybrat všechny zapadlé kuličky
     for (let b of balls) {
-        if (b.body.position.y > H - 300 && (b.body.isSleeping || b.body.velocity.y < 0.5) && !b.scored && !b.isBeingAbducted) {
+        if (!b.isGiftBall && b.body.position.y > H - 300 && (b.body.isSleeping || b.body.velocity.y < 0.5) && !b.scored && !b.isBeingAbducted) {
             b.isBeingAbducted = true;
             b.scored = true; // Zamezit běžnému zónovému skórování
             b.zoneIndex = -1;
@@ -2535,7 +2535,7 @@ function handleAlienSpores() {
         for(let i=0; i<5; i++) ellipse(random(-sporeSource.r/2, sporeSource.r/2), random(-sporeSource.r/2, sporeSource.r/2), random(3, 8));
         pop();
         for (let b of balls) {
-            if (!b.infected && b.body.position.y > sporeSource.y - sporeSource.r && b.body.position.y < sporeSource.y + sporeSource.r) {
+            if (!b.isGiftBall && !b.infected && b.body.position.y > sporeSource.y - sporeSource.r && b.body.position.y < sporeSource.y + sporeSource.r) {
                 let dx = b.body.position.x - sporeSource.x; let dy = b.body.position.y - sporeSource.y;
                 if (dx * dx + dy * dy < sporeSource.r * sporeSource.r) {
                     b.infected = true;
@@ -2546,7 +2546,7 @@ function handleAlienSpores() {
     }
     if (frameCount % 4 === 0) { // Optimalizované šíření dotykem
         let infectedBalls = balls.filter(b => b.infected);
-        let uninfectedBalls = balls.filter(b => !b.infected);
+        let uninfectedBalls = balls.filter(b => !b.infected && !b.isGiftBall);
         for (let ib of infectedBalls) {
             for (let ub of uninfectedBalls) {
                 if (abs(ib.body.position.y - ub.body.position.y) > 30) continue; // Optimalizace vzdálenosti
@@ -3898,7 +3898,7 @@ function handleBlackHole() {
 
   for (let i = balls.length - 1; i >= 0; i--) {
     let b = balls[i];
-    if (!b.body) continue;
+    if (!b.body || b.isGiftBall) continue;
     let dx = blackHole.x - b.body.position.x;
     let dy = blackHole.y - b.body.position.y;
     let distSq = dx * dx + dy * dy;
@@ -4323,7 +4323,7 @@ function handleBackgroundMeteors() {
       let b = balls[j];
       let dx = m.x - b.body.position.x;
       let dy = m.y - b.body.position.y;
-      if (dx * dx + dy * dy < (m.size + b.size) * (m.size + b.size)) {
+      if (!b.isGiftBall && dx * dx + dy * dy < (m.size + b.size) * (m.size + b.size)) {
         hit = true;
         Matter.Body.applyForce(b.body, b.body.position, { x: -dx * 0.005, y: -dy * 0.005 });
         createExplosion(m.x, m.y, m.c);
