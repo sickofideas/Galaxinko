@@ -1478,6 +1478,56 @@ function handleSpamBuffer() {
   }
 }
 
+function spawnGiftBalls(userName, amount) {
+  if (!giftLeaderboard[userName]) {
+    giftLeaderboard[userName] = { totalGifts: 0, expireTime: millis() };
+  }
+  giftLeaderboard[userName].totalGifts += amount;
+  giftLeaderboard[userName].expireTime = Math.max(giftLeaderboard[userName].expireTime, millis()) + (amount * 60000);
+
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  let spokenMsg = random(T[currentLang].GIFT_MSGS).replace("{0}", userName);
+  speakAnnouncer(spokenMsg, 2);
+  
+  shakeAmount = 40;
+  playJackpotSound();
+  
+  let alertMsg = T[currentLang].GIFT_ALERT.replace("{0}", userName);
+  addFloatingText(alertMsg, W / 2, H / 2, color(255, 215, 0), true);
+
+  for (let i = 0; i < amount; i++) {
+    setTimeout(() => {
+      if (balls.length > 700) return;
+      
+      let spawnX = W / 2 + random(-30, 30);
+      let spawnY = 40;
+      let bSize = 20; 
+      
+      let ballBody = Matter.Bodies.rectangle(spawnX, spawnY, bSize, bSize, { 
+          restitution: map(currentBounce, 1, 255, 0.5, 1.5), 
+          friction: 0.2, 
+          frictionAir: 0.04, 
+          density: 0.05, 
+          sleepThreshold: 30 
+      });
+      
+      let isRainbow = (i % 2 !== 0);
+      let ballColor = isRainbow ? color(255) : color(255, 215, 0);
+      
+      balls.push({ 
+          body: ballBody, name: userName, color: ballColor, scored: false, combo: 0, 
+          lastHitTime: 0, spawnTime: millis(), isRainbow: isRainbow, trail: [], 
+          portalCooldown: 0, scoreTime: null, zoneIndex: -1, multiplier: 1, size: bSize,
+          isGiftBall: true
+      });
+      Matter.World.add(world, ballBody);
+      
+      if (!audioStarted) startSpaceAudio();
+      if (isRainbow) playRainbowSound(); else playSpawnSound();
+    }, i * 150);
+  }
+}
+
 function spawnBall(userName, mult = 1, startX = null, startY = null, velX = null, velY = null) {
   if (!libraryLoaded) return;
   if (gameState !== "PLAYING") { if (spawnQueue.length < 500) spawnQueue.push(userName); return; }
