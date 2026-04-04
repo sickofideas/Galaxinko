@@ -4558,7 +4558,7 @@ function initGame() {
   for (let i = 0; i < 21; i++) {
     let zW = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W, val = sV[i];
     zones.push({ x: cX, w: zW, score: val, flash: 0, flashColor: color(255), baseColor: val >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180), capacity: Math.max(2, Math.floor((zW * ZONE_H) / 400)) });
-    if (i > 0) { let wl = Matter.Bodies.rectangle(cX, H - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); walls.push(wl); Matter.World.add(world, wl); }
+    if (i > 0) { let wl = Matter.Bodies.rectangle(cX, H - 100 - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); walls.push(wl); Matter.World.add(world, wl); }
     cX += zW;
   }
   
