@@ -1860,35 +1860,35 @@ function drawUI() {
   push(); translate(10, 85);
   
   // --- NOVÝ BOX PRO ČAS MISE ---
-  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, 75, 8);
+  fill(0, 0, 15, 245); stroke(currentTheme[0], currentTheme[1], currentTheme[2], 150); strokeWeight(2); rect(0, 0, 180, 65, 8);
   noStroke();
   
   if (gameState === "PLAYING") {
     textAlign(CENTER, CENTER);
     textSize(9);
     let lbl = typeof T !== 'undefined' ? T[currentLang].WARP_CORE : "MISSION TIME:";
-    fill(200); text(lbl.replace(":", ""), 90, 15);
+    fill(200); text(lbl.replace(":", ""), 90, 12);
     
-    textSize(32);
+    textSize(38);
     let tColor = timer < 10 ? color(255, 50, 50) : color(currentTheme[0], currentTheme[1], currentTheme[2]);
-    fill(0, 150); text(`${timer}s`, 90 + 2, 42 + 2);
-    fill(tColor); text(`${timer}s`, 90, 42);
+    fill(0, 150); text(`${timer}s`, 90 + 2, 38 + 2);
+    fill(tColor); text(`${timer}s`, 90, 38);
     
     if (bonusTime > 0) {
       textSize(11);
       let bTxt = `+${bonusTime.toFixed(1)}s`;
-      fill(0, 150); text(bTxt, 90 + 2, 64 + 2);
-      fill(50, 255, 50); text(bTxt, 90, 64);
+      fill(0, 150); text(bTxt, 90 + 2, 56 + 2);
+      fill(50, 255, 50); text(bTxt, 90, 56);
     }
   } else {
     textAlign(CENTER, CENTER);
     textSize(12);
     let cTxt = typeof T !== 'undefined' ? T[currentLang].COOL : "COOLING DOWN";
-    fill(0, 150); text(cTxt, 90 + 2, 37 + 2);
-    fill(255, 200, 0); text(cTxt, 90, 37);
+    fill(0, 150); text(cTxt, 90 + 2, 32 + 2);
+    fill(255, 200, 0); text(cTxt, 90, 32);
   }
   
-  translate(0, 90); // Posun dolů pro tabulku rekordů
+  translate(0, 75); // Posun dolů pro tabulku rekordů
   
   let ml = allTimeRecords.slice(0, 12); let lH = 45 + max(1, ml.length) * 26;
   
