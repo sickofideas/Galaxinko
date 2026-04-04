@@ -78,7 +78,7 @@
 // GALAXINKO LITE - PURE DOPAMINE EDITION
 // ==========================================
 const GAME_TITLE = "GALAXINKO LITE";
-const GAME_VERSION = "v15.0.1"; 
+const GAME_VERSION = "v15.0.2"; 
 
 let currentLang = "CZ";
 const W = 900;
@@ -119,7 +119,7 @@ let currentTheme = UI_THEMES[0];
 let engine, world;
 let balls = [], pegs = [], zones = [], walls = [], explosions = [];
 let leaderboard = {}, giftLeaderboard = {}, allTimeRecords = [];
-let timer = 180, resultsTimer = 10, lastTick = 0, roundCount = 1;
+let timer = 180, resultsTimer = 10, lastTick = 0, roundCount = 1, waitStartTime = 0;
 let gameState = "PLAYING", flashEffect = 0, shakeAmount = 0;
 let currentDestination = "NEON PRIME";
 let currentGravity = 0.8, currentBounce = 0.8;
@@ -419,6 +419,7 @@ function draw() {
         gameState = "WAITING"; 
         shakeAmount = 10;
         speakAnnouncer(T[currentLang].TTS_SEC_C, 2);
+        waitStartTime = millis(); // Nastavenie času začiatku čakania
       }
     } else if (gameState === "RESULTS") {
       resultsTimer--;
@@ -427,7 +428,8 @@ function draw() {
     lastTick = millis();
   }
 
-  if (gameState === "WAITING" && balls.length === 0) {
+  // Ak sú všetky guličky preč, alebo ubehlo aspoň 8 sekúnd, prepne sa na výsledky
+  if (gameState === "WAITING" && (balls.length === 0 || millis() - waitStartTime > 8000)) {
     gameState = "RESULTS"; resultsTimer = 10;
   }
 }
