@@ -1,3 +1,4 @@
+<!-- VERZE HRY: v15.6.1 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -78,12 +79,12 @@
 // GALAXINKO LITE - PURE DOPAMINE EDITION
 // ==========================================
 const GAME_TITLE = "GALAXINKO LITE";
-const GAME_VERSION = "v15.4.0"; // Přidána šance na rotaci celého geometrického obrazce
+const GAME_VERSION = "v15.6.1"; 
 
 let currentLang = "CZ";
 const W = 900;
-const H = 1100;       // Celková výška plátna
-const PLAY_H = 1000;  // Kde končí herní plocha (zdi a zóny)
+const H = 1100;       
+const PLAY_H = 1000;  
 const ZONE_H = 80;
 
 const T = {
@@ -123,12 +124,11 @@ let currentTheme = UI_THEMES[0];
 
 let engine, world;
 let balls = [], pegs = [], zones = [], walls = [], explosions = [];
-let leaderboard = {}; // Score per round
-let allTimeLeaderboard = {}; // Persistent score
+let leaderboard = {}; 
+let allTimeLeaderboard = {}; 
 let giftLeaderboard = {}; 
 let timer = 180, resultsTimer = 10, lastTick = 0, roundCount = 1, waitStartTime = 0;
 let gameState = "PLAYING", flashEffect = 0, shakeAmount = 0;
-let currentDestination = "NEON PRIME";
 let currentGravity = 0.8, currentBounce = 0.8;
 let portals = [], floatingTexts = [], shockwaves = [], joinPopupQueue = [], activeJoinPopup = null;
 let spamBuffer = {};
@@ -136,17 +136,13 @@ let avatarRibbon = [], userAvatars = {};
 let fxSynth, audioStarted = false;
 let isAutoMode = true;
 
-// Rotace obrazce
 let isRotatingRound = false;
 let rotationSpeed = 0;
 let shapePivot = { x: W/2, y: 500 };
 
-// Background
-let stars = [], dust = [], shootingStars = [];
-
+let stars = [], dust = [];
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
-let availableVoices = [];
 let camOffset = { x: 0, y: 0, z: 1.0 }; 
 
 function setup() {
@@ -161,7 +157,6 @@ function setup() {
   for (let i = 0; i < 150; i++) stars.push({ x: random(W), y: random(H), s: random(1, 3), speed: random(0.2, 0.6) });
   for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 2) });
   
-  // Load persistent leaderboard
   let savedData = localStorage.getItem('galaxinko_alltime_lite');
   if (savedData) {
       try { allTimeLeaderboard = JSON.parse(savedData); } catch(e) {}
@@ -188,7 +183,7 @@ function setupDOMControls() {
   document.getElementById('resetBtn').onclick = () => {
     leaderboard = {};
     giftLeaderboard = {};
-    allTimeLeaderboard = {}; // Hard reset
+    allTimeLeaderboard = {}; 
     localStorage.removeItem('galaxinko_alltime_lite');
   };
 }
@@ -205,7 +200,6 @@ function connectTikfinity() {
       if (n && n !== "Anonym") {
         let u = n.substring(0, 15).replace(/[^\p{L}\p{N} ]/gu, "").trim() || "Pilot";
         
-        // Avatar loading
         let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
         if (imgUrl && !userAvatars[u]) {
           loadImage(imgUrl, img => { userAvatars[u] = img; joinPopupQueue.push({name: u, img: img}); }, () => {});
@@ -246,6 +240,14 @@ function handleLikes(u, c) {
   sp.lastUpdate = millis();
   sp.total += c;
   
+  // Efekt poskočení kuliček nasbíraných dole v chlívcích
+  for (let b of balls) {
+      if (b.scored && b.body.position.y > PLAY_H - 20) {
+          Matter.Sleeping.set(b.body, false);
+          Matter.Body.applyForce(b.body, b.body.position, { x: random(-0.002, 0.002), y: -0.015 });
+      }
+  }
+
   if (sp.total < 10) {
     for (let i = 0; i < min(c, 10); i++) setTimeout(() => spawnBall(u), i * 100);
   } else {
@@ -276,7 +278,7 @@ function spawnGiftBalls(userName, amount) {
       let bCol = (i % 2 === 0) ? color(255, 215, 0) : color(random(100,255), random(100,255), 255);
       
       balls.push({ 
-        body: b, name: userName, color: bCol, scored: false, combo: 0, 
+        body: b, name: userName, color: bCol, scored: false, combo: 0, currentScore: 0,
         spawnTime: millis(), isRainbow: true, trail: [], portalCooldown: 0, 
         multiplier: 1, size: bSize, isGiftBall: true 
       });
@@ -291,19 +293,18 @@ function spawnBall(userName, mult = 1) {
   if (!audioStarted) startSpaceAudio();
   playSpawnSound();
   
-  let bSize = 14; 
+  let bSize = 18; 
   let ballBody = Matter.Bodies.circle(W/2 + random(-30, 30), 40, bSize/2, { 
     restitution: currentBounce, friction: 0.2, density: 0.001 
   });
   
   if (!leaderboard[userName]) leaderboard[userName] = { score: 0, color: color(random(100, 255), random(150, 255), random(150, 255)) };
   
-  // 5% chance for a rainbow effect on a normal ball
   let isRnbw = random() < 0.05;
 
   balls.push({ 
     body: ballBody, name: userName, color: leaderboard[userName].color, 
-    scored: false, combo: 0, spawnTime: millis(), isRainbow: isRnbw, trail: [], 
+    scored: false, combo: 0, currentScore: 0, spawnTime: millis(), isRainbow: isRnbw, trail: [], 
     portalCooldown: 0, multiplier: mult, size: bSize, isGiftBall: false 
   });
   Matter.World.add(world, ballBody);
@@ -314,28 +315,50 @@ function initGame() {
   world = engine.world; 
   world.gravity.y = currentGravity;
 
+  Matter.Events.on(engine, 'collisionStart', function(event) {
+    let pairs = event.pairs;
+    for (let i = 0; i < pairs.length; i++) {
+        let bodyA = pairs[i].bodyA;
+        let bodyB = pairs[i].bodyB;
+        
+        let ball = balls.find(b => b.body === bodyA || b.body === bodyB);
+        let peg = pegs.find(p => p === bodyA || p === bodyB);
+
+        if (ball && peg && !peg.isBlocker) {
+            peg.glow = 255;
+            if (peg.isBonus) {
+                ball.currentScore += 500;
+                createExplosion(peg.position.x, peg.position.y, color(255, 50, 50));
+                addFloatingText("CRIT +500!", peg.position.x, peg.position.y, color(255, 50, 50), true);
+                if(audioStarted) try { fxSynth.play(800, 0.05, 0, 0.1); } catch(e){}
+            } else {
+                ball.currentScore += 10;
+            }
+        }
+    }
+  });
+
   let opts = { isStatic: true, restitution: 1.2, friction: 0 };
   Matter.World.add(world, [ 
-    Matter.Bodies.rectangle(-25, PLAY_H / 2, 50, PLAY_H * 2, opts), 
-    Matter.Bodies.rectangle(W + 25, PLAY_H / 2, 50, PLAY_H * 2, opts), 
-    Matter.Bodies.rectangle(W / 2, PLAY_H + 48, W, 100, { isStatic: true, friction: 1 }) 
+    Matter.Bodies.rectangle(-25, H / 2, 50, H * 2, opts), 
+    Matter.Bodies.rectangle(W + 25, H / 2, 50, H * 2, opts), 
+    // Podlaha posunuta až dolů pod VIP lištu (H je 1100, podlaha je pod obrazovkou)
+    Matter.Bodies.rectangle(W / 2, H + 50, W, 100, { isStatic: true, friction: 1 }) 
   ]);
   
   let blocker = Matter.Bodies.circle(W / 2, 130, 4, { isStatic: true, restitution: 1.5 }); 
-  blocker.isBlocker = true; // Označení pro vyjmutí z rotace
+  blocker.isBlocker = true; 
   pegs.push(blocker); Matter.World.add(world, blocker);
   
   portals = [{ x: random(100, W - 100), y: random(200, 400) }, { x: random(100, W - 100), y: random(PLAY_H - 350, PLAY_H - 150) }];
   
-  // DYNAMICKÉ GENEROVÁNÍ HŘEBÍKŮ (8 RŮZNÝCH TVARŮ)
   let layoutType = roundCount % 8;
   let spacingX = 40, spacingY = 40, startY = 220;
   let rows = Math.floor((PLAY_H - 300) / spacingY);
   let cols = Math.floor((W - 100) / spacingX);
   let startX = (W - (cols * spacingX)) / 2;
 
-  // Nastavení rotace pro toto kolo
-  isRotatingRound = random() < 0.25; // 25% šance na rotující kolo
+  isRotatingRound = random() < 0.25; 
   rotationSpeed = random(0.002, 0.006) * (random() < 0.5 ? 1 : -1);
   shapePivot = { x: W / 2, y: startY + (rows * spacingY) / 2 };
 
@@ -352,29 +375,21 @@ function initGame() {
       let rDist = Math.abs(r - midR); 
 
       if (layoutType === 0) {
-        // Tvar Diamantu
         if (cDist + rDist * 0.8 <= cols / 2) addPeg = true;
       } else if (layoutType === 1) {
-        // Plná mřížka s 15% dírami
         if (random() > 0.15) addPeg = true;
       } else if (layoutType === 2) {
-        // V-Tvar / Trychtýř
         if (cDist >= r * 0.4) addPeg = true;
       } else if (layoutType === 3) {
-        // X-Tvar
         if (Math.abs(cDist - rDist * 0.5) < 3.5) addPeg = true;
       } else if (layoutType === 4) {
-        // Kruh (Prázdný střed)
         let distCenter = dist(c, r, cols/2, rows/2);
         if (distCenter > cols/5 && distCenter < cols/2.5) addPeg = true;
       } else if (layoutType === 5) {
-        // Zig-Zag linky
         if (Math.abs((c + r) % 6 - 3) < 1.5) addPeg = true;
       } else if (layoutType === 6) {
-        // Dva svislé sloupy
         if (Math.abs(c - cols/3) < 1.5 || Math.abs(c - 2*cols/3) < 1.5) addPeg = true;
       } else if (layoutType === 7) {
-        // Přesýpací hodiny
         if (cDist <= Math.abs(r - rows/2) * 0.8 + 1.5) addPeg = true;
       }
 
@@ -388,7 +403,6 @@ function initGame() {
     }
   }
   
-  // Zóny
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let cX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
@@ -398,7 +412,8 @@ function initGame() {
       baseColor: sV[i] >= 5000 ? color(currentTheme[0]*0.5, currentTheme[1]*0.5, currentTheme[2]*0.5, 180) : color(10, 10, 40, 180) 
     });
     if (i > 0) { 
-      let wl = Matter.Bodies.rectangle(cX, PLAY_H - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); 
+      // Protažení zdí chlívků až úplně dolů k podlaze (H)
+      let wl = Matter.Bodies.rectangle(cX, PLAY_H + 10, 6, ZONE_H + 120, { isStatic: true, friction: 0.5 }); 
       walls.push(wl); Matter.World.add(world, wl); 
     }
     cX += zW;
@@ -424,7 +439,6 @@ function draw() {
     world.gravity.y = currentGravity;
   }
 
-  // Rotace všech překážek (mimo horního blokátoru)
   if (isRotatingRound) {
     let cosA = Math.cos(rotationSpeed);
     let sinA = Math.sin(rotationSpeed);
@@ -439,11 +453,17 @@ function draw() {
     }
   }
 
-  // Barevné pozadí na základě tématu
   background(currentTheme[0] * 0.05, currentTheme[1] * 0.05, currentTheme[2] * 0.05 + 10);
   drawBackground();
   
   Matter.Engine.update(engine, 1000 / 60);
+
+  // Prevence proti lagu: Pokud se kuličky v chlívcích přemnoží, postupně mažeme ty nejstarší
+  while (balls.length > 300) {
+      let idx = balls.findIndex(b => b.scored);
+      if (idx !== -1) removeBall(balls[idx]);
+      else break;
+  }
 
   push();
   if (shakeAmount > 0) {
@@ -558,12 +578,12 @@ function drawBalls() {
         let cz = zones[czIndex];
         
         if (b.isGiftBall) {
-          updateScore(b.name, 50000, b.color);
+          updateScore(b.name, 50000 + b.currentScore, b.color);
           addFloatingText("+50,000", pos.x, pos.y, color(255, 215, 0), true);
           cz.flash = 255; cz.flashColor = color(255, 215, 0);
           shakeAmount = 8; playJackpotSound();
         } else {
-          let pts = cz.score * b.multiplier;
+          let pts = (cz.score * b.multiplier) + b.currentScore;
           updateScore(b.name, pts, b.color);
           addFloatingText("+" + pts, pos.x, pos.y, pts >= 5000 ? color(255, 215, 0) : color(100, 255, 100), pts >= 5000);
           cz.flash = 255; cz.flashColor = b.color;
@@ -572,15 +592,15 @@ function drawBalls() {
       }
     }
 
+    // DRAWING
     push(); translate(pos.x, pos.y); rotate(b.body.angle);
     
-    // DUHOVÁ KULIČKA A OCAS
     if (b.isRainbow) {
       b.trail.push({x: pos.x, y: pos.y});
       if (b.trail.length > 15) b.trail.shift();
       
       push();
-      rotate(-b.body.angle); // Zruš rotaci pro kreslení ocasu, ať to sedí v prostoru
+      rotate(-b.body.angle); 
       translate(-pos.x, -pos.y);
       colorMode(HSB);
       noStroke();
@@ -596,29 +616,56 @@ function drawBalls() {
     let pulseR = sin(frameCount * 0.1 + b.spawnTime) * 30;
     let pulseG = cos(frameCount * 0.13 + b.spawnTime) * 30;
     let pulseB = sin(frameCount * 0.17 + b.spawnTime) * 30;
-    
     let drawCol = b.isRainbow ? (colorMode(HSB), color((frameCount*15)%360, 255, 255)) : color(red(b.color) + pulseR, green(b.color) + pulseG, blue(b.color) + pulseB);
     if (b.isRainbow) colorMode(RGB);
 
-    if (b.isGiftBall) {
-      drawingContext.shadowBlur = 20; drawingContext.shadowColor = drawCol;
-      fill(drawCol); noStroke(); 
-      ellipse(0, 0, b.size, b.size);
-      drawingContext.shadowBlur = 0; fill(0); textAlign(CENTER, CENTER); textSize(12); text("🎁", 0, 0);
+    // VYKRESLENÍ AVATARA MÍSTO KULIČKY
+    if (userAvatars[b.name] && userAvatars[b.name] !== "loaded" && !b.isGiftBall) {
+        drawingContext.save();
+        drawingContext.beginPath();
+        drawingContext.arc(0, 0, b.size/2, 0, TWO_PI);
+        drawingContext.clip();
+        imageMode(CENTER);
+        image(userAvatars[b.name], 0, 0, b.size, b.size);
+        drawingContext.restore();
+        
+        // Kroužek okolo avatara
+        noFill(); stroke(drawCol); strokeWeight(2);
+        ellipse(0, 0, b.size, b.size);
     } else {
-      fill(drawCol); noStroke(); 
-      ellipse(0, 0, b.size, b.size);
+        // Klasická kulička (nebo dárková)
+        if (b.isGiftBall) {
+          drawingContext.shadowBlur = 20; drawingContext.shadowColor = drawCol;
+          fill(drawCol); noStroke(); 
+          ellipse(0, 0, b.size, b.size);
+          drawingContext.shadowBlur = 0; fill(0); textAlign(CENTER, CENTER); textSize(12); text("🎁", 0, 0);
+        } else {
+          fill(drawCol); noStroke(); 
+          ellipse(0, 0, b.size, b.size);
+        }
     }
     
     rotate(-b.body.angle);
-    if (!b.isGiftBall && (balls.length < 100 || b.multiplier > 1)) {
-      textAlign(CENTER); textSize(10); noStroke();
-      fill(0, 150); text(b.name.substring(0,8), 1, -b.size/2 - 5 + 1);
-      fill(255); text(b.name.substring(0,8), 0, -b.size/2 - 5);
+    
+    // Jméno dole
+    if (!b.isGiftBall) {
+      textAlign(CENTER); textSize(9); noStroke();
+      fill(0, 150); text(b.name.substring(0,8), 1, b.size/2 + 8 + 1);
+      fill(255); text(b.name.substring(0,8), 0, b.size/2 + 8);
     }
     pop();
 
-    if (pos.y > PLAY_H + 50 || pos.x < -50 || pos.x > W + 50) removeBall(b);
+    // Skóre plovoucí s kuličkou nahoře (mimo rotaci)
+    if (b.currentScore > 0) {
+      push(); translate(pos.x, pos.y);
+      textAlign(CENTER); textSize(9); noStroke();
+      fill(0, 150); text(b.currentScore, 1, -b.size/2 - 5 + 1);
+      fill(255, 255, 100); text(b.currentScore, 0, -b.size/2 - 5);
+      pop();
+    }
+
+    // Odstranění jen když kulička opravdu opustí H+100 (podlaha je prodloužena pro hromadění)
+    if (pos.y > H + 100 || pos.x < -100 || pos.x > W + 100) removeBall(b);
   }
 }
 
@@ -634,7 +681,8 @@ function drawZones() {
 
 function drawWalls() { 
   stroke(100); strokeWeight(2); 
-  for (let w of walls) line(w.position.x, PLAY_H - ZONE_H, w.position.x, PLAY_H); 
+  // Zdi se nyní táhnou od vršku chlívku až dolů (H) aby se kuličky mísily do sloupů
+  for (let w of walls) line(w.position.x, PLAY_H - ZONE_H, w.position.x, H); 
 }
 
 function drawPegs() {
@@ -670,7 +718,8 @@ function drawVIPGifterBar() {
   let barHeight = 90;
   let barY = PLAY_H + 5; 
   
-  fill(10, 10, 20, 240); stroke(255, 215, 0); strokeWeight(3);
+  // Zprůhlednění lišty, aby byly vidět hromadící se kuličky
+  fill(10, 10, 20, 180); stroke(255, 215, 0); strokeWeight(3);
   rect(10, barY, W - 20, barHeight, 15);
 
   textAlign(CENTER, CENTER); textSize(14); fill(255, 215, 0); noStroke();
@@ -759,7 +808,7 @@ function drawUI() {
   fill(200); textSize(10); text(T[currentLang].WARP_CORE, dX + dW/2, 25);
   fill(timer < 10 ? color(255,50,50) : currentTheme); textSize(24); text(timer + "s", dX + dW/2, 45);
   
-  // --- ROUND LEADERBOARD (PRAVÁ STRANA) ---
+  // --- ROUND LEADERBOARD (PRAVÁ STRANA - ZRYCHLENÝ SCROLL) ---
   push();
   translate(W - 220, 85);
   let sortedRound = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 100);
@@ -784,7 +833,8 @@ function drawUI() {
       let scrollAreaH = rH_Round - scrollAreaY - 5; 
       let totalRestH = restRound.length * 20;
       let scrollOffset = 0;
-      if (totalRestH > scrollAreaH) scrollOffset = (frameCount * 0.5) % (totalRestH + scrollAreaH);
+      // RYCHLOST x3 (1.5 místo 0.5)
+      if (totalRestH > scrollAreaH) scrollOffset = (frameCount * 1.5) % (totalRestH + scrollAreaH);
       
       drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(0, scrollAreaY - 10, 210, scrollAreaH + 10); drawingContext.clip();
       restRound.forEach((e, i) => {
@@ -798,26 +848,27 @@ function drawUI() {
   }
   pop();
   
-  // --- ALL TIME LEADERBOARD (LEVÁ STRANA) ---
+  // --- ALL TIME LEADERBOARD (LEVÁ STRANA - KOMPAKTNÍ) ---
   push();
   translate(10, 85);
   let sortedAllTime = Object.entries(allTimeLeaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 10);
-  let rH_AllTime = 45 + max(1, sortedAllTime.length) * 26;
+  
+  // Menší výška tabulky a řádkování zmenšeno na 18
+  let rH_AllTime = 40 + max(1, sortedAllTime.length) * 18;
   
   fill(0, 0, 15, 230); stroke(255, 215, 0, 150); rect(0, 0, 210, rH_AllTime, 8);
-  noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(11); text(T[currentLang].ALL_TIME, 105, 25);
-  stroke(255, 30); line(10, 35, 200, 35);
+  noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(11); text(T[currentLang].ALL_TIME, 105, 20);
+  stroke(255, 30); line(10, 28, 200, 28);
   
   noStroke(); textAlign(LEFT);
   sortedAllTime.forEach((e, i) => {
-    let y = 60 + i * 26; 
+    let y = 45 + i * 18; // menší rozestup
     
-    // Vykreslení profilové fotky
     if (userAvatars[e[0]] && userAvatars[e[0]] !== "loaded") {
       push(); imageMode(CENTER); drawingContext.save(); drawingContext.beginPath();
-      drawingContext.arc(20, y - 2, 8, 0, TWO_PI); drawingContext.clip();
-      image(userAvatars[e[0]], 20, y - 2, 16, 16); drawingContext.restore(); pop();
-      drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,7)}`, 32, y, color(e[1].color.levels || [255,255,255]), 9, LEFT);
+      drawingContext.arc(15, y - 1, 7, 0, TWO_PI); drawingContext.clip();
+      image(userAvatars[e[0]], 15, y - 1, 14, 14); drawingContext.restore(); pop();
+      drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,7)}`, 26, y, color(e[1].color.levels || [255,255,255]), 9, LEFT);
     } else {
       drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,7)}`, 10, y, color(e[1].color.levels || [255,255,255]), 9, LEFT);
     }
@@ -913,7 +964,6 @@ function updateScore(n, p, c) {
   if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c || color(255) };
   leaderboard[n].score += p;
   
-  // Update All Time Leaderboard
   if (!allTimeLeaderboard[n]) allTimeLeaderboard[n] = { score: 0, color: c || color(255) };
   allTimeLeaderboard[n].score += p;
 }
@@ -973,12 +1023,8 @@ function handleJoinPopups() {
 }
 
 function resetGame() {
-  // Uložíme trvalé skóre do prohlížeče
   localStorage.setItem('galaxinko_alltime_lite', JSON.stringify(allTimeLeaderboard));
-  
-  // Změníme barevné téma
   currentTheme = random(UI_THEMES);
-  
   roundCount++; gameState = "PLAYING"; resultsTimer = 10; timer = 180;
   spamBuffer = {}; avatarRibbon = [];
   if (world) Matter.World.clear(world, false);
@@ -989,11 +1035,16 @@ function resetGame() {
 function mouseClicked() { 
   if (!audioStarted) startSpaceAudio(); 
   if (mouseY > 40 && mouseY < PLAY_H - 100) spawnBall("Player" + floor(random(100))); 
+  
+  // Efekt jako u lajku pro manuální testování
+  for (let b of balls) {
+      if (b.scored && b.body.position.y > PLAY_H - 20) {
+          Matter.Sleeping.set(b.body, false);
+          Matter.Body.applyForce(b.body, b.body.position, { x: random(-0.002, 0.002), y: -0.015 });
+      }
+  }
 }
 
-// ======================
-// AUDIO & TTS
-// ======================
 function startSpaceAudio() { audioStarted = true; userStartAudio(); }
 function playSpawnSound() { if (audioStarted) try { fxSynth.play(random([440, 554, 659]), 0.05, 0, 0.1); } catch(e){} }
 function playJackpotSound() { if (audioStarted) try { fxSynth.play('C5', 0.1, 0, 0.1); setTimeout(()=>fxSynth.play('G5',0.1,0,0.2), 100); } catch(e){} }
