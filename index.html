@@ -78,7 +78,7 @@
 // GALAXINKO LITE - PURE DOPAMINE EDITION
 // ==========================================
 const GAME_TITLE = "GALAXINKO LITE";
-const GAME_VERSION = "v15.2.0"; // Přidány kulaté kuličky a pulzující anti-ban barvy
+const GAME_VERSION = "v15.3.0"; // Přidána trvalá Top 10 tabulka, duhové kuličky s ocasem, nové tvary
 
 let currentLang = "CZ";
 const W = 900;
@@ -90,7 +90,7 @@ const T = {
   EN: {
     LIVE: "🔴 LIVE ", SYS_ON: "SYSTEM: ONLINE", SYNC: "TELEMETRY: GREEN",
     GFORCE: "G-FORCE:", BOUNCEX: "BOUNCE-X:", REC: "RECORDS",
-    WARP_CORE: "MISSION TIME:", TOP: "TOP COMMANDERS",
+    WARP_CORE: "MISSION TIME:", TOP: "ROUND LEADERS", ALL_TIME: "ALL-TIME TOP 10",
     WARN: "WARNING: RE-ENTRY", RET: "CALCULATING ORBITS...", COMPL: "MISSION COMPLETE",
     SECTOR: "ORBIT:", NEXT: "NEXT LAUNCH IN:", NEW_C: "🔥 NEW COMMANDER! 🔥", L_PL: "PLAYER_UPLINK",
     TTS_POW: "Thruster boost from ", TTS_INC: "Incoming payload from ",
@@ -103,7 +103,7 @@ const T = {
   CZ: {
     LIVE: "🔴 ŽIVĚ ", SYS_ON: "SYSTÉM: ONLINE", SYNC: "TELEMETRIE: OK",
     GFORCE: "G-SÍLA:", BOUNCEX: "ODRAZ-X:", REC: "REKORDY",
-    WARP_CORE: "ČAS MISE:", TOP: "NEJLEPŠÍ PILOTI",
+    WARP_CORE: "ČAS MISE:", TOP: "LÍDŘI KOLA", ALL_TIME: "SÍŇ SLÁVY (TOP 10)",
     WARN: "VAROVÁNÍ: NÁVRAT", RET: "KALKULACE ORBITY...", COMPL: "MISE DOKONČENA",
     SECTOR: "ORBITA:", NEXT: "DALŠÍ START ZA:", NEW_C: "🔥 NOVÝ VELITEL! 🔥", L_PL: "HRÁČ_UPLINK",
     TTS_POW: "Zážeh motorů od ", TTS_INC: "Přilétá náklad od ",
@@ -115,12 +115,17 @@ const T = {
   }
 };
 
-const UI_THEMES = [[0, 255, 255], [255, 50, 255], [50, 255, 50], [255, 200, 0], [255, 100, 50]];
+const UI_THEMES = [
+  [0, 255, 255], [255, 50, 255], [50, 255, 50], 
+  [255, 200, 0], [255, 100, 50], [100, 150, 255]
+];
 let currentTheme = UI_THEMES[0];
 
 let engine, world;
 let balls = [], pegs = [], zones = [], walls = [], explosions = [];
-let leaderboard = {}, giftLeaderboard = {}, allTimeRecords = [];
+let leaderboard = {}; // Score per round
+let allTimeLeaderboard = {}; // Persistent score
+let giftLeaderboard = {}; 
 let timer = 180, resultsTimer = 10, lastTick = 0, roundCount = 1, waitStartTime = 0;
 let gameState = "PLAYING", flashEffect = 0, shakeAmount = 0;
 let currentDestination = "NEON PRIME";
@@ -137,7 +142,7 @@ let stars = [], dust = [], shootingStars = [];
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 let availableVoices = [];
-let camOffset = { x: 0, y: 0, z: 1.0 }; // Pro hud
+let camOffset = { x: 0, y: 0, z: 1.0 }; 
 
 function setup() {
   let cvs = createCanvas(W, H);
@@ -151,6 +156,14 @@ function setup() {
   for (let i = 0; i < 150; i++) stars.push({ x: random(W), y: random(H), s: random(1, 3), speed: random(0.2, 0.6) });
   for (let i = 0; i < 300; i++) dust.push({ x: random(W), y: random(H), s: random(0.5, 2) });
   
+  // Load persistent leaderboard
+  let savedData = localStorage.getItem('galaxinko_alltime_lite');
+  if (savedData) {
+      try { allTimeLeaderboard = JSON.parse(savedData); } catch(e) {}
+  }
+  
+  currentTheme = random(UI_THEMES);
+
   setupDOMControls();
   initTTS();
   initGame();
@@ -170,7 +183,8 @@ function setupDOMControls() {
   document.getElementById('resetBtn').onclick = () => {
     leaderboard = {};
     giftLeaderboard = {};
-    avatarRibbon = [];
+    allTimeLeaderboard = {}; // Hard reset
+    localStorage.removeItem('galaxinko_alltime_lite');
   };
 }
 
@@ -192,7 +206,7 @@ function connectTikfinity() {
           loadImage(imgUrl, img => { userAvatars[u] = img; joinPopupQueue.push({name: u, img: img}); }, () => {});
         } else if (!userAvatars[u]) {
           joinPopupQueue.push({name: u, img: null});
-          userAvatars[u] = "loaded"; // prevent spam
+          userAvatars[u] = "loaded"; 
         }
 
         if (evt === "chat") {
@@ -251,7 +265,6 @@ function spawnGiftBalls(userName, amount) {
   for (let i = 0; i < amount; i++) {
     setTimeout(() => {
       let bSize = 22; 
-      // Změna na circle (kruh)
       let b = Matter.Bodies.circle(W/2 + random(-150, 150), 30, bSize/2, { 
         restitution: 0.5, friction: 0.1, density: 0.05 
       });
@@ -259,7 +272,7 @@ function spawnGiftBalls(userName, amount) {
       
       balls.push({ 
         body: b, name: userName, color: bCol, scored: false, combo: 0, 
-        spawnTime: millis(), isRainbow: (i%2!==0), portalCooldown: 0, 
+        spawnTime: millis(), isRainbow: true, trail: [], portalCooldown: 0, 
         multiplier: 1, size: bSize, isGiftBall: true 
       });
       Matter.World.add(world, b);
@@ -274,16 +287,18 @@ function spawnBall(userName, mult = 1) {
   playSpawnSound();
   
   let bSize = 14; 
-  // Změna na circle (kruh)
   let ballBody = Matter.Bodies.circle(W/2 + random(-30, 30), 40, bSize/2, { 
     restitution: currentBounce, friction: 0.2, density: 0.001 
   });
   
   if (!leaderboard[userName]) leaderboard[userName] = { score: 0, color: color(random(100, 255), random(150, 255), random(150, 255)) };
   
+  // 5% chance for a rainbow effect on a normal ball
+  let isRnbw = random() < 0.05;
+
   balls.push({ 
     body: ballBody, name: userName, color: leaderboard[userName].color, 
-    scored: false, combo: 0, spawnTime: millis(), isRainbow: false, 
+    scored: false, combo: 0, spawnTime: millis(), isRainbow: isRnbw, trail: [], 
     portalCooldown: 0, multiplier: mult, size: bSize, isGiftBall: false 
   });
   Matter.World.add(world, ballBody);
@@ -306,8 +321,8 @@ function initGame() {
   
   portals = [{ x: random(100, W - 100), y: random(200, 400) }, { x: random(100, W - 100), y: random(PLAY_H - 350, PLAY_H - 150) }];
   
-  // DYNAMICKÉ GENEROVÁNÍ HŘEBÍKŮ NA ZÁKLADĚ KOLA
-  let layoutType = roundCount % 4;
+  // DYNAMICKÉ GENEROVÁNÍ HŘEBÍKŮ (8 RŮZNÝCH TVARŮ)
+  let layoutType = roundCount % 8;
   let spacingX = 40, spacingY = 40, startY = 220;
   let rows = Math.floor((PLAY_H - 300) / spacingY);
   let cols = Math.floor((W - 100) / spacingX);
@@ -326,17 +341,30 @@ function initGame() {
       let rDist = Math.abs(r - midR); 
 
       if (layoutType === 0) {
-        // Tvar Diamantu (Klasika)
+        // Tvar Diamantu
         if (cDist + rDist * 0.8 <= cols / 2) addPeg = true;
       } else if (layoutType === 1) {
-        // Plná mřížka s 15% dírami pro rychlejší průpad
+        // Plná mřížka s 15% dírami
         if (random() > 0.15) addPeg = true;
       } else if (layoutType === 2) {
-        // V-Tvar / Trychtýř (Méně kolíků uprostřed čím víc dole)
+        // V-Tvar / Trychtýř
         if (cDist >= r * 0.4) addPeg = true;
       } else if (layoutType === 3) {
-        // X-Tvar (Kříž uprostřed obrazovky)
+        // X-Tvar
         if (Math.abs(cDist - rDist * 0.5) < 3.5) addPeg = true;
+      } else if (layoutType === 4) {
+        // Kruh (Prázdný střed)
+        let distCenter = dist(c, r, cols/2, rows/2);
+        if (distCenter > cols/5 && distCenter < cols/2.5) addPeg = true;
+      } else if (layoutType === 5) {
+        // Zig-Zag linky
+        if (Math.abs((c + r) % 6 - 3) < 1.5) addPeg = true;
+      } else if (layoutType === 6) {
+        // Dva svislé sloupy
+        if (Math.abs(c - cols/3) < 1.5 || Math.abs(c - 2*cols/3) < 1.5) addPeg = true;
+      } else if (layoutType === 7) {
+        // Přesýpací hodiny
+        if (cDist <= Math.abs(r - rows/2) * 0.8 + 1.5) addPeg = true;
       }
 
       if (addPeg) {
@@ -349,14 +377,14 @@ function initGame() {
     }
   }
   
-  // Zones
+  // Zóny
   let sV = [5000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000];
   let cX = 0; zones = [];
   for (let i = 0; i < 21; i++) {
     let zW = (map(abs(i - 10), 0, 10, 2.5, 1.0) / 36.1) * W;
     zones.push({ 
       x: cX, w: zW, score: sV[i], flash: 0, 
-      baseColor: sV[i] >= 5000 ? color(50, 45, 15, 180) : color(10, 10, 40, 180) 
+      baseColor: sV[i] >= 5000 ? color(currentTheme[0]*0.5, currentTheme[1]*0.5, currentTheme[2]*0.5, 180) : color(10, 10, 40, 180) 
     });
     if (i > 0) { 
       let wl = Matter.Bodies.rectangle(cX, PLAY_H - (ZONE_H / 2), 6, ZONE_H, { isStatic: true, friction: 0.5 }); 
@@ -385,7 +413,8 @@ function draw() {
     world.gravity.y = currentGravity;
   }
 
-  background(5, 5, 12);
+  // Barevné pozadí na základě tématu
+  background(currentTheme[0] * 0.05, currentTheme[1] * 0.05, currentTheme[2] * 0.05 + 10);
   drawBackground();
   
   Matter.Engine.update(engine, 1000 / 60);
@@ -457,7 +486,7 @@ function drawBackground() {
   }
   for (let d of dust) {
     d.y += d.s; if (d.y > H) { d.y = 0; d.x = random(W); }
-    fill(0, 255, 255, 30); ellipse(d.x, d.y, d.s * 2);
+    fill(currentTheme[0], currentTheme[1], currentTheme[2], 30); ellipse(d.x, d.y, d.s * 2);
   }
 }
 
@@ -488,7 +517,7 @@ function drawBalls() {
           p.glow = 255;
           if (p.isBonus) {
             createExplosion(p.position.x, p.position.y, color(50,255,100));
-            updateScore(b.name, 500);
+            updateScore(b.name, 500, b.color);
             addFloatingText("+500", p.position.x, p.position.y, color(50,255,100));
             if(audioStarted) try { fxSynth.play(600, 0.05, 0, 0.1); } catch(e){}
           }
@@ -499,17 +528,17 @@ function drawBalls() {
     if (pos.y > PLAY_H - ZONE_H - 30 && !b.scored) {
       let czIndex = zones.findIndex(z => pos.x >= z.x && pos.x < z.x + z.w);
       if (czIndex !== -1) {
-        b.scored = true; // ZABRÁNÍ DVOJÍMU PŘIČTENÍ
+        b.scored = true;
         let cz = zones[czIndex];
         
         if (b.isGiftBall) {
-          updateScore(b.name, 50000); // FIXNÍCH 50 000 ZA GIFT
+          updateScore(b.name, 50000, b.color);
           addFloatingText("+50,000", pos.x, pos.y, color(255, 215, 0), true);
           cz.flash = 255; cz.flashColor = color(255, 215, 0);
           shakeAmount = 8; playJackpotSound();
         } else {
-          let pts = cz.score * b.multiplier; // NÁSOBIČ BĚŽNÉHO SKÓRE
-          updateScore(b.name, pts);
+          let pts = cz.score * b.multiplier;
+          updateScore(b.name, pts, b.color);
           addFloatingText("+" + pts, pos.x, pos.y, pts >= 5000 ? color(255, 215, 0) : color(100, 255, 100), pts >= 5000);
           cz.flash = 255; cz.flashColor = b.color;
           if (pts >= 5000) { shakeAmount = 5; playJackpotSound(); }
@@ -519,25 +548,41 @@ function drawBalls() {
 
     push(); translate(pos.x, pos.y); rotate(b.body.angle);
     
-    // ANTI-BAN PULZOVÁNÍ BAREV
+    // DUHOVÁ KULIČKA A OCAS
+    if (b.isRainbow) {
+      b.trail.push({x: pos.x, y: pos.y});
+      if (b.trail.length > 15) b.trail.shift();
+      
+      push();
+      rotate(-b.body.angle); // Zruš rotaci pro kreslení ocasu, ať to sedí v prostoru
+      translate(-pos.x, -pos.y);
+      colorMode(HSB);
+      noStroke();
+      for (let t = 0; t < b.trail.length; t++) {
+         let trCol = color((frameCount * 5 + t * 15) % 360, 255, 255, map(t, 0, b.trail.length, 0, 150));
+         fill(trCol);
+         ellipse(b.trail[t].x, b.trail[t].y, b.size * (t / b.trail.length));
+      }
+      colorMode(RGB);
+      pop();
+    }
+
     let pulseR = sin(frameCount * 0.1 + b.spawnTime) * 30;
     let pulseG = cos(frameCount * 0.13 + b.spawnTime) * 30;
     let pulseB = sin(frameCount * 0.17 + b.spawnTime) * 30;
     
-    let drawCol = b.isRainbow ? color((frameCount*15)%360, 255, 255) : color(red(b.color) + pulseR, green(b.color) + pulseG, blue(b.color) + pulseB);
-    if (b.isRainbow) colorMode(HSB);
+    let drawCol = b.isRainbow ? (colorMode(HSB), color((frameCount*15)%360, 255, 255)) : color(red(b.color) + pulseR, green(b.color) + pulseG, blue(b.color) + pulseB);
+    if (b.isRainbow) colorMode(RGB);
 
     if (b.isGiftBall) {
       drawingContext.shadowBlur = 20; drawingContext.shadowColor = drawCol;
       fill(drawCol); noStroke(); 
-      ellipse(0, 0, b.size, b.size); // Kulatý tvar dárku
+      ellipse(0, 0, b.size, b.size);
       drawingContext.shadowBlur = 0; fill(0); textAlign(CENTER, CENTER); textSize(12); text("🎁", 0, 0);
     } else {
       fill(drawCol); noStroke(); 
-      ellipse(0, 0, b.size, b.size); // Kulatý tvar pro běžné
+      ellipse(0, 0, b.size, b.size);
     }
-    
-    if (b.isRainbow) colorMode(RGB);
     
     rotate(-b.body.angle);
     if (!b.isGiftBall && (balls.length < 100 || b.multiplier > 1)) {
@@ -656,12 +701,11 @@ function handleSpamBuffer() {
     fill(uCol); textSize(9); text(u.substring(0,6), 0, 30);
     pop();
 
-    // VYPUŠTĚNÍ PO 1,5s NEAKTIVITĚ
     if (sp.state === 'CHARGING' && millis() - sp.lastUpdate > 1500) {
         sp.state = 'RELEASING';
         if (sp.buffered > 0) {
             for (let j = 0; j < sp.buffered; j++) {
-                setTimeout(() => spawnBall(u), j * 80); // Vypouští se postupně
+                setTimeout(() => spawnBall(u), j * 80);
             }
         }
     }
@@ -689,43 +733,35 @@ function drawUI() {
   fill(200); textSize(10); text(T[currentLang].WARP_CORE, dX + dW/2, 25);
   fill(timer < 10 ? color(255,50,50) : currentTheme); textSize(24); text(timer + "s", dX + dW/2, 45);
   
+  // --- ROUND LEADERBOARD (PRAVÁ STRANA) ---
+  push();
   translate(W - 220, 85);
-  let sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 100);
+  let sortedRound = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 100);
+  let visibleItemsRound = min(15, max(1, sortedRound.length));
+  let rH_Round = 45 + visibleItemsRound * 20; 
   
-  let boxCapacity = 15;
-  let visibleItems = min(boxCapacity, max(1, sorted.length));
-  let rH = 45 + visibleItems * 20; 
-  
-  fill(0, 0, 15, 200); stroke(currentTheme); rect(0, 0, 210, rH, 8);
+  fill(0, 0, 15, 200); stroke(currentTheme); rect(0, 0, 210, rH_Round, 8);
   noStroke(); fill(currentTheme); textAlign(CENTER); textSize(11); text(T[currentLang].TOP, 105, 25);
   stroke(255, 30); line(10, 35, 200, 35);
   
   noStroke(); textAlign(LEFT);
-  
-  let top5 = sorted.slice(0, 5);
-  top5.forEach((e, i) => {
+  let top5Round = sortedRound.slice(0, 5);
+  top5Round.forEach((e, i) => {
     let y = 55 + i * 20; 
     drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,8)}`, 10, y, e[1].color, 10, LEFT);
     drawTxt(e[1].score.toLocaleString(), 200, y, color(255), 10, RIGHT);
   });
 
-  let rest = sorted.slice(5);
-  if (rest.length > 0) {
+  let restRound = sortedRound.slice(5);
+  if (restRound.length > 0) {
       let scrollAreaY = 55 + 5 * 20; 
-      let scrollAreaH = rH - scrollAreaY - 5; 
-      let totalRestH = rest.length * 20;
-      
+      let scrollAreaH = rH_Round - scrollAreaY - 5; 
+      let totalRestH = restRound.length * 20;
       let scrollOffset = 0;
-      if (totalRestH > scrollAreaH) {
-          scrollOffset = (frameCount * 0.5) % (totalRestH + scrollAreaH);
-      }
+      if (totalRestH > scrollAreaH) scrollOffset = (frameCount * 0.5) % (totalRestH + scrollAreaH);
       
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.rect(0, scrollAreaY - 10, 210, scrollAreaH + 10);
-      drawingContext.clip();
-      
-      rest.forEach((e, i) => {
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(0, scrollAreaY - 10, 210, scrollAreaH + 10); drawingContext.clip();
+      restRound.forEach((e, i) => {
           let y = scrollAreaY + (i * 20) - scrollOffset + scrollAreaH;
           if (y > scrollAreaY - 20 && y < scrollAreaY + scrollAreaH + 20) {
               drawTxt(`${i + 6}. ${e[0].substring(0,8)}`, 10, y, e[1].color, 10, LEFT);
@@ -734,6 +770,35 @@ function drawUI() {
       });
       drawingContext.restore();
   }
+  pop();
+  
+  // --- ALL TIME LEADERBOARD (LEVÁ STRANA) ---
+  push();
+  translate(10, 85);
+  let sortedAllTime = Object.entries(allTimeLeaderboard).sort((a, b) => b[1].score - a[1].score).slice(0, 10);
+  let rH_AllTime = 45 + max(1, sortedAllTime.length) * 26;
+  
+  fill(0, 0, 15, 230); stroke(255, 215, 0, 150); rect(0, 0, 210, rH_AllTime, 8);
+  noStroke(); fill(255, 215, 0); textAlign(CENTER); textSize(11); text(T[currentLang].ALL_TIME, 105, 25);
+  stroke(255, 30); line(10, 35, 200, 35);
+  
+  noStroke(); textAlign(LEFT);
+  sortedAllTime.forEach((e, i) => {
+    let y = 60 + i * 26; 
+    
+    // Vykreslení profilové fotky
+    if (userAvatars[e[0]] && userAvatars[e[0]] !== "loaded") {
+      push(); imageMode(CENTER); drawingContext.save(); drawingContext.beginPath();
+      drawingContext.arc(20, y - 2, 8, 0, TWO_PI); drawingContext.clip();
+      image(userAvatars[e[0]], 20, y - 2, 16, 16); drawingContext.restore(); pop();
+      drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,7)}`, 32, y, color(e[1].color.levels || [255,255,255]), 9, LEFT);
+    } else {
+      drawTxt(`${i === 0 ? '👑 ' : ''}${i + 1}. ${e[0].substring(0,7)}`, 10, y, color(e[1].color.levels || [255,255,255]), 9, LEFT);
+    }
+    
+    drawTxt(e[1].score.toLocaleString(), 200, y, color(255), 9, RIGHT);
+  });
+  pop();
   
   pop();
 }
@@ -818,9 +883,13 @@ function removeBall(b) {
   balls.splice(balls.indexOf(b), 1);
 }
 
-function updateScore(n, p) {
-  if (!leaderboard[n]) leaderboard[n] = { score: 0, color: color(255) };
+function updateScore(n, p, c) {
+  if (!leaderboard[n]) leaderboard[n] = { score: 0, color: c || color(255) };
   leaderboard[n].score += p;
+  
+  // Update All Time Leaderboard
+  if (!allTimeLeaderboard[n]) allTimeLeaderboard[n] = { score: 0, color: c || color(255) };
+  allTimeLeaderboard[n].score += p;
 }
 
 function createExplosion(x, y, c) {
@@ -878,6 +947,12 @@ function handleJoinPopups() {
 }
 
 function resetGame() {
+  // Uložíme trvalé skóre do prohlížeče
+  localStorage.setItem('galaxinko_alltime_lite', JSON.stringify(allTimeLeaderboard));
+  
+  // Změníme barevné téma
+  currentTheme = random(UI_THEMES);
+  
   roundCount++; gameState = "PLAYING"; resultsTimer = 10; timer = 180;
   spamBuffer = {}; avatarRibbon = [];
   if (world) Matter.World.clear(world, false);
