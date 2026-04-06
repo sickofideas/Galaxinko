@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.28.0"; // Less shake, less orbs, 5s end timer
+const GAME_VERSION = "v19.28.1"; // TTS fixes, smaller bonus star
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -398,8 +398,8 @@ function handleOrbs() {
       if (!isHeavyLoad) drawingContext.shadowBlur = 0;
       pop();
 
-      fill(255); textSize(11); textStyle(BOLD); textAlign(CENTER);
-      text("BONUS\n+" + o.value, o.x, o.y - 25);
+      fill(255); textSize(9); textStyle(BOLD); textAlign(CENTER);
+      text("BONUS\n+" + o.value, o.x, o.y - 18);
 
       let collected = false;
       for (let p of players) {
@@ -724,7 +724,7 @@ function handleTTSCommentary() {
           arr = COMMENTARY[currentLang];
           if (random() < 0.25) {
               let top = [...players].sort((a,b) => b.hp - a.hp)[0];
-              if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${formatK(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${formatK(Math.max(0, top.hp))} points! Go after them!`;
+              if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${Math.floor(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${Math.floor(Math.max(0, top.hp))} points! Go after them!`;
           }
       }
       if (txt === "") {
@@ -898,7 +898,7 @@ function updateTimers() {
   if (gameState === "PLAYING" && frameCount % 60 === 0 && roundTimer > 0) {
     roundTimer--;
     if (roundTimer <= 0) {
-        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 15; // Zmírněno z 35 na 15
+        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 15; 
         if(audioStarted) try { synth.play(80, 0.5, 0, 0.8); setTimeout(() => { if(synth) synth.play(60, 0.8, 0, 1.0); }, 200); } catch(e){}
         let wPos = screenToWorld(shipX, shipY);
         deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
@@ -906,14 +906,14 @@ function updateTimers() {
     }
   } else if (gameState === "EXPLODING") {
       explosionTimer--; screenShake *= 0.95;
-      if (explosionTimer <= 0) { gameState = "RESULTS"; resultsTimer = 5; } // Z 10s na 5s
+      if (explosionTimer <= 0) { gameState = "RESULTS"; resultsTimer = 5; } 
   }
 
-  // Velmi vzácný spawn bonusů
-  if (gameState === "PLAYING" && frameCount % 1800 === 0 && random() < 0.15 && orbs.length < 1) { // 2x vzácnější a s menší šancí
+  // Velmi vzácný spawn bonusů - upraven poloměr na 12 (místo 25)
+  if (gameState === "PLAYING" && frameCount % 1800 === 0 && random() < 0.15 && orbs.length < 1) { 
       let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
       let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-      orbs.push({ x: cx + random(-viewW/2.5, viewW/2.5), y: cy + random(-viewH/2.5, viewH/2.5), r: 25, value: 1000 });
+      orbs.push({ x: cx + random(-viewW/2.5, viewW/2.5), y: cy + random(-viewH/2.5, viewH/2.5), r: 12, value: 1000 });
   }
 }
 
@@ -948,7 +948,7 @@ function drawResults() {
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 5; startNewRound(); } } // Změněno resetování na 5s
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 5; startNewRound(); } } 
 }
 
 function connectTikfinity() {
