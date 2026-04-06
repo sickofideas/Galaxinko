@@ -23,7 +23,7 @@
       background: #030306;
     }
     canvas { display: block; }
-    
+   
     #admin-bar {
       position: absolute; top: 0; left: 0; width: 100%; height: 50px;
       background: rgba(0,0,0,0.9); display: flex; align-items: center; gap: 8px;
@@ -52,17 +52,19 @@
     </div>
   </div>
 
+
 <script>
 // ==========================================
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.25.0"; // Optimalizace výkonu a obří aréna
+const GAME_VERSION = "v19.24.0"; // Spaceship Timer
 const W = 720;
 const H = 1280;
-const HUD_TOP = 50;   
-const ARENA_TOP = 150; 
-const ARENA_BOT = 900; 
+const HUD_TOP = 50;  
+const ARENA_TOP = 150;
+const ARENA_BOT = 900;
+
 
 let currentLang = "CZ";
 const T = {
@@ -78,20 +80,99 @@ const T = {
   }
 };
 
+
+// Všechny TTS texty jsou bezpečné pro TikTok
 const COMMENTARY_EMPTY = {
-  CZ: ["Haló? Je tam někdo? Aréna je trapně prázdná!", "Čekáme na prvního hrdinu! Kde jste všichni?", "Vstupte do arény! První bere všechno!", "Ticho před bouří... Zapojte se a odstartujte to!", "Diváci spí! Vzbuďte se a pojďte hrát!"],
-  EN: ["Hello? Anyone there? The arena is embarrassingly empty!", "Waiting for the first hero! Where is everyone?", "Enter the arena! First takes all!", "Calm before the storm... Join in and start it!", "The viewers are sleeping! Wake up and let's play!"]
+  CZ: [
+    "Haló? Je tam někdo? Aréna je trapně prázdná!",
+    "Čekáme na prvního hrdinu! Kde jste všichni?",
+    "Vstupte do arény! První bere všechno!",
+    "Ticho před bouří... Zapojte se a odstartujte to!",
+    "Diváci spí! Vzbuďte se a pojďte hrát!"
+  ],
+  EN: [
+    "Hello? Anyone there? The arena is embarrassingly empty!",
+    "Waiting for the first hero! Where is everyone?",
+    "Enter the arena! First takes all!",
+    "Calm before the storm... Join in and start it!",
+    "The viewers are sleeping! Wake up and let's play!"
+  ]
 };
+
 
 const COMMENTARY_SOLO = {
-  CZ: ["Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!", "Aréna patří jen hráči {p}! Změňte to někdo!", "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", "Jeden hráč jaro nedělá. Připojte se!"],
-  EN: ["Player {p} is circling all alone! Who challenges them?", "Are you letting {p} win without a fight? Get in there!", "The arena belongs only to {p}! Someone change that!", "{p} thinks they are unstoppable. Prove them wrong!", "One player doesn't make a match. Join in!"]
+  CZ: [
+    "Hráč {p} tu krouží úplně sám! Kdo ho vyzve?",
+    "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!",
+    "Aréna patří jen hráči {p}! Změňte to někdo!",
+    "{p} si myslí, že je nezastavitelný. Dokažte mu opak!",
+    "Jeden hráč jaro nedělá. Připojte se!"
+  ],
+  EN: [
+    "Player {p} is circling all alone! Who challenges them?",
+    "Are you letting {p} win without a fight? Get in there!",
+    "The arena belongs only to {p}! Someone change that!",
+    "{p} thinks they are unstoppable. Prove them wrong!",
+    "One player doesn't make a match. Join in!"
+  ]
 };
 
+
 const COMMENTARY = {
-  CZ: ["Au, to byla rána!", "Neskutečný odraz v aréně!", "Klikejte, nebo vás vytlačí!", "Tady lítají jiskry!", "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!", "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!", "Klikejte na obrazovku, nebo váš favorit vyletí z mapy!", "Ten náraz slyšeli až na Měsíci!", "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!", "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Kdo nekliká, ten zkrátka nehraje!", "Zářivý štít nevydrží věčně, podpořte svého favorita!", "Podívejte se na ty odrazy, to je naprosté šílenství!", "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!", "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!", "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!", "Bez podpory jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!", "Pošlete dárek a staňte se nezastavitelným bossem!", "Všichni se sráží do jednoho velkého chumlu!", "Taktika tu nepomůže, tady rozhoduje vaše podpora!", "Tyhle kruhy by roztočily i galaxii!", "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?", "Klikejte co to dá, nebo váš kruh zmizí!", "Neuvěřitelná rychlost! Roztočte to ještě víc!", "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!", "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!", "Tenhle souboj je napínavější než finále mistrovství!", "Sledujte tu dynamiku! Fyzika tady dostává zabrat!", "Skvělý zásah! Tohle stálo hodně energie!", "Nedávejte jim šanci vydechnout! Víc klikání, víc bodů!", "Točí se to jako šílené! Kdo to zastaví?", "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!", "Totální chaos! Tohle je to, co chceme vidět!"],
-  EN: ["Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Tap it up or get pushed out!", "Sparks are flying!", "Who will win this madness?", "What a brawl!", "Spinning to the max!", "Wow, threw him away like a toy!", "This is live space pinball!", "Tap the screen or your favorite will fly off the map!", "They heard that crash all the way to the Moon!", "Heavy hits! Only the best succeed here!", "Took that one right in the core!", "Rev up those circles! We want to see more points!", "If you're not tapping, you're not playing!", "A glowing shield won't last forever, support your favorite!", "Look at those bounces, absolute madness!", "We are writing this round in the history books!", "Someone stop these giant spinning titans!", "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!", "An epic battle of dancing circles!", "Legends are born right here!", "Without support, you're just a tiny dot!", "What a hit, and they're still on the map!", "Send a gift and become an unstoppable boss!", "Everyone is crashing into one massive pile!", "Tactics won't help, your support decides here!", "These circles could spin the galaxy!", "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points?", "Tap like crazy, or your circle disappears!", "Unbelievable speed! Spin it even faster!", "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!", "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", "Great hit! That must have taken a ton of energy!", "Don't give them a chance to breathe! More taps, more points!", "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby! That circle is going to need a mechanic!", "Total chaos! This is what we want to see!"]
+  CZ: [
+    "Au, to byla rána!", "Neskutečný odraz v aréně!", "Klikejte, nebo vás vytlačí!", "Tady lítají jiskry!",
+    "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!",
+    "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!",
+    "Klikejte na obrazovku, nebo váš favorit vyletí z mapy!", "Ten náraz slyšeli až na Měsíci!",
+    "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!",
+    "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Kdo nekliká, ten zkrátka nehraje!",
+    "Zářivý štít nevydrží věčně, podpořte svého favorita!", "Podívejte se na ty odrazy, to je naprosté šílenství!",
+    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!",
+    "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!",
+    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!",
+    "Bez podpory jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!",
+    "Pošlete dárek a staňte se nezastavitelným bossem!", "Všichni se sráží do jednoho velkého chumlu!",
+    "Taktika tu nepomůže, tady rozhoduje vaše podpora!", "Tyhle kruhy by roztočily i galaxii!",
+    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?",
+    "Klikejte co to dá, nebo váš kruh zmizí!", "Neuvěřitelná rychlost! Roztočte to ještě víc!",
+    "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!",
+    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!",
+    "Tenhle souboj je napínavější než finále mistrovství!",
+    "Sledujte tu dynamiku! Fyzika tady dostává zabrat!",
+    "Skvělý zásah! Tohle stálo hodně energie!",
+    "Nedávejte jim šanci vydechnout! Víc klikání, víc bodů!",
+    "Točí se to jako šílené! Kdo to zastaví?",
+    "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!",
+    "Totální chaos! Tohle je to, co chceme vidět!"
+  ],
+  EN: [
+    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Tap it up or get pushed out!", "Sparks are flying!",
+    "Who will win this madness?", "What a brawl!", "Spinning to the max!",
+    "Wow, threw him away like a toy!", "This is live space pinball!",
+    "Tap the screen or your favorite will fly off the map!", "They heard that crash all the way to the Moon!",
+    "Heavy hits! Only the best succeed here!", "Took that one right in the core!",
+    "Rev up those circles! We want to see more points!", "If you're not tapping, you're not playing!",
+    "A glowing shield won't last forever, support your favorite!", "Look at those bounces, absolute madness!",
+    "We are writing this round in the history books!", "Someone stop these giant spinning titans!",
+    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!",
+    "An epic battle of dancing circles!", "Legends are born right here!",
+    "Without support, you're just a tiny dot!", "What a hit, and they're still on the map!",
+    "Send a gift and become an unstoppable boss!", "Everyone is crashing into one massive pile!",
+    "Tactics won't help, your support decides here!", "These circles could spin the galaxy!",
+    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points?",
+    "Tap like crazy, or your circle disappears!", "Unbelievable speed! Spin it even faster!",
+    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!",
+    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!",
+    "This fight is more thrilling than a championship finals!",
+    "Watch the dynamics! Physics is working hard here!",
+    "Great hit! That must have taken a ton of energy!",
+    "Don't give them a chance to breathe! More taps, more points!",
+    "Spinning like crazy! Who's gonna stop it!",
+    "Ooh, clean flyby! That circle is going to need a mechanic!",
+    "Total chaos! This is what we want to see!"
+  ]
 };
+
 
 let engine, world;
 let players = [];
@@ -100,14 +181,16 @@ let floatingTexts = [];
 let lightnings = [];
 let deathShockwaves = [];
 let userAvatars = {};
-let orbs = []; 
+let orbs = [];
+
 
 let wallTop, wallBot, wallLeft, wallRight;
-const wallThick = 2000;
+
 
 // Systém poškození (Pouze All-Time žebříček)
 let allTimeDamageLeaderboard = {};
-let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
+let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15};
+
 
 // Vesmírné efekty
 let stars = [];
@@ -118,14 +201,16 @@ let milkyWay = [];
 let flowTime = 0;
 let globalFlowAngle = 0;
 
+
 let roundTimer = 0;
-let maxRoundTimer = 0; 
+let maxRoundTimer = 0;
 let explosionTimer = 0;
-let gameState = "PLAYING"; 
+let gameState = "PLAYING";
 let resultsTimer = 10;
 let cameraScale = 1.0;
 let audioStarted = false;
 let synth;
+
 
 let nextCommentTime = 0;
 let lastHitSound = 0;
@@ -133,40 +218,44 @@ let lastCommentString = "";
 let screenShake = 0;
 let shipX = 0, shipY = 0;
 
+
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch", "Cosmos", "Apollo"];
+
 
 function setup() {
   let cvs = createCanvas(W, H);
   cvs.parent('game-container');
   smooth();
   noCursor();
-  
+ 
   synth = new p5.PolySynth();
   synth.setADSR(0.01, 0.1, 0.2, 0.1);
-  
+ 
   engine = Matter.Engine.create({ enableSleeping: false });
   world = engine.world;
-  world.gravity.y = 0; 
+  world.gravity.y = 0;
   world.gravity.x = 0;
-  
+ 
   let cx = W/2;
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let wallOpts = { isStatic: true, restitution: 1.0, friction: 0 };
-  
-  wallTop = Matter.Bodies.rectangle(cx, cy - 1000, 20000, wallThick, wallOpts);
-  wallBot = Matter.Bodies.rectangle(cx, cy + 1000, 20000, wallThick, wallOpts);
-  wallLeft = Matter.Bodies.rectangle(cx - 1000, cy, wallThick, 20000, wallOpts);
-  wallRight = Matter.Bodies.rectangle(cx + 1000, cy, wallThick, 20000, wallOpts);
+ 
+  wallTop = Matter.Bodies.rectangle(cx, cy - 1000, 10000, 500, wallOpts);
+  wallBot = Matter.Bodies.rectangle(cx, cy + 1000, 10000, 500, wallOpts);
+  wallLeft = Matter.Bodies.rectangle(cx - 1000, cy, 500, 10000, wallOpts);
+  wallRight = Matter.Bodies.rectangle(cx + 1000, cy, 500, 10000, wallOpts);
   Matter.World.add(world, [wallTop, wallBot, wallLeft, wallRight]);
 
+
   generateSpaceBackground();
-  
+ 
   setupEvents();
   startNewRound();
   connectTikfinity();
 }
+
 
 function generateSpaceBackground() {
   stars = [];
@@ -174,7 +263,7 @@ function generateSpaceBackground() {
   shootingStars = [];
   planets = [];
   milkyWay = [];
-  
+ 
   let mwPoints = 40;
   for (let i = 0; i < mwPoints; i++) {
       let t = i / mwPoints;
@@ -188,10 +277,11 @@ function generateSpaceBackground() {
       });
   }
 
+
   for(let i=0; i<200; i++) {
-    let isPulse = random() < 0.25; 
+    let isPulse = random() < 0.25;
     stars.push({
-        x: random(W), y: random(ARENA_TOP, ARENA_BOT), 
+        x: random(W), y: random(ARENA_TOP, ARENA_BOT),
         s: random(1, 3.5), speed: random(0.1, 1.2),
         rC: random(150, 255), gC: random(200, 255), bC: 255,
         baseAlpha: random(15, 80),
@@ -200,7 +290,7 @@ function generateSpaceBackground() {
         pulsePhase: random(TWO_PI)
     });
   }
-  
+ 
   for(let i=0; i<6; i++) {
     nebulas.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT),
@@ -208,6 +298,7 @@ function generateSpaceBackground() {
         color: color(random(50, 150), random(0, 100), random(150, 255), random(2, 10))
     });
   }
+
 
   for(let i=0; i<4; i++) {
     planets.push({
@@ -223,17 +314,19 @@ function generateSpaceBackground() {
   }
 }
 
+
 function startNewRound() {
   players.forEach(p => Matter.World.remove(world, p.body));
-  
+ 
   let oldPlayers = players.map(p => p.name);
   players = [];
   orbs = [];
   screenShake = 0;
-  
-  oldPlayers.forEach(name => spawnPlayer(name, 500)); 
+ 
+  oldPlayers.forEach(name => spawnPlayer(name, 500));
 
-  roundTimer = floor(random(180, 900)); 
+
+  roundTimer = floor(random(180, 900));
   maxRoundTimer = roundTimer;
   gameState = "PLAYING";
   cameraScale = 1.0;
@@ -245,13 +338,14 @@ function startNewRound() {
   generateSpaceBackground();
 }
 
+
 function setupEvents() {
   document.getElementById('langBtn').onclick = (e) => {
     currentLang = currentLang === "CZ" ? "EN" : "CZ";
     e.target.innerText = "LANG: " + currentLang;
   };
   document.getElementById('tJoin').onclick = () => {
-    handleAction(random(TEST_NAMES) + floor(random(99)), 500); 
+    handleAction(random(TEST_NAMES) + floor(random(99)), 500);
   };
   document.getElementById('tLike').onclick = () => {
     if(players.length > 0) handleAction(random(players).name, floor(random(50, 150)));
@@ -266,6 +360,7 @@ function setupEvents() {
   };
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
+
   Matter.Events.on(engine, 'collisionStart', (event) => {
     let playedSoundThisFrame = false;
     event.pairs.forEach(pair => {
@@ -274,7 +369,7 @@ function setupEvents() {
       if(p1 && p2) {
           handleCombat(p1, p2);
           if (!playedSoundThisFrame && audioStarted && millis() - lastHitSound > 100) {
-              try { synth.play(random([800, 1000, 1200]), 0.02, 0, 0.1); } catch(e){} 
+              try { synth.play(random([800, 1000, 1200]), 0.02, 0, 0.1); } catch(e){}
               lastHitSound = millis();
               playedSoundThisFrame = true;
           }
@@ -283,6 +378,7 @@ function setupEvents() {
   });
 }
 
+
 function formatK(num) {
   let safeNum = Math.max(0, num || 0);
   if (safeNum >= 1000000) return (safeNum / 1000000).toFixed(1) + 'M';
@@ -290,61 +386,65 @@ function formatK(num) {
   return Math.floor(safeNum).toString();
 }
 
+
 function getRadius(hp) {
-    let safeHp = Math.max(0, hp || 0); 
-    return Math.min(32 + Math.sqrt(safeHp) * 0.5, 110); 
+    let safeHp = Math.max(0, hp || 0);
+    return Math.min(32 + Math.sqrt(safeHp) * 0.5, 110);
 }
 
+
 function spawnPlayer(name, hp) {
-  let safeHp = Math.max(0, hp || 500); 
+  let safeHp = Math.max(0, hp || 500);
   let r = getRadius(safeHp);
-  
+ 
   let cx = W/2;
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale;
   let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  let spawnX = cx + random(-viewW/2 + r*2, viewW/2 - r*2);
-  let spawnY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
+  let spawnX = cx + random(-viewW/2 + r, viewW/2 - r);
+  let spawnY = cy + random(-viewH/2 + r, viewH/2 - r);
+
 
   let body = Matter.Bodies.circle(spawnX, spawnY, r, {
     restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
   });
-  
+ 
   Matter.Body.setVelocity(body, { x: random(-3.5, 3.5), y: random(-3.5, 3.5) });
-  
+ 
   let player = {
     name: name, hp: safeHp, body: body, r: r,
     color: color(random(100,255), random(100,255), random(100,255)),
     rot: 0, auraFlash: 0,
-    baseRotDir: random() < 0.5 ? 1 : -1, 
+    baseRotDir: random() < 0.5 ? 1 : -1,
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     damageDealt: 0,
     sawType: Math.floor(random(30)),
     likeBuffTimer: 0,
-    trail: [] 
+    trail: []
   };
-  
+ 
   players.push(player);
   Matter.World.add(world, body);
   speakTTS(T[currentLang].NEW + name);
-  createParticles(body.position.x, body.position.y, player.color, 10);
-  
+  createParticles(body.position.x, body.position.y, player.color, 15);
+ 
   if(audioStarted) {
-      try { 
-          synth.play(600, 0.1, 0, 0.05); 
+      try {
+          synth.play(600, 0.1, 0, 0.05);
           setTimeout(() => { if(synth) synth.play(900, 0.1, 0, 0.1); }, 50);
       } catch(e){}
   }
 }
 
+
 function handleAction(name, amount) {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  
+ 
   let p = players.find(x => x.name === name);
   if(p) {
     p.hp += amount;
-    p.auraFlash = 15; 
-    p.likeBuffTimer = 90; 
+    p.auraFlash = 15;
+    p.likeBuffTimer = 90;
     let newR = getRadius(p.hp);
     if (newR > p.r + 0.5) {
         let scale = newR / p.r;
@@ -354,9 +454,10 @@ function handleAction(name, amount) {
     }
     addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
-    spawnPlayer(name, 500 + amount); 
+    spawnPlayer(name, 500 + amount);
   }
 }
+
 
 function updateDamageLB(name, dmg, col) {
     let ava = userAvatars[name];
@@ -365,48 +466,61 @@ function updateDamageLB(name, dmg, col) {
     }
 }
 
+
 function handleCombat(p1, p2) {
   let speed = Matter.Vector.magnitude(Matter.Vector.sub(p1.body.velocity, p2.body.velocity));
-  if (speed < 1.0) return; 
+  if (speed < 1.0) return;
+
 
   let safeHp1 = Math.max(1, p1.hp);
   let safeHp2 = Math.max(1, p2.hp);
 
+
   let speed1 = Matter.Vector.magnitude(p1.body.velocity);
   let speed2 = Matter.Vector.magnitude(p2.body.velocity);
+
 
   let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
   let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
 
+
   let momentum1 = speed1 / (speed1 + speed2 + 0.1);
   let momentum2 = speed2 / (speed1 + speed2 + 0.1);
-  
+ 
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
+
 
   let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + speed * 0.2) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
   let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + speed * 0.2) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
+
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
+
 
   let isCrit1 = random() < 0.04;
   let isCrit2 = random() < 0.04;
 
+
   if (isCrit1) baseDmgFrom1 *= 1.3;
   if (isCrit2) baseDmgFrom2 *= 1.3;
 
-  let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
-  let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
+
+  let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1));
+  let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2));
+
 
   let hp1Before = p1.hp;
   let hp2Before = p2.hp;
 
+
   p1.hp -= finalDmgTo1;
   p2.hp -= finalDmgTo2;
 
+
   if (p1.hp <= 0 && hp1Before > 0) {
-      let heal = Math.floor(hp1Before * 0.3 + 50); 
+      let heal = Math.floor(hp1Before * 0.3 + 50);
       p2.hp += heal;
       addPopup("+" + heal + " TAKEDOWN!", p2.body.position.x, p2.body.position.y - p2.r - 20, color(50, 255, 100));
       p2.auraFlash = 20;
@@ -418,7 +532,7 @@ function handleCombat(p1, p2) {
           Matter.Body.setDensity(p2.body, 0.001 + (newR * 0.0001));
       }
   }
-  
+ 
   if (p2.hp <= 0 && hp2Before > 0) {
       let heal = Math.floor(hp2Before * 0.3 + 50);
       p1.hp += heal;
@@ -433,70 +547,59 @@ function handleCombat(p1, p2) {
       }
   }
 
+
   p1.damageDealt += finalDmgTo2;
   p2.damageDealt += finalDmgTo1;
 
+
   updateDamageLB(p1.name, p1.damageDealt, p1.color);
   updateDamageLB(p2.name, p2.damageDealt, p2.color);
-  
+ 
   let cx = (p1.body.position.x + p2.body.position.x)/2;
   let cy = (p1.body.position.y + p2.body.position.y)/2;
+
 
   let forceDir = Matter.Vector.normalise(Matter.Vector.sub(p2.body.position, p1.body.position));
   let forceMag = 0.02 + speed * 0.004;
   Matter.Body.applyForce(p1.body, p1.body.position, Matter.Vector.mult(forceDir, -forceMag * p1.body.mass));
   Matter.Body.applyForce(p2.body, p2.body.position, Matter.Vector.mult(forceDir, forceMag * p2.body.mass));
-  
-  // Zamezení přehlcení vizuálu
-  if (players.length < 50) {
-      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
-      createParticles(cx, cy, color(255, 200, 50), 8); 
-  }
-  
+ 
+  lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
+
+
+  createParticles(cx, cy, color(255, 200, 50), 15);
+ 
   let col1 = isCrit2 ? color(255, 215, 0) : color(255, 80, 80);
   let col2 = isCrit1 ? color(255, 215, 0) : color(255, 80, 80);
-  
+ 
   addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, col1, isCrit2);
   addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, col2, isCrit1);
 
+
   if ((isCrit1 || isCrit2) && audioStarted) {
-      try { synth.play(1500, 0.05, 0, 0.2); } catch(e){} 
+      try { synth.play(1500, 0.05, 0, 0.2); } catch(e){}
   }
 }
+
 
 function handleOrbs() {
   for (let i = orbs.length - 1; i >= 0; i--) {
       let o = orbs[i];
-      
-      push();
-      translate(o.x, o.y);
-      rotate(frameCount * 0.02);
-      
-      drawingContext.shadowBlur = 20;
+     
+      drawingContext.shadowBlur = 15;
       drawingContext.shadowColor = color(255, 215, 0);
-      fill(255, 200, 0, 180 + sin(frameCount * 0.1) * 75);
+      fill(255, 200, 0, 150 + sin(frameCount * 0.1) * 100);
       stroke(255); strokeWeight(2);
-      
-      // Tvar hvězdy místo kuličky
-      beginShape();
-      for(let j=0; j<10; j++) {
-         let a = j * TWO_PI / 10;
-         let r = j % 2 === 0 ? o.r * 1.5 : o.r * 0.7;
-         vertex(cos(a)*r, sin(a)*r);
-      }
-      endShape(CLOSE);
+      ellipse(o.x, o.y, o.r * 2);
       drawingContext.shadowBlur = 0;
-      pop();
 
-      fill(255); textSize(11); textStyle(BOLD); textAlign(CENTER);
-      text("BONUS\n+1000", o.x, o.y - 25);
 
       let collected = false;
       for (let p of players) {
           if (p.hp > 0 && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
               p.hp += o.value;
               addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
-              
+             
               let newR = getRadius(p.hp);
               if (newR > p.r + 0.5) {
                   let scale = newR / p.r;
@@ -504,7 +607,7 @@ function handleOrbs() {
                   p.r = newR;
                   Matter.Body.setDensity(p.body, 0.001 + (newR * 0.0001));
               }
-              
+             
               if(audioStarted) { try { synth.play(1200, 0.1, 0, 0.2); } catch(e){} }
               collected = true;
               break;
@@ -513,6 +616,7 @@ function handleOrbs() {
       if (collected) orbs.splice(i, 1);
   }
 }
+
 
 function screenToWorld(sx, sy) {
     let cx = W/2;
@@ -523,18 +627,19 @@ function screenToWorld(sx, sy) {
     };
 }
 
+
 function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
-    let p = 1.0 - (roundTimer / maxRoundTimer); 
+    let p = 1.0 - (roundTimer / maxRoundTimer); // Jde od 0 do 1
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
     let currentDist = p * perim;
-    
+   
     stroke(0, 255, 255);
     strokeWeight(3);
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = 'cyan';
-    
+   
     let points = [
         {x: 0, y: ARENA_TOP},
         {x: W, y: ARENA_TOP},
@@ -543,15 +648,18 @@ function drawSpaceshipTimer() {
         {x: 0, y: ARENA_TOP}
     ];
 
+
     let d = 0;
     let shipAngle = 0;
     shipX = points[0].x;
     shipY = points[0].y;
 
+
     for (let i = 0; i < points.length - 1; i++) {
         let p1 = points[i];
         let p2 = points[i+1];
         let segLen = dist(p1.x, p1.y, p2.x, p2.y);
+
 
         if (currentDist > d + segLen) {
             line(p1.x, p1.y, p2.x, p2.y);
@@ -568,27 +676,29 @@ function drawSpaceshipTimer() {
     }
     drawingContext.shadowBlur = 0;
 
+
     push();
     translate(shipX, shipY);
     rotate(shipAngle);
-    
+   
     fill(255, 100, 0);
     noStroke();
     triangle(-15, -5, -15, 5, -25 - sin(frameCount * 0.5) * 5, 0);
+
 
     fill(200, 200, 255);
     stroke(0, 255, 255);
     strokeWeight(2);
     triangle(20, 0, -15, -10, -15, 10);
-    
+   
     fill(0, 255, 255);
     noStroke();
     ellipse(5, 0, 10, 6);
-    
+   
     pop();
 
-    // Stopy za lodí - sníženo pro výkon
-    if (frameCount % 3 === 0 && roundTimer > 0) {
+
+    if (frameCount % 2 === 0 && roundTimer > 0) {
         let wPos = screenToWorld(shipX, shipY);
         let vx = -cos(shipAngle) * random(2, 4) + random(-1, 1);
         let vy = -sin(shipAngle) * random(2, 4) + random(-1, 1);
@@ -596,154 +706,85 @@ function drawSpaceshipTimer() {
     }
 }
 
-function handleCameraAndPlayers() {
-  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
-  
-  let targetSpeed = 2.5;
-  let cx = W/2; 
-  let cy = (ARENA_TOP+ARENA_BOT)/2;
-  
-  for (let i = players.length - 1; i >= 0; i--) {
-    let p = players[i];
-    
-    p.trail.push({x: p.body.position.x, y: p.body.position.y});
-    if (p.trail.length > 12) p.trail.shift();
-    
-    if (p.hp <= 0) {
-      createParticles(p.body.position.x, p.body.position.y, p.color, 40);
-      deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-      screenShake = 12;
-      
-      if(audioStarted) {
-          try{ 
-              synth.play(150, 0.1, 0, 0.1); 
-              setTimeout(() => { if(synth) synth.play(80, 0.2, 0, 0.3); }, 100);
-          }catch(e){}
-      }
-      Matter.World.remove(world, p.body);
-      players.splice(i, 1);
-      continue;
-    }
-    
-    p.noiseOffsetX += 0.02; p.noiseOffsetY += 0.02;
-    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
-    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
-    Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
-
-    // Rychlá a levná gravitace do středu (místo náročného hledání nejbližšího přes O(N^2))
-    let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
-    let distC = Matter.Vector.magnitude(toCenter);
-    if (distC > 200 / cameraScale) {
-        let pull = Matter.Vector.normalise(toCenter);
-        Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000008 * p.body.mass));
-    }
-
-    let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
-    if (currentSpeed > 0.1) {
-        let factor = targetSpeed / currentSpeed;
-        Matter.Body.setVelocity(p.body, { 
-            x: lerp(p.body.velocity.x, p.body.velocity.x * factor, 0.1), 
-            y: lerp(p.body.velocity.y, p.body.velocity.y * factor, 0.1) 
-        });
-    }
-  }
-
-  // Pevné a agresivnější zoom úrovně podle počtu hráčů
-  let targetScale = 1.0;
-  let len = players.length;
-  
-  if (len >= 250) targetScale = 0.30;
-  else if (len >= 150) targetScale = 0.40;
-  else if (len >= 100) targetScale = 0.55;
-  else if (len >= 60) targetScale = 0.65;
-  else if (len >= 40) targetScale = 0.75;
-  else if (len >= 20) targetScale = 0.85;
-
-  cameraScale = lerp(cameraScale, targetScale, 0.02); 
-  
-  // Přesný posun mantinelů podle okraje kamery, aby se hráči nikdy neztratili
-  let viewW = W / cameraScale;
-  let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  
-  Matter.Body.setPosition(wallTop, { x: cx, y: cy - viewH/2 - wallThick/2 });
-  Matter.Body.setPosition(wallBot, { x: cx, y: cy + viewH/2 + wallThick/2 });
-  Matter.Body.setPosition(wallLeft, { x: cx - viewW/2 - wallThick/2, y: cy });
-  Matter.Body.setPosition(wallRight, { x: cx + viewW/2 + wallThick/2, y: cy });
-}
 
 function draw() {
-  background(3, 4, 8); 
-  
+  background(3, 4, 8);
+ 
   drawTopHUD();
+
 
   fill(10, 12, 15); noStroke();
   rect(0, ARENA_BOT, W, H - ARENA_BOT);
   fill(50); textAlign(CENTER, CENTER); textSize(16);
   text(T[currentLang].DAYZ_SPACE, W/2, ARENA_BOT + (H - ARENA_BOT)/2);
 
+
   stroke(0, 150, 255, 100); strokeWeight(2); noFill();
   rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
-  if (gameState === "PLAYING") {
-      drawSpaceshipTimer();
-  }
 
   drawingContext.save();
   drawingContext.beginPath();
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawingContext.clip();
 
+
   drawSpaceBackground();
   Matter.Engine.update(engine, 1000/60);
+
 
   if (gameState === "PLAYING" || gameState === "EXPLODING") {
     if (gameState === "PLAYING") {
         handleCameraAndPlayers();
     } else {
-        screenShake *= 0.95; 
+        screenShake *= 0.95;
     }
-    
+   
     push();
     translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
     scale(cameraScale);
-    
+   
     if (screenShake > 0) {
         translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
     }
-    
+   
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
-    
+   
     drawDeathShockwaves();
     drawLightnings();
-    
+   
     if (gameState === "PLAYING") {
         handleOrbs();
         let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
         sortedToDraw.forEach(p => drawPlayer(p));
     }
-    
-    // Omezení částic a textů pro lepší výkon
-    if (particles.length > 200) particles.splice(0, particles.length - 200);
-    if (floatingTexts.length > 50) floatingTexts.splice(0, floatingTexts.length - 50);
-    
+   
     drawParticles();
     drawPopups();
     pop();
+
 
     updateTimers();
     if (gameState === "PLAYING") handleTTSCommentary();
   } else if (gameState === "RESULTS") {
     drawResults();
   }
-  
-  drawingContext.restore(); 
+ 
+  drawingContext.restore();
+
+
+  // Loď létá na okraji displeje (přes obraz, ne pod maskou kamery)
+  if (gameState === "PLAYING") {
+      drawSpaceshipTimer();
+  }
 }
+
 
 function handleTTSCommentary() {
   if (millis() > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
       let txt = "";
       let arr = [];
-      
+     
       if (players.length === 0) {
           arr = COMMENTARY_EMPTY[currentLang];
       } else if (players.length === 1) {
@@ -753,34 +794,36 @@ function handleTTSCommentary() {
           if (random() < 0.25) {
               let top = [...players].sort((a,b) => b.hp - a.hp)[0];
               if (top) {
-                  txt = currentLang === "CZ" ? 
-                      `${top.name} dominuje aréně s ${formatK(Math.max(0, top.hp))} body! Jděte po něm!` : 
+                  txt = currentLang === "CZ" ?
+                      `${top.name} dominuje aréně s ${formatK(Math.max(0, top.hp))} body! Jděte po něm!` :
                       `${top.name} dominates the arena with ${formatK(Math.max(0, top.hp))} points! Go after them!`;
               }
           }
       }
-      
+     
       if (txt === "") {
           let attempts = 0;
           do {
              txt = random(arr);
              attempts++;
           } while (txt === lastCommentString && attempts < 5);
-          
+         
           if (players.length === 1) {
               txt = txt.replace("{p}", players[0].name);
           }
       }
-      
+     
       lastCommentString = txt;
       speakTTS(txt);
-      nextCommentTime = millis() + random(5000, 10000); 
+      nextCommentTime = millis() + random(5000, 10000);
   }
 }
+
 
 function drawTopHUD() {
   fill(8, 10, 18); noStroke();
   rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
+
 
   textAlign(CENTER, CENTER);
   drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(0, 255, 255);
@@ -790,6 +833,7 @@ function drawTopHUD() {
   fill(150); textSize(8); textStyle(NORMAL);
   text(GAME_VERSION, W/2, HUD_TOP + 35);
 
+
   let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
   fill(100, 255, 100); textSize(28); textStyle(BOLD);
   if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
@@ -797,18 +841,19 @@ function drawTopHUD() {
   fill(150); textSize(8); textStyle(NORMAL);
   text(T[currentLang].TIME, W/2, HUD_TOP + 85);
 
+
   let allTimeSorted = Object.entries(allTimeDamageLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
   allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15};
-  
+ 
   textAlign(LEFT, TOP);
   if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) {
-      fill(255, 50, 50); 
+      fill(255, 50, 50);
   } else {
       fill(255, 100, 255);
   }
   textSize(9); textStyle(BOLD);
   text(currentLang === "CZ" ? "ALL-TIME TOP 5 DMG" : "ALL-TIME TOP 5 DMG", 10, HUD_TOP + 10);
-  
+ 
   textStyle(NORMAL);
   for(let i=0; i<allTimeSorted.length; i++) {
       let pName = allTimeSorted[i][0];
@@ -821,11 +866,12 @@ function drawTopHUD() {
       textStyle(NORMAL);
   }
 
+
   let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
   textAlign(RIGHT, TOP);
   fill(0, 255, 255); textSize(9); textStyle(BOLD);
   text(T[currentLang].TOP, W - 10, HUD_TOP + 10);
-  
+ 
   textStyle(NORMAL);
   for(let i = 0; i < hpSorted.length; i++) {
       let p = hpSorted[i];
@@ -837,16 +883,260 @@ function drawTopHUD() {
   }
 }
 
+
+function drawSpaceBackground() {
+  flowTime += 0.003;
+  globalFlowAngle = sin(flowTime) * 0.25;
+
+
+  noStroke();
+ 
+  drawingContext.save();
+  milkyWay.forEach(mw => {
+      fill(mw.color);
+      ellipse(mw.x, mw.y, mw.r * 2);
+     
+      mw.x += sin(globalFlowAngle) * 0.2;
+      mw.y += cos(globalFlowAngle) * 0.2;
+     
+      if (mw.y > ARENA_BOT + 250) mw.y = ARENA_TOP - 250;
+      if (mw.x > W + 250) mw.x = -250;
+      if (mw.x < -250) mw.x = W + 250;
+  });
+  drawingContext.restore();
+
+
+  nebulas.forEach(n => {
+     fill(n.color);
+     ellipse(n.x, n.y, n.r);
+  });
+
+
+  stars.forEach(s => {
+    let currentAlpha = s.baseAlpha;
+    if (s.isPulsing) {
+        currentAlpha = 50 + sin(frameCount * s.pulseSpeed + s.pulsePhase) * 205;
+    }
+    fill(s.rC, s.gC, s.bC, currentAlpha);
+    rect(s.x, s.y, s.s, s.s);
+   
+    s.x += sin(globalFlowAngle) * s.speed;
+    s.y += cos(globalFlowAngle) * s.speed;
+   
+    if (s.y > ARENA_BOT) { s.y = ARENA_TOP; s.x = random(W); }
+    else if (s.y < ARENA_TOP) { s.y = ARENA_BOT; s.x = random(W); }
+    if (s.x > W) { s.x = 0; s.y = random(ARENA_TOP, ARENA_BOT); }
+    else if (s.x < 0) { s.x = W; s.y = random(ARENA_TOP, ARENA_BOT); }
+  });
+
+
+  planets.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < -100) p.x = W + 100; if (p.x > W + 100) p.x = -100;
+    if (p.y < ARENA_TOP - 100) p.y = ARENA_BOT + 100; if (p.y > ARENA_BOT + 100) p.y = ARENA_TOP - 100;
+
+
+    push();
+    translate(p.x, p.y);
+    rotate(p.angle);
+    noStroke();
+    fill(p.col);
+    ellipse(0, 0, p.r * 2);
+   
+    fill(0, 150);
+    arc(0, 0, p.r * 2, p.r * 2, HALF_PI, PI + HALF_PI);
+   
+    if (p.hasRing) {
+        noFill();
+        stroke(p.ringCol);
+        strokeWeight(p.r * 0.2);
+        ellipse(0, 0, p.r * 3.5, p.r * 0.8);
+    }
+    pop();
+    p.angle += p.rotSpeed;
+  });
+
+
+  if (random() < 0.01) {
+      shootingStars.push({
+          x: random(W), y: ARENA_TOP,
+          vx: random(-15, 15), vy: random(15, 30),
+          life: 150, length: random(20, 60)
+      });
+  }
+
+
+  shootingStars.forEach((s, i) => {
+      stroke(255, 255, 255, s.life); strokeWeight(2);
+      line(s.x, s.y, s.x - s.vx * (s.length/10), s.y - s.vy * (s.length/10));
+      s.x += s.vx; s.y += s.vy; s.life -= 10;
+      if (s.life <= 0 || s.y > ARENA_BOT) shootingStars.splice(i, 1);
+  });
+  noStroke();
+}
+
+
+function handleCameraAndPlayers() {
+  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
+ 
+  let targetSpeed = 2.5;
+ 
+  for (let i = players.length - 1; i >= 0; i--) {
+    let p = players[i];
+   
+    p.trail.push({x: p.body.position.x, y: p.body.position.y});
+    if (p.trail.length > 12) p.trail.shift();
+   
+    if (p.hp <= 0) {
+      createParticles(p.body.position.x, p.body.position.y, p.color, 60);
+      deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
+      screenShake = 12;
+     
+      if(audioStarted) {
+          try{
+              synth.play(150, 0.1, 0, 0.1);
+              setTimeout(() => { if(synth) synth.play(80, 0.2, 0, 0.3); }, 100);
+          }catch(e){}
+      }
+      Matter.World.remove(world, p.body);
+      players.splice(i, 1);
+      continue;
+    }
+   
+    if (p.hp >= 5000 && frameCount % 30 === (i % 30)) {
+      let range = p.r + 150;
+      for (let other of players) {
+        if (other === p || other.hp <= 0) continue;
+        let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
+        if (d < range) {
+          let safeHp = Math.max(1, p.hp);
+          let dmg = Math.floor(Math.log10(safeHp) * 8 + 10);
+          other.hp -= dmg;
+         
+          p.damageDealt += dmg;
+          updateDamageLB(p.name, p.damageDealt, p.color);
+         
+          lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
+          createParticles(other.body.position.x, other.body.position.y, p.color, 5);
+          addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 50, 50));
+          if(audioStarted && random() < 0.2) try{ synth.play(1200, 0.02, 0, 0.1); }catch(e){}
+          break;
+        }
+      }
+    }
+   
+    p.noiseOffsetX += 0.02; p.noiseOffsetY += 0.02;
+    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
+    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
+    Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
+
+
+    if (frameCount % 10 === (i % 10)) attractToNearest(p);
+
+
+    let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
+    if (currentSpeed > 0.1) {
+        let factor = targetSpeed / currentSpeed;
+        Matter.Body.setVelocity(p.body, {
+            x: lerp(p.body.velocity.x, p.body.velocity.x * factor, 0.1),
+            y: lerp(p.body.velocity.y, p.body.velocity.y * factor, 0.1)
+        });
+    }
+  }
+
+
+  let targetScale = 1.0;
+  if (players.length >= 250) targetScale = 0.35;
+  else if (players.length >= 150) targetScale = 0.50;
+  else if (players.length >= 50) targetScale = 0.75;
+
+
+  cameraScale = lerp(cameraScale, targetScale, 0.02);
+ 
+  let cx = W/2;
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let viewW = W / cameraScale;
+  let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+ 
+  Matter.Body.setPosition(wallTop, { x: cx, y: cy - viewH/2 - 250 });
+  Matter.Body.setPosition(wallBot, { x: cx, y: cy + viewH/2 + 250 });
+  Matter.Body.setPosition(wallLeft, { x: cx - viewW/2 - 250, y: cy });
+  Matter.Body.setPosition(wallRight, { x: cx + viewW/2 + 250, y: cy });
+}
+
+
+function attractToNearest(p) {
+  let cx = W/2;
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+ 
+  let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
+  let distC = Matter.Vector.magnitude(toCenter);
+  if (distC > 300 / cameraScale) {
+      let pull = Matter.Vector.normalise(toCenter);
+      Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000005 * p.body.mass * (distC/500)));
+  }
+
+
+  let closest = null; let minDist = Infinity;
+  for(let other of players) {
+    if(other === p) continue;
+    let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
+    if(d < minDist && d < 400) { minDist = d; closest = other; }
+  }
+  if(closest) {
+    let force = Matter.Vector.sub(closest.body.position, p.body.position);
+    let norm = Matter.Vector.normalise(force);
+    Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.00005 * p.body.mass));
+  }
+}
+
+
+function drawDeathShockwaves() {
+  for (let i = deathShockwaves.length - 1; i >= 0; i--) {
+      let sw = deathShockwaves[i];
+      noFill();
+      stroke(red(sw.color), green(sw.color), blue(sw.color), sw.life);
+      strokeWeight(map(sw.life, 255, 0, 15, 1));
+      ellipse(sw.x, sw.y, sw.r * 2);
+      sw.r += 4;
+      sw.life -= 12;
+      if (sw.life <= 0) deathShockwaves.splice(i, 1);
+  }
+}
+
+
+function drawLightnings() {
+  for(let i = lightnings.length - 1; i >= 0; i--) {
+    let l = lightnings[i];
+    stroke(red(l.c), green(l.c), blue(l.c), l.life * 15);
+    strokeWeight(l.life * 0.3);
+    noFill();
+    beginShape();
+    vertex(l.x1, l.y1);
+    let segs = 3;
+    for(let j = 1; j < segs; j++) {
+        vertex(lerp(l.x1, l.x2, j/segs) + random(-15, 15), lerp(l.y1, l.y2, j/segs) + random(-15, 15));
+    }
+    vertex(l.x2, l.y2);
+    endShape();
+    l.life--;
+    if(l.life <= 0) lightnings.splice(i, 1);
+  }
+}
+
+
 function drawPlayer(p) {
   let pos = p.body.position;
   let safeHp = Math.max(0, p.hp);
-  
+ 
   let isBuffed = p.likeBuffTimer > 0;
   if (isBuffed) p.likeBuffTimer--;
+
 
   let baseRotSpd = (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir;
   let rotSpd = isBuffed ? baseRotSpd * 4 : baseRotSpd;
   p.rot += rotSpd;
+
 
   if (p.trail.length > 1) {
       noFill();
@@ -859,19 +1149,21 @@ function drawPlayer(p) {
       }
   }
 
+
   push();
   translate(pos.x, pos.y);
-  
+ 
   let currentScale = isBuffed ? 1.2 : 1.0;
   scale(currentScale);
-  
+ 
   rotate(p.rot);
-  
+ 
   let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
   fill(red(p.color), green(p.color), blue(p.color), glowAlpha);
   noStroke();
   ellipse(0, 0, p.r * 2.4);
   if(p.auraFlash > 0) p.auraFlash--;
+
 
   if (isBuffed) {
       fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100);
@@ -879,15 +1171,14 @@ function drawPlayer(p) {
       ellipse(0, 0, p.r * 2.5);
   }
 
-  let tType = p.sawType % 3; 
-  let coreType = Math.floor(p.sawType / 3) % 4; 
+
+  let tType = p.sawType % 3;
+  let coreType = Math.floor(p.sawType / 3) % 4;
   let isEpic = safeHp >= 3000;
-  
-  let useGlow = players.length < 40; // Optimalizace: Glow jen pokud není plno
-  if (useGlow) {
-      drawingContext.shadowBlur = isEpic ? 25 : 15;
-      drawingContext.shadowColor = p.color;
-  }
+ 
+  drawingContext.shadowBlur = isEpic ? 25 : 15;
+  drawingContext.shadowColor = p.color;
+
 
   let grad = drawingContext.createRadialGradient(0, 0, 0, 0, 0, p.r);
   grad.addColorStop(0, "rgba(10, 15, 20, 1)");
@@ -897,48 +1188,52 @@ function drawPlayer(p) {
       grad.addColorStop(1, "rgba(30, 35, 45, 0.9)");
   }
 
+
   drawingContext.fillStyle = grad;
-  stroke(p.color); 
+  stroke(p.color);
   strokeWeight(isEpic ? 3 : 2);
+
 
   let teeth = 0;
   let rOuter = 0;
   let rInner = 0;
 
+
   if (isEpic) {
       teeth = 16 + Math.floor(safeHp / 2000);
-      rOuter = p.r * 1.15; 
+      rOuter = p.r * 1.15;
       rInner = p.r * 0.9;
   } else {
-      teeth = 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
-      rOuter = p.r * 1.1; 
+      teeth = 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2;
+      rOuter = p.r * 1.1;
       rInner = p.r * 0.95;
   }
+
 
   beginShape();
   for(let i=0; i<teeth; i++) {
       let a1 = i * TWO_PI / teeth;
       let a2 = (i + 1) * TWO_PI / teeth;
-      
+     
       if (isEpic) {
-          let aTip = a1 + TWO_PI/teeth * 0.85; 
+          let aTip = a1 + TWO_PI/teeth * 0.85;
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
       } else {
-          if (tType === 0) { 
+          if (tType === 0) {
               let aTip = a1 + TWO_PI/teeth * 0.8;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { 
+          } else if (tType === 1) {
               let a3 = a1 + TWO_PI/teeth * 0.25;
               let a4 = a1 + TWO_PI/teeth * 0.75;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(a3)*rOuter, sin(a3)*rOuter);
               vertex(cos(a4)*rOuter, sin(a4)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 2) { 
+          } else if (tType === 2) {
               let mid = (a1 + a2) / 2;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(mid)*rOuter, sin(mid)*rOuter);
@@ -948,7 +1243,9 @@ function drawPlayer(p) {
   }
   endShape(CLOSE);
 
+
   drawingContext.shadowBlur = 0;
+
 
   if (isEpic) {
       noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.3);
@@ -957,14 +1254,14 @@ function drawPlayer(p) {
       noStroke(); fill(255, 255, 0);
       ellipse(-p.r*0.3, 0, 5); ellipse(p.r*0.3, 0, 5);
       ellipse(0, -p.r*0.3, 5); ellipse(0, p.r*0.3, 5);
-  } 
+  }
   else {
       if (coreType === 0) {
           noFill(); stroke(p.color); strokeWeight(1); ellipse(0,0,p.r*0.7);
       } else if (coreType === 1) {
           fill(p.color); noStroke(); ellipse(0,0,p.r*0.3);
       } else if (coreType === 2) {
-          noFill(); stroke(p.color); strokeWeight(2); 
+          noFill(); stroke(p.color); strokeWeight(2);
           rectMode(CENTER); rect(0, 0, p.r*0.5, p.r*0.5, 3); rectMode(CORNER);
       } else if (coreType === 3) {
           fill(p.color); noStroke();
@@ -972,12 +1269,13 @@ function drawPlayer(p) {
       }
   }
 
-  rotate(-p.rot); 
-  
+
+  rotate(-p.rot);
+ 
   let imgSize = p.r * 1.6;
   if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save(); drawingContext.beginPath();
-      drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
+      drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI);
       drawingContext.clip();
       imageMode(CENTER); image(userAvatars[p.name], 0, 0, imgSize, imgSize);
       drawingContext.restore();
@@ -985,45 +1283,120 @@ function drawPlayer(p) {
       fill(35); noStroke(); ellipse(0, 0, imgSize);
   }
 
+
   noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
+
 
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  drawingContext.lineJoin = "round"; 
+
+  drawingContext.lineJoin = "round";
   textAlign(CENTER, CENTER);
 
-  if (useGlow) {
-      drawingContext.shadowBlur = 5; 
-      drawingContext.shadowColor = 'black';
-  }
-  
-  stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
+
+  drawingContext.shadowBlur = 5;
+  drawingContext.shadowColor = 'black';
+ 
+  stroke(0); strokeWeight(Math.max(4, p.r * 0.15));
   fill(txtCol); textStyle(BOLD);
   let finalHpTxtSize = Math.max(11, p.r * 0.35);
   textSize(finalHpTxtSize);
-  text(formatK(Math.floor(safeHp)), 0, 0); 
+  text(formatK(Math.floor(safeHp)), 0, 0);
 
-  drawingContext.shadowBlur = 0; 
-  noStroke(); 
+
+  drawingContext.shadowBlur = 0;
+  noStroke();
   pop();
 }
+
+
+function createParticles(x, y, c, count) {
+  let actualCount = players.length > 50 ? Math.floor(count/2) : count;
+  for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-8,8), vy: random(-8,8), life: 255, c: c, size: random(4, 10)});
+}
+
+
+function drawParticles() {
+  noStroke();
+  drawingContext.shadowBlur = 10;
+ 
+  for(let i=particles.length-1; i>=0; i--) {
+    let p = particles[i];
+    drawingContext.shadowColor = p.c;
+    fill(red(p.c), green(p.c), blue(p.c), p.life);
+    ellipse(p.x, p.y, p.size);
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.95;
+    p.vy *= 0.95;
+    p.size *= 0.98;
+    p.life -= 15;
+    if(p.life <= 0) particles.splice(i, 1);
+  }
+  drawingContext.shadowBlur = 0;
+}
+
+
+function addPopup(txt, x, y, c, isCrit = false) {
+  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit, scale: 0.1});
+}
+
+
+function drawPopups() {
+  for(let i=floatingTexts.length-1; i>=0; i--) {
+    let f = floatingTexts[i];
+   
+    f.scale = lerp(f.scale, 1.0, 0.2);
+   
+    push();
+    translate(f.x, f.y);
+    scale(f.scale);
+   
+    drawingContext.shadowBlur = 5;
+    drawingContext.shadowColor = 'black';
+   
+    if (f.isCrit) {
+        stroke(0); strokeWeight(4);
+        fill(255, 215, 0, f.life);
+        let ts = 22 + sin(f.life * 0.1) * 4;
+        textSize(ts); textAlign(CENTER); textStyle(BOLD);
+        text("CRITICAL HIT!\n" + f.txt, 0, 0);
+        f.y += f.vy - 0.5;
+        f.life -= 6;
+    } else {
+        stroke(0); strokeWeight(3);
+        fill(red(f.c), green(f.c), blue(f.c), f.life);
+        textSize(16); textAlign(CENTER); textStyle(BOLD);
+        text(f.txt, 0, 0);
+        f.y += f.vy;
+        f.life -= 8;
+    }
+   
+    pop();
+   
+    if(f.life <= 0) floatingTexts.splice(i, 1);
+  }
+  drawingContext.shadowBlur = 0;
+  textStyle(NORMAL);
+}
+
 
 function updateTimers() {
   if (gameState === "PLAYING" && frameCount % 60 === 0 && roundTimer > 0) {
     roundTimer--;
     if (roundTimer <= 0) {
         gameState = "EXPLODING";
-        explosionTimer = 90; 
-        screenShake = 35; 
-        
+        explosionTimer = 90;
+        screenShake = 35;
+       
         if(audioStarted) {
-            try { 
-                synth.play(80, 0.5, 0, 0.8); 
+            try {
+                synth.play(80, 0.5, 0, 0.8);
                 setTimeout(() => { if(synth) synth.play(60, 0.8, 0, 1.0); }, 200);
             } catch(e){}
         }
+
 
         let wPos = screenToWorld(shipX, shipY);
         deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
@@ -1039,32 +1412,28 @@ function updateTimers() {
       }
   }
 
-  // Drasticky snížena šance na bonus (např. cca každých 10 vteřin šance)
-  if (gameState === "PLAYING" && frameCount % 600 === 0 && random() < 0.4 && orbs.length < 2) {
-      let cx = W/2;
-      let cy = (ARENA_TOP+ARENA_BOT)/2;
-      let viewW = W / cameraScale;
-      let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-      
+
+  if (gameState === "PLAYING" && frameCount % 180 === 0 && random() < 0.6 && orbs.length < 3) {
       orbs.push({
-          x: cx + random(-viewW/2.5, viewW/2.5),
-          y: cy + random(-viewH/2.5, viewH/2.5),
-          r: 20,
+          x: random(100, W - 100),
+          y: random(ARENA_TOP + 100, ARENA_BOT - 100),
+          r: 15,
           value: 1000
       });
   }
 }
 
+
 function drawResults() {
   background(0, 220);
   textAlign(CENTER, CENTER);
-  
+ 
   fill(0, 255, 255); textSize(30); textStyle(BOLD);
   text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
-  
+ 
   let sorted = [...players].sort((a,b) => b.hp - a.hp);
   let winner = sorted[0];
-  
+ 
   if(winner) {
     if (userAvatars[winner.name] && userAvatars[winner.name] !== "loaded") {
       imageMode(CENTER);
@@ -1072,28 +1441,32 @@ function drawResults() {
       rect(W/2 - 40, ARENA_TOP + 70, 80, 80, 10);
       image(userAvatars[winner.name], W/2, ARENA_TOP + 110, 75, 75);
     }
-    
+   
     noStroke();
     fill(winner.color); textSize(18); textStyle(BOLD);
     text(winner.name, W/2, ARENA_TOP + 175);
     fill(255); textSize(16);
     text(formatK(floor(Math.max(0, winner.hp))) + " HP", W/2, ARENA_TOP + 200);
   }
-  
+ 
   textAlign(LEFT, CENTER);
-  let listStartY = ARENA_TOP + 240; 
+  let listStartY = ARENA_TOP + 240;
   let listLimit = Math.min(sorted.length, 15);
+
 
   for (let i = 0; i < listLimit; i++) {
     let p = sorted[i];
     let yPos = listStartY + i * 28;
 
+
     fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5));
     noStroke();
     rect(W/2 - 200, yPos - 12, 400, 24, 5);
 
+
     fill(p.color); textSize(12); textStyle(BOLD);
     text((i + 1) + ".", W/2 - 180, yPos);
+
 
     if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
         drawingContext.save(); drawingContext.beginPath();
@@ -1102,22 +1475,24 @@ function drawResults() {
         drawingContext.restore();
     }
 
+
     fill(220); textStyle(NORMAL); textSize(11);
     text(p.name.substring(0, 12), W/2 - 120, yPos);
+
 
     textAlign(RIGHT, CENTER);
     fill(255); textStyle(BOLD);
     text(formatK(floor(Math.max(0, p.hp))), W/2 + 180, yPos);
-    textAlign(LEFT, CENTER); 
+    textAlign(LEFT, CENTER);
   }
-  
-  let timerY = ARENA_BOT - 50; 
+ 
+  let timerY = ARENA_BOT - 50;
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2);
   rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD);
   text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY);
   textStyle(NORMAL);
-  
+ 
   if (frameCount % 60 === 0) {
     resultsTimer--;
     if (resultsTimer <= 0) {
@@ -1126,6 +1501,7 @@ function drawResults() {
     }
   }
 }
+
 
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
@@ -1136,12 +1512,15 @@ function connectTikfinity() {
       let u = (d?.data?.nickname || d?.data?.uniqueId || "Anonym").substring(0, 15).trim();
       if (u === "Anonym") return;
 
+
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
+
 
       if (!players.find(x => x.name === u)) {
           spawnPlayer(u, 500);
       }
+
 
       if (evt === "chat") {
           handleAction(u, 10);
@@ -1156,20 +1535,22 @@ function connectTikfinity() {
   socket.onclose = () => setTimeout(connectTikfinity, 5000);
 }
 
+
 function speakTTS(txt) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
-  if (window.speechSynthesis.speaking) return; 
+  if (window.speechSynthesis.speaking) return;
   let msg = new SpeechSynthesisUtterance(txt);
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US";
-  msg.rate = 1.15; 
-  msg.pitch = 1.2; 
+  msg.rate = 1.15;
+  msg.pitch = 1.2;
   window.speechSynthesis.speak(msg);
 }
 
+
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  
-  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && 
+ 
+  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w &&
       mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) {
       allTimeDamageLeaderboard = {};
       if(audioStarted) try{ synth.play(200, 0.1, 0, 0.5); }catch(e){}
@@ -1178,3 +1559,4 @@ function mousePressed() {
 </script>
 </body>
 </html>
+
