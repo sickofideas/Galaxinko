@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.9.3"; 
+const GAME_VERSION = "v19.9.4"; 
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -78,17 +78,18 @@ const T = {
   }
 };
 
+// Všechny TTS texty jsou bezpečné pro TikTok (žádná smrt, krev, zabíjení, masakr)
 const COMMENTARY_EMPTY = {
   CZ: [
     "Haló? Je tam někdo? Aréna je trapně prázdná!", 
-    "Čekáme na prvního gladiátora! Kde jste všichni?", 
+    "Čekáme na prvního hrdinu! Kde jste všichni?", 
     "Vstupte do arény! První bere všechno!",
     "Ticho před bouří... Pošlete lajk a odstartujte to!",
     "Diváci spí! Vzbuďte se a pojďte hrát!"
   ],
   EN: [
     "Hello? Anyone there? The arena is embarrassingly empty!", 
-    "Waiting for the first gladiator! Where is everyone?", 
+    "Waiting for the first hero! Where is everyone?", 
     "Enter the arena! First takes all!",
     "Calm before the storm... Send a like and start it!",
     "The viewers are sleeping! Wake up and let's play!"
@@ -100,70 +101,70 @@ const COMMENTARY_SOLO = {
     "Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", 
     "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!", 
     "Aréna patří jen hráči {p}! Změňte to někdo!",
-    "{p} si myslí, že je nezničitelný. Dokažte mu opak!",
-    "Jeden bojovník jaro nedělá. Potřebujeme víc krve!"
+    "{p} si myslí, že je nezastavitelný. Dokažte mu opak!",
+    "Jeden hráč jaro nedělá. Připojte se!"
   ],
   EN: [
     "Player {p} is circling all alone! Who challenges them?", 
     "Are you letting {p} win without a fight? Get in there!", 
     "The arena belongs only to {p}! Someone change that!",
-    "{p} thinks they are invincible. Prove them wrong!",
-    "One warrior doesn't make a battle. We need more blood!"
+    "{p} thinks they are unstoppable. Prove them wrong!",
+    "One player doesn't make a match. Join in!"
   ]
 };
 
 const COMMENTARY = {
   CZ: [
-    "Au, to muselo bolet!", "Neskutečný náraz v aréně!", "Lajkujte, nebo vás rozdrtí!", "Tady lítají třísky!",
-    "Kdo přežije tenhle masakr?", "To je ale mela!", "Rotace na maximum!",
-    "Páni, ten ho odhodil jako špinavé prádlo!", "Tohle je vesmírná demolice v přímém přenosu!",
-    "Klikejte na obrazovku, nebo váš favorit vyletí z mapy!", "Ten náraz slyšeli až na Marsu!",
-    "Tvrdé srážky! Tady nepřežijí žádná ořezávátka!", "Ten to koupil přímo na komoru!",
-    "Rozjeďte ty pily! Chceme vidět víc poškození!", "Kdo nekliká, ten zkrátka nehraje!",
+    "Au, to byla rána!", "Neskutečný odraz v aréně!", "Lajkujte, nebo vás vytlačí!", "Tady lítají jiskry!",
+    "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!",
+    "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!",
+    "Klikejte na obrazovku, nebo váš favorit vyletí z mapy!", "Ten náraz slyšeli až na Měsíci!",
+    "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!",
+    "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Kdo nekliká, ten zkrátka nehraje!",
     "Zářivý štít nevydrží věčně, posílejte lajky!", "Podívejte se na ty odrazy, to je naprosté šílenství!",
-    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující monstra!",
-    "Kdo má největší ozubené kolo, ten tady velí!", "Přichází drtivý úder zprava!",
-    "Epický souboj tancujících pil!", "Tady se mažou jména z historie a tvoří se legendy!",
-    "Bez lajků jste jen potrava pro ostatní kruhy!", "Taková pecka a on se ještě drží na mapě!",
-    "Pošlete dárek a udělejte ze sebe nezastavitelného boha!", "Všichni se sráží do jednoho velkého chumlu!",
-    "Taktika tu nepomůže, tady rozhoduje hrubá síla a vaše lajky!", "Tyhle pily by přeřízly i křižník!",
-    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah, potopeno! Kdo si půjde pro další ránu?",
-    "Lajkujte jako o život, nebo se váš kruh rozpadne v prach!", "Neuvěřitelná rychlost! Roztočte to ještě víc!",
-    "Tohle je přesně ta vesmírná mela, na kterou jsme čekali!", "Krutá srážka dvou titánů!",
-    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Štíty jiskří, plechy praskají, tohle je Galaxinko Wars!",
-    "Tenhle souboj je napínavější než cokoliv, co jsem dneska viděl!",
-    "Sledujte tu brutalitu! Fyzika tady dostává na frak!",
+    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!",
+    "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!",
+    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!",
+    "Bez lajků jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!",
+    "Pošlete dárek a staňte se nezastavitelným bossem!", "Všichni se sráží do jednoho velkého chumlu!",
+    "Taktika tu nepomůže, tady rozhodují vaše lajky!", "Tyhle kruhy by roztočily i galaxii!",
+    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?",
+    "Lajkujte jako o život, nebo váš kruh zmizí!", "Neuvěřitelná rychlost! Roztočte to ještě víc!",
+    "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!",
+    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!",
+    "Tenhle souboj je napínavější než finále mistrovství!",
+    "Sledujte tu dynamiku! Fyzika tady dostává zabrat!",
     "Skvělý zásah! Tohle muselo sebrat hromadu lajků!",
-    "Nedávejte jim šanci vydechnout! Víc lajků, víc poškození!",
+    "Nedávejte jim šanci vydechnout! Víc lajků, víc bodů!",
     "Točí se to jako šílené! Kdo to zastaví?",
-    "Úúú, čistý průstřel! Tenhle kruh bude potřebovat opraváře!",
-    "Totální destrukce! Tohle je to, co chceme vidět!"
+    "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!",
+    "Totální chaos! Tohle je to, co chceme vidět!"
   ],
   EN: [
-    "Ouch, that had to hurt!", "Incredible impact!", "Like it up or get crushed!", "Sparks are flying!",
-    "Who will survive this massacre?", "What a brawl!", "Spinning to the max!",
-    "Wow, threw him away like dirty laundry!", "This is live space demolition!",
-    "Tap the screen or your favorite will be wiped off the map!", "They heard that crash all the way to Mars!",
-    "Heavy hits! No wimps survive here!", "Took that one right in the core!",
-    "Rev up those saws! We want to see more damage!", "If you're not tapping, you're not playing!",
+    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Like it up or get pushed out!", "Sparks are flying!",
+    "Who will win this madness?", "What a brawl!", "Spinning to the max!",
+    "Wow, threw him away like a toy!", "This is live space pinball!",
+    "Tap the screen or your favorite will fly off the map!", "They heard that crash all the way to the Moon!",
+    "Heavy hits! Only the best succeed here!", "Took that one right in the core!",
+    "Rev up those circles! We want to see more points!", "If you're not tapping, you're not playing!",
     "A glowing shield won't last forever, send likes!", "Look at those bounces, absolute madness!",
-    "We are writing this round in the history books!", "Someone stop these giant spinning monsters!",
-    "Whoever has the biggest gear rules the arena!", "Here comes a crushing blow from the right!",
-    "An epic battle of dancing saws!", "Names are erased and legends are born right here!",
-    "Without likes, you're just food for the others!", "What a hit, and they're still spinning!",
-    "Send a gift and become an unstoppable god!", "Everyone is crashing into one massive pile!",
-    "Tactics won't help, raw power and likes decide here!", "These saws could cut through a cruiser!",
-    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next punch?",
-    "Like for your life, or your circle turns to dust!", "Unbelievable speed! Spin it even faster!",
-    "This is exactly the space brawl we were waiting for!", "Cruel collision between two titans!",
-    "Space boomerang in action, what a ride!", "Shields sparking, metal breaking, this is Galaxinko Wars!",
-    "This fight is more thrilling than anything I've seen today!",
-    "Watch the brutality! Physics is taking a beating here!",
+    "We are writing this round in the history books!", "Someone stop these giant spinning titans!",
+    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!",
+    "An epic battle of dancing circles!", "Legends are born right here!",
+    "Without likes, you're just a tiny dot!", "What a hit, and they're still on the map!",
+    "Send a gift and become an unstoppable boss!", "Everyone is crashing into one massive pile!",
+    "Tactics won't help, your likes decide here!", "These circles could spin the galaxy!",
+    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points?",
+    "Like like crazy, or your circle disappears!", "Unbelievable speed! Spin it even faster!",
+    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!",
+    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!",
+    "This fight is more thrilling than a championship finals!",
+    "Watch the dynamics! Physics is working hard here!",
     "Great hit! That must have taken a ton of likes!",
-    "Don't give them a chance to breathe! More likes, more damage!",
+    "Don't give them a chance to breathe! More likes, more points!",
     "Spinning like crazy! Who's gonna stop it!",
-    "Ooh, clean shot! That circle is going to need a mechanic!",
-    "Total destruction! This is what we want to see!"
+    "Ooh, clean flyby! That circle is going to need a mechanic!",
+    "Total chaos! This is what we want to see!"
   ]
 };
 
@@ -358,7 +359,6 @@ function spawnPlayer(name, hp) {
   speakTTS(T[currentLang].NEW + name);
   createParticles(body.position.x, body.position.y, player.color, 15);
   
-  // Warp spawn sound
   if(audioStarted) {
       try { 
           synth.play(600, 0.1, 0, 0.05); 
@@ -491,8 +491,8 @@ function handleTTSCommentary() {
               let top = [...players].sort((a,b) => b.hp - a.hp)[0];
               if (top) {
                   txt = currentLang === "CZ" ? 
-                      `${top.name} dominuje aréně s ${formatK(Math.max(0, top.hp))} životy! Rozdrťte ho někdo!` : 
-                      `${top.name} dominates the arena with ${formatK(Math.max(0, top.hp))} HP! Someone crush them!`;
+                      `${top.name} dominuje aréně s ${formatK(Math.max(0, top.hp))} body! Jděte po něm!` : 
+                      `${top.name} dominates the arena with ${formatK(Math.max(0, top.hp))} points! Go after them!`;
               }
           }
       }
@@ -814,27 +814,20 @@ function drawPlayer(p) {
 
   noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
 
-  rectMode(CENTER); noStroke(); fill(0, 0, 0, 160);
-  let hpTxtSize = Math.max(10, p.r * 0.35);
-  rect(0, p.r * 0.25, p.r * 1.4, hpTxtSize + 6, 5); 
-
-  if (p.r > 25) {
-      let nameTxtSize = Math.max(7, p.r * 0.22);
-      rect(0, -p.r * 0.3, p.r * 1.2, nameTxtSize + 4, 3); 
-  }
-  rectMode(CORNER);
-
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  stroke(0); strokeWeight(Math.max(3, p.r * 0.12)); 
+  drawingContext.lineJoin = "round"; // Jemnější obrys
+  stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
   fill(txtCol); textAlign(CENTER, CENTER); textStyle(BOLD);
+  
+  let hpTxtSize = Math.max(10, p.r * 0.35);
   textSize(hpTxtSize);
   text(formatK(Math.floor(safeHp)), 0, p.r * 0.25); 
 
   if (p.r > 25) {
-      stroke(0); strokeWeight(Math.max(2, p.r * 0.1));
+      stroke(0); strokeWeight(Math.max(3, p.r * 0.12));
       fill(220); textStyle(NORMAL);
       textSize(Math.max(7, p.r * 0.22)); 
       text(p.name.substring(0, 8), 0, -p.r * 0.3); 
