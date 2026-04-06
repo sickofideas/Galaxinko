@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.18.0"; // Dmg nerf, HP 500 start, Lepší tvar pil
+const GAME_VERSION = "v19.20.0"; // Dmg 0.5x, Infinite Arena
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -175,6 +175,7 @@ let floatingTexts = [];
 let lightnings = [];
 let deathShockwaves = [];
 let userAvatars = {};
+let orbs = []; 
 
 // Systém poškození (Pouze All-Time žebříček)
 let allTimeDamageLeaderboard = {};
@@ -219,13 +220,16 @@ function setup() {
   world.gravity.y = 0; 
   world.gravity.x = 0;
   
-  // Zdi arény
+  // Zdi arény velmi daleko (umožňuje takřka nekonečnou expanzi při zoom-outu)
   let wallOpts = { isStatic: true, restitution: 1.0, friction: 0 };
+  let cx = W/2;
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let aSize = 15000;
   Matter.World.add(world, [
-    Matter.Bodies.rectangle(W/2, ARENA_TOP - 25, W, 50, wallOpts),
-    Matter.Bodies.rectangle(W/2, ARENA_BOT + 25, W, 50, wallOpts),
-    Matter.Bodies.rectangle(-25, (ARENA_TOP+ARENA_BOT)/2, 50, ARENA_BOT-ARENA_TOP, wallOpts),
-    Matter.Bodies.rectangle(W+25, (ARENA_TOP+ARENA_BOT)/2, 50, ARENA_BOT-ARENA_TOP, wallOpts)
+    Matter.Bodies.rectangle(cx, cy - aSize/2, aSize, 500, wallOpts),
+    Matter.Bodies.rectangle(cx, cy + aSize/2, aSize, 500, wallOpts),
+    Matter.Bodies.rectangle(cx - aSize/2, cy, 500, aSize, wallOpts),
+    Matter.Bodies.rectangle(cx + aSize/2, cy, 500, aSize, wallOpts)
   ]);
 
   generateSpaceBackground();
@@ -242,25 +246,21 @@ function generateSpaceBackground() {
   planets = [];
   milkyWay = [];
   
-  // Generace Mléčné dráhy (diagonální pás velkých poloprůhledných elips)
   let mwPoints = 40;
   for (let i = 0; i < mwPoints; i++) {
       let t = i / mwPoints;
-      // Diagonála od levého horního okraje dolů doprava
       let baseX = lerp(-100, W + 100, t) + random(-150, 150);
       let baseY = lerp(ARENA_TOP - 100, ARENA_BOT + 100, t) + random(-200, 200);
       milkyWay.push({
           x: baseX,
           y: baseY,
           r: random(80, 250),
-          // Lehké fialovo-modré odstíny
           color: color(random(50, 120), random(20, 80), random(100, 200), random(2, 8))
       });
   }
 
-  // Generace hvězd (pulzující a driftující)
   for(let i=0; i<200; i++) {
-    let isPulse = random() < 0.25; // 25% hvězd bude pulzovat
+    let isPulse = random() < 0.25; 
     stars.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT), 
         s: random(1, 3.5), speed: random(0.1, 1.2),
@@ -272,7 +272,6 @@ function generateSpaceBackground() {
     });
   }
   
-  // Mlhoviny
   for(let i=0; i<6; i++) {
     nebulas.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT),
@@ -281,7 +280,6 @@ function generateSpaceBackground() {
     });
   }
 
-  // Planety
   for(let i=0; i<4; i++) {
     planets.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT),
@@ -301,8 +299,9 @@ function startNewRound() {
   
   let oldPlayers = players.map(p => p.name);
   players = [];
+  orbs = [];
   
-  oldPlayers.forEach(name => spawnPlayer(name, 500)); // Začátek s 500 HP
+  oldPlayers.forEach(name => spawnPlayer(name, 500)); 
 
   roundTimer = floor(random(180, 900)); 
   gameState = "PLAYING";
@@ -321,7 +320,7 @@ function setupEvents() {
     e.target.innerText = "LANG: " + currentLang;
   };
   document.getElementById('tJoin').onclick = () => {
-    handleAction(random(TEST_NAMES) + floor(random(99)), 500); // 500 hp start
+    handleAction(random(TEST_NAMES) + floor(random(99)), 500); 
   };
   document.getElementById('tLike').onclick = () => {
     if(players.length > 0) handleAction(random(players).name, floor(random(50, 150)));
@@ -366,9 +365,18 @@ function getRadius(hp) {
 }
 
 function spawnPlayer(name, hp) {
-  let safeHp = Math.max(0, hp || 500); // Defaultně 500
+  let safeHp = Math.max(0, hp || 500); 
   let r = getRadius(safeHp);
-  let body = Matter.Bodies.circle(random(50, W-50), random(ARENA_TOP+50, ARENA_BOT-50), r, {
+  
+  // Spawn u středu, ale relativně k aktuálnímu zoomu
+  let cx = W/2;
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let viewW = W / cameraScale;
+  let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+  let spawnX = cx + random(-viewW/3, viewW/3);
+  let spawnY = cy + random(-viewH/3, viewH/3);
+
+  let body = Matter.Bodies.circle(spawnX, spawnY, r, {
     restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
   });
   
@@ -415,7 +423,7 @@ function handleAction(name, amount) {
     }
     addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
-    spawnPlayer(name, 500 + amount); // Začíná na 500 + bonus
+    spawnPlayer(name, 500 + amount); 
   }
 }
 
@@ -436,7 +444,6 @@ function handleCombat(p1, p2) {
   let speed1 = Matter.Vector.magnitude(p1.body.velocity);
   let speed2 = Matter.Vector.magnitude(p2.body.velocity);
 
-  // Silný nerf výhody velikosti. Maximálně 1.5x damage bonus, i pro obří hráče.
   let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
   let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
 
@@ -446,9 +453,9 @@ function handleCombat(p1, p2) {
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  // Celkové snížení poškození (menší násobiče u logaritmu i rychlosti)
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 1.5 + speed * 0.8) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 1.5 + speed * 0.8) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
+  // Další poloviční nerf damage (0.75 a 0.4 multiplikátory)
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.75 + speed * 0.4) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.75 + speed * 0.4) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
@@ -525,6 +532,40 @@ function handleCombat(p1, p2) {
   }
 }
 
+function handleOrbs() {
+  for (let i = orbs.length - 1; i >= 0; i--) {
+      let o = orbs[i];
+      
+      drawingContext.shadowBlur = 15;
+      drawingContext.shadowColor = color(255, 215, 0);
+      fill(255, 200, 0, 150 + sin(frameCount * 0.1) * 100);
+      stroke(255); strokeWeight(2);
+      ellipse(o.x, o.y, o.r * 2);
+      drawingContext.shadowBlur = 0;
+
+      let collected = false;
+      for (let p of players) {
+          if (p.hp > 0 && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
+              p.hp += o.value;
+              addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
+              
+              let newR = getRadius(p.hp);
+              if (newR > p.r + 0.5) {
+                  let scale = newR / p.r;
+                  Matter.Body.scale(p.body, scale, scale);
+                  p.r = newR;
+                  Matter.Body.setDensity(p.body, 0.001 + (newR * 0.0001));
+              }
+              
+              if(audioStarted) { try { synth.play(1200, 0.1, 0, 0.2); } catch(e){} }
+              collected = true;
+              break;
+          }
+      }
+      if (collected) orbs.splice(i, 1);
+  }
+}
+
 function draw() {
   background(3, 4, 8); 
   
@@ -563,6 +604,7 @@ function draw() {
     
     drawDeathShockwaves();
     drawLightnings();
+    handleOrbs();
     
     let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
     sortedToDraw.forEach(p => drawPlayer(p));
@@ -833,11 +875,24 @@ function handleCameraAndPlayers() {
 
   let pW = maxX - minX;
   let pH = maxY - minY;
+  
+  // Kamera se teď může volně oddalovat až na obrovskou plochu (max oddálení 0.05)
   let targetScale = min(1.0, min((W-80)/max(pW, 1), (ARENA_BOT-ARENA_TOP-80)/max(pH, 1)));
-  cameraScale = lerp(cameraScale, Math.max(0.4, targetScale), 0.03);
+  cameraScale = lerp(cameraScale, Math.max(0.05, targetScale), 0.03); 
 }
 
 function attractToNearest(p) {
+  let cx = W/2; 
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  
+  // Slabá gravitace ke středu arény, aby se hráči nerozutekli do nekonečna
+  let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
+  let distC = Matter.Vector.magnitude(toCenter);
+  if (distC > 300) {
+      let pull = Matter.Vector.normalise(toCenter);
+      Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000005 * p.body.mass * (distC/500)));
+  }
+
   let closest = null; let minDist = Infinity;
   for(let other of players) {
     if(other === p) continue;
@@ -914,11 +969,10 @@ function drawPlayer(p) {
       ellipse(0, 0, p.r * 2.5);
   }
 
-  let tType = p.sawType % 3; // Menší počet čistších tvarů, aby to vypadalo reálněji jako pila
+  let tType = p.sawType % 3; 
   let coreType = Math.floor(p.sawType / 3) % 4; 
 
   if (safeHp >= 3000) {
-      // BRUTÁLNÍ PILA (Epic - od 3000 HP)
       fill(35, 40, 45); stroke(p.color); strokeWeight(3);
       let teeth = 16 + Math.floor(safeHp / 2000);
       let rOuter = p.r * 1.15; 
@@ -927,14 +981,13 @@ function drawPlayer(p) {
       for(let i=0; i<teeth; i++) {
           let a1 = i * TWO_PI / teeth;
           let a2 = (i + 1) * TWO_PI / teeth;
-          let aTip = a1 + TWO_PI/teeth * 0.85; // Cirkulárka design - ostrý šikmý zub
+          let aTip = a1 + TWO_PI/teeth * 0.85; 
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
       }
       endShape(CLOSE);
 
-      // Epické detaily (zlatá linka a žhavé jádro)
       noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.3);
       stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0);
       ellipse(0, 0, p.r*1.05);
@@ -943,7 +996,6 @@ function drawPlayer(p) {
       ellipse(0, -p.r*0.3, 5); ellipse(0, p.r*0.3, 5);
   } 
   else {
-      // STŘEDNÍ TŘÍDA: Všichni od začátku (500 - 2999 HP) mají tvar reálných pil
       let teeth = 12 + Math.floor(safeHp / 1000) + (p.sawType % 5) * 2; 
       let rOuter = p.r * 1.1; 
       let rInner = p.r * 0.95;
@@ -956,19 +1008,19 @@ function drawPlayer(p) {
           let a1 = i * TWO_PI / teeth;
           let a2 = (i + 1) * TWO_PI / teeth;
           
-          if (tType === 0) { // Ostrá cirkulárka
+          if (tType === 0) { 
               let aTip = a1 + TWO_PI/teeth * 0.8;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { // Hrubé ozubené kolo
+          } else if (tType === 1) { 
               let a3 = a1 + TWO_PI/teeth * 0.2;
               let a4 = a1 + TWO_PI/teeth * 0.8;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(a3)*rOuter, sin(a3)*rOuter);
               vertex(cos(a4)*rOuter, sin(a4)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 2) { // Vlnitá ostří
+          } else if (tType === 2) { 
               let mid = (a1 + a2) / 2;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(mid)*rOuter, sin(mid)*rOuter);
@@ -977,7 +1029,6 @@ function drawPlayer(p) {
       }
       endShape(CLOSE);
 
-      // Jádro pily 
       if (coreType === 0) {
           fill(20); noStroke(); ellipse(0,0,p.r*1.05);
       } else if (coreType === 1) {
@@ -1075,6 +1126,15 @@ function updateTimers() {
     roundTimer--;
     if (roundTimer <= 0) gameState = "RESULTS";
   }
+
+  if (frameCount % 180 === 0 && random() < 0.6 && orbs.length < 3) {
+      orbs.push({
+          x: random(100, W - 100),
+          y: random(ARENA_TOP + 100, ARENA_BOT - 100),
+          r: 15,
+          value: 1000
+      });
+  }
 }
 
 function drawResults() {
@@ -1088,7 +1148,6 @@ function drawResults() {
   let winner = sorted[0];
   
   if(winner) {
-    // Vítěz kola - Vizuál
     if (userAvatars[winner.name] && userAvatars[winner.name] !== "loaded") {
       imageMode(CENTER);
       stroke(winner.color); strokeWeight(3); noFill();
@@ -1103,7 +1162,6 @@ function drawResults() {
     text(formatK(floor(Math.max(0, winner.hp))) + " HP", W/2, ARENA_TOP + 200);
   }
   
-  // TOP 15 Žebříček
   textAlign(LEFT, CENTER);
   let listStartY = ARENA_TOP + 240; 
   let listLimit = Math.min(sorted.length, 15);
@@ -1112,16 +1170,13 @@ function drawResults() {
     let p = sorted[i];
     let yPos = listStartY + i * 28;
 
-    // Pozadí řádku
     fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5));
     noStroke();
     rect(W/2 - 200, yPos - 12, 400, 24, 5);
 
-    // Pořadí
     fill(p.color); textSize(12); textStyle(BOLD);
     text((i + 1) + ".", W/2 - 180, yPos);
 
-    // Profilovka
     if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
         drawingContext.save(); drawingContext.beginPath();
         drawingContext.arc(W/2 - 140, yPos, 9, 0, TWO_PI); drawingContext.clip();
@@ -1129,18 +1184,15 @@ function drawResults() {
         drawingContext.restore();
     }
 
-    // Jméno
     fill(220); textStyle(NORMAL); textSize(11);
     text(p.name.substring(0, 12), W/2 - 120, yPos);
 
-    // HP
     textAlign(RIGHT, CENTER);
     fill(255); textStyle(BOLD);
     text(formatK(floor(Math.max(0, p.hp))), W/2 + 180, yPos);
     textAlign(LEFT, CENTER); 
   }
   
-  // Časomíra (garantovaně čitelná úplně dole v aréně)
   let timerY = ARENA_BOT - 50; 
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2);
   rect(W/2 - 150, timerY - 20, 300, 40, 10);
@@ -1157,7 +1209,6 @@ function drawResults() {
   }
 }
 
-// --- TIKFINITY A TTS ---
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   socket.onmessage = (e) => {
@@ -1171,7 +1222,7 @@ function connectTikfinity() {
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
 
       if (!players.find(x => x.name === u)) {
-          spawnPlayer(u, 500); // 500 hp start
+          spawnPlayer(u, 500);
       }
 
       if (evt === "chat") {
