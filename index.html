@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.16.0"; // Tříúrovňový vizuální systém pil
+const GAME_VERSION = "v19.17.0"; // Dynamické pozadí a Mléčná dráha
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -185,6 +185,9 @@ let stars = [];
 let nebulas = [];
 let shootingStars = [];
 let planets = [];
+let milkyWay = [];
+let flowTime = 0;
+let globalFlowAngle = 0;
 
 let roundTimer = 0;
 let gameState = "PLAYING"; 
@@ -237,15 +240,39 @@ function generateSpaceBackground() {
   nebulas = [];
   shootingStars = [];
   planets = [];
+  milkyWay = [];
   
-  for(let i=0; i<150; i++) {
+  // Generace Mléčné dráhy (diagonální pás velkých poloprůhledných elips)
+  let mwPoints = 40;
+  for (let i = 0; i < mwPoints; i++) {
+      let t = i / mwPoints;
+      // Diagonála od levého horního okraje dolů doprava
+      let baseX = lerp(-100, W + 100, t) + random(-150, 150);
+      let baseY = lerp(ARENA_TOP - 100, ARENA_BOT + 100, t) + random(-200, 200);
+      milkyWay.push({
+          x: baseX,
+          y: baseY,
+          r: random(80, 250),
+          // Lehké fialovo-modré odstíny
+          color: color(random(50, 120), random(20, 80), random(100, 200), random(2, 8))
+      });
+  }
+
+  // Generace hvězd (pulzující a driftující)
+  for(let i=0; i<200; i++) {
+    let isPulse = random() < 0.25; // 25% hvězd bude pulzovat
     stars.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT), 
-        s: random(1, 3.5), speed: random(0.1, 1.0),
-        color: color(random(150, 255), random(200, 255), 255, random(15, 60))
+        s: random(1, 3.5), speed: random(0.1, 1.2),
+        rC: random(150, 255), gC: random(200, 255), bC: 255,
+        baseAlpha: random(15, 80),
+        isPulsing: isPulse,
+        pulseSpeed: random(0.02, 0.06),
+        pulsePhase: random(TWO_PI)
     });
   }
   
+  // Mlhoviny
   for(let i=0; i<6; i++) {
     nebulas.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT),
@@ -254,13 +281,14 @@ function generateSpaceBackground() {
     });
   }
 
-  for(let i=0; i<5; i++) {
+  // Planety
+  for(let i=0; i<4; i++) {
     planets.push({
         x: random(W), y: random(ARENA_TOP, ARENA_BOT),
-        r: random(15, 50),
-        col: color(random(30, 80), random(30, 80), random(30, 80), 80),
+        r: random(15, 45),
+        col: color(random(20, 70), random(20, 70), random(20, 70), 80),
         ringCol: color(random(50, 150), random(50, 150), random(50, 150), 30),
-        vx: random(-0.2, 0.2), vy: random(-0.2, 0.2),
+        vx: random(-0.15, 0.15), vy: random(-0.15, 0.15),
         hasRing: random() > 0.5,
         angle: random(TWO_PI),
         rotSpeed: random(-0.01, 0.01)
@@ -649,17 +677,50 @@ function drawTopHUD() {
 }
 
 function drawSpaceBackground() {
+  // Update globálního směru pohybu pozadí (oscilace mezi -0.25 a 0.25 radiány)
+  flowTime += 0.003;
+  globalFlowAngle = sin(flowTime) * 0.25;
+
   noStroke();
+  
+  // Vykreslení Mléčné dráhy
+  drawingContext.save();
+  milkyWay.forEach(mw => {
+      fill(mw.color);
+      ellipse(mw.x, mw.y, mw.r * 2);
+      
+      // Mléčná dráha mírně driftuje
+      mw.x += sin(globalFlowAngle) * 0.2;
+      mw.y += cos(globalFlowAngle) * 0.2;
+      
+      if (mw.y > ARENA_BOT + 250) mw.y = ARENA_TOP - 250;
+      if (mw.x > W + 250) mw.x = -250;
+      if (mw.x < -250) mw.x = W + 250;
+  });
+  drawingContext.restore();
+
   nebulas.forEach(n => {
      fill(n.color);
      ellipse(n.x, n.y, n.r); 
   });
 
   stars.forEach(s => {
-    fill(s.color);
+    // Pulzování vybraných hvězd
+    let currentAlpha = s.baseAlpha;
+    if (s.isPulsing) {
+        currentAlpha = 50 + sin(frameCount * s.pulseSpeed + s.pulsePhase) * 205;
+    }
+    fill(s.rC, s.gC, s.bC, currentAlpha);
     rect(s.x, s.y, s.s, s.s);
-    s.y += s.speed;
+    
+    // Pohyb ve směru globálního toku
+    s.x += sin(globalFlowAngle) * s.speed;
+    s.y += cos(globalFlowAngle) * s.speed;
+    
     if (s.y > ARENA_BOT) { s.y = ARENA_TOP; s.x = random(W); }
+    else if (s.y < ARENA_TOP) { s.y = ARENA_BOT; s.x = random(W); }
+    if (s.x > W) { s.x = 0; s.y = random(ARENA_TOP, ARENA_BOT); }
+    else if (s.x < 0) { s.x = W; s.y = random(ARENA_TOP, ARENA_BOT); }
   });
 
   planets.forEach(p => {
