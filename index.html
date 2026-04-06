@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.29.0"; // Start 100 HP, zčervenání při poškození
+const GAME_VERSION = "v19.29.1"; // TTS emoji fix, general jokes, full top HUD nums
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -86,6 +86,25 @@ const COMMENTARY_EMPTY = {
 const COMMENTARY_SOLO = {
   CZ: ["Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!", "Aréna patří jen hráči {p}! Změňte to někdo!", "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", "Jeden hráč jaro nedělá. Připojte se!"],
   EN: ["Player {p} is circling all alone! Who challenges them?", "Are you letting {p} win without a fight? Get in there!", "The arena belongs only to {p}! Someone change that!", "{p} thinks they are unstoppable. Prove them wrong!", "One player doesn't make a match. Join in!"]
+};
+
+const COMMENTARY_GENERAL = {
+  CZ: [
+    "Víte, že ve vesmíru není slyšet váš křik? Tady ale naštěstí ano!",
+    "Proč ufoni nepořádají párty? Protože tam není žádná atmosféra!",
+    "Nejrychlejší věc ve vesmíru je světlo. A hned po něm hráč s bonusem!",
+    "Tato aréna je větší než se zdá, díky pokročilé kompresi prostoru.",
+    "Zajímavost: Padající hvězdy v pozadí jsou jen nedopalky z minulé bitvy.",
+    "Pokud vám dochází energie, zkuste víc klikat. Je to vědecky dokázáno!"
+  ],
+  EN: [
+    "Did you know that in space, no one can hear you scream? Luckily, we can hear you here!",
+    "Why don't aliens throw parties? Because there is no atmosphere!",
+    "The fastest thing in the universe is light. Followed closely by a player with a bonus!",
+    "This arena is bigger than it looks, thanks to advanced space compression.",
+    "Fun fact: The shooting stars in the background are just debris from the last battle.",
+    "If you are running low on energy, try tapping more. It's scientifically proven!"
+  ]
 };
 
 const COMMENTARY = {
@@ -721,10 +740,13 @@ function handleTTSCommentary() {
       if (players.length === 0) arr = COMMENTARY_EMPTY[currentLang];
       else if (players.length === 1) arr = COMMENTARY_SOLO[currentLang];
       else {
-          arr = COMMENTARY[currentLang];
           if (random() < 0.25) {
               let top = [...players].sort((a,b) => b.hp - a.hp)[0];
               if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${Math.floor(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${Math.floor(Math.max(0, top.hp))} points! Go after them!`;
+          } else if (random() < 0.3) {
+              arr = COMMENTARY_GENERAL[currentLang];
+          } else {
+              arr = COMMENTARY[currentLang];
           }
       }
       if (txt === "") {
@@ -759,7 +781,7 @@ function drawTopHUD() {
   for(let i=0; i<allTimeSorted.length; i++) {
       let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*14;
       fill(pData.color); text(`${i+1}. ${pName.substring(0,8)}`, 10, y);
-      fill(255); textStyle(BOLD); text(formatK(pData.score), 150, y); textStyle(NORMAL);
+      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 150, y); textStyle(NORMAL);
   }
 
   let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
@@ -768,7 +790,7 @@ function drawTopHUD() {
   textStyle(NORMAL);
   for(let i = 0; i < hpSorted.length; i++) {
       let p = hpSorted[i]; fill(p.color); text(`${i+1}. ${p.name.substring(0,8)}`, W - 80, HUD_TOP + 28 + i*14);
-      fill(255); textStyle(BOLD); text(formatK(Math.floor(p.hp)), W - 10, HUD_TOP + 28 + i*14); textStyle(NORMAL);
+      fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), W - 10, HUD_TOP + 28 + i*14); textStyle(NORMAL);
   }
 }
 
@@ -869,7 +891,7 @@ function drawPlayer(p) {
 
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); fill(txtCol); textStyle(BOLD);
   textSize(Math.max(11, p.r * 0.35)); 
-  text(formatK(Math.floor(safeHp)), 0, p.r > 20 ? p.r * 0.3 : 0); 
+  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.3 : 0); 
   
   drawingContext.shadowBlur = 0; noStroke(); pop();
 }
@@ -951,7 +973,7 @@ function drawResults() {
       image(userAvatars[winner.name], W/2, ARENA_TOP + 110, 75, 75);
     }
     noStroke(); fill(winner.color); textSize(18); textStyle(BOLD); text(winner.name, W/2, ARENA_TOP + 175);
-    fill(255); textSize(16); text(formatK(floor(Math.max(0, winner.hp))) + " HP", W/2, ARENA_TOP + 200);
+    fill(255); textSize(16); text(Math.floor(Math.max(0, winner.hp)).toLocaleString() + " HP", W/2, ARENA_TOP + 200);
   }
   
   textAlign(LEFT, CENTER); let listStartY = ARENA_TOP + 240; let listLimit = Math.min(sorted.length, 15);
@@ -964,7 +986,7 @@ function drawResults() {
         image(userAvatars[p.name], W/2 - 140, yPos, 18, 18); drawingContext.restore();
     }
     fill(220); textStyle(NORMAL); textSize(11); text(p.name.substring(0, 12), W/2 - 120, yPos);
-    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); text(formatK(floor(Math.max(0, p.hp))), W/2 + 180, yPos); textAlign(LEFT, CENTER); 
+    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); text(Math.floor(Math.max(0, p.hp)).toLocaleString(), W/2 + 180, yPos); textAlign(LEFT, CENTER); 
   }
   
   let timerY = ARENA_BOT - 50; 
@@ -997,7 +1019,15 @@ function connectTikfinity() {
 function speakTTS(txt) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
   if (window.speechSynthesis.speaking) return; 
-  let msg = new SpeechSynthesisUtterance(txt); msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; msg.rate = 1.15; msg.pitch = 1.2; window.speechSynthesis.speak(msg);
+  
+  // Odstraní emotikony a speciální grafické znaky, aby je čtečka nečetla
+  let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
+  
+  let msg = new SpeechSynthesisUtterance(cleanTxt); 
+  msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
+  msg.rate = 1.15; 
+  msg.pitch = 1.2; 
+  window.speechSynthesis.speak(msg);
 }
 
 function mousePressed() {
