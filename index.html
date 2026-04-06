@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.13.0"; // Like Buff & Epic Crits
+const GAME_VERSION = "v19.14.1"; // Nerf CRIT
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -353,7 +353,7 @@ function spawnPlayer(name, hp) {
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     damageDealt: 0,
     sawType: Math.floor(random(30)),
-    likeBuffTimer: 0 // Nová proměnná pro Buff z lajků
+    likeBuffTimer: 0 
   };
   
   players.push(player);
@@ -376,7 +376,7 @@ function handleAction(name, amount) {
   if(p) {
     p.hp += amount;
     p.auraFlash = 15; 
-    p.likeBuffTimer = 90; // Buff aktivní na 1.5 sekundy (při 60 FPS)
+    p.likeBuffTimer = 90; 
     let newR = getRadius(p.hp);
     if (newR > p.r + 0.5) {
         let scale = newR / p.r;
@@ -413,7 +413,6 @@ function handleCombat(p1, p2) {
   let momentum1 = speed1 / (speed1 + speed2 + 0.1);
   let momentum2 = speed2 / (speed1 + speed2 + 0.1);
   
-  // Buff poškození, pokud hráč právě lajkuje
   let buffMult1 = p1.likeBuffTimer > 0 ? 2.0 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 2.0 : 1.0;
 
@@ -423,11 +422,11 @@ function handleCombat(p1, p2) {
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
 
-  let isCrit1 = random() < 0.1;
-  let isCrit2 = random() < 0.1;
+  let isCrit1 = random() < 0.04;
+  let isCrit2 = random() < 0.04;
 
-  if (isCrit1) baseDmgFrom1 *= 2.5;
-  if (isCrit2) baseDmgFrom2 *= 2.5;
+  if (isCrit1) baseDmgFrom1 *= 1.5;
+  if (isCrit2) baseDmgFrom2 *= 1.5;
 
   let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
   let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
@@ -675,7 +674,6 @@ function handleCameraAndPlayers() {
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
     
-    // SMRT HRÁČE
     if (p.hp <= 0) {
       createParticles(p.body.position.x, p.body.position.y, p.color, 60);
       deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
@@ -794,7 +792,6 @@ function drawPlayer(p) {
   let isBuffed = p.likeBuffTimer > 0;
   if (isBuffed) p.likeBuffTimer--;
 
-  // Buff způsobuje zrychlení rotace (až 4x)
   let baseRotSpd = (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir;
   let rotSpd = isBuffed ? baseRotSpd * 4 : baseRotSpd;
   p.rot += rotSpd;
@@ -802,7 +799,6 @@ function drawPlayer(p) {
   push();
   translate(pos.x, pos.y);
   
-  // Buff způsobuje zvětšení pily o 20%
   let currentScale = isBuffed ? 1.2 : 1.0;
   scale(currentScale);
   
@@ -814,14 +810,12 @@ function drawPlayer(p) {
   ellipse(0, 0, p.r * 2.4);
   if(p.auraFlash > 0) p.auraFlash--;
 
-  // Pokud je hráč nabuffovaný lajky, obklopí ho zářící svatozář
   if (isBuffed) {
       fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100);
       noStroke();
       ellipse(0, 0, p.r * 2.5);
   }
 
-  // PROCEDURÁLNÍ VYKRESLENÍ PIL (30 typů na základě p.sawType)
   let tType = p.sawType % 5;
   let coreType = Math.floor(p.sawType / 5) % 6; 
   let baseTeeth = 5 + (p.sawType % 6) * 2; 
@@ -831,7 +825,6 @@ function drawPlayer(p) {
   let rOuter = isEpic ? p.r * 1.35 : p.r * 1.15; 
   let rInner = p.r * 0.9;
 
-  // Mírná změna barvy čepele při buffu
   let bladeFill = isEpic ? color(35, 40, 45) : color(25, 30, 35);
   if (isBuffed) bladeFill = color(255, 255, 200);
 
@@ -845,26 +838,26 @@ function drawPlayer(p) {
       let a2 = (i + 1) * TWO_PI / teeth;
       let mid = (a1 + a2) / 2;
 
-      if (tType === 0) { // Cirkulárka
+      if (tType === 0) { 
           let aTip = a1 + TWO_PI/teeth * 0.2;
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 1) { // Hvězdice
+      } else if (tType === 1) { 
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(mid)*rOuter, sin(mid)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 2) { // Ozubené kolo
+      } else if (tType === 2) { 
           let a3 = a1 + TWO_PI/teeth * 0.25;
           let a4 = a1 + TWO_PI/teeth * 0.75;
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(a3)*rOuter, sin(a3)*rOuter);
           vertex(cos(a4)*rOuter, sin(a4)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 3) { // Háky
+      } else if (tType === 3) { 
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(a2)*rOuter, sin(a2)*rOuter);
-      } else if (tType === 4) { // Dvojité ostří
+      } else if (tType === 4) { 
           let q1 = a1 + TWO_PI/teeth * 0.3;
           let q2 = a1 + TWO_PI/teeth * 0.7;
           vertex(cos(a1)*rInner, sin(a1)*rInner);
@@ -880,7 +873,6 @@ function drawPlayer(p) {
       noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.5);
   }
 
-  // Jádro pily
   if (coreType === 0) {
       fill(20); noStroke(); ellipse(0,0,p.r*1.1);
       stroke(255, 100); strokeWeight(1); line(-p.r*0.5,0, p.r*0.5,0); line(0,-p.r*0.5, 0,p.r*0.5);
@@ -902,7 +894,6 @@ function drawPlayer(p) {
       beginShape(); for(let i=0; i<6; i++) { let a=i*TWO_PI/6; vertex(cos(a)*p.r*0.4, sin(a)*p.r*0.4); } endShape(CLOSE);
   }
 
-  // Zruší rotaci pro fotku a text
   rotate(-p.rot); 
   
   let imgSize = p.r * 1.6;
@@ -923,23 +914,21 @@ function drawPlayer(p) {
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
   drawingContext.lineJoin = "round"; 
+  textAlign(CENTER, CENTER);
   
-  // Silný černý outline pro HP text
-  stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
-  fill(txtCol); textAlign(CENTER, CENTER); textStyle(BOLD);
-  
-  let hpTxtSize = Math.max(10, p.r * 0.35);
-  textSize(hpTxtSize);
-  text(formatK(Math.floor(safeHp)), 0, p.r * 0.25); 
-
-  if (p.r > 25) {
-      // Silný černý outline pro jméno
+  if (p.r > 20) {
       stroke(0); strokeWeight(Math.max(3, p.r * 0.12));
-      fill(220); textStyle(NORMAL);
-      textSize(Math.max(7, p.r * 0.22)); 
-      text(p.name.substring(0, 8), 0, -p.r * 0.3); 
+      fill(230); textStyle(NORMAL);
+      textSize(Math.max(8, p.r * 0.22)); 
+      text(p.name.substring(0, 10), 0, -p.r * 0.4); 
   }
-  
+
+  stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
+  fill(txtCol); textStyle(BOLD);
+  let hpTxtSize = Math.max(11, p.r * 0.35);
+  textSize(hpTxtSize);
+  text(formatK(Math.floor(safeHp)), 0, p.r * 0.3); 
+
   noStroke(); 
   pop();
 }
@@ -969,16 +958,14 @@ function drawPopups() {
     let f = floatingTexts[i];
     
     if (f.isCrit) {
-        // Epický Critical Hit efekt
         stroke(0); strokeWeight(4);
-        fill(255, 215, 0, f.life); // Zlatá barva pro text
-        let ts = 22 + sin(f.life * 0.1) * 4; // Pulzující velikost
+        fill(255, 215, 0, f.life); 
+        let ts = 22 + sin(f.life * 0.1) * 4; 
         textSize(ts); textAlign(CENTER); textStyle(BOLD);
         text("CRITICAL HIT!\n" + f.txt, f.x, f.y);
-        f.y += f.vy - 0.5; // Letí rychleji nahoru
+        f.y += f.vy - 0.5; 
         f.life -= 6;
     } else {
-        // Standardní poškození
         stroke(0); strokeWeight(3);
         fill(red(f.c), green(f.c), blue(f.c), f.life);
         textSize(14); textAlign(CENTER); textStyle(BOLD);
