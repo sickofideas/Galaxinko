@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.4.0";
+const GAME_VERSION = "v19.5.0";
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -78,6 +78,21 @@ const T = {
   }
 };
 
+const COMMENTARY = {
+  CZ: [
+    "Au, to muselo bolet!", "Neskutečný náraz v aréně!", "Lajkujte, nebo vás rozdrtí!",
+    "Tady lítají třísky!", "Epický souboj, pošlete energii!", "Nenechte se vytlačit z pole!",
+    "Kdo přežije tenhle masakr?", "Štíty dostávají zabrat!", "Taktický manévr, nebo jen štěstí?",
+    "Pošlete dárky pro masivní poškození!", "To je ale mela!", "Rotace na maximum!"
+  ],
+  EN: [
+    "Ouch, that had to hurt!", "Incredible impact in the arena!", "Like it up or get crushed!",
+    "Sparks are flying!", "Epic battle, send energy!", "Don't get pushed out!",
+    "Who will survive this massacre?", "Shields are taking a beating!", "Tactical maneuver or just luck?",
+    "Send gifts for massive damage!", "What a brawl!", "Spinning to the max!"
+  ]
+};
+
 let engine, world;
 let players = [];
 let particles = [];
@@ -96,6 +111,9 @@ let resultsTimer = 10;
 let cameraScale = 1.0;
 let audioStarted = false;
 let synth;
+
+let nextCommentTime = 0;
+let lastHitSound = 0;
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -166,6 +184,7 @@ function startNewRound() {
   particles = [];
   floatingTexts = [];
   lightnings = [];
+  nextCommentTime = millis() + random(10000, 20000);
   generateSpaceBackground();
 }
 
@@ -190,10 +209,18 @@ function setupEvents() {
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
   Matter.Events.on(engine, 'collisionStart', (event) => {
+    let playedSoundThisFrame = false;
     event.pairs.forEach(pair => {
       let p1 = players.find(p => p.body === pair.bodyA);
       let p2 = players.find(p => p.body === pair.bodyB);
-      if(p1 && p2) handleCombat(p1, p2);
+      if(p1 && p2) {
+          handleCombat(p1, p2);
+          if (!playedSoundThisFrame && audioStarted && millis() - lastHitSound > 150) {
+              try { synth.play(random([300, 350, 400]), 0.05, 0, 0.05); } catch(e){}
+              lastHitSound = millis();
+              playedSoundThisFrame = true;
+          }
+      }
     });
   });
 }
@@ -269,8 +296,6 @@ function handleCombat(p1, p2) {
   createParticles(cx, cy, color(255, 255, 100), 5);
   addPopup("-" + dmg1, p1.body.position.x, p1.body.position.y, color(255, 80, 80));
   addPopup("-" + dmg2, p2.body.position.x, p2.body.position.y, color(255, 80, 80));
-  
-  if(audioStarted && random()<0.2) try{ synth.play(random([150, 250]), 0.05, 0, 0.1); }catch(e){}
 }
 
 function draw() {
@@ -315,11 +340,19 @@ function draw() {
     pop();
 
     updateTimers();
+    handleTTSCommentary();
   } else {
     drawResults();
   }
   
   drawingContext.restore(); 
+}
+
+function handleTTSCommentary() {
+  if (players.length > 1 && millis() > nextCommentTime) {
+      speakTTS(random(COMMENTARY[currentLang]));
+      nextCommentTime = millis() + random(15000, 25000);
+  }
 }
 
 function drawTopHUD() {
@@ -667,6 +700,7 @@ function connectTikfinity() {
 
 function speakTTS(txt) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
+  if (window.speechSynthesis.speaking) return; // Ochrana proti frontování a spamu zpráv za sebou
   let msg = new SpeechSynthesisUtterance(txt);
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US";
   msg.rate = 1.1;
