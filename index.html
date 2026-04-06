@@ -404,6 +404,8 @@ function handleCombat(p1, p2) {
 
   if (p1.hp <= 0 && hp1Before > 0) healLogic(p2, hp1Before);
   if (p2.hp <= 0 && hp2Before > 0) healLogic(p1, hp2Before);
+
+  p1.damageDealt += finalDmgTo2; p2.damageDealt += finalDmgTo1;
   
   let forceDir = Matter.Vector.normalise(distVec);
   let forceMag = 0.02 + speed * 0.004;
