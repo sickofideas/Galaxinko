@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.14.1"; // Nerf CRIT
+const GAME_VERSION = "v19.15.0"; // Dmg nerf & Kill reward
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -407,32 +407,67 @@ function handleCombat(p1, p2) {
   let speed1 = Matter.Vector.magnitude(p1.body.velocity);
   let speed2 = Matter.Vector.magnitude(p2.body.velocity);
 
-  let massAdvantage1 = Math.max(1, Math.sqrt(safeHp1 / safeHp2));
-  let massAdvantage2 = Math.max(1, Math.sqrt(safeHp2 / safeHp1));
+  // Zastropování výhody hmotnosti na max 2.5x, aby obří hráči nedávali okamžitý oneshot
+  let massAdvantage1 = Math.min(2.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
+  let massAdvantage2 = Math.min(2.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
 
   let momentum1 = speed1 / (speed1 + speed2 + 0.1);
   let momentum2 = speed2 / (speed1 + speed2 + 0.1);
   
-  let buffMult1 = p1.likeBuffTimer > 0 ? 2.0 : 1.0;
-  let buffMult2 = p2.likeBuffTimer > 0 ? 2.0 : 1.0;
+  let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
+  let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 5 + speed * 2) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 5 + speed * 2) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
+  // Snížení celkového základního poškození (zhruba na polovinu)
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 2.5 + speed * 1.0) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 2.5 + speed * 1.0) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
 
-  let isCrit1 = random() < 0.04;
-  let isCrit2 = random() < 0.04;
+  let isCrit1 = random() < 0.05;
+  let isCrit2 = random() < 0.05;
 
-  if (isCrit1) baseDmgFrom1 *= 1.5;
-  if (isCrit2) baseDmgFrom2 *= 1.5;
+  // Snížený CRIT násobič
+  if (isCrit1) baseDmgFrom1 *= 1.3;
+  if (isCrit2) baseDmgFrom2 *= 1.3;
 
   let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
   let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
 
+  let hp1Before = p1.hp;
+  let hp2Before = p2.hp;
+
   p1.hp -= finalDmgTo1;
   p2.hp -= finalDmgTo2;
+
+  // Odměna za zabití (Lifesteal / Kill reward)
+  if (p1.hp <= 0 && hp1Before > 0) {
+      let heal = Math.floor(hp1Before * 0.3 + 50); // Získá 30% HP poraženého
+      p2.hp += heal;
+      addPopup("+" + heal + " KILL!", p2.body.position.x, p2.body.position.y - p2.r - 20, color(50, 255, 100));
+      p2.auraFlash = 20;
+      let newR = getRadius(p2.hp);
+      if (newR > p2.r + 0.5) {
+          let scale = newR / p2.r;
+          Matter.Body.scale(p2.body, scale, scale);
+          p2.r = newR;
+          Matter.Body.setDensity(p2.body, 0.001 + (newR * 0.0001));
+      }
+  }
+  
+  if (p2.hp <= 0 && hp2Before > 0) {
+      let heal = Math.floor(hp2Before * 0.3 + 50);
+      p1.hp += heal;
+      addPopup("+" + heal + " KILL!", p1.body.position.x, p1.body.position.y - p1.r - 20, color(50, 255, 100));
+      p1.auraFlash = 20;
+      let newR = getRadius(p1.hp);
+      if (newR > p1.r + 0.5) {
+          let scale = newR / p1.r;
+          Matter.Body.scale(p1.body, scale, scale);
+          p1.r = newR;
+          Matter.Body.setDensity(p1.body, 0.001 + (newR * 0.0001));
+      }
+  }
 
   p1.damageDealt += finalDmgTo2;
   p2.damageDealt += finalDmgTo1;
