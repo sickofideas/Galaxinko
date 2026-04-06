@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.8.0"; 
+const GAME_VERSION = "v19.9.0"; 
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -67,12 +67,12 @@ const ARENA_BOT = 900;
 let currentLang = "CZ";
 const T = {
   CZ: {
-    TOP: "TOP 5 ELITA", ROUND_END: "KONEC KOLA!", NEXT: "DALŠÍ KOLO ZA: ",
+    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALŠÍ KOLO ZA: ",
     WINNER: "VÍTĚZ KOLA!", HP: "HP", NEW: "NOVÝ BOJOVNÍK: ",
-    DAYZ_SPACE: "[ PROSTOR PRO DAYZ STREAM ]", TIME: "ČAS kola:"
+    DAYZ_SPACE: "[ PROSTOR PRO DAYZ STREAM ]", TIME: "ČAS KOLA:"
   },
   EN: {
-    TOP: "TOP 5 ELITE", ROUND_END: "ROUND OVER!", NEXT: "NEXT ROUND IN: ",
+    TOP: "TOP 5 ELITE (HP)", ROUND_END: "ROUND OVER!", NEXT: "NEXT ROUND IN: ",
     WINNER: "ROUND WINNER!", HP: "HP", NEW: "NEW WARRIOR: ",
     DAYZ_SPACE: "[ DAYZ STREAM SPACE ]", TIME: "ROUND TIME:"
   }
@@ -141,7 +141,7 @@ let userAvatars = {};
 // Systém poškození (Žebříčky)
 let allTimeDamageLeaderboard = {};
 let roundDamageLeaderboard = {};
-let allTimeLbRect = {x: 10, y: ARENA_TOP + 10, w: 200, h: 30};
+let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; // Klikací oblast upravena pro HUD
 
 // Vesmírné efekty
 let stars = [];
@@ -261,7 +261,7 @@ function setupEvents() {
       if(p1 && p2) {
           handleCombat(p1, p2);
           if (!playedSoundThisFrame && audioStarted && millis() - lastHitSound > 100) {
-              try { fxSynth.play(random([800, 1000, 1200]), 0.02, 0, 0.1); } catch(e){} // Kovový zvuk srážky
+              try { synth.play(random([800, 1000, 1200]), 0.02, 0, 0.1); } catch(e){} // Kovový zvuk srážky
               lastHitSound = millis();
               playedSoundThisFrame = true;
           }
@@ -446,68 +446,73 @@ function handleTTSCommentary() {
 function drawTopHUD() {
   fill(8, 10, 18); noStroke();
   rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
-  
-  textAlign(LEFT, CENTER);
-  drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(0, 255, 255);
-  fill(0, 255, 255); textSize(18); textStyle(BOLD);
-  text(GAME_TITLE, 20, HUD_TOP + 30);
-  drawingContext.shadowBlur = 0;
-  fill(150); textSize(10); textStyle(NORMAL);
-  text(GAME_VERSION, 20, HUD_TOP + 55);
 
+  // ----------------------------------------
+  // STŘED: NADPIS, VERZE A ČAS
+  // ----------------------------------------
   textAlign(CENTER, CENTER);
+  drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(0, 255, 255);
+  fill(0, 255, 255); textSize(16); textStyle(BOLD);
+  text(GAME_TITLE, W/2, HUD_TOP + 20);
+  drawingContext.shadowBlur = 0;
+  fill(150); textSize(8); textStyle(NORMAL);
+  text(GAME_VERSION, W/2, HUD_TOP + 35);
+
   let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
-  fill(100, 255, 100); textSize(32); textStyle(BOLD);
+  fill(100, 255, 100); textSize(28); textStyle(BOLD);
   if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-  text(timeStr, W/2, HUD_TOP + 40);
-  fill(150); textSize(10); textStyle(NORMAL);
-  text(T[currentLang].TIME, W/2, HUD_TOP + 15);
+  text(timeStr, W/2, HUD_TOP + 65);
+  fill(150); textSize(8); textStyle(NORMAL);
+  text(T[currentLang].TIME, W/2, HUD_TOP + 85);
+
+  // ----------------------------------------
+  // LEVÁ STRANA: ALL-TIME TOP 5 DMG
+  // ----------------------------------------
+  let allTimeSorted = Object.entries(allTimeDamageLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
+  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15};
+  
+  textAlign(LEFT, TOP);
+  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) {
+      fill(255, 50, 50); 
+  } else {
+      fill(255, 100, 255);
+  }
+  textSize(9); textStyle(BOLD);
+  text(currentLang === "CZ" ? "ALL-TIME TOP 5 DMG" : "ALL-TIME TOP 5 DMG", 10, HUD_TOP + 10);
+  
+  textStyle(NORMAL);
+  for(let i=0; i<allTimeSorted.length; i++) {
+      let pName = allTimeSorted[i][0];
+      let pData = allTimeSorted[i][1];
+      let y = HUD_TOP + 28 + i*14;
+      fill(pData.color);
+      text(`${i+1}. ${pName.substring(0,8)}`, 10, y);
+      fill(255); textStyle(BOLD);
+      text(formatK(pData.score), 150, y);
+      textStyle(NORMAL);
+  }
+
+  // ----------------------------------------
+  // PRAVÁ STRANA: TOP 5 ELITA (HP)
+  // ----------------------------------------
+  let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
+  textAlign(RIGHT, TOP);
+  fill(0, 255, 255); textSize(9); textStyle(BOLD);
+  text(T[currentLang].TOP, W - 10, HUD_TOP + 10);
+  
+  textStyle(NORMAL);
+  for(let i = 0; i < hpSorted.length; i++) {
+      let p = hpSorted[i];
+      fill(p.color);
+      text(`${i+1}. ${p.name.substring(0,8)}`, W - 80, HUD_TOP + 28 + i*14);
+      fill(255); textStyle(BOLD);
+      text(formatK(Math.floor(p.hp)), W - 10, HUD_TOP + 28 + i*14);
+      textStyle(NORMAL);
+  }
 }
 
 function drawLeaderboards() {
-    // 1. ALL-TIME TOP 5 DMG (NALEVO)
-    let allTimeSorted = Object.entries(allTimeDamageLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
-    push();
-    translate(10, ARENA_TOP + 10);
-    allTimeLbRect = {x: 10, y: ARENA_TOP + 10, w: 200, h: 30};
-    
-    fill(0, 0, 20, 180); stroke(0, 255, 255, 100); strokeWeight(2);
-    rect(0, 0, 200, 35 + allTimeSorted.length * 28, 8);
-    
-    // Hover efekt pro smazání
-    if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) {
-        fill(255, 50, 50, 200);
-    } else {
-        fill(0, 255, 255);
-    }
-    
-    noStroke(); textAlign(CENTER, CENTER); textSize(10); textStyle(BOLD);
-    text(currentLang === "CZ" ? "ALL-TIME TOP 5 DMG" : "ALL-TIME TOP 5 DMG", 100, 15);
-    stroke(0, 255, 255, 80); strokeWeight(1); line(10, 25, 190, 25);
-    
-    textAlign(LEFT, CENTER);
-    for(let i=0; i<allTimeSorted.length; i++) {
-        let pName = allTimeSorted[i][0];
-        let pData = allTimeSorted[i][1];
-        let y = 40 + i * 28;
-        fill(pData.color); textSize(9);
-        text((i+1)+".", 10, y);
-        if (pData.avatar && pData.avatar !== "loaded") {
-            drawingContext.save(); drawingContext.beginPath();
-            drawingContext.arc(35, y, 8, 0, TWO_PI); drawingContext.clip();
-            image(pData.avatar, 35, y, 16, 16);
-            drawingContext.restore();
-            text(pName.substring(0,8), 50, y);
-        } else {
-            text(pName.substring(0,10), 30, y);
-        }
-        textAlign(RIGHT, CENTER); fill(255);
-        text(formatK(pData.score), 190, y);
-        textAlign(LEFT, CENTER);
-    }
-    pop();
-
-    // 2. ROUND TOP 20 DMG (NAPRAVO - První 3 staticky, 17 scrolluje)
+    // 2. ROUND TOP 20 DMG (NAPRAVO - První 3 staticky, 17 scrolluje) - Přímo nad arénou
     let roundSorted = Object.entries(roundDamageLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 20);
     if (roundSorted.length > 0) {
         push();
@@ -550,7 +555,6 @@ function drawLeaderboards() {
             let scrollArr = roundSorted.slice(3);
             let scrollIndex = 0;
             if (scrollArr.length > 5) {
-                // Přesun o jednu položku každou cca 1.5 vteřinu
                 scrollIndex = floor(frameCount / 90) % scrollArr.length; 
             }
             for(let j=0; j<Math.min(scrollArr.length, 5); j++) {
@@ -571,7 +575,7 @@ function drawLeaderboards() {
                 } else {
                     text(pName.substring(0,10), 30, y);
                 }
-                textAlign(RIGHT, CENTER); fill(180); // Lehce ztmavené pro rolovací sekci
+                textAlign(RIGHT, CENTER); fill(180); 
                 text(formatK(pData.score), rbWidth - 10, y);
                 textAlign(LEFT, CENTER);
             }
