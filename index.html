@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.28.2"; // Přidána jména hráčů do kruhů
+const GAME_VERSION = "v19.29.0"; // Start 100 HP, zčervenání při poškození
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -204,7 +204,7 @@ function startNewRound() {
   let oldPlayers = players.map(p => p.name);
   players = []; orbs = []; screenShake = 0;
   
-  oldPlayers.forEach(name => spawnPlayer(name, 500)); 
+  oldPlayers.forEach(name => spawnPlayer(name, 100)); 
 
   roundTimer = floor(random(180, 900)); 
   maxRoundTimer = roundTimer;
@@ -218,7 +218,7 @@ function startNewRound() {
 
 function setupEvents() {
   document.getElementById('langBtn').onclick = (e) => { currentLang = currentLang === "CZ" ? "EN" : "CZ"; e.target.innerText = "LANG: " + currentLang; };
-  document.getElementById('tJoin').onclick = () => { handleAction(random(TEST_NAMES) + floor(random(99)), 500); };
+  document.getElementById('tJoin').onclick = () => { handleAction(random(TEST_NAMES) + floor(random(99)), 100); };
   document.getElementById('tLike').onclick = () => { if(players.length > 0) handleAction(random(players).name, floor(random(50, 150))); else document.getElementById('tJoin').click(); };
   document.getElementById('tGift').onclick = () => { if(players.length > 0) handleAction(random(players).name, 5000); };
   document.getElementById('tChat').onclick = () => { if(!audioStarted) { audioStarted = true; userStartAudio(); } speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); };
@@ -251,7 +251,7 @@ function formatK(num) {
 function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 0.5, 110); }
 
 function spawnPlayer(name, hp) {
-  let safeHp = Math.max(0, hp || 500); 
+  let safeHp = Math.max(0, hp || 100); 
   let r = getRadius(safeHp);
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -292,7 +292,7 @@ function handleAction(name, amount) {
     }
     if (players.length < 50) addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
-    spawnPlayer(name, 500 + amount); 
+    spawnPlayer(name, 100 + amount); 
   }
 }
 
@@ -780,10 +780,13 @@ function drawPlayer(p) {
   let isHeavyLoad = players.length > 40; 
   let isEpic = safeHp >= 3000;
 
+  let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1);
+  let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
+
   if (!isHeavyLoad && p.trail.length > 1) {
       noFill();
       for (let i = 0; i < p.trail.length - 1; i++) {
-          stroke(red(p.color), green(p.color), blue(p.color), map(i, 0, p.trail.length, 0, 150));
+          stroke(red(actualColor), green(actualColor), blue(actualColor), map(i, 0, p.trail.length, 0, 150));
           strokeWeight(map(i, 0, p.trail.length, p.r * 0.2, p.r * 0.8));
           line(p.trail[i].x, p.trail[i].y, p.trail[i+1].x, p.trail[i+1].y);
       }
@@ -791,18 +794,24 @@ function drawPlayer(p) {
 
   push(); translate(pos.x, pos.y); scale(isBuffed ? 1.2 : 1.0); rotate(p.rot);
   
-  if (p.auraFlash > 0) { fill(red(p.color), green(p.color), blue(p.color), p.auraFlash * 15); noStroke(); ellipse(0, 0, p.r * 2.4); p.auraFlash--; }
+  let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
+  if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 100 + sin(frameCount*0.2)*50); 
+  
+  fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
+  noStroke(); ellipse(0, 0, p.r * 2.4);
+  if(p.auraFlash > 0) p.auraFlash--;
+
   if (isBuffed) { fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100); noStroke(); ellipse(0, 0, p.r * 2.5); }
 
-  if (!isHeavyLoad) { drawingContext.shadowBlur = isEpic ? 25 : 15; drawingContext.shadowColor = p.color; }
+  if (!isHeavyLoad) { drawingContext.shadowBlur = isEpic ? 25 : 15; drawingContext.shadowColor = actualColor; }
   
   if (!isHeavyLoad) {
       let grad = drawingContext.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, p.r));
-      grad.addColorStop(0, "rgba(10, 15, 20, 1)"); grad.addColorStop(1, isBuffed ? `rgba(${red(p.color)},${green(p.color)},${blue(p.color)}, 0.8)` : "rgba(30, 35, 45, 0.9)");
+      grad.addColorStop(0, "rgba(10, 15, 20, 1)"); grad.addColorStop(1, isBuffed ? `rgba(${red(actualColor)},${green(actualColor)},${blue(actualColor)}, 0.8)` : "rgba(30, 35, 45, 0.9)");
       drawingContext.fillStyle = grad;
-  } else { fill(red(p.color)*0.5, green(p.color)*0.5, blue(p.color)*0.5); }
+  } else { fill(red(actualColor)*0.5, green(actualColor)*0.5, blue(actualColor)*0.5); }
   
-  stroke(p.color); strokeWeight(isEpic ? 3 : 2);
+  stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
   let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
   let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1; let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
@@ -828,10 +837,10 @@ function drawPlayer(p) {
       stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0); ellipse(0, 0, p.r*1.05);
       noStroke(); fill(255, 255, 0); ellipse(-p.r*0.3, 0, 5); ellipse(p.r*0.3, 0, 5); ellipse(0, -p.r*0.3, 5); ellipse(0, p.r*0.3, 5);
   } else {
-      if (coreType === 0) { noFill(); stroke(p.color); strokeWeight(1); ellipse(0,0,p.r*0.7); }
-      else if (coreType === 1) { fill(p.color); noStroke(); ellipse(0,0,p.r*0.3); }
-      else if (coreType === 2) { noFill(); stroke(p.color); strokeWeight(2); rectMode(CENTER); rect(0, 0, p.r*0.5, p.r*0.5, 3); rectMode(CORNER); }
-      else if (coreType === 3) { fill(p.color); noStroke(); for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.2); } }
+      if (coreType === 0) { noFill(); stroke(actualColor); strokeWeight(1); ellipse(0,0,p.r*0.7); }
+      else if (coreType === 1) { fill(actualColor); noStroke(); ellipse(0,0,p.r*0.3); }
+      else if (coreType === 2) { noFill(); stroke(actualColor); strokeWeight(2); rectMode(CENTER); rect(0, 0, p.r*0.5, p.r*0.5, 3); rectMode(CORNER); }
+      else if (coreType === 3) { fill(actualColor); noStroke(); for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.2); } }
   }
 
   rotate(-p.rot); 
@@ -853,6 +862,10 @@ function drawPlayer(p) {
       textSize(Math.max(8, p.r * 0.22)); 
       text(p.name.substring(0, 10), 0, -p.r * 0.4); 
   }
+
+  let txtCol = color(255);
+  if (p.hp > 50000) txtCol = color(100, 255, 100);
+  else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); fill(txtCol); textStyle(BOLD);
   textSize(Math.max(11, p.r * 0.35)); 
@@ -969,7 +982,7 @@ function connectTikfinity() {
       if (u === "Anonym") return;
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
-      if (!players.find(x => x.name === u)) spawnPlayer(u, 500);
+      if (!players.find(x => x.name === u)) spawnPlayer(u, 100);
       if (evt === "chat") handleAction(u, 10); 
       else if (evt === "like") handleAction(u, (d.data?.likeCount || 1) * 2); 
       else if (evt === "gift") { 
