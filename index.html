@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.5.1"; // Ochrana proti NaN pádu
+const GAME_VERSION = "v19.5.2"; // Přidán neustálý komentátor
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -76,6 +76,34 @@ const T = {
     WINNER: "ROUND WINNER!", HP: "HP", NEW: "NEW WARRIOR: ",
     DAYZ_SPACE: "[ DAYZ STREAM SPACE ]", TIME: "TIME:"
   }
+};
+
+const COMMENTARY_EMPTY = {
+  CZ: [
+    "Aréna je prázdná! Kdo se odváží vstoupit první?", 
+    "Čekáme na prvního gladiátora! Napište cokoliv do chatu!", 
+    "Haló? Je tam někdo? Vesmírná aréna čeká jen na vás!",
+    "Připojte se jako první a získejte obrovskou výhodu!"
+  ],
+  EN: [
+    "The arena is empty! Who dares to enter first?", 
+    "Waiting for the first gladiator! Say something in chat!", 
+    "Hello? Anyone there? The space arena is waiting!",
+    "Join first to get a massive head start!"
+  ]
+};
+
+const COMMENTARY_SOLO = {
+  CZ: [
+    "Hráč {p} tu kraluje úplně sám! Kdo ho vyzve?", 
+    "Zatím tu máme jen jednoho bojovníka. Připojte se a sundejte ho!", 
+    "Aréna aktuálně patří jen hráči {p}! Změňte to!"
+  ],
+  EN: [
+    "Player {p} is ruling here all alone! Who will challenge them?", 
+    "We only have one warrior so far. Join in and take them down!", 
+    "The arena currently belongs only to {p}! Change that!"
+  ]
 };
 
 const COMMENTARY = {
@@ -184,7 +212,7 @@ function startNewRound() {
   particles = [];
   floatingTexts = [];
   lightnings = [];
-  nextCommentTime = millis() + random(10000, 20000);
+  nextCommentTime = millis() + random(8000, 15000);
   generateSpaceBackground();
 }
 
@@ -356,9 +384,26 @@ function draw() {
 }
 
 function handleTTSCommentary() {
-  if (players.length > 1 && millis() > nextCommentTime) {
-      speakTTS(random(COMMENTARY[currentLang]));
-      nextCommentTime = millis() + random(15000, 25000);
+  if (millis() > nextCommentTime) {
+      let txt = "";
+      if (players.length === 0) {
+          txt = random(COMMENTARY_EMPTY[currentLang]);
+      } else if (players.length === 1) {
+          txt = random(COMMENTARY_SOLO[currentLang]).replace("{p}", players[0].name);
+      } else {
+          txt = random(COMMENTARY[currentLang]);
+          // Cílený hype pro top hráče
+          if (random() < 0.3) {
+              let top = [...players].sort((a,b) => b.hp - a.hp)[0];
+              if (top) {
+                  txt = currentLang === "CZ" ? 
+                      `${top.name} dominuje aréně s ${formatK(Math.max(0, top.hp))} životy! Sundejte ho!` : 
+                      `${top.name} dominates the arena with ${formatK(Math.max(0, top.hp))} HP! Take them down!`;
+              }
+          }
+      }
+      speakTTS(txt);
+      nextCommentTime = millis() + random(12000, 20000); // 12-20s interval
   }
 }
 
@@ -688,6 +733,7 @@ function connectTikfinity() {
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
 
+      // Okamžitý spawn při jakékoliv aktivitě
       if (!players.find(x => x.name === u)) {
           spawnPlayer(u, 200);
       }
