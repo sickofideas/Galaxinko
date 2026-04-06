@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.23.0"; // Dynamic Walls + Tiered Camera Zoom
+const GAME_VERSION = "v19.24.0"; // Spaceship Timer
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -193,7 +193,7 @@ let flowTime = 0;
 let globalFlowAngle = 0;
 
 let roundTimer = 0;
-let maxRoundTimer = 0; // Uchovává maximální čas pro knot
+let maxRoundTimer = 0; 
 let explosionTimer = 0;
 let gameState = "PLAYING"; 
 let resultsTimer = 10;
@@ -205,6 +205,7 @@ let nextCommentTime = 0;
 let lastHitSound = 0;
 let lastCommentString = "";
 let screenShake = 0;
+let shipX = 0, shipY = 0;
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -569,7 +570,6 @@ function handleOrbs() {
   }
 }
 
-// Převod obrazovkových na fyzické souřadnice pro jiskry z knotu
 function screenToWorld(sx, sy) {
     let cx = W/2;
     let cy = (ARENA_TOP + ARENA_BOT) / 2;
@@ -579,53 +579,75 @@ function screenToWorld(sx, sy) {
     };
 }
 
-function drawFuse() {
+function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
-    let p = roundTimer / maxRoundTimer;
+    let p = 1.0 - (roundTimer / maxRoundTimer); // Jde od 0 do 1
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
-    let currentPerim = p * perim;
+    let currentDist = p * perim;
     
-    stroke(255, 80, 0);
-    strokeWeight(6);
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = 'red';
+    stroke(0, 255, 255);
+    strokeWeight(3);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'cyan';
     
-    let drawn = 0;
-    let tipX = -100, tipY = -100;
+    let points = [
+        {x: 0, y: ARENA_TOP},
+        {x: W, y: ARENA_TOP},
+        {x: W, y: ARENA_BOT},
+        {x: 0, y: ARENA_BOT},
+        {x: 0, y: ARENA_TOP}
+    ];
 
-    let drawLineSegment = (x1, y1, x2, y2) => {
-        if (currentPerim <= drawn) return;
-        let len = dist(x1, y1, x2, y2);
-        if (currentPerim <= drawn + len) {
-            let drawLen = currentPerim - drawn;
-            let endX = lerp(x1, x2, drawLen / len);
-            let endY = lerp(y1, y2, drawLen / len);
-            line(x1, y1, endX, endY);
-            tipX = endX; tipY = endY;
-            drawn += len;
+    let d = 0;
+    let shipAngle = 0;
+    shipX = points[0].x;
+    shipY = points[0].y;
+
+    for (let i = 0; i < points.length - 1; i++) {
+        let p1 = points[i];
+        let p2 = points[i+1];
+        let segLen = dist(p1.x, p1.y, p2.x, p2.y);
+
+        if (currentDist > d + segLen) {
+            line(p1.x, p1.y, p2.x, p2.y);
+            d += segLen;
         } else {
-            line(x1, y1, x2, y2);
-            drawn += len;
-            tipX = x2; tipY = y2;
+            let remaining = currentDist - d;
+            let t = remaining / segLen;
+            shipX = lerp(p1.x, p2.x, t);
+            shipY = lerp(p1.y, p2.y, t);
+            line(p1.x, p1.y, shipX, shipY);
+            shipAngle = atan2(p2.y - p1.y, p2.x - p1.x);
+            break;
         }
-    };
-
-    drawLineSegment(W/2, ARENA_TOP, W, ARENA_TOP); // Střed -> Vpravo nahoře
-    drawLineSegment(W, ARENA_TOP, W, ARENA_BOT);   // Vpravo nahoře -> Vpravo dole
-    drawLineSegment(W, ARENA_BOT, 0, ARENA_BOT);   // Vpravo dole -> Vlevo dole
-    drawLineSegment(0, ARENA_BOT, 0, ARENA_TOP);   // Vlevo dole -> Vlevo nahoře
-    drawLineSegment(0, ARENA_TOP, W/2, ARENA_TOP); // Vlevo nahoře -> Střed
-    
+    }
     drawingContext.shadowBlur = 0;
 
-    if (tipX !== -100 && roundTimer > 0) {
-       fill(255); noStroke();
-       ellipse(tipX, tipY, 8);
-       if (frameCount % 2 === 0) {
-           let wPos = screenToWorld(tipX, tipY);
-           createParticles(wPos.x, wPos.y, color(255, 200, 50), 3);
-       }
+    push();
+    translate(shipX, shipY);
+    rotate(shipAngle);
+    
+    fill(255, 100, 0);
+    noStroke();
+    triangle(-15, -5, -15, 5, -25 - sin(frameCount * 0.5) * 5, 0);
+
+    fill(200, 200, 255);
+    stroke(0, 255, 255);
+    strokeWeight(2);
+    triangle(20, 0, -15, -10, -15, 10);
+    
+    fill(0, 255, 255);
+    noStroke();
+    ellipse(5, 0, 10, 6);
+    
+    pop();
+
+    if (frameCount % 2 === 0 && roundTimer > 0) {
+        let wPos = screenToWorld(shipX, shipY);
+        let vx = -cos(shipAngle) * random(2, 4) + random(-1, 1);
+        let vy = -sin(shipAngle) * random(2, 4) + random(-1, 1);
+        particles.push({x: wPos.x, y: wPos.y, vx: vx, vy: vy, life: 255, c: color(150, 200, 255), size: random(4, 8)});
     }
 }
 
@@ -642,10 +664,6 @@ function draw() {
   stroke(0, 150, 255, 100); strokeWeight(2); noFill();
   rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
-  if (gameState === "PLAYING") {
-      drawFuse();
-  }
-
   drawingContext.save();
   drawingContext.beginPath();
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
@@ -658,7 +676,7 @@ function draw() {
     if (gameState === "PLAYING") {
         handleCameraAndPlayers();
     } else {
-        screenShake *= 0.95; // Plynulé ustálení po explozi
+        screenShake *= 0.95; 
     }
     
     push();
@@ -691,6 +709,11 @@ function draw() {
   }
   
   drawingContext.restore(); 
+
+  // Loď létá na okraji displeje (přes obraz, ne pod maskou kamery)
+  if (gameState === "PLAYING") {
+      drawSpaceshipTimer();
+  }
 }
 
 function handleTTSCommentary() {
@@ -948,7 +971,6 @@ function handleCameraAndPlayers() {
 
   cameraScale = lerp(cameraScale, targetScale, 0.02); 
   
-  // Posun mantinelů přesně na okraj viditelné plochy
   let cx = W/2;
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale;
@@ -961,6 +983,16 @@ function handleCameraAndPlayers() {
 }
 
 function attractToNearest(p) {
+  let cx = W/2; 
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  
+  let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
+  let distC = Matter.Vector.magnitude(toCenter);
+  if (distC > 300 / cameraScale) {
+      let pull = Matter.Vector.normalise(toCenter);
+      Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000005 * p.body.mass * (distC/500)));
+  }
+
   let closest = null; let minDist = Infinity;
   for(let other of players) {
     if(other === p) continue;
@@ -1245,8 +1277,8 @@ function updateTimers() {
     roundTimer--;
     if (roundTimer <= 0) {
         gameState = "EXPLODING";
-        explosionTimer = 90; // 1.5 sekundy pro velký výbuch
-        screenShake = 35; // Extrémní otřes
+        explosionTimer = 90; 
+        screenShake = 35; 
         
         if(audioStarted) {
             try { 
@@ -1255,13 +1287,10 @@ function updateTimers() {
             } catch(e){}
         }
 
-        players.forEach(p => {
-            createParticles(p.body.position.x, p.body.position.y, p.color, 40);
-            deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-        });
-        
-        deathShockwaves.push({x: W/2, y: (ARENA_TOP+ARENA_BOT)/2, r: 200, color: color(255,100,50), life: 255});
-        createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255,100,0), 100);
+        let wPos = screenToWorld(shipX, shipY);
+        deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
+        createParticles(wPos.x, wPos.y, color(0, 255, 255), 80);
+        createParticles(wPos.x, wPos.y, color(255, 100, 0), 80);
     }
   } else if (gameState === "EXPLODING") {
       explosionTimer--;
