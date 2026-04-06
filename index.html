@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.9.2"; 
+const GAME_VERSION = "v19.9.3"; 
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -161,7 +161,7 @@ const COMMENTARY = {
     "Watch the brutality! Physics is taking a beating here!",
     "Great hit! That must have taken a ton of likes!",
     "Don't give them a chance to breathe! More likes, more damage!",
-    "Spinning like crazy! Who's gonna stop it?",
+    "Spinning like crazy! Who's gonna stop it!",
     "Ooh, clean shot! That circle is going to need a mechanic!",
     "Total destruction! This is what we want to see!"
   ]
@@ -172,17 +172,18 @@ let players = [];
 let particles = [];
 let floatingTexts = [];
 let lightnings = [];
+let deathShockwaves = [];
 let userAvatars = {};
 
-// Systém poškození (Žebříčky)
+// Systém poškození (Pouze All-Time žebříček)
 let allTimeDamageLeaderboard = {};
-let roundDamageLeaderboard = {};
 let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
 
 // Vesmírné efekty
 let stars = [];
 let nebulas = [];
 let shootingStars = [];
+let planets = [];
 
 let roundTimer = 0;
 let gameState = "PLAYING"; 
@@ -233,6 +234,7 @@ function generateSpaceBackground() {
   stars = [];
   nebulas = [];
   shootingStars = [];
+  planets = [];
   
   for(let i=0; i<150; i++) {
     stars.push({
@@ -249,6 +251,19 @@ function generateSpaceBackground() {
         color: color(random(50, 150), random(0, 100), random(150, 255), random(10, 30))
     });
   }
+
+  for(let i=0; i<5; i++) {
+    planets.push({
+        x: random(W), y: random(ARENA_TOP, ARENA_BOT),
+        r: random(15, 50),
+        col: color(random(50, 255), random(50, 255), random(50, 255)),
+        ringCol: color(random(100, 255), random(100, 255), random(100, 255), 100),
+        vx: random(-0.3, 0.3), vy: random(-0.3, 0.3),
+        hasRing: random() > 0.5,
+        angle: random(TWO_PI),
+        rotSpeed: random(-0.01, 0.01)
+    });
+  }
 }
 
 function startNewRound() {
@@ -256,7 +271,6 @@ function startNewRound() {
   
   let oldPlayers = players.map(p => p.name);
   players = [];
-  roundDamageLeaderboard = {}; 
   
   oldPlayers.forEach(name => spawnPlayer(name, 200));
 
@@ -266,6 +280,7 @@ function startNewRound() {
   particles = [];
   floatingTexts = [];
   lightnings = [];
+  deathShockwaves = [];
   nextCommentTime = millis() + random(3000, 6000);
   generateSpaceBackground();
 }
@@ -374,9 +389,6 @@ function handleAction(name, amount) {
 
 function updateDamageLB(name, dmg, col) {
     let ava = userAvatars[name];
-    if (!roundDamageLeaderboard[name] || dmg > roundDamageLeaderboard[name].score) {
-        roundDamageLeaderboard[name] = { score: dmg, color: col, avatar: ava };
-    }
     if (!allTimeDamageLeaderboard[name] || dmg > allTimeDamageLeaderboard[name].score) {
         allTimeDamageLeaderboard[name] = { score: dmg, color: col, avatar: ava };
     }
@@ -445,7 +457,9 @@ function draw() {
     scale(cameraScale);
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
+    drawDeathShockwaves();
     drawLightnings();
+    
     let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
     sortedToDraw.forEach(p => drawPlayer(p));
     
@@ -455,7 +469,6 @@ function draw() {
 
     updateTimers();
     handleTTSCommentary();
-    drawLeaderboards(); 
   } else {
     drawResults();
   }
@@ -464,7 +477,6 @@ function draw() {
 }
 
 function handleTTSCommentary() {
-  // Komentátor mluví mnohem častěji a neopakuje stejnou větu hned za sebou
   if (millis() > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
       let txt = "";
       let arr = [];
@@ -486,7 +498,6 @@ function handleTTSCommentary() {
       }
       
       if (txt === "") {
-          // Výběr náhodné fráze, která není stejná jako poslední
           let attempts = 0;
           do {
              txt = random(arr);
@@ -500,7 +511,7 @@ function handleTTSCommentary() {
       
       lastCommentString = txt;
       speakTTS(txt);
-      nextCommentTime = millis() + random(5000, 10000); // 5 až 10 sekund pauza (velmi aktivní)
+      nextCommentTime = millis() + random(5000, 10000); 
   }
 }
 
@@ -563,76 +574,6 @@ function drawTopHUD() {
   }
 }
 
-function drawLeaderboards() {
-    let roundSorted = Object.entries(roundDamageLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 20);
-    if (roundSorted.length > 0) {
-        push();
-        let rbWidth = 210;
-        let visibleCount = Math.min(roundSorted.length, 8); 
-        translate(W - rbWidth - 10, ARENA_TOP + 10);
-        
-        fill(0, 0, 20, 180); stroke(0, 255, 255, 100); strokeWeight(2);
-        rect(0, 0, rbWidth, 35 + visibleCount * 28, 8);
-        
-        fill(0, 255, 255); noStroke(); textAlign(CENTER, CENTER); textSize(10); textStyle(BOLD);
-        text(currentLang === "CZ" ? "TOP 20 KOLA (DMG)" : "ROUND TOP 20 (DMG)", rbWidth/2, 15);
-        stroke(0, 255, 255, 80); strokeWeight(1); line(10, 25, rbWidth-10, 25);
-        
-        textAlign(LEFT, CENTER);
-        
-        for(let i=0; i<Math.min(roundSorted.length, 3); i++) {
-            let pName = roundSorted[i][0];
-            let pData = roundSorted[i][1];
-            let y = 40 + i * 28;
-            fill(pData.color); textSize(9);
-            text((i+1)+".", 10, y);
-            if (pData.avatar && pData.avatar !== "loaded") {
-                drawingContext.save(); drawingContext.beginPath();
-                drawingContext.arc(35, y, 8, 0, TWO_PI); drawingContext.clip();
-                image(pData.avatar, 35, y, 16, 16);
-                drawingContext.restore();
-                text(pName.substring(0,8), 50, y);
-            } else {
-                text(pName.substring(0,10), 30, y);
-            }
-            textAlign(RIGHT, CENTER); fill(255);
-            text(formatK(pData.score), rbWidth - 10, y);
-            textAlign(LEFT, CENTER);
-        }
-
-        if (roundSorted.length > 3) {
-            let scrollArr = roundSorted.slice(3);
-            let scrollIndex = 0;
-            if (scrollArr.length > 5) {
-                scrollIndex = floor(frameCount / 90) % scrollArr.length; 
-            }
-            for(let j=0; j<Math.min(scrollArr.length, 5); j++) {
-                let actualIdx = (scrollIndex + j) % scrollArr.length;
-                let pName = scrollArr[actualIdx][0];
-                let pData = scrollArr[actualIdx][1];
-                let rank = 3 + actualIdx + 1; 
-                let y = 40 + (3 + j) * 28;
-                
-                fill(pData.color); textSize(9);
-                text(rank+".", 10, y);
-                if (pData.avatar && pData.avatar !== "loaded") {
-                    drawingContext.save(); drawingContext.beginPath();
-                    drawingContext.arc(35, y, 8, 0, TWO_PI); drawingContext.clip();
-                    image(pData.avatar, 35, y, 16, 16);
-                    drawingContext.restore();
-                    text(pName.substring(0,8), 50, y);
-                } else {
-                    text(pName.substring(0,10), 30, y);
-                }
-                textAlign(RIGHT, CENTER); fill(180); 
-                text(formatK(pData.score), rbWidth - 10, y);
-                textAlign(LEFT, CENTER);
-            }
-        }
-        pop();
-    }
-}
-
 function drawSpaceBackground() {
   noStroke();
   nebulas.forEach(n => {
@@ -645,6 +586,35 @@ function drawSpaceBackground() {
     rect(s.x, s.y, s.s, s.s);
     s.y += s.speed;
     if (s.y > ARENA_BOT) { s.y = ARENA_TOP; s.x = random(W); }
+  });
+
+  planets.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < -100) p.x = W + 100; if (p.x > W + 100) p.x = -100;
+    if (p.y < ARENA_TOP - 100) p.y = ARENA_BOT + 100; if (p.y > ARENA_BOT + 100) p.y = ARENA_TOP - 100;
+
+    push();
+    translate(p.x, p.y);
+    rotate(p.angle);
+    noStroke();
+    
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = p.col;
+    fill(p.col);
+    ellipse(0, 0, p.r * 2);
+    drawingContext.shadowBlur = 0;
+    
+    fill(0, 150);
+    arc(0, 0, p.r * 2, p.r * 2, HALF_PI, PI + HALF_PI); 
+    
+    if (p.hasRing) {
+        noFill();
+        stroke(p.ringCol);
+        strokeWeight(p.r * 0.2);
+        ellipse(0, 0, p.r * 3.5, p.r * 0.8);
+    }
+    pop();
+    p.angle += p.rotSpeed;
   });
 
   if (random() < 0.03) {
@@ -673,9 +643,17 @@ function handleCameraAndPlayers() {
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
     
+    // SMRT HRÁČE - EFEKTY A ZVUK
     if (p.hp <= 0) {
-      createParticles(p.body.position.x, p.body.position.y, p.color, 40);
-      if(audioStarted) try{ synth.play(100, 0.1, 0, 0.4); }catch(e){}
+      createParticles(p.body.position.x, p.body.position.y, p.color, 60);
+      deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
+      
+      if(audioStarted) {
+          try{ 
+              synth.play(150, 0.1, 0, 0.1); 
+              setTimeout(() => { if(synth) synth.play(80, 0.2, 0, 0.3); }, 100);
+          }catch(e){}
+      }
       Matter.World.remove(world, p.body);
       players.splice(i, 1);
       continue;
@@ -742,6 +720,19 @@ function attractToNearest(p) {
     let force = Matter.Vector.sub(closest.body.position, p.body.position);
     let norm = Matter.Vector.normalise(force);
     Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.00005 * p.body.mass));
+  }
+}
+
+function drawDeathShockwaves() {
+  for (let i = deathShockwaves.length - 1; i >= 0; i--) {
+      let sw = deathShockwaves[i];
+      noFill();
+      stroke(red(sw.color), green(sw.color), blue(sw.color), sw.life);
+      strokeWeight(map(sw.life, 255, 0, 15, 1));
+      ellipse(sw.x, sw.y, sw.r * 2);
+      sw.r += 4;
+      sw.life -= 12;
+      if (sw.life <= 0) deathShockwaves.splice(i, 1);
   }
 }
 
@@ -962,15 +953,14 @@ function speakTTS(txt) {
   if (window.speechSynthesis.speaking) return; 
   let msg = new SpeechSynthesisUtterance(txt);
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US";
-  msg.rate = 1.15; // Mírně zrychlené pro dynamiku
-  msg.pitch = 1.2; // Vyšší hlas = více hype
+  msg.rate = 1.15; 
+  msg.pitch = 1.2; 
   window.speechSynthesis.speak(msg);
 }
 
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
-  // Smazání ALL-TIME žebříčku kliknutím na nadpis
   if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && 
       mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) {
       allTimeDamageLeaderboard = {};
