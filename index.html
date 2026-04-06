@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.5.3"; // Oprava pádu při kolizi
+const GAME_VERSION = "v19.6.0"; // Kulaté profilovky, random pohyb, různé rotace
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -262,7 +262,8 @@ function formatK(num) {
 
 function getRadius(hp) {
     let safeHp = Math.max(0, hp || 0); 
-    return Math.min(22 + Math.sqrt(safeHp) * 0.45, 95); 
+    // Zvětšeno základní r
+    return Math.min(32 + Math.sqrt(safeHp) * 0.5, 110); 
 }
 
 function spawnPlayer(name, hp) {
@@ -277,7 +278,9 @@ function spawnPlayer(name, hp) {
   let player = {
     name: name, hp: safeHp, body: body, r: r,
     color: color(random(100,255), random(100,255), random(100,255)),
-    rot: 0, auraFlash: 0
+    rot: 0, auraFlash: 0,
+    baseRotSpd: random(0.02, 0.06) * (random() < 0.5 ? 1 : -1), // Různé rychlosti rotace
+    noiseOffsetX: random(1000), noiseOffsetY: random(2000) // Pro random pohyb
   };
   
   players.push(player);
@@ -323,7 +326,7 @@ function handleCombat(p1, p2) {
   let cx = (p1.body.position.x + p2.body.position.x)/2;
   let cy = (p1.body.position.y + p2.body.position.y)/2;
   
-  // Bezpečný blesk při srážce bez manipulace state canvasu
+  // Bezpečný blesk při srážce
   lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
 
   createParticles(cx, cy, color(255, 255, 100), 5);
@@ -390,7 +393,6 @@ function handleTTSCommentary() {
           txt = random(COMMENTARY_SOLO[currentLang]).replace("{p}", players[0].name);
       } else {
           txt = random(COMMENTARY[currentLang]);
-          // Cílený hype pro top hráče
           if (random() < 0.3) {
               let top = [...players].sort((a,b) => b.hp - a.hp)[0];
               if (top) {
@@ -401,7 +403,7 @@ function handleTTSCommentary() {
           }
       }
       speakTTS(txt);
-      nextCommentTime = millis() + random(12000, 20000); // 12-20s interval
+      nextCommentTime = millis() + random(12000, 20000);
   }
 }
 
@@ -474,7 +476,7 @@ function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
   let minX = W, maxX = 0, minY = ARENA_BOT, maxY = ARENA_TOP;
-  let targetSpeed = 3.5;
+  let targetSpeed = 2.5; // Zpomalení pro hezčí pohled
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -487,7 +489,7 @@ function handleCameraAndPlayers() {
       continue;
     }
     
-    // Útok bleskem pro velké hráče (nad 5000 HP)
+    // Útok bleskem pro velké hráče
     if (p.hp >= 5000 && frameCount % 30 === (i % 30)) {
       let range = p.r + 150;
       for (let other of players) {
@@ -506,12 +508,17 @@ function handleCameraAndPlayers() {
       }
     }
     
-    // AI Pohyb a přitahování 
+    // NÁHODNÝ POHYB (Wandering místo tupého přitahování)
+    p.noiseOffsetX += 0.02; p.noiseOffsetY += 0.02;
+    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
+    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
+    Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
+
     if (frameCount % 10 === (i % 10)) {
-        attractToNearest(p);
+        attractToNearest(p); // Lehké přitahování
     }
 
-    // ROVNOMĚRNÝ POHYB (Konstantní rychlost)
+    // ROVNOMĚRNÝ POHYB
     let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
     if (currentSpeed > 0.1) {
         let factor = targetSpeed / currentSpeed;
@@ -543,7 +550,7 @@ function attractToNearest(p) {
   if(closest) {
     let force = Matter.Vector.sub(closest.body.position, p.body.position);
     let norm = Matter.Vector.normalise(force);
-    Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.00005 * p.body.mass));
+    Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.00002 * p.body.mass)); // Oslabeno pro větší vliv random pohybu
   }
 }
 
@@ -570,7 +577,8 @@ function drawLightnings() {
 function drawPlayer(p) {
   let pos = p.body.position;
   let safeHp = Math.max(0, p.hp);
-  let rotSpd = 0.05 + Math.min(safeHp * 0.00005, 0.3);
+  // Různé rychlosti rotace
+  let rotSpd = p.baseRotSpd + Math.min(safeHp * 0.00002, 0.15) * Math.sign(p.baseRotSpd);
   p.rot += rotSpd;
 
   push();
@@ -615,16 +623,20 @@ function drawPlayer(p) {
   // AVATAR A TEXTY (Nerotují s tělem)
   rotate(-p.rot); 
   
+  // OPRAVA OŘÍZNUTÍ: Kruhový ořez masky odpovídající velikosti obrazu
+  let imgSize = p.r * 1.6;
   if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save(); drawingContext.beginPath();
-      drawingContext.arc(0, 0, p.r*1.6, 0, TWO_PI); drawingContext.clip();
-      imageMode(CENTER); image(userAvatars[p.name], 0, 0, p.r*1.6, p.r*1.6);
+      // Masking radius needs to be half of the image size to make it a perfect circle
+      drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
+      drawingContext.clip();
+      imageMode(CENTER); image(userAvatars[p.name], 0, 0, imgSize, imgSize);
       drawingContext.restore();
   } else {
-      fill(35); noStroke(); ellipse(0,0, p.r*1.6);
+      fill(35); noStroke(); ellipse(0, 0, imgSize);
   }
 
-  noFill(); stroke(0, 150); strokeWeight(3); ellipse(0,0, p.r*1.6);
+  noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
 
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
