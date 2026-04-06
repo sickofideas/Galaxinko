@@ -14,7 +14,6 @@
       display: flex; justify-content: center; align-items: center;
       height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive;
     }
-    /* Rozdilna zdatnist TikTok 9:16 */
     #game-container {
       position: relative; width: 720px; height: 1280px;
       box-shadow: 0 0 100px rgba(0, 255, 255, 0.2);
@@ -57,7 +56,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.30.2"; // TTS update (space facts, removed like calls)
+const GAME_VERSION = "v19.31.0"; // 100 TTS, Top 5 HP advantage, Top 10 speed
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -78,132 +77,72 @@ const T = {
   }
 };
 
-// Vsi TTS teksty bezpechni dlya TikTok
 const COMMENTARY_EMPTY = {
-  CZ: ["Haló? Je tam někdo? Aréna je trapně prázdná!", "Čekáme na prvního hrdinu! Kde jste všichni?", "Vstupte do arény! První bere všechno!", "Ticho před bouří... Zapojte se a odstartujte to!", "Diváci spí! Vzbuďte se a pojďte hrát!"],
-  EN: ["Hello? Anyone there? The arena is embarrassingly empty!", "Waiting for the first hero! Where is everyone?", "Enter the arena! First takes all!", "Calm before the storm... Join in and start it!", "The viewers are sleeping! Wake up and let's play!"]
+  CZ: ["Haló? Je tam někdo? Aréna je trapně prázdná!", "Čekáme na prvního hrdinu! Kde jste všichni?", "Vstupte do arény! Zábava čeká!", "Ticho před bouří... Odstartujte to!", "Diváci spí! Vzbuďte se a pojďte hrát!"],
+  EN: ["Hello? Anyone there? The arena is embarrassingly empty!", "Waiting for the first hero! Where is everyone?", "Enter the arena! Fun awaits!", "Calm before the storm... Start it!", "The viewers are sleeping! Wake up and let's play!"]
 };
 
 const COMMENTARY_SOLO = {
-  CZ: ["Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!", "Aréna patří jen hráči {p}! Změňte to někdo!", "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", "Jeden hráč jaro nedělá. Připojte se!"],
-  EN: ["Player {p} is circling all alone! Who challenges them?", "Are you letting {p} win without a fight? Get in there!", "The arena belongs only to {p}! Someone change that!", "{p} thinks they are unstoppable. Prove them wrong!", "One player doesn't make a match. Join in!"]
+  CZ: ["Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", "Aréna patří jen hráči {p}! Změňte to někdo!", "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", "Jeden hráč jaro nedělá. Připojte se!"],
+  EN: ["Player {p} is circling all alone! Who challenges them?", "The arena belongs only to {p}! Someone change that!", "{p} thinks they are unstoppable. Prove them wrong!", "One player doesn't make a match. Join in!"]
 };
 
 const COMMENTARY_GENERAL = {
   CZ: [
-    "Víte, že ve vesmíru není slyšet váš křik? Tady ale naštěstí ano!",
-    "Nejrychlejší věc ve vesmíru je světlo. A hned po něm tahle aréna!",
-    "Tato aréna je větší než se zdá, díky pokročilé kompresi prostoru.",
-    "Gravitace je jen mýtus, dokud nezačnete padat z arény.",
-    "Vesmír se rozpíná, ale vaše šance na přežití se zmenšují!",
-    "Víte, že na Venuši prší kyselina sírová? Tady prší jenom problémy.",
-    "Kdybychom letěli rychlostí světla, už bychom byli v dalším kole.",
-    "Říká se, že ve vesmíru jste beztíže. Tady jste spíš bez šance.",
-    "Nezapomeňte dýchat. Kyslík je tu za příplatek.",
-    "Někteří hráči rotují tak rychle, že cestují časem do minulosti.",
-    "Víte, že Slunce tvoří přes devadesát devět procent hmotnosti celé sluneční soustavy?",
-    "Jeden den na Venuši trvá déle než jeden pozemský rok.",
-    "Neutronové hvězdy mohou rotovat neuvěřitelnou rychlostí, až šest set krát za sekundu.",
-    "Ve vesmíru se nachází obří mrak, který obsahuje ohromné množství alkoholu.",
-    "Na planetách jako Jupiter a Saturn pravděpodobně prší diamanty.",
-    "Teplota v aréně stoupá na maximum. Hlavně zachovejte chladnou hlavu.",
-    "Ve vesmíru není nahoře ani dole. Je tu jen a pouze tvrdé přežití.",
-    "Fyzika tady funguje spíš jako drobné doporučení než jako pevné pravidlo.",
-    "Každá sekunda bez energie vás přibližuje k naprosté temnotě."
+    "Víte, že ve vesmíru není slyšet váš křik? Tady ale naštěstí ano!", "Nejrychlejší věc ve vesmíru je světlo. A hned po něm tahle aréna!", "Tato aréna je větší než se zdá, díky pokročilé kompresi prostoru.", "Gravitace je jen mýtus, dokud nezačnete padat z arény.",
+    "Vesmír se rozpíná, ale šance na přežití některých hráčů se zmenšují!", "Víte, že na Venuši prší kyselina sírová? Tady prší jenom problémy.", "Kdybychom letěli rychlostí světla, už bychom byli v dalším kole.", "Říká se, že ve vesmíru jste beztíže. Tady jste spíš bez šance.",
+    "Nezapomeňte dýchat. Kyslík je tu za příplatek.", "Někteří hráči rotují tak rychle, že cestují časem do minulosti.", "Víte, že Slunce tvoří přes devadesát devět procent hmotnosti celé sluneční soustavy?", "Jeden den na Venuši trvá déle než jeden pozemský rok.",
+    "Neutronové hvězdy mohou rotovat neuvěřitelnou rychlostí, až šest set krát za sekundu.", "Ve vesmíru se nachází obří mrak, který obsahuje ohromné množství alkoholu.", "Na planetách jako Jupiter a Saturn pravděpodobně prší diamanty.", "Teplota v aréně stoupá na maximum. Hlavně zachovejte chladnou hlavu.",
+    "Ve vesmíru není nahoře ani dole. Je tu jen a pouze tvrdé přežití.", "Fyzika tady funguje spíš jako drobné doporučení než jako pevné pravidlo.", "Mléčná dráha voní po malinách a rumu. Z vědeckého hlediska.", "Komunikace se základnou přerušena. Hráči jsou v tom naprosto sami.",
+    "Zrovna letíme kolem galaxie Andromeda. Zamávejte prosím!", "Podle mých super výpočtů přežijí jen ti nejodolnější.", "Pokud vidíte padající hvězdu, něco si přejte.", "Tato bitva je plně sponzorována galaktickou unií. Děkujeme za vaši účast!",
+    "Hvězdný prach vám možná přinese štěstí. Ale spíš ne.", "Zkontrolujte si bezpečnostní pásy. Aha, vy vlastně žádné nemáte.", "Sázím se, že ufoni teď jedí popcorn a z dálky vás nadšeně sledují.", "Máte pocit, že se točíte pořád v kruhu? Protože to je přesně to, co právě děláte.",
+    "Tady vám nepomůže ani oblek z titanu. Potřebujete prostě jenom energii!", "Sledujte tu trajektorii!", "Ten náraz slyšeli až na Měsíci!", "Tvrdé srážky! Tady uspějí jen ti nejlepší!",
+    "Ten to koupil přímo na komoru!", "Vysoká rychlost přináší tvrdé nárazy!", "Zářivý štít dostává pořádně zabrat!", "Podívejte se na ty odrazy, to je naprosté šílenství!",
+    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!", "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!",
+    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!", "Bez energie jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!",
+    "Masivní nárůst energie v sektoru!", "Všichni se sráží do jednoho velkého chumlu!", "Tyhle kruhy by roztočily i celou galaxii!", "Jeden letí tam, druhý sem... naprostý chaos!",
+    "Zásah! Přímý úder!", "Tlak v aréně stoupá na maximum!", "Neuvěřitelná rychlost! Rotace stoupá!", "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!",
+    "Krutá srážka dvou titánů!", "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!", "Tenhle souboj je napínavější než finále mistrovství!",
+    "Sledujte tu dynamiku! Fyzika tady dostává zabrat!", "Skvělý zásah! Tohle stálo hodně sil!", "Točí se to jako šílené! Kdo to zastaví?", "Úúú, čistý průlet!",
+    "Totální chaos! Tohle je to, co chceme vidět!", "Brutální rotace! Tohle muselo obrovsky bolet.", "Viděli jste ten neuvěřitelný úhybný manévr? Naprostá nádhera!", "Někdo by měl zavolat úklidovou četu. Bude tu velký nepořádek.",
+    "Drtivý dopad! Vesmírné úlomky teď létají úplně všude kolem.", "Štíty sice selhávají a motory hoří, ale obrovský boj pokračuje dál!", "Tohle je přesně ta chvíle, kdy se v aréně rodí skuteční hrdinové.", "Ten úder byl tak silný, že by dokázal prorazit i samotnou planetu!",
+    "Úžasná atmosféra v aréně!", "Jeden jediný chybný krok a letíte do propadliště dějin.", "Tohle nápadně připomíná srážku dvou obřích asteroidů.", "Naprosto přesný a čistý zásah!",
+    "Celá aréna se třese! Tohle je nefalšovaná bitva vesmírných titánů.", "Neuvěřitelné přežití! Tenhle hráč má snad devět různých šancí.", "Vybuchují tady jasné jiskry o velikosti menších dopravních lodí!", "Kdo by to byl řekl, že takový obyčejný kruh dokáže způsobit takovou paseku.",
+    "A je to tam! Přímý zásah na hlavní komoru protivníka.", "Vysoké otáčky znamenají obrovské plošné poškození. Bacha na to!", "Taková šílená dynamika! Moje optické senzory nestíhají vůbec sledovat.", "Tohle probíhající kolo bude stoprocentně trhat všechny dosavadní rekordy.",
+    "Hlavně nepolevujte! Tahle aréna neodpouští absolutně žádnou slabost.", "Dámy a pánové, právě sledujete vrcholnou vesmírnou destrukci.", "Ten pronikavý zvuk tříštícího se kovu. To je prostě hudba pro mé robotické uši!", "Zajímavost: Stopy na Měsíci od astronautů Apolla zůstanou zachovány miliony let.",
+    "Na Měsíci nejsou žádné větry, které by stopy smazaly.", "Nejvyšší sopka ve sluneční soustavě je na Marsu a jmenuje se Olympus Mons.", "Víte, že Jupiter je dvakrát masivnější než všechny ostatní planety dohromady?", "Vesmír je tvořen ze zhruba osmašedesáti procent temnou energií.",
+    "Jedna lžička hmoty z neutronové hvězdy váží asi miliardu tun.", "Hvězda Betelgeuse je tak obrovská, že by pohltila i Jupiter, kdyby byla na místě našeho Slunce.", "Záření, které vidíme z některých hvězd, cestovalo tisíce let, než dorazilo k nám.", "Zajímavost: Galaxie se mohou srážet a spojovat. Naše Mléčná dráha se za miliardy let spojí s Andromedou.",
+    "Rychlost světla je přibližně tři sta tisíc kilometrů za sekundu.", "Země se kolem Slunce pohybuje rychlostí přes sto tisíc kilometrů v hodině.", "Zajímavost: Pokud byste křičeli ve vakuu, nevznikly by žádné zvukové vlny, které by zvuk přenesly.", "Slunce je vlastně bílá hvězda, nažloutlou barvu jí dodává zemská atmosféra.",
+    "Ve sluneční soustavě je přes dvě stě známých měsíců.", "Olympus Mons je zhruba třikrát vyšší než Mount Everest.", "Jádro Slunce dosahuje teploty patnáct milionů stupňů Celsia.", "Nejchladnější známé místo ve vesmíru má teplotu jen zlomek stupně nad absolutní nulou.",
+    "Zajímavost: Pluto bylo objeveno teprve v roce devatenáct set třicet.", "Vesmír podle odhadů vědců vznikl zhruba před třinácti a půl miliardami let.", "Lidské tělo se ve stavu beztíže natáhne až o několik centimetrů."
   ],
   EN: [
-    "Did you know that in space, no one can hear you scream? Luckily, we can hear you here!",
-    "The fastest thing in the universe is light. Followed closely by this arena!",
-    "This arena is bigger than it looks, thanks to advanced space compression.",
-    "Gravity is just a myth until you start dropping out of the arena.",
-    "The universe is expanding, but your chances of survival are shrinking!",
-    "Did you know it rains sulfuric acid on Venus? Here, it only rains problems.",
-    "If we traveled at the speed of light, we'd be in the next round by now.",
-    "They say you are weightless in space. Here, you are just clueless.",
-    "Don't forget to breathe. Oxygen costs extra around here.",
-    "Some players rotate so fast they time travel to the past.",
-    "Did you know the Sun accounts for over 99 percent of the mass in our solar system?",
-    "A single day on Venus lasts longer than an entire year on Earth.",
-    "Neutron stars can rotate at incredible speeds, up to six hundred times a second.",
-    "There is a giant cloud in space containing an enormous amount of alcohol.",
-    "It likely rains diamonds on planets like Jupiter and Saturn.",
-    "Arena temperature is rising to the max. Keep a cool head.",
-    "There is no up or down in space. Only harsh survival.",
-    "Physics here works more like a mild suggestion than a hard rule.",
-    "Every second without energy brings you closer to complete darkness."
-  ]
-};
-
-const COMMENTARY = {
-  CZ: [
-    "Au, to byla rána!", "Neskutečný odraz v aréně!", "Pozor na okraje, tady vás nic nešetří!", "Tady lítají jiskry!", 
-    "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!", 
-    "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!", 
-    "Sledujte tu trajektorii!", "Ten náraz slyšeli až na Měsíci!", 
-    "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!", 
-    "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Vysoká rychlost přináší tvrdé nárazy!", 
-    "Zářivý štít dostává pořádně zabrat!", "Podívejte se na ty odrazy, to je naprosté šílenství!", 
-    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!", 
-    "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!", 
-    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!", 
-    "Bez energie jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!", 
-    "Masivní nárůst energie v sektoru!", "Všichni se sráží do jednoho velkého chumlu!", 
-    "Taktika tu nepomůže, tady rozhoduje čistá síla!", "Tyhle kruhy by roztočily i celou galaxii!", 
-    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?", 
-    "Tlak v aréně stoupá na maximum!", "Neuvěřitelná rychlost! Roztočte to ještě víc!", 
-    "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!", 
-    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!", 
-    "Tenhle souboj je napínavější než finále mistrovství!", "Sledujte tu dynamiku! Fyzika tady dostává zabrat!", 
-    "Skvělý zásah! Tohle stálo hodně energie!", "Nedávejte jim šanci vydechnout! Srazte je na kolena!", 
-    "Točí se to jako šílené! Kdo to zastaví?", "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!", 
-    "Totální chaos! Tohle je to, co chceme vidět!", "Brutální rotace! Tohle muselo obrovsky bolet.", 
-    "Viděli jste ten neuvěřitelný úhybný manévr? Naprostá nádhera!", "Někdo by měl zavolat úklidovou četu. Bude tu velký nepořádek.",
-    "Drtivý dopad! Vesmírné úlomky teď létají úplně všude kolem.", "Štíty sice selhávají a motory hoří, ale obrovský boj pokračuje dál!",
-    "Tohle je přesně ta chvíle, kdy se v aréně rodí skuteční hrdinové.", "Ten úder byl tak silný, že by dokázal prorazit i samotnou planetu!",
-    "Úžasná atmosféra v aréně! Cítíte tu masivní energii?", "Jeden jediný chybný krok a končíte v hlubokém propadlišti dějin.",
-    "Tohle nápadně připomíná srážku dvou obřích asteroidů.", "Sledujte tu neuvěřitelnou trajektorii. Naprosto přesný a čistý zásah!",
-    "Někdo tady evidentně snídal syrovou energii. To je neskutečný tah!", "Celá aréna se třese! Tohle je nefalšovaná bitva vesmírných titánů.",
-    "Neuvěřitelné přežití! Tenhle hráč má snad devět různých šancí.", "Vybuchují tady jasné jiskry o velikosti menších dopravních lodí!",
-    "Roztočte ty obří pily! Chceme všichni vidět mnohem víc akce!", "Kdo by to byl řekl, že takový obyčejný kruh dokáže způsobit takovou paseku.",
-    "A je to tam! Přímý zásah na hlavní komoru protivníka.", "Vysoké otáčky znamenají obrovské plošné poškození. Bacha na to!",
-    "Taková šílená dynamika! Moje optické senzory nestíhají vůbec sledovat.", "Tohle probíhající kolo bude stoprocentně trhat všechny dosavadní rekordy. Už to cítím.",
-    "Hlavně nepolevujte! Tahle aréna neodpouští absolutně žádnou slabost.", "Kolik vesmírné energie se do něj ještě vůbec vejde? Je naprosto k nezastavení!",
-    "Dámy a pánové, právě sledujete vrcholnou vesmírnou destrukci.", "Ten pronikavý zvuk tříštícího se kovu. To je prostě hudba pro mé robotické uši!"
-  ],
-  EN: [
-    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Watch the edges, nothing spares you here!", "Sparks are flying!", 
-    "Who will win this madness?", "What a brawl!", "Spinning to the max!", 
-    "Wow, threw him away like a toy!", "This is live space pinball!", 
-    "Watch that trajectory!", "They heard that crash all the way to the Moon!", 
-    "Heavy hits! Only the best succeed here!", "Took that one right in the core!", 
-    "Rev up those circles! We want to see more points!", "High speed brings hard hits!", 
-    "The glowing shield is taking a beating!", "Look at those bounces, absolute madness!", 
-    "We are writing this round in the history books!", "Someone stop these giant spinning titans!", 
-    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!", 
-    "An epic battle of dancing circles!", "Legends are born right here!", 
-    "Without energy, you're just a tiny dot!", "What a hit, and they're still on the map!", 
-    "Massive energy surge in the sector!", "Everyone is crashing into one massive pile!", 
-    "Tactics won't help, raw power decides here!", "These circles could spin the entire galaxy!", 
-    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points!", 
-    "Pressure in the arena is rising to the max!", "Unbelievable speed! Spin it even faster!", 
-    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!", 
-    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", 
-    "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", 
-    "Great hit! That must have taken a ton of energy!", "Don't give them a chance to breathe! Bring them to their knees!", 
-    "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby! That circle is going to need a mechanic!", 
-    "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", 
-    "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
-    "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!",
-    "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
-    "Amazing atmosphere in the arena! Can you feel this massive energy?", "One single wrong step and you end up in the deep abyss of history.",
-    "This strikingly resembles the collision of two giant asteroids.", "Watch that unbelievable trajectory. A perfectly precise and clean hit!",
-    "Someone obviously had raw energy for breakfast. That's an incredible drive!", "The entire arena is shaking! This is a true battle of space titans.",
-    "Unbelievable survival! This player must have nine different chances.", "Sparks as bright and large as small transport ships are exploding here!",
-    "Spin those giant saws! We all want to see much more action!", "Who would have thought a simple circle could cause such massive havoc.",
-    "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!",
-    "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records. I can feel it.",
-    "Just don't let up! This arena forgives absolutely no weakness.", "How much more space energy can they even absorb? They are completely unstoppable!",
-    "Ladies and gentlemen, you are currently watching peak space destruction.", "That piercing sound of shattering metal. It's simply music to my robotic ears!"
+    "Did you know that in space, no one can hear you scream? Luckily, we can hear you here!", "The fastest thing in the universe is light. Followed closely by this arena!", "This arena is bigger than it looks, thanks to advanced space compression.", "Gravity is just a myth until you start dropping out of the arena.",
+    "The universe is expanding, but your chances of survival are shrinking!", "Did you know it rains sulfuric acid on Venus? Here, it only rains problems.", "If we traveled at the speed of light, we'd be in the next round by now.", "They say you are weightless in space. Here, you are just clueless.",
+    "Don't forget to breathe. Oxygen costs extra around here.", "Some players rotate so fast they time travel to the past.", "Did you know the Sun accounts for over 99 percent of the mass in our solar system?", "A single day on Venus lasts longer than an entire year on Earth.",
+    "Neutron stars can rotate at incredible speeds, up to six hundred times a second.", "There is a giant cloud in space containing an enormous amount of alcohol.", "It likely rains diamonds on planets like Jupiter and Saturn.", "Arena temperature is rising to the max. Keep a cool head.",
+    "There is no up or down in space. Only harsh survival.", "Physics here works more like a mild suggestion than a hard rule.", "The Milky Way smells like raspberries and rum. Scientifically speaking.", "Communication with base lost. Players are completely on their own.",
+    "We are currently flying past the Andromeda galaxy. Please wave!", "According to my super calculations, only the toughest will survive.", "If you see a shooting star, make a wish.", "This battle is fully sponsored by the Galactic Union. Thanks for participating!",
+    "Stardust might bring you luck. But probably not.", "Check your seatbelts. Oh wait, you actually don't have any.", "I bet aliens are eating popcorn and excitedly watching you from afar.", "Feel like you are spinning in circles? Because that's exactly what you are doing.",
+    "Not even a titanium suit will help you here. You just need energy!", "Watch that trajectory!", "They heard that crash all the way to the Moon!", "Heavy hits! Only the best succeed here!",
+    "Took that one right in the core!", "High speed brings hard hits!", "The glowing shield is taking a beating!", "Look at those bounces, absolute madness!",
+    "We are writing this round in the history books!", "Someone stop these giant spinning titans!", "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!",
+    "An epic battle of dancing circles!", "Legends are born right here!", "Without energy, you're just a tiny dot!", "What a hit, and they're still on the map!",
+    "Massive energy surge in the sector!", "Everyone is crashing into one massive pile!", "These circles could spin the entire galaxy!", "One flies here, another there... pure chaos!",
+    "Direct hit! Spot on!", "Pressure in the arena is rising to the max!", "Unbelievable speed! Rotation is rising!", "This is exactly the space ride we were waiting for!",
+    "Cruel collision between two titans!", "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", "This fight is more thrilling than a championship finals!",
+    "Watch the dynamics! Physics is working hard here!", "Great hit! That must have taken a ton of power!", "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby!",
+    "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
+    "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!", "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
+    "Amazing atmosphere in the arena!", "One single wrong step and you fall into the abyss of history.", "This strikingly resembles the collision of two giant asteroids.", "A perfectly precise and clean hit!",
+    "The entire arena is shaking! This is a true battle of space titans.", "Unbelievable survival! This player must have nine different chances.", "Sparks as bright and large as small transport ships are exploding here!", "Who would have thought a simple circle could cause such massive havoc.",
+    "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!", "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records.",
+    "Just don't let up! This arena forgives absolutely no weakness.", "Ladies and gentlemen, you are currently watching peak space destruction.", "That piercing sound of shattering metal. It's simply music to my robotic ears!", "Fun fact: Footprints on the Moon from Apollo astronauts will stay there for millions of years.",
+    "There are no winds on the Moon to erase the footprints.", "The tallest volcano in the solar system is on Mars, named Olympus Mons.", "Did you know Jupiter is twice as massive as all other planets combined?", "The universe is made up of roughly sixty-eight percent dark energy.",
+    "One teaspoon of a neutron star weighs about a billion tons.", "The star Betelgeuse is so huge it would engulf Jupiter if placed where our Sun is.", "The light we see from some stars has traveled for thousands of years to reach us.", "Fun fact: Galaxies can collide and merge. Our Milky Way will merge with Andromeda in billions of years.",
+    "The speed of light is approximately three hundred thousand kilometers per second.", "Earth moves around the Sun at over one hundred thousand kilometers per hour.", "Fun fact: If you screamed in a vacuum, no sound waves would carry your voice.", "The Sun is actually a white star, our atmosphere makes it look yellowish.",
+    "There are over two hundred known moons in our solar system.", "Olympus Mons is roughly three times taller than Mount Everest.", "The Sun's core reaches fifteen million degrees Celsius.", "The coldest known place in the universe is just a fraction above absolute zero.",
+    "Fun fact: Pluto was only discovered in nineteen thirty.", "Scientists estimate the universe began about thirteen and a half billion years ago.", "The human body can stretch up to a few inches in zero gravity."
   ]
 };
 
@@ -219,11 +158,10 @@ let orbs = [];
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
 
-// Systema poshkodzhennya (Tilky All-Time reytynh)
-let allTimeDamageLeaderboard = {};
+// Upraveno na Maximum HP misto Damage
+let allTimeHpLeaderboard = {};
 let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
 
-// Kosmichni efekty
 let stars = [];
 let nebulas = [];
 let shootingStars = [];
@@ -247,6 +185,10 @@ let lastHitSound = 0;
 let lastCommentString = "";
 let screenShake = 0;
 let shipX = 0, shipY = 0;
+let winnerAnnounced = false;
+
+let previousTop5 = [];
+let currentTop10 = [];
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -316,13 +258,16 @@ function generateSpaceBackground() {
 }
 
 function startNewRound() {
+  previousTop5 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5).map(p => p.name);
+
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = players.map(p => p.name);
-  players = []; orbs = []; screenShake = 0;
+  players = []; orbs = []; screenShake = 0; winnerAnnounced = false;
   
-  oldPlayers.forEach(name => spawnPlayer(name, 100)); 
+  oldPlayers.forEach(name => spawnPlayer(name, previousTop5.includes(name) ? 1000 : 100)); 
 
-  roundTimer = floor(random(180, 900)); 
+  // Kolo na 5 až 25 minut (300 až 1500 sekund)
+  roundTimer = floor(random(300, 1501)); 
   maxRoundTimer = roundTimer;
   gameState = "PLAYING";
   cameraScale = 1.0;
@@ -358,10 +303,7 @@ function setupEvents() {
 }
 
 function formatK(num) {
-  let safeNum = Math.max(0, num || 0);
-  if (safeNum >= 1000000) return (safeNum / 1000000).toFixed(1) + 'M';
-  if (safeNum >= 1000) return (safeNum / 1000).toFixed(1) + 'K';
-  return Math.floor(safeNum).toString();
+  return Math.floor(Math.max(0, num || 0)).toLocaleString(); // Vypsání celého čísla
 }
 
 function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 0.5, 110); }
@@ -372,7 +314,6 @@ function spawnPlayer(name, hp) {
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  // Bezpechnyy spawn vseredyni mezh
   let spawnX = cx + random(-viewW/2 + r*2, viewW/2 - r*2);
   let spawnY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
 
@@ -384,7 +325,7 @@ function spawnPlayer(name, hp) {
     color: color(random(100,255), random(100,255), random(100,255)),
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
-    damageDealt: 0, sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [] 
+    sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [] 
   };
   
   players.push(player);
@@ -409,13 +350,14 @@ function handleAction(name, amount) {
     }
     if (players.length < 50) addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
-    spawnPlayer(name, 100 + amount); 
+    let baseHp = previousTop5.includes(name) ? 1000 : 100;
+    spawnPlayer(name, baseHp + amount); 
   }
 }
 
-function updateDamageLB(name, dmg, col) {
-    if (!allTimeDamageLeaderboard[name] || dmg > allTimeDamageLeaderboard[name].score) {
-        allTimeDamageLeaderboard[name] = { score: dmg, color: col, avatar: userAvatars[name] };
+function updateHpLB(name, hp, col) {
+    if (!allTimeHpLeaderboard[name] || hp > allTimeHpLeaderboard[name].score) {
+        allTimeHpLeaderboard[name] = { score: hp, color: col, avatar: userAvatars[name] };
     }
 }
 
@@ -423,7 +365,6 @@ function handleCombat(p1, p2) {
   if (isNaN(p1.body.position.x) || isNaN(p1.body.position.y) || isNaN(p2.body.position.x) || isNaN(p2.body.position.y)) return;
 
   let distVec = Matter.Vector.sub(p2.body.position, p1.body.position);
-  // Zapobigannya padinnyu NaN z nulovoyi vidstani
   if (distVec.x === 0 && distVec.y === 0) distVec.x = 1;
 
   let speed = Matter.Vector.magnitude(Matter.Vector.sub(p1.body.velocity, p2.body.velocity));
@@ -463,9 +404,6 @@ function handleCombat(p1, p2) {
 
   if (p1.hp <= 0 && hp1Before > 0) healLogic(p2, hp1Before);
   if (p2.hp <= 0 && hp2Before > 0) healLogic(p1, hp2Before);
-
-  p1.damageDealt += finalDmgTo2; p2.damageDealt += finalDmgTo1;
-  updateDamageLB(p1.name, p1.damageDealt, p1.color); updateDamageLB(p2.name, p2.damageDealt, p2.color);
   
   let forceDir = Matter.Vector.normalise(distVec);
   let forceMag = 0.02 + speed * 0.004;
@@ -475,7 +413,6 @@ function handleCombat(p1, p2) {
       Matter.Body.applyForce(p2.body, p2.body.position, Matter.Vector.mult(forceDir, forceMag * p2.body.mass));
   }
   
-  // Optymizatsiya vizualiv pry velykiy kilkosti
   let isHeavyLoad = players.length > 40;
   if (!isHeavyLoad) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
@@ -507,7 +444,6 @@ function handleOrbs() {
       fill(255, 200, 0, 180 + sin(frameCount * 0.1) * 75);
       stroke(255); strokeWeight(2);
       
-      // Forma zirky zamist kuli
       beginShape();
       for(let j=0; j<10; j++) {
          let a = j * TWO_PI / 10;
@@ -549,7 +485,6 @@ function screenToWorld(sx, sy) {
 function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
     let isHeavyLoad = players.length > 40;
-    // Yde vid 0 do 1
     let p = 1.0 - (roundTimer / maxRoundTimer); 
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
@@ -590,13 +525,15 @@ function drawSpaceshipTimer() {
 function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
-  let targetSpeed = 2.5; let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 40;
   let maxV = 15; 
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
     
+    updateHpLB(p.name, p.hp, p.color);
+
     if (isNaN(p.body.position.x) || isNaN(p.body.position.y)) {
         Matter.World.remove(world, p.body);
         players.splice(i, 1);
@@ -614,8 +551,7 @@ function handleCameraAndPlayers() {
       if (!isHeavyLoad) {
           createParticles(p.body.position.x, p.body.position.y, p.color, 30);
           deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-          // Zmensheno potryasinnya pry zvychayniy smerti
-          screenShake = 2; 
+          screenShake = 1; // Vibrace pouze nepatrně při smrti hráče
           if(audioStarted) try{ synth.play(150, 0.1, 0, 0.1); }catch(e){}
       }
       Matter.World.remove(world, p.body);
@@ -627,6 +563,9 @@ function handleCameraAndPlayers() {
     let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
     let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
     Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
+
+    let isTop10 = currentTop10.includes(p.name);
+    let targetSpeed = isTop10 ? 2.8 : 2.4; // Mírná výhoda rychlosti pro Top 10
 
     let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
     if (isNaN(currentSpeed) || !isFinite(currentSpeed)) {
@@ -660,7 +599,6 @@ function handleCameraAndPlayers() {
   let viewW = W / cameraScale; 
   let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
   
-  // Zsuv nevydymykh stin TOCHNO na kray ekrana z novym masshtabom
   if (!isNaN(viewW) && !isNaN(viewH)) {
       Matter.Body.setPosition(wallTop, { x: cx, y: cy - viewH/2 - wallThick/2 });
       Matter.Body.setPosition(wallBot, { x: cx, y: cy + viewH/2 + wallThick/2 });
@@ -803,7 +741,6 @@ function draw() {
 
   drawSpaceBackground();
   
-  // Bezpechnyy zapusk fizychnoho kroku
   try { Matter.Engine.update(engine, 1000/60); } catch(e) { console.error("Matter.js Engine update error protected:", e); }
 
   if (gameState === "PLAYING" || gameState === "EXPLODING") {
@@ -823,7 +760,6 @@ function draw() {
         sortedToDraw.forEach(p => drawPlayer(p));
     }
     
-    // Bezpechnyy obmezhuvach na vizualy proty zavyisannya
     if (particles.length > 80) particles.splice(0, particles.length - 80);
     if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
     
@@ -876,12 +812,12 @@ function drawTopHUD() {
   if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
   text(timeStr, W/2, HUD_TOP + 65); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 85);
 
-  let allTimeSorted = Object.entries(allTimeDamageLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
+  let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
   allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15};
   
   textAlign(LEFT, TOP);
   if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) fill(255, 50, 50); else fill(255, 100, 255);
-  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL-TIME TOP 5 DMG" : "ALL-TIME TOP 5 DMG", 10, HUD_TOP + 10);
+  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL-TIME TOP 5 HP" : "ALL-TIME TOP 5 HP", 10, HUD_TOP + 10);
   
   textStyle(NORMAL);
   for(let i=0; i<allTimeSorted.length; i++) {
@@ -1046,10 +982,14 @@ function drawPopups() {
 }
 
 function updateTimers() {
+  if (frameCount % 60 === 0) {
+      currentTop10 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
+  }
+
   if (gameState === "PLAYING" && frameCount % 60 === 0 && roundTimer > 0) {
     roundTimer--;
     if (roundTimer <= 0) {
-        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 15; 
+        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 3; // Menší vibrace
         if(audioStarted) try { synth.play(80, 0.5, 0, 0.8); setTimeout(() => { if(synth) synth.play(60, 0.8, 0, 1.0); }, 200); } catch(e){}
         let wPos = screenToWorld(shipX, shipY);
         deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
@@ -1057,10 +997,13 @@ function updateTimers() {
     }
   } else if (gameState === "EXPLODING") {
       explosionTimer--; screenShake *= 0.95;
-      if (explosionTimer <= 0) { gameState = "RESULTS"; resultsTimer = 5; } 
+      if (explosionTimer <= 0) { 
+          gameState = "RESULTS"; 
+          resultsTimer = 5; 
+          winnerAnnounced = false;
+      } 
   }
 
-  // Duzhe ridkisnyy spawn bonusiv - zmineny radius na 12 (zamist 25)
   if (gameState === "PLAYING" && frameCount % 1800 === 0 && random() < 0.15 && orbs.length < 1) { 
       let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
       let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
@@ -1073,6 +1016,15 @@ function drawResults() {
   fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
   
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
+  
+  if(winner && !winnerAnnounced) {
+      winnerAnnounced = true;
+      let wMsg = currentLang === "CZ" ? 
+          `Skvělá práce! Hráč ${winner.name} naprosto ovládl arénu a vyhrává toto kolo!` : 
+          `Great job! Player ${winner.name} absolutely dominated the arena and wins this round!`;
+      speakTTS(wMsg);
+  }
+
   if(winner) {
     if (userAvatars[winner.name] && userAvatars[winner.name] !== "loaded") {
       imageMode(CENTER); stroke(winner.color); strokeWeight(3); noFill(); rect(W/2 - 40, ARENA_TOP + 70, 80, 80, 10);
@@ -1099,7 +1051,7 @@ function drawResults() {
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 5; startNewRound(); } } // Zmineno skidannya na 5s
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 5; startNewRound(); } } 
 }
 
 function connectTikfinity() {
@@ -1111,26 +1063,22 @@ function connectTikfinity() {
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
       
-      // Avtomatychne pidklyuchennya - yakshcho tse gift, my dodayemo 2000 HP, inakshe 100
       if (!players.find(x => x.name === u) && evt !== "gift") {
-          spawnPlayer(u, 100);
+          spawnPlayer(u, previousTop5.includes(u) ? 1000 : 100);
       }
 
       if (evt === "chat") handleAction(u, 10); 
       else if (evt === "like") handleAction(u, (d.data?.likeCount || 1) * 2); 
       else if (evt === "gift") { 
-          // Troyandy/Podarunky vidrazu dodayut velykyy bonus
           handleAction(u, (d?.data?.diamonds || 1) * 2000); 
-          
-          // Garni podyaky za podarunky
           let giftMsgsCZ = [
-              "Obrovské díky, " + u + "! Tvá podpora je naprosto úžasná!",
+              "Obrovské díky, " + u + "! Tvá energie je naprosto úžasná!",
               "Páni, " + u + " nám posílá nádhernou podporu! Moc děkujeme!",
               "Vesmír jásá! Děkujeme ti, " + u + ", za tvoji štědrost!",
               "Neuvěřitelné! " + u + " je opravdová hvězda arény. Děkujeme moc!"
           ];
           let giftMsgsEN = [
-              "Massive thanks, " + u + "! Your support is absolutely amazing!",
+              "Massive thanks, " + u + "! Your energy is absolutely amazing!",
               "Wow, " + u + " is sending beautiful support! Thank you so much!",
               "The universe rejoices! Thank you, " + u + ", for your generosity!",
               "Incredible! " + u + " is a true star of the arena. Thank you very much!"
@@ -1146,7 +1094,6 @@ function speakTTS(txt) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
   if (window.speechSynthesis.speaking) return; 
   
-  // Vydalyaye emodzhi ta spetsialni hrafichni symvoly, shchob chytach yikh ne chytav
   let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
   
   let msg = new SpeechSynthesisUtterance(cleanTxt); msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; msg.rate = 1.15; msg.pitch = 1.2; window.speechSynthesis.speak(msg);
@@ -1154,8 +1101,8 @@ function speakTTS(txt) {
 
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { allTimeDamageLeaderboard = {}; if(audioStarted) try{ synth.play(200, 0.1, 0, 0.5); }catch(e){} }
+  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { allTimeHpLeaderboard = {}; if(audioStarted) try{ synth.play(200, 0.1, 0, 0.5); }catch(e){} }
 }
 </script>
 </body>
-</html>l
+</html>
