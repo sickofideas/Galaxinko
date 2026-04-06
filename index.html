@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.9.0"; 
+const GAME_VERSION = "v19.9.1"; 
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -776,29 +776,26 @@ function drawPlayer(p) {
 
   noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
 
-  rectMode(CENTER); noStroke(); fill(0, 0, 0, 160);
   let hpTxtSize = Math.max(10, p.r * 0.35);
-  rect(0, p.r * 0.25, p.r * 1.4, hpTxtSize + 6, 5); 
-
-  if (p.r > 25) {
-      let nameTxtSize = Math.max(7, p.r * 0.22);
-      rect(0, -p.r * 0.3, p.r * 1.2, nameTxtSize + 4, 3); 
-  }
-  rectMode(CORNER);
-
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
+  // Silný černý outline pro HP text místo obdélníku
+  stroke(0); strokeWeight(Math.max(3, p.r * 0.12)); 
   fill(txtCol); textAlign(CENTER, CENTER); textStyle(BOLD);
   textSize(hpTxtSize);
   text(formatK(Math.floor(safeHp)), 0, p.r * 0.25); 
 
   if (p.r > 25) {
+      // Silný černý outline pro jméno
+      stroke(0); strokeWeight(Math.max(2, p.r * 0.1));
       fill(220); textStyle(NORMAL);
       textSize(Math.max(7, p.r * 0.22)); 
       text(p.name.substring(0, 8), 0, -p.r * 0.3); 
   }
+  
+  noStroke(); // Reset stroke
   pop();
 }
 
