@@ -56,7 +56,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.31.0"; // 100 TTS, Top 5 HP advantage, Top 10 speed
+const GAME_VERSION = "v19.32.0"; // Physics freeze bug fixes
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -158,7 +158,6 @@ let orbs = [];
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
 
-// Upraveno na Maximum HP misto Damage
 let allTimeHpLeaderboard = {};
 let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
 
@@ -266,7 +265,6 @@ function startNewRound() {
   
   oldPlayers.forEach(name => spawnPlayer(name, previousTop5.includes(name) ? 1000 : 100)); 
 
-  // Kolo na 5 až 25 minut (300 až 1500 sekund)
   roundTimer = floor(random(300, 1501)); 
   maxRoundTimer = roundTimer;
   gameState = "PLAYING";
@@ -303,7 +301,7 @@ function setupEvents() {
 }
 
 function formatK(num) {
-  return Math.floor(Math.max(0, num || 0)).toLocaleString(); // Vypsání celého čísla
+  return Math.floor(Math.max(0, num || 0)).toLocaleString(); 
 }
 
 function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 0.5, 110); }
@@ -321,11 +319,11 @@ function spawnPlayer(name, hp) {
   Matter.Body.setVelocity(body, { x: random(-3.5, 3.5), y: random(-3.5, 3.5) });
   
   let player = {
-    name: name, hp: safeHp, body: body, r: r,
+    name: name, hp: safeHp, body: body, r: r, targetR: r,
     color: color(random(100,255), random(100,255), random(100,255)),
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
-    sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [] 
+    damageDealt: 0, sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [] 
   };
   
   players.push(player);
@@ -341,13 +339,6 @@ function handleAction(name, amount) {
   let p = players.find(x => x.name === name);
   if(p) {
     p.hp += amount; p.auraFlash = 15; p.likeBuffTimer = 90; 
-    let newR = getRadius(p.hp);
-    if (newR > p.r + 0.5 && !isNaN(newR)) {
-        let scale = newR / p.r;
-        Matter.Body.scale(p.body, scale, scale);
-        p.r = newR;
-        Matter.Body.setDensity(p.body, 0.001 + (newR * 0.0001));
-    }
     if (players.length < 50) addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
     let baseHp = previousTop5.includes(name) ? 1000 : 100;
@@ -362,10 +353,12 @@ function updateHpLB(name, hp, col) {
 }
 
 function handleCombat(p1, p2) {
+  if (!p1 || !p2 || !p1.body || !p2.body || p1.hp <= 0 || p2.hp <= 0) return;
   if (isNaN(p1.body.position.x) || isNaN(p1.body.position.y) || isNaN(p2.body.position.x) || isNaN(p2.body.position.y)) return;
 
   let distVec = Matter.Vector.sub(p2.body.position, p1.body.position);
-  if (distVec.x === 0 && distVec.y === 0) distVec.x = 1;
+  let distVal = Matter.Vector.magnitude(distVec);
+  if (distVal < 0.1) { distVec = {x: 1, y: 0}; distVal = 1; }
 
   let speed = Matter.Vector.magnitude(Matter.Vector.sub(p1.body.velocity, p2.body.velocity));
   if (speed < 1.0 || isNaN(speed) || !isFinite(speed)) return; 
@@ -393,13 +386,6 @@ function handleCombat(p1, p2) {
       winner.hp += heal;
       if(players.length < 50) addPopup("+" + heal + " TAKEDOWN!", winner.body.position.x, winner.body.position.y - winner.r - 20, color(50, 255, 100));
       winner.auraFlash = 20;
-      let newR = getRadius(winner.hp);
-      if (newR > winner.r + 0.5 && !isNaN(newR)) {
-          let scale = newR / winner.r;
-          Matter.Body.scale(winner.body, scale, scale);
-          winner.r = newR;
-          Matter.Body.setDensity(winner.body, 0.001 + (newR * 0.0001));
-      }
   };
 
   if (p1.hp <= 0 && hp1Before > 0) healLogic(p2, hp1Before);
@@ -407,12 +393,12 @@ function handleCombat(p1, p2) {
 
   p1.damageDealt += finalDmgTo2; p2.damageDealt += finalDmgTo1;
   
-  let forceDir = Matter.Vector.normalise(distVec);
+  let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
   let forceMag = 0.02 + speed * 0.004;
   
-  if(!isNaN(forceDir.x) && !isNaN(forceDir.y) && isFinite(forceDir.x) && isFinite(forceDir.y)) {
-      Matter.Body.applyForce(p1.body, p1.body.position, Matter.Vector.mult(forceDir, -forceMag * p1.body.mass));
-      Matter.Body.applyForce(p2.body, p2.body.position, Matter.Vector.mult(forceDir, forceMag * p2.body.mass));
+  if(isFinite(forceDir.x) && isFinite(forceDir.y)) {
+      Matter.Body.applyForce(p1.body, p1.body.position, { x: -forceDir.x * forceMag * p1.body.mass, y: -forceDir.y * forceMag * p1.body.mass });
+      Matter.Body.applyForce(p2.body, p2.body.position, { x: forceDir.x * forceMag * p2.body.mass, y: forceDir.y * forceMag * p2.body.mass });
   }
   
   let isHeavyLoad = players.length > 40;
@@ -464,13 +450,6 @@ function handleOrbs() {
           if (p.hp > 0 && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
               p.hp += o.value;
               if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
-              let newR = getRadius(p.hp);
-              if (newR > p.r + 0.5 && !isNaN(newR)) {
-                  let scale = newR / p.r;
-                  Matter.Body.scale(p.body, scale, scale);
-                  p.r = newR;
-                  Matter.Body.setDensity(p.body, 0.001 + (newR * 0.0001));
-              }
               if(audioStarted) { try { synth.play(1200, 0.1, 0, 0.2); } catch(e){} }
               collected = true; break;
           }
@@ -527,7 +506,7 @@ function drawSpaceshipTimer() {
 function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
-  let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let targetSpeed = 2.5; let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 40;
   let maxV = 15; 
   
@@ -536,10 +515,20 @@ function handleCameraAndPlayers() {
     
     updateHpLB(p.name, p.hp, p.color);
 
-    if (isNaN(p.body.position.x) || isNaN(p.body.position.y)) {
-        Matter.World.remove(world, p.body);
+    if (!p.body || isNaN(p.body.position.x) || isNaN(p.body.position.y)) {
+        if(p.body) Matter.World.remove(world, p.body);
         players.splice(i, 1);
         continue;
+    }
+    
+    let targetR = getRadius(p.hp);
+    if (Math.abs(targetR - p.r) > 0.5) {
+        let s = targetR / p.r;
+        if (isFinite(s) && s > 0) {
+            Matter.Body.scale(p.body, s, s);
+            p.r = targetR;
+            Matter.Body.setDensity(p.body, 0.001 + (p.r * 0.0001));
+        }
     }
     
     if (!isHeavyLoad) {
@@ -553,7 +542,7 @@ function handleCameraAndPlayers() {
       if (!isHeavyLoad) {
           createParticles(p.body.position.x, p.body.position.y, p.color, 30);
           deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-          screenShake = 1; // Vibrace pouze nepatrně při smrti hráče
+          screenShake = 2; 
           if(audioStarted) try{ synth.play(150, 0.1, 0, 0.1); }catch(e){}
       }
       Matter.World.remove(world, p.body);
@@ -567,25 +556,27 @@ function handleCameraAndPlayers() {
     Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
 
     let isTop10 = currentTop10.includes(p.name);
-    let targetSpeed = isTop10 ? 2.8 : 2.4; // Mírná výhoda rychlosti pro Top 10
+    let tSpd = isTop10 ? 2.8 : 2.4; 
 
-    let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
-    if (isNaN(currentSpeed) || !isFinite(currentSpeed)) {
-        Matter.Body.setVelocity(p.body, {x: 0, y: 0});
-    } else if (currentSpeed > 0.1) {
-        let factor = targetSpeed / currentSpeed;
-        let nx = p.body.velocity.x * factor;
-        let ny = p.body.velocity.y * factor;
-        if (!isNaN(nx) && !isNaN(ny) && isFinite(nx) && isFinite(ny)) {
-            Matter.Body.setVelocity(p.body, { x: lerp(p.body.velocity.x, nx, 0.1), y: lerp(p.body.velocity.y, ny, 0.1) });
-        }
-    }
+    let vx = p.body.velocity.x;
+    let vy = p.body.velocity.y;
     
-    if (Math.abs(p.body.velocity.x) > maxV || Math.abs(p.body.velocity.y) > maxV) {
-        Matter.Body.setVelocity(p.body, {
-            x: Math.max(-maxV, Math.min(maxV, p.body.velocity.x)),
-            y: Math.max(-maxV, Math.min(maxV, p.body.velocity.y))
-        });
+    if (isNaN(vx) || isNaN(vy) || !isFinite(vx) || !isFinite(vy)) {
+        Matter.Body.setVelocity(p.body, {x: 0, y: 0});
+    } else {
+        let currentSpeed = Math.sqrt(vx*vx + vy*vy);
+        if (currentSpeed > 0.1) {
+            let factor = tSpd / currentSpeed;
+            Matter.Body.setVelocity(p.body, { x: lerp(vx, vx * factor, 0.1), y: lerp(vy, vy * factor, 0.1) });
+        }
+        
+        vx = p.body.velocity.x; vy = p.body.velocity.y;
+        if (Math.abs(vx) > maxV || Math.abs(vy) > maxV) {
+            Matter.Body.setVelocity(p.body, {
+                x: Math.max(-maxV, Math.min(maxV, vx)),
+                y: Math.max(-maxV, Math.min(maxV, vy))
+            });
+        }
     }
   }
 
@@ -743,7 +734,7 @@ function draw() {
 
   drawSpaceBackground();
   
-  try { Matter.Engine.update(engine, 1000/60); } catch(e) { console.error("Matter.js Engine update error protected:", e); }
+  try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
 
   if (gameState === "PLAYING" || gameState === "EXPLODING") {
     if (gameState === "PLAYING") handleCameraAndPlayers(); else screenShake *= 0.95; 
@@ -880,6 +871,7 @@ function drawPlayer(p) {
   stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
   let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
+  teeth = Math.min(teeth, 60); 
   let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1; let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
   let tType = p.sawType % 3;
 
@@ -991,7 +983,7 @@ function updateTimers() {
   if (gameState === "PLAYING" && frameCount % 60 === 0 && roundTimer > 0) {
     roundTimer--;
     if (roundTimer <= 0) {
-        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 3; // Menší vibrace
+        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 3; 
         if(audioStarted) try { synth.play(80, 0.5, 0, 0.8); setTimeout(() => { if(synth) synth.play(60, 0.8, 0, 1.0); }, 200); } catch(e){}
         let wPos = screenToWorld(shipX, shipY);
         deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
