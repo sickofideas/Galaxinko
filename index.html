@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.28.1"; // TTS fixes, smaller bonus star
+const GAME_VERSION = "v19.28.2"; // Přidána jména hráčů do kruhů
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -846,8 +846,18 @@ function drawPlayer(p) {
 
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
   if (!isHeavyLoad) { drawingContext.shadowBlur = 5; drawingContext.shadowColor = 'black'; }
-  stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); fill(p.hp > 50000 ? color(100, 255, 100) : (p.hp > 10000 ? color(255, 255, 0) : color(255))); textStyle(BOLD);
-  textSize(Math.max(11, p.r * 0.35)); text(formatK(Math.floor(safeHp)), 0, 0); 
+  
+  if (p.r > 20) {
+      stroke(0); strokeWeight(Math.max(3, p.r * 0.12));
+      fill(230); textStyle(NORMAL);
+      textSize(Math.max(8, p.r * 0.22)); 
+      text(p.name.substring(0, 10), 0, -p.r * 0.4); 
+  }
+
+  stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); fill(txtCol); textStyle(BOLD);
+  textSize(Math.max(11, p.r * 0.35)); 
+  text(formatK(Math.floor(safeHp)), 0, p.r > 20 ? p.r * 0.3 : 0); 
+  
   drawingContext.shadowBlur = 0; noStroke(); pop();
 }
 
