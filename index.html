@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.24.0"; // Spaceship Timer
+const GAME_VERSION = "v19.25.0"; // Optimalizace výkonu a obří aréna
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -78,94 +78,19 @@ const T = {
   }
 };
 
-// Všechny TTS texty jsou bezpečné pro TikTok
 const COMMENTARY_EMPTY = {
-  CZ: [
-    "Haló? Je tam někdo? Aréna je trapně prázdná!", 
-    "Čekáme na prvního hrdinu! Kde jste všichni?", 
-    "Vstupte do arény! První bere všechno!",
-    "Ticho před bouří... Zapojte se a odstartujte to!",
-    "Diváci spí! Vzbuďte se a pojďte hrát!"
-  ],
-  EN: [
-    "Hello? Anyone there? The arena is embarrassingly empty!", 
-    "Waiting for the first hero! Where is everyone?", 
-    "Enter the arena! First takes all!",
-    "Calm before the storm... Join in and start it!",
-    "The viewers are sleeping! Wake up and let's play!"
-  ]
+  CZ: ["Haló? Je tam někdo? Aréna je trapně prázdná!", "Čekáme na prvního hrdinu! Kde jste všichni?", "Vstupte do arény! První bere všechno!", "Ticho před bouří... Zapojte se a odstartujte to!", "Diváci spí! Vzbuďte se a pojďte hrát!"],
+  EN: ["Hello? Anyone there? The arena is embarrassingly empty!", "Waiting for the first hero! Where is everyone?", "Enter the arena! First takes all!", "Calm before the storm... Join in and start it!", "The viewers are sleeping! Wake up and let's play!"]
 };
 
 const COMMENTARY_SOLO = {
-  CZ: [
-    "Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", 
-    "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!", 
-    "Aréna patří jen hráči {p}! Změňte to někdo!",
-    "{p} si myslí, že je nezastavitelný. Dokažte mu opak!",
-    "Jeden hráč jaro nedělá. Připojte se!"
-  ],
-  EN: [
-    "Player {p} is circling all alone! Who challenges them?", 
-    "Are you letting {p} win without a fight? Get in there!", 
-    "The arena belongs only to {p}! Someone change that!",
-    "{p} thinks they are unstoppable. Prove them wrong!",
-    "One player doesn't make a match. Join in!"
-  ]
+  CZ: ["Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", "To necháte hráče {p} vyhrát bez boje? Pojďte do něj!", "Aréna patří jen hráči {p}! Změňte to někdo!", "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", "Jeden hráč jaro nedělá. Připojte se!"],
+  EN: ["Player {p} is circling all alone! Who challenges them?", "Are you letting {p} win without a fight? Get in there!", "The arena belongs only to {p}! Someone change that!", "{p} thinks they are unstoppable. Prove them wrong!", "One player doesn't make a match. Join in!"]
 };
 
 const COMMENTARY = {
-  CZ: [
-    "Au, to byla rána!", "Neskutečný odraz v aréně!", "Klikejte, nebo vás vytlačí!", "Tady lítají jiskry!",
-    "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!",
-    "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!",
-    "Klikejte na obrazovku, nebo váš favorit vyletí z mapy!", "Ten náraz slyšeli až na Měsíci!",
-    "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!",
-    "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Kdo nekliká, ten zkrátka nehraje!",
-    "Zářivý štít nevydrží věčně, podpořte svého favorita!", "Podívejte se na ty odrazy, to je naprosté šílenství!",
-    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!",
-    "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!",
-    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!",
-    "Bez podpory jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!",
-    "Pošlete dárek a staňte se nezastavitelným bossem!", "Všichni se sráží do jednoho velkého chumlu!",
-    "Taktika tu nepomůže, tady rozhoduje vaše podpora!", "Tyhle kruhy by roztočily i galaxii!",
-    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?",
-    "Klikejte co to dá, nebo váš kruh zmizí!", "Neuvěřitelná rychlost! Roztočte to ještě víc!",
-    "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!",
-    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!",
-    "Tenhle souboj je napínavější než finále mistrovství!",
-    "Sledujte tu dynamiku! Fyzika tady dostává zabrat!",
-    "Skvělý zásah! Tohle stálo hodně energie!",
-    "Nedávejte jim šanci vydechnout! Víc klikání, víc bodů!",
-    "Točí se to jako šílené! Kdo to zastaví?",
-    "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!",
-    "Totální chaos! Tohle je to, co chceme vidět!"
-  ],
-  EN: [
-    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Tap it up or get pushed out!", "Sparks are flying!",
-    "Who will win this madness?", "What a brawl!", "Spinning to the max!",
-    "Wow, threw him away like a toy!", "This is live space pinball!",
-    "Tap the screen or your favorite will fly off the map!", "They heard that crash all the way to the Moon!",
-    "Heavy hits! Only the best succeed here!", "Took that one right in the core!",
-    "Rev up those circles! We want to see more points!", "If you're not tapping, you're not playing!",
-    "A glowing shield won't last forever, support your favorite!", "Look at those bounces, absolute madness!",
-    "We are writing this round in the history books!", "Someone stop these giant spinning titans!",
-    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!",
-    "An epic battle of dancing circles!", "Legends are born right here!",
-    "Without support, you're just a tiny dot!", "What a hit, and they're still on the map!",
-    "Send a gift and become an unstoppable boss!", "Everyone is crashing into one massive pile!",
-    "Tactics won't help, your support decides here!", "These circles could spin the galaxy!",
-    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points?",
-    "Tap like crazy, or your circle disappears!", "Unbelievable speed! Spin it even faster!",
-    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!",
-    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!",
-    "This fight is more thrilling than a championship finals!",
-    "Watch the dynamics! Physics is working hard here!",
-    "Great hit! That must have taken a ton of energy!",
-    "Don't give them a chance to breathe! More taps, more points!",
-    "Spinning like crazy! Who's gonna stop it!",
-    "Ooh, clean flyby! That circle is going to need a mechanic!",
-    "Total chaos! This is what we want to see!"
-  ]
+  CZ: ["Au, to byla rána!", "Neskutečný odraz v aréně!", "Klikejte, nebo vás vytlačí!", "Tady lítají jiskry!", "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!", "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!", "Klikejte na obrazovku, nebo váš favorit vyletí z mapy!", "Ten náraz slyšeli až na Měsíci!", "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!", "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Kdo nekliká, ten zkrátka nehraje!", "Zářivý štít nevydrží věčně, podpořte svého favorita!", "Podívejte se na ty odrazy, to je naprosté šílenství!", "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!", "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!", "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!", "Bez podpory jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!", "Pošlete dárek a staňte se nezastavitelným bossem!", "Všichni se sráží do jednoho velkého chumlu!", "Taktika tu nepomůže, tady rozhoduje vaše podpora!", "Tyhle kruhy by roztočily i galaxii!", "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?", "Klikejte co to dá, nebo váš kruh zmizí!", "Neuvěřitelná rychlost! Roztočte to ještě víc!", "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!", "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!", "Tenhle souboj je napínavější než finále mistrovství!", "Sledujte tu dynamiku! Fyzika tady dostává zabrat!", "Skvělý zásah! Tohle stálo hodně energie!", "Nedávejte jim šanci vydechnout! Víc klikání, víc bodů!", "Točí se to jako šílené! Kdo to zastaví?", "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!", "Totální chaos! Tohle je to, co chceme vidět!"],
+  EN: ["Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Tap it up or get pushed out!", "Sparks are flying!", "Who will win this madness?", "What a brawl!", "Spinning to the max!", "Wow, threw him away like a toy!", "This is live space pinball!", "Tap the screen or your favorite will fly off the map!", "They heard that crash all the way to the Moon!", "Heavy hits! Only the best succeed here!", "Took that one right in the core!", "Rev up those circles! We want to see more points!", "If you're not tapping, you're not playing!", "A glowing shield won't last forever, support your favorite!", "Look at those bounces, absolute madness!", "We are writing this round in the history books!", "Someone stop these giant spinning titans!", "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!", "An epic battle of dancing circles!", "Legends are born right here!", "Without support, you're just a tiny dot!", "What a hit, and they're still on the map!", "Send a gift and become an unstoppable boss!", "Everyone is crashing into one massive pile!", "Tactics won't help, your support decides here!", "These circles could spin the galaxy!", "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points?", "Tap like crazy, or your circle disappears!", "Unbelievable speed! Spin it even faster!", "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!", "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", "Great hit! That must have taken a ton of energy!", "Don't give them a chance to breathe! More taps, more points!", "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby! That circle is going to need a mechanic!", "Total chaos! This is what we want to see!"]
 };
 
 let engine, world;
@@ -178,6 +103,7 @@ let userAvatars = {};
 let orbs = []; 
 
 let wallTop, wallBot, wallLeft, wallRight;
+const wallThick = 2000;
 
 // Systém poškození (Pouze All-Time žebříček)
 let allTimeDamageLeaderboard = {};
@@ -229,10 +155,10 @@ function setup() {
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let wallOpts = { isStatic: true, restitution: 1.0, friction: 0 };
   
-  wallTop = Matter.Bodies.rectangle(cx, cy - 1000, 10000, 500, wallOpts);
-  wallBot = Matter.Bodies.rectangle(cx, cy + 1000, 10000, 500, wallOpts);
-  wallLeft = Matter.Bodies.rectangle(cx - 1000, cy, 500, 10000, wallOpts);
-  wallRight = Matter.Bodies.rectangle(cx + 1000, cy, 500, 10000, wallOpts);
+  wallTop = Matter.Bodies.rectangle(cx, cy - 1000, 20000, wallThick, wallOpts);
+  wallBot = Matter.Bodies.rectangle(cx, cy + 1000, 20000, wallThick, wallOpts);
+  wallLeft = Matter.Bodies.rectangle(cx - 1000, cy, wallThick, 20000, wallOpts);
+  wallRight = Matter.Bodies.rectangle(cx + 1000, cy, wallThick, 20000, wallOpts);
   Matter.World.add(world, [wallTop, wallBot, wallLeft, wallRight]);
 
   generateSpaceBackground();
@@ -377,8 +303,8 @@ function spawnPlayer(name, hp) {
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale;
   let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  let spawnX = cx + random(-viewW/2 + r, viewW/2 - r);
-  let spawnY = cy + random(-viewH/2 + r, viewH/2 - r);
+  let spawnX = cx + random(-viewW/2 + r*2, viewW/2 - r*2);
+  let spawnY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
 
   let body = Matter.Bodies.circle(spawnX, spawnY, r, {
     restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
@@ -401,7 +327,7 @@ function spawnPlayer(name, hp) {
   players.push(player);
   Matter.World.add(world, body);
   speakTTS(T[currentLang].NEW + name);
-  createParticles(body.position.x, body.position.y, player.color, 15);
+  createParticles(body.position.x, body.position.y, player.color, 10);
   
   if(audioStarted) {
       try { 
@@ -521,9 +447,11 @@ function handleCombat(p1, p2) {
   Matter.Body.applyForce(p1.body, p1.body.position, Matter.Vector.mult(forceDir, -forceMag * p1.body.mass));
   Matter.Body.applyForce(p2.body, p2.body.position, Matter.Vector.mult(forceDir, forceMag * p2.body.mass));
   
-  lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
-
-  createParticles(cx, cy, color(255, 200, 50), 15); 
+  // Zamezení přehlcení vizuálu
+  if (players.length < 50) {
+      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
+      createParticles(cx, cy, color(255, 200, 50), 8); 
+  }
   
   let col1 = isCrit2 ? color(255, 215, 0) : color(255, 80, 80);
   let col2 = isCrit1 ? color(255, 215, 0) : color(255, 80, 80);
@@ -540,12 +468,28 @@ function handleOrbs() {
   for (let i = orbs.length - 1; i >= 0; i--) {
       let o = orbs[i];
       
-      drawingContext.shadowBlur = 15;
+      push();
+      translate(o.x, o.y);
+      rotate(frameCount * 0.02);
+      
+      drawingContext.shadowBlur = 20;
       drawingContext.shadowColor = color(255, 215, 0);
-      fill(255, 200, 0, 150 + sin(frameCount * 0.1) * 100);
+      fill(255, 200, 0, 180 + sin(frameCount * 0.1) * 75);
       stroke(255); strokeWeight(2);
-      ellipse(o.x, o.y, o.r * 2);
+      
+      // Tvar hvězdy místo kuličky
+      beginShape();
+      for(let j=0; j<10; j++) {
+         let a = j * TWO_PI / 10;
+         let r = j % 2 === 0 ? o.r * 1.5 : o.r * 0.7;
+         vertex(cos(a)*r, sin(a)*r);
+      }
+      endShape(CLOSE);
       drawingContext.shadowBlur = 0;
+      pop();
+
+      fill(255); textSize(11); textStyle(BOLD); textAlign(CENTER);
+      text("BONUS\n+1000", o.x, o.y - 25);
 
       let collected = false;
       for (let p of players) {
@@ -581,7 +525,7 @@ function screenToWorld(sx, sy) {
 
 function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
-    let p = 1.0 - (roundTimer / maxRoundTimer); // Jde od 0 do 1
+    let p = 1.0 - (roundTimer / maxRoundTimer); 
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
     let currentDist = p * perim;
@@ -643,12 +587,88 @@ function drawSpaceshipTimer() {
     
     pop();
 
-    if (frameCount % 2 === 0 && roundTimer > 0) {
+    // Stopy za lodí - sníženo pro výkon
+    if (frameCount % 3 === 0 && roundTimer > 0) {
         let wPos = screenToWorld(shipX, shipY);
         let vx = -cos(shipAngle) * random(2, 4) + random(-1, 1);
         let vy = -sin(shipAngle) * random(2, 4) + random(-1, 1);
         particles.push({x: wPos.x, y: wPos.y, vx: vx, vy: vy, life: 255, c: color(150, 200, 255), size: random(4, 8)});
     }
+}
+
+function handleCameraAndPlayers() {
+  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
+  
+  let targetSpeed = 2.5;
+  let cx = W/2; 
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  
+  for (let i = players.length - 1; i >= 0; i--) {
+    let p = players[i];
+    
+    p.trail.push({x: p.body.position.x, y: p.body.position.y});
+    if (p.trail.length > 12) p.trail.shift();
+    
+    if (p.hp <= 0) {
+      createParticles(p.body.position.x, p.body.position.y, p.color, 40);
+      deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
+      screenShake = 12;
+      
+      if(audioStarted) {
+          try{ 
+              synth.play(150, 0.1, 0, 0.1); 
+              setTimeout(() => { if(synth) synth.play(80, 0.2, 0, 0.3); }, 100);
+          }catch(e){}
+      }
+      Matter.World.remove(world, p.body);
+      players.splice(i, 1);
+      continue;
+    }
+    
+    p.noiseOffsetX += 0.02; p.noiseOffsetY += 0.02;
+    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
+    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
+    Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
+
+    // Rychlá a levná gravitace do středu (místo náročného hledání nejbližšího přes O(N^2))
+    let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
+    let distC = Matter.Vector.magnitude(toCenter);
+    if (distC > 200 / cameraScale) {
+        let pull = Matter.Vector.normalise(toCenter);
+        Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000008 * p.body.mass));
+    }
+
+    let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
+    if (currentSpeed > 0.1) {
+        let factor = targetSpeed / currentSpeed;
+        Matter.Body.setVelocity(p.body, { 
+            x: lerp(p.body.velocity.x, p.body.velocity.x * factor, 0.1), 
+            y: lerp(p.body.velocity.y, p.body.velocity.y * factor, 0.1) 
+        });
+    }
+  }
+
+  // Pevné a agresivnější zoom úrovně podle počtu hráčů
+  let targetScale = 1.0;
+  let len = players.length;
+  
+  if (len >= 250) targetScale = 0.30;
+  else if (len >= 150) targetScale = 0.40;
+  else if (len >= 100) targetScale = 0.55;
+  else if (len >= 60) targetScale = 0.65;
+  else if (len >= 40) targetScale = 0.75;
+  else if (len >= 20) targetScale = 0.85;
+
+  cameraScale = lerp(cameraScale, targetScale, 0.02); 
+  
+  // Přesný posun mantinelů podle okraje kamery, aby se hráči nikdy neztratili
+  let viewW = W / cameraScale;
+  let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+  
+  Matter.Body.setPosition(wallTop, { x: cx, y: cy - viewH/2 - wallThick/2 });
+  Matter.Body.setPosition(wallBot, { x: cx, y: cy + viewH/2 + wallThick/2 });
+  Matter.Body.setPosition(wallLeft, { x: cx - viewW/2 - wallThick/2, y: cy });
+  Matter.Body.setPosition(wallRight, { x: cx + viewW/2 + wallThick/2, y: cy });
 }
 
 function draw() {
@@ -663,6 +683,10 @@ function draw() {
 
   stroke(0, 150, 255, 100); strokeWeight(2); noFill();
   rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
+
+  if (gameState === "PLAYING") {
+      drawSpaceshipTimer();
+  }
 
   drawingContext.save();
   drawingContext.beginPath();
@@ -698,6 +722,10 @@ function draw() {
         sortedToDraw.forEach(p => drawPlayer(p));
     }
     
+    // Omezení částic a textů pro lepší výkon
+    if (particles.length > 200) particles.splice(0, particles.length - 200);
+    if (floatingTexts.length > 50) floatingTexts.splice(0, floatingTexts.length - 50);
+    
     drawParticles();
     drawPopups();
     pop();
@@ -709,11 +737,6 @@ function draw() {
   }
   
   drawingContext.restore(); 
-
-  // Loď létá na okraji displeje (přes obraz, ne pod maskou kamery)
-  if (gameState === "PLAYING") {
-      drawSpaceshipTimer();
-  }
 }
 
 function handleTTSCommentary() {
@@ -814,230 +837,6 @@ function drawTopHUD() {
   }
 }
 
-function drawSpaceBackground() {
-  flowTime += 0.003;
-  globalFlowAngle = sin(flowTime) * 0.25;
-
-  noStroke();
-  
-  drawingContext.save();
-  milkyWay.forEach(mw => {
-      fill(mw.color);
-      ellipse(mw.x, mw.y, mw.r * 2);
-      
-      mw.x += sin(globalFlowAngle) * 0.2;
-      mw.y += cos(globalFlowAngle) * 0.2;
-      
-      if (mw.y > ARENA_BOT + 250) mw.y = ARENA_TOP - 250;
-      if (mw.x > W + 250) mw.x = -250;
-      if (mw.x < -250) mw.x = W + 250;
-  });
-  drawingContext.restore();
-
-  nebulas.forEach(n => {
-     fill(n.color);
-     ellipse(n.x, n.y, n.r); 
-  });
-
-  stars.forEach(s => {
-    let currentAlpha = s.baseAlpha;
-    if (s.isPulsing) {
-        currentAlpha = 50 + sin(frameCount * s.pulseSpeed + s.pulsePhase) * 205;
-    }
-    fill(s.rC, s.gC, s.bC, currentAlpha);
-    rect(s.x, s.y, s.s, s.s);
-    
-    s.x += sin(globalFlowAngle) * s.speed;
-    s.y += cos(globalFlowAngle) * s.speed;
-    
-    if (s.y > ARENA_BOT) { s.y = ARENA_TOP; s.x = random(W); }
-    else if (s.y < ARENA_TOP) { s.y = ARENA_BOT; s.x = random(W); }
-    if (s.x > W) { s.x = 0; s.y = random(ARENA_TOP, ARENA_BOT); }
-    else if (s.x < 0) { s.x = W; s.y = random(ARENA_TOP, ARENA_BOT); }
-  });
-
-  planets.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    if (p.x < -100) p.x = W + 100; if (p.x > W + 100) p.x = -100;
-    if (p.y < ARENA_TOP - 100) p.y = ARENA_BOT + 100; if (p.y > ARENA_BOT + 100) p.y = ARENA_TOP - 100;
-
-    push();
-    translate(p.x, p.y);
-    rotate(p.angle);
-    noStroke();
-    fill(p.col);
-    ellipse(0, 0, p.r * 2);
-    
-    fill(0, 150);
-    arc(0, 0, p.r * 2, p.r * 2, HALF_PI, PI + HALF_PI); 
-    
-    if (p.hasRing) {
-        noFill();
-        stroke(p.ringCol);
-        strokeWeight(p.r * 0.2);
-        ellipse(0, 0, p.r * 3.5, p.r * 0.8);
-    }
-    pop();
-    p.angle += p.rotSpeed;
-  });
-
-  if (random() < 0.01) { 
-      shootingStars.push({
-          x: random(W), y: ARENA_TOP, 
-          vx: random(-15, 15), vy: random(15, 30), 
-          life: 150, length: random(20, 60)
-      });
-  }
-
-  shootingStars.forEach((s, i) => {
-      stroke(255, 255, 255, s.life); strokeWeight(2);
-      line(s.x, s.y, s.x - s.vx * (s.length/10), s.y - s.vy * (s.length/10));
-      s.x += s.vx; s.y += s.vy; s.life -= 10;
-      if (s.life <= 0 || s.y > ARENA_BOT) shootingStars.splice(i, 1);
-  });
-  noStroke();
-}
-
-function handleCameraAndPlayers() {
-  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
-  
-  let targetSpeed = 2.5;
-  
-  for (let i = players.length - 1; i >= 0; i--) {
-    let p = players[i];
-    
-    p.trail.push({x: p.body.position.x, y: p.body.position.y});
-    if (p.trail.length > 12) p.trail.shift();
-    
-    if (p.hp <= 0) {
-      createParticles(p.body.position.x, p.body.position.y, p.color, 60);
-      deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-      screenShake = 12;
-      
-      if(audioStarted) {
-          try{ 
-              synth.play(150, 0.1, 0, 0.1); 
-              setTimeout(() => { if(synth) synth.play(80, 0.2, 0, 0.3); }, 100);
-          }catch(e){}
-      }
-      Matter.World.remove(world, p.body);
-      players.splice(i, 1);
-      continue;
-    }
-    
-    if (p.hp >= 5000 && frameCount % 30 === (i % 30)) {
-      let range = p.r + 150;
-      for (let other of players) {
-        if (other === p || other.hp <= 0) continue;
-        let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
-        if (d < range) {
-          let safeHp = Math.max(1, p.hp);
-          let dmg = Math.floor(Math.log10(safeHp) * 8 + 10);
-          other.hp -= dmg;
-          
-          p.damageDealt += dmg;
-          updateDamageLB(p.name, p.damageDealt, p.color);
-          
-          lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
-          createParticles(other.body.position.x, other.body.position.y, p.color, 5);
-          addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 50, 50));
-          if(audioStarted && random() < 0.2) try{ synth.play(1200, 0.02, 0, 0.1); }catch(e){}
-          break; 
-        }
-      }
-    }
-    
-    p.noiseOffsetX += 0.02; p.noiseOffsetY += 0.02;
-    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
-    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
-    Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
-
-    if (frameCount % 10 === (i % 10)) attractToNearest(p);
-
-    let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
-    if (currentSpeed > 0.1) {
-        let factor = targetSpeed / currentSpeed;
-        Matter.Body.setVelocity(p.body, { 
-            x: lerp(p.body.velocity.x, p.body.velocity.x * factor, 0.1), 
-            y: lerp(p.body.velocity.y, p.body.velocity.y * factor, 0.1) 
-        });
-    }
-  }
-
-  let targetScale = 1.0;
-  if (players.length >= 250) targetScale = 0.35;
-  else if (players.length >= 150) targetScale = 0.50;
-  else if (players.length >= 50) targetScale = 0.75;
-
-  cameraScale = lerp(cameraScale, targetScale, 0.02); 
-  
-  let cx = W/2;
-  let cy = (ARENA_TOP+ARENA_BOT)/2;
-  let viewW = W / cameraScale;
-  let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  
-  Matter.Body.setPosition(wallTop, { x: cx, y: cy - viewH/2 - 250 });
-  Matter.Body.setPosition(wallBot, { x: cx, y: cy + viewH/2 + 250 });
-  Matter.Body.setPosition(wallLeft, { x: cx - viewW/2 - 250, y: cy });
-  Matter.Body.setPosition(wallRight, { x: cx + viewW/2 + 250, y: cy });
-}
-
-function attractToNearest(p) {
-  let cx = W/2; 
-  let cy = (ARENA_TOP+ARENA_BOT)/2;
-  
-  let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
-  let distC = Matter.Vector.magnitude(toCenter);
-  if (distC > 300 / cameraScale) {
-      let pull = Matter.Vector.normalise(toCenter);
-      Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000005 * p.body.mass * (distC/500)));
-  }
-
-  let closest = null; let minDist = Infinity;
-  for(let other of players) {
-    if(other === p) continue;
-    let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
-    if(d < minDist && d < 400) { minDist = d; closest = other; } 
-  }
-  if(closest) {
-    let force = Matter.Vector.sub(closest.body.position, p.body.position);
-    let norm = Matter.Vector.normalise(force);
-    Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.00005 * p.body.mass));
-  }
-}
-
-function drawDeathShockwaves() {
-  for (let i = deathShockwaves.length - 1; i >= 0; i--) {
-      let sw = deathShockwaves[i];
-      noFill();
-      stroke(red(sw.color), green(sw.color), blue(sw.color), sw.life);
-      strokeWeight(map(sw.life, 255, 0, 15, 1));
-      ellipse(sw.x, sw.y, sw.r * 2);
-      sw.r += 4;
-      sw.life -= 12;
-      if (sw.life <= 0) deathShockwaves.splice(i, 1);
-  }
-}
-
-function drawLightnings() {
-  for(let i = lightnings.length - 1; i >= 0; i--) {
-    let l = lightnings[i];
-    stroke(red(l.c), green(l.c), blue(l.c), l.life * 15);
-    strokeWeight(l.life * 0.3);
-    noFill();
-    beginShape();
-    vertex(l.x1, l.y1);
-    let segs = 3;
-    for(let j = 1; j < segs; j++) {
-        vertex(lerp(l.x1, l.x2, j/segs) + random(-15, 15), lerp(l.y1, l.y2, j/segs) + random(-15, 15));
-    }
-    vertex(l.x2, l.y2);
-    endShape();
-    l.life--;
-    if(l.life <= 0) lightnings.splice(i, 1);
-  }
-}
-
 function drawPlayer(p) {
   let pos = p.body.position;
   let safeHp = Math.max(0, p.hp);
@@ -1084,8 +883,11 @@ function drawPlayer(p) {
   let coreType = Math.floor(p.sawType / 3) % 4; 
   let isEpic = safeHp >= 3000;
   
-  drawingContext.shadowBlur = isEpic ? 25 : 15;
-  drawingContext.shadowColor = p.color;
+  let useGlow = players.length < 40; // Optimalizace: Glow jen pokud není plno
+  if (useGlow) {
+      drawingContext.shadowBlur = isEpic ? 25 : 15;
+      drawingContext.shadowColor = p.color;
+  }
 
   let grad = drawingContext.createRadialGradient(0, 0, 0, 0, 0, p.r);
   grad.addColorStop(0, "rgba(10, 15, 20, 1)");
@@ -1192,8 +994,10 @@ function drawPlayer(p) {
   drawingContext.lineJoin = "round"; 
   textAlign(CENTER, CENTER);
 
-  drawingContext.shadowBlur = 5; 
-  drawingContext.shadowColor = 'black';
+  if (useGlow) {
+      drawingContext.shadowBlur = 5; 
+      drawingContext.shadowColor = 'black';
+  }
   
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
   fill(txtCol); textStyle(BOLD);
@@ -1204,72 +1008,6 @@ function drawPlayer(p) {
   drawingContext.shadowBlur = 0; 
   noStroke(); 
   pop();
-}
-
-function createParticles(x, y, c, count) {
-  let actualCount = players.length > 50 ? Math.floor(count/2) : count;
-  for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-8,8), vy: random(-8,8), life: 255, c: c, size: random(4, 10)});
-}
-
-function drawParticles() {
-  noStroke();
-  drawingContext.shadowBlur = 10; 
-  
-  for(let i=particles.length-1; i>=0; i--) {
-    let p = particles[i];
-    drawingContext.shadowColor = p.c;
-    fill(red(p.c), green(p.c), blue(p.c), p.life);
-    ellipse(p.x, p.y, p.size);
-    p.x += p.vx; p.y += p.vy; 
-    p.vx *= 0.95; 
-    p.vy *= 0.95;
-    p.size *= 0.98; 
-    p.life -= 15; 
-    if(p.life <= 0) particles.splice(i, 1);
-  }
-  drawingContext.shadowBlur = 0; 
-}
-
-function addPopup(txt, x, y, c, isCrit = false) {
-  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit, scale: 0.1});
-}
-
-function drawPopups() {
-  for(let i=floatingTexts.length-1; i>=0; i--) {
-    let f = floatingTexts[i];
-    
-    f.scale = lerp(f.scale, 1.0, 0.2); 
-    
-    push();
-    translate(f.x, f.y);
-    scale(f.scale);
-    
-    drawingContext.shadowBlur = 5;
-    drawingContext.shadowColor = 'black';
-    
-    if (f.isCrit) {
-        stroke(0); strokeWeight(4);
-        fill(255, 215, 0, f.life); 
-        let ts = 22 + sin(f.life * 0.1) * 4; 
-        textSize(ts); textAlign(CENTER); textStyle(BOLD);
-        text("CRITICAL HIT!\n" + f.txt, 0, 0);
-        f.y += f.vy - 0.5; 
-        f.life -= 6;
-    } else {
-        stroke(0); strokeWeight(3);
-        fill(red(f.c), green(f.c), blue(f.c), f.life);
-        textSize(16); textAlign(CENTER); textStyle(BOLD);
-        text(f.txt, 0, 0);
-        f.y += f.vy; 
-        f.life -= 8;
-    }
-    
-    pop();
-    
-    if(f.life <= 0) floatingTexts.splice(i, 1);
-  }
-  drawingContext.shadowBlur = 0;
-  textStyle(NORMAL);
 }
 
 function updateTimers() {
@@ -1301,11 +1039,17 @@ function updateTimers() {
       }
   }
 
-  if (gameState === "PLAYING" && frameCount % 180 === 0 && random() < 0.6 && orbs.length < 3) {
+  // Drasticky snížena šance na bonus (např. cca každých 10 vteřin šance)
+  if (gameState === "PLAYING" && frameCount % 600 === 0 && random() < 0.4 && orbs.length < 2) {
+      let cx = W/2;
+      let cy = (ARENA_TOP+ARENA_BOT)/2;
+      let viewW = W / cameraScale;
+      let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+      
       orbs.push({
-          x: random(100, W - 100),
-          y: random(ARENA_TOP + 100, ARENA_BOT - 100),
-          r: 15,
+          x: cx + random(-viewW/2.5, viewW/2.5),
+          y: cy + random(-viewH/2.5, viewH/2.5),
+          r: 20,
           value: 1000
       });
   }
