@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.3.0";
+const GAME_VERSION = "v19.4.0";
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -205,21 +205,21 @@ function formatK(num) {
 }
 
 function getRadius(hp) {
-    return Math.min(22 + Math.sqrt(hp) * 0.45, 95); // Zvětšený základ pro lepší viditelnost textu
+    return Math.min(22 + Math.sqrt(hp) * 0.45, 95); 
 }
 
 function spawnPlayer(name, hp) {
   let r = getRadius(hp);
   let body = Matter.Bodies.circle(random(50, W-50), random(ARENA_TOP+50, ARENA_BOT-50), r, {
-    restitution: 0.95, frictionAir: 0.015, friction: 0, density: 0.001
+    restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
   });
   
-  Matter.Body.setVelocity(body, { x: random(-4,4), y: random(-4,4) });
+  Matter.Body.setVelocity(body, { x: random(-3.5, 3.5), y: random(-3.5, 3.5) });
   
   let player = {
     name: name, hp: hp, body: body, r: r,
     color: color(random(100,255), random(100,255), random(100,255)),
-    rot: 0, trail: [], auraFlash: 0
+    rot: 0, auraFlash: 0
   };
   
   players.push(player);
@@ -370,7 +370,6 @@ function drawSpaceBackground() {
     if (s.y > ARENA_BOT) { s.y = ARENA_TOP; s.x = random(W); }
   });
 
-  // Průlet padající hvězdy
   if (random() < 0.03) {
       shootingStars.push({
           x: random(W), y: ARENA_TOP, 
@@ -392,6 +391,7 @@ function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
   let minX = W, maxX = 0, minY = ARENA_BOT, maxY = ARENA_TOP;
+  let targetSpeed = 3.5;
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -404,7 +404,6 @@ function handleCameraAndPlayers() {
       continue;
     }
     
-    // Útok bleskem pro velké hráče (nad 5000 HP) - zoptimalizováno (každý 30. frame)
     if (p.hp >= 5000 && frameCount % 30 === (i % 30)) {
       let range = p.r + 150;
       for (let other of players) {
@@ -422,12 +421,19 @@ function handleCameraAndPlayers() {
       }
     }
     
-    // AI Pohyb a přitahování - Optimalizace zátěže! Počítá se jen občas.
+    // AI Pohyb a přitahování 
     if (frameCount % 10 === (i % 10)) {
-        if (Matter.Vector.magnitude(p.body.velocity) < 2.5) {
-            Matter.Body.applyForce(p.body, p.body.position, {x: random(-0.01, 0.01)*p.body.mass, y: random(-0.01, 0.01)*p.body.mass});
-        }
         attractToNearest(p);
+    }
+
+    // ROVNOMĚRNÝ POHYB (Konstantní rychlost)
+    let currentSpeed = Matter.Vector.magnitude(p.body.velocity);
+    if (currentSpeed > 0.1) {
+        let factor = targetSpeed / currentSpeed;
+        Matter.Body.setVelocity(p.body, { 
+            x: lerp(p.body.velocity.x, p.body.velocity.x * factor, 0.1), 
+            y: lerp(p.body.velocity.y, p.body.velocity.y * factor, 0.1) 
+        });
     }
 
     minX = min(minX, p.body.position.x - p.r);
@@ -447,20 +453,18 @@ function attractToNearest(p) {
   for(let other of players) {
     if(other === p) continue;
     let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
-    if(d < minDist && d < 400) { minDist = d; closest = other; } // Omezený dosah pro optimalizaci
+    if(d < minDist && d < 400) { minDist = d; closest = other; } 
   }
   if(closest) {
     let force = Matter.Vector.sub(closest.body.position, p.body.position);
     let norm = Matter.Vector.normalise(force);
-    Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.0001 * p.body.mass));
+    Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(norm, 0.00005 * p.body.mass));
   }
 }
 
 function drawLightnings() {
   for(let i = lightnings.length - 1; i >= 0; i--) {
     let l = lightnings[i];
-    
-    // Optimalizace: bez shadowBlur pro plynulost
     stroke(red(l.c), green(l.c), blue(l.c), l.life * 15);
     strokeWeight(l.life * 0.3);
     noFill();
@@ -487,7 +491,6 @@ function drawPlayer(p) {
   translate(pos.x, pos.y);
   rotate(p.rot);
   
-  // Fake Glow pro lepší výkon místo shadowBlur
   let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
   fill(red(p.color), green(p.color), blue(p.color), glowAlpha);
   noStroke();
@@ -510,64 +513,54 @@ function drawPlayer(p) {
             cos(a2)*p.r*0.9, sin(a2)*p.r*0.9
         );
     }
-    
-    // Vnitřní jádro
-    stroke(p.color); strokeWeight(3); fill(30);
-    ellipse(0, 0, p.r*0.9);
-    noStroke(); fill(255, 255, 0);
-    ellipse(-p.r*0.25, 0, 6); ellipse(p.r*0.25, 0, 6);
-    ellipse(0, -p.r*0.25, 6); ellipse(0, p.r*0.25, 6);
   } else {
-    // BASIC BEYBLADE
-    fill(20, 25, 30); stroke(p.color); strokeWeight(4);
-    ellipse(0, 0, p.r*2);
-    
-    stroke(255, 100); strokeWeight(1); noFill();
-    ellipse(0, 0, p.r*1.5);
-    
-    stroke(p.color); strokeWeight(2);
-    line(-p.r, 0, -p.r*0.4, 0); line(p.r, 0, p.r*0.4, 0);
-    line(0, -p.r, 0, -p.r*0.4); line(0, p.r, 0, p.r*0.4);
+    // ZÁKLADNÍ BEYBLADE (Menší ozubené kolo)
+    fill(20, 25, 30); stroke(p.color); strokeWeight(3);
+    let teeth = 8 + Math.floor(p.hp / 200);
+    beginShape();
+    for(let i=0; i<teeth*2; i++) {
+        let a = i * PI/teeth;
+        let rad = (i%2===0) ? p.r : p.r*0.85;
+        vertex(cos(a)*rad, sin(a)*rad);
+    }
+    endShape(CLOSE);
   }
 
   // AVATAR A TEXTY (Nerotují s tělem)
   rotate(-p.rot); 
   
+  // Zvětšený rádius pro clipping a obrázek
   if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save(); drawingContext.beginPath();
-      drawingContext.arc(0, 0, p.r*1.1, 0, TWO_PI); drawingContext.clip();
-      imageMode(CENTER); image(userAvatars[p.name], 0, 0, p.r*1.2, p.r*1.2);
+      drawingContext.arc(0, 0, p.r*1.6, 0, TWO_PI); drawingContext.clip();
+      imageMode(CENTER); image(userAvatars[p.name], 0, 0, p.r*1.6, p.r*1.6);
       drawingContext.restore();
   } else {
-      fill(35); noStroke(); ellipse(0,0, p.r*1.1);
+      fill(35); noStroke(); ellipse(0,0, p.r*1.6);
   }
 
-  noFill(); stroke(0, 150); strokeWeight(3); ellipse(0,0, p.r*1.1);
+  noFill(); stroke(0, 150); strokeWeight(3); ellipse(0,0, p.r*1.6);
 
   // TEXTY UVNITŘ KRUHU
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  // Silný černý obrys pro čitelnost na profilovce
   stroke(0); strokeWeight(Math.max(2, p.r * 0.15)); fill(txtCol);
   textAlign(CENTER, CENTER); textStyle(BOLD);
   
-  // Skóre
   textSize(Math.max(10, p.r * 0.35));
-  text(formatK(Math.floor(p.hp)), 0, p.r * 0.2); // Posunuto lehce dolů od středu
+  text(formatK(Math.floor(p.hp)), 0, p.r * 0.25); 
 
-  // Jméno (nad skóre, zkráceno aby nepřeteklo)
   if (p.r > 25) {
       noStroke(); fill(220); textStyle(NORMAL);
       textSize(Math.max(7, p.r * 0.22)); 
-      text(p.name.substring(0, 8), 0, -p.r * 0.25); // Uvnitř kruhu, v horní části
+      text(p.name.substring(0, 8), 0, -p.r * 0.3); 
   }
   pop();
 }
 
 function createParticles(x, y, c, count) {
-  // Omezení částic při velkém množství pro výkon
   let actualCount = balls.length > 50 ? Math.floor(count/2) : count;
   for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-5,5), vy: random(-5,5), life: 255, c: c});
 }
@@ -578,7 +571,7 @@ function drawParticles() {
     let p = particles[i];
     fill(red(p.c), green(p.c), blue(p.c), p.life);
     rect(p.x, p.y, 4, 4);
-    p.x += p.vx; p.y += p.vy; p.life -= 15; // Rychlejší mizení
+    p.x += p.vx; p.y += p.vy; p.life -= 15; 
     if(p.life <= 0) particles.splice(i, 1);
   }
 }
@@ -653,6 +646,11 @@ function connectTikfinity() {
 
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
+
+      // Okamžitý spawn při jakékoliv aktivitě (i 'member' připojení atp.)
+      if (!players.find(x => x.name === u)) {
+          spawnPlayer(u, 200);
+      }
 
       if (evt === "chat") {
           handleAction(u, 10);
