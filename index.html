@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.9.4"; 
+const GAME_VERSION = "v19.10.0"; // Random DMG + CRIT System
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -401,14 +401,40 @@ function handleCombat(p1, p2) {
   let safeHp1 = Math.max(1, p1.hp);
   let safeHp2 = Math.max(1, p2.hp);
 
-  let dmg1 = Math.max(1, Math.floor((Math.log10(safeHp2) * 3 + speed * 1.5)));
-  let dmg2 = Math.max(1, Math.floor((Math.log10(safeHp1) * 3 + speed * 1.5)));
-  
-  p1.hp -= dmg1;
-  p2.hp -= dmg2;
+  let speed1 = Matter.Vector.magnitude(p1.body.velocity);
+  let speed2 = Matter.Vector.magnitude(p2.body.velocity);
 
-  p1.damageDealt += dmg2;
-  p2.damageDealt += dmg1;
+  // Zohlednění velikosti (Dominance) - větší kruh dává větší poškození
+  let massAdvantage1 = Math.max(1, Math.sqrt(safeHp1 / safeHp2));
+  let massAdvantage2 = Math.max(1, Math.sqrt(safeHp2 / safeHp1));
+
+  // Zohlednění rychlosti (Momentum) - rychlejší hráč dává větší poškození
+  let momentum1 = speed1 / (speed1 + speed2 + 0.1);
+  let momentum2 = speed2 / (speed1 + speed2 + 0.1);
+
+  // Základní poškození 
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 5 + speed * 2) * massAdvantage1 * (0.5 + momentum1);
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 5 + speed * 2) * massAdvantage2 * (0.5 + momentum2);
+
+  // Náhodný rozptyl (RNG variance +/- 20%)
+  baseDmgFrom1 *= random(0.8, 1.2);
+  baseDmgFrom2 *= random(0.8, 1.2);
+
+  // Kritický zásah (10% šance na 2.5x dmg)
+  let isCrit1 = random() < 0.1;
+  let isCrit2 = random() < 0.1;
+
+  if (isCrit1) baseDmgFrom1 *= 2.5;
+  if (isCrit2) baseDmgFrom2 *= 2.5;
+
+  let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); // p1 dává p2
+  let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); // p2 dává p1
+
+  p1.hp -= finalDmgTo1;
+  p2.hp -= finalDmgTo2;
+
+  p1.damageDealt += finalDmgTo2;
+  p2.damageDealt += finalDmgTo1;
 
   updateDamageLB(p1.name, p1.damageDealt, p1.color);
   updateDamageLB(p2.name, p2.damageDealt, p2.color);
@@ -416,6 +442,7 @@ function handleCombat(p1, p2) {
   let cx = (p1.body.position.x + p2.body.position.x)/2;
   let cy = (p1.body.position.y + p2.body.position.y)/2;
 
+  // Aktivní odskok od sebe
   let forceDir = Matter.Vector.normalise(Matter.Vector.sub(p2.body.position, p1.body.position));
   let forceMag = 0.02 + speed * 0.004;
   Matter.Body.applyForce(p1.body, p1.body.position, Matter.Vector.mult(forceDir, -forceMag * p1.body.mass));
@@ -423,9 +450,18 @@ function handleCombat(p1, p2) {
   
   lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
 
+  // Vizuální efekty poškození
   createParticles(cx, cy, color(255, 200, 50), 12); 
-  addPopup("-" + dmg1, p1.body.position.x, p1.body.position.y, color(255, 80, 80));
-  addPopup("-" + dmg2, p2.body.position.x, p2.body.position.y, color(255, 80, 80));
+  
+  let col1 = isCrit2 ? color(255, 215, 0) : color(255, 80, 80);
+  let col2 = isCrit1 ? color(255, 215, 0) : color(255, 80, 80);
+  
+  addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, col1, isCrit2);
+  addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, col2, isCrit1);
+
+  if ((isCrit1 || isCrit2) && audioStarted) {
+      try { synth.play(1500, 0.05, 0, 0.2); } catch(e){} 
+  }
 }
 
 function draw() {
@@ -818,7 +854,7 @@ function drawPlayer(p) {
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  drawingContext.lineJoin = "round"; // Jemnější obrys
+  drawingContext.lineJoin = "round"; 
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
   fill(txtCol); textAlign(CENTER, CENTER); textStyle(BOLD);
   
@@ -853,8 +889,8 @@ function drawParticles() {
   }
 }
 
-function addPopup(txt, x, y, c) {
-  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5});
+function addPopup(txt, x, y, c, isCrit = false) {
+  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit});
 }
 
 function drawPopups() {
@@ -862,8 +898,14 @@ function drawPopups() {
     let f = floatingTexts[i];
     stroke(0, f.life); strokeWeight(3);
     fill(red(f.c), green(f.c), blue(f.c), f.life);
-    textSize(14); textAlign(CENTER); textStyle(BOLD); text(f.txt, f.x, f.y);
-    f.y += f.vy; f.life -= 8;
+    
+    let ts = f.isCrit ? 22 : 14;
+    textSize(ts); textAlign(CENTER); textStyle(BOLD);
+    
+    text(f.isCrit ? "CRIT\n" + f.txt : f.txt, f.x, f.y);
+    
+    f.y += f.vy; 
+    f.life -= f.isCrit ? 6 : 8; 
     if(f.life <= 0) floatingTexts.splice(i, 1);
   }
   textStyle(NORMAL);
