@@ -17,7 +17,7 @@
     /* TikTok 9:16 rozlišení */
     #game-container {
       position: relative; width: 720px; height: 1280px;
-      box-shadow: 0 0 80px rgba(0, 255, 255, 0.15);
+      box-shadow: 0 0 100px rgba(0, 255, 255, 0.2);
       transform-origin: top left;
       transform: scale(min(window.innerHeight / 1280, window.innerWidth / 720));
       background: #030306;
@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.20.0"; // Dmg 0.5x, Infinite Arena
+const GAME_VERSION = "v19.21.0"; // Obrovský grafický update (Neon, Trails, Particles)
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -390,7 +390,8 @@ function spawnPlayer(name, hp) {
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     damageDealt: 0,
     sawType: Math.floor(random(30)),
-    likeBuffTimer: 0 
+    likeBuffTimer: 0,
+    trail: [] // Historie poloh pro vizuální stopu
   };
   
   players.push(player);
@@ -453,9 +454,9 @@ function handleCombat(p1, p2) {
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  // Další poloviční nerf damage (0.75 a 0.4 multiplikátory)
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.75 + speed * 0.4) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.75 + speed * 0.4) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
+  // Poloviční nerf damage (další snížení)
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + speed * 0.2) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + speed * 0.2) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
@@ -519,7 +520,7 @@ function handleCombat(p1, p2) {
   
   lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
 
-  createParticles(cx, cy, color(255, 200, 50), 12); 
+  createParticles(cx, cy, color(255, 200, 50), 15); 
   
   let col1 = isCrit2 ? color(255, 215, 0) : color(255, 80, 80);
   let col2 = isCrit1 ? color(255, 215, 0) : color(255, 80, 80);
@@ -807,11 +808,14 @@ function drawSpaceBackground() {
 function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
-  let minX = W, maxX = 0, minY = ARENA_BOT, maxY = ARENA_TOP;
   let targetSpeed = 2.5;
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
+    
+    // Zaznamenání pozice pro Trail (Pohybovou stopu)
+    p.trail.push({x: p.body.position.x, y: p.body.position.y});
+    if (p.trail.length > 12) p.trail.shift();
     
     if (p.hp <= 0) {
       createParticles(p.body.position.x, p.body.position.y, p.color, 60);
@@ -866,29 +870,25 @@ function handleCameraAndPlayers() {
             y: lerp(p.body.velocity.y, p.body.velocity.y * factor, 0.1) 
         });
     }
-
-    minX = min(minX, p.body.position.x - p.r);
-    maxX = max(maxX, p.body.position.x + p.r);
-    minY = min(minY, p.body.position.y - p.r);
-    maxY = max(maxY, p.body.position.y + p.r);
   }
 
-  let pW = maxX - minX;
-  let pH = maxY - minY;
-  
-  // Kamera se teď může volně oddalovat až na obrovskou plochu (max oddálení 0.05)
-  let targetScale = min(1.0, min((W-80)/max(pW, 1), (ARENA_BOT-ARENA_TOP-80)/max(pH, 1)));
-  cameraScale = lerp(cameraScale, Math.max(0.05, targetScale), 0.03); 
+  // Oddálení podle počtu hráčů (úrovně)
+  let targetScale = 1.0;
+  if (players.length >= 250) targetScale = 0.35;
+  else if (players.length >= 150) targetScale = 0.50;
+  else if (players.length >= 50) targetScale = 0.75;
+
+  cameraScale = lerp(cameraScale, targetScale, 0.02); 
 }
 
 function attractToNearest(p) {
   let cx = W/2; 
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   
-  // Slabá gravitace ke středu arény, aby se hráči nerozutekli do nekonečna
+  // Gravitace se uvolňuje podle toho, jak moc je oddálená kamera, aby se využil nový prostor
   let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
   let distC = Matter.Vector.magnitude(toCenter);
-  if (distC > 300) {
+  if (distC > 300 / cameraScale) {
       let pull = Matter.Vector.normalise(toCenter);
       Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000005 * p.body.mass * (distC/500)));
   }
@@ -949,6 +949,18 @@ function drawPlayer(p) {
   let rotSpd = isBuffed ? baseRotSpd * 4 : baseRotSpd;
   p.rot += rotSpd;
 
+  // Vykreslení Pohybové stopy (Trail)
+  if (p.trail.length > 1) {
+      noFill();
+      for (let i = 0; i < p.trail.length - 1; i++) {
+          let alpha = map(i, 0, p.trail.length, 0, 150);
+          let tr = map(i, 0, p.trail.length, p.r * 0.2, p.r * 0.8);
+          stroke(red(p.color), green(p.color), blue(p.color), alpha);
+          strokeWeight(tr);
+          line(p.trail[i].x, p.trail[i].y, p.trail[i+1].x, p.trail[i+1].y);
+      }
+  }
+
   push();
   translate(pos.x, pos.y);
   
@@ -956,38 +968,80 @@ function drawPlayer(p) {
   scale(currentScale);
   
   rotate(p.rot);
-  
-  let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
-  fill(red(p.color), green(p.color), blue(p.color), glowAlpha);
-  noStroke();
-  ellipse(0, 0, p.r * 2.4);
-  if(p.auraFlash > 0) p.auraFlash--;
 
-  if (isBuffed) {
-      fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100);
-      noStroke();
-      ellipse(0, 0, p.r * 2.5);
-  }
-
+  // Vizuální styly pil (Sci-fi Tron vzhled)
   let tType = p.sawType % 3; 
   let coreType = Math.floor(p.sawType / 3) % 4; 
+  let isEpic = safeHp >= 3000;
+  
+  // Neonový Glow pro pilu
+  drawingContext.shadowBlur = isEpic ? 25 : 15;
+  drawingContext.shadowColor = p.color;
 
-  if (safeHp >= 3000) {
-      fill(35, 40, 45); stroke(p.color); strokeWeight(3);
-      let teeth = 16 + Math.floor(safeHp / 2000);
-      let rOuter = p.r * 1.15; 
-      let rInner = p.r * 0.9;
-      beginShape();
-      for(let i=0; i<teeth; i++) {
-          let a1 = i * TWO_PI / teeth;
-          let a2 = (i + 1) * TWO_PI / teeth;
+  // Radiální gradient pro výplň pily
+  let grad = drawingContext.createRadialGradient(0, 0, 0, 0, 0, p.r);
+  grad.addColorStop(0, "rgba(10, 15, 20, 1)");
+  if (isBuffed) {
+      grad.addColorStop(1, "rgba(" + red(p.color) + "," + green(p.color) + "," + blue(p.color) + ", 0.8)");
+  } else {
+      grad.addColorStop(1, "rgba(30, 35, 45, 0.9)");
+  }
+
+  drawingContext.fillStyle = grad;
+  stroke(p.color); 
+  strokeWeight(isEpic ? 3 : 2);
+
+  let teeth = 0;
+  let rOuter = 0;
+  let rInner = 0;
+
+  if (isEpic) {
+      teeth = 16 + Math.floor(safeHp / 2000);
+      rOuter = p.r * 1.15; 
+      rInner = p.r * 0.9;
+  } else {
+      teeth = 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
+      rOuter = p.r * 1.1; 
+      rInner = p.r * 0.95;
+  }
+
+  beginShape();
+  for(let i=0; i<teeth; i++) {
+      let a1 = i * TWO_PI / teeth;
+      let a2 = (i + 1) * TWO_PI / teeth;
+      
+      if (isEpic) {
           let aTip = a1 + TWO_PI/teeth * 0.85; 
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
+      } else {
+          if (tType === 0) { // Ostrá čepel
+              let aTip = a1 + TWO_PI/teeth * 0.8;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 1) { // Průmyslový Gear
+              let a3 = a1 + TWO_PI/teeth * 0.25;
+              let a4 = a1 + TWO_PI/teeth * 0.75;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(a3)*rOuter, sin(a3)*rOuter);
+              vertex(cos(a4)*rOuter, sin(a4)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 2) { // Energetická hvězdice
+              let mid = (a1 + a2) / 2;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(mid)*rOuter, sin(mid)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          }
       }
-      endShape(CLOSE);
+  }
+  endShape(CLOSE);
 
+  // Vypnutí vnějšího glowu pro vnitřní prvky
+  drawingContext.shadowBlur = 0;
+
+  if (isEpic) {
       noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.3);
       stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0);
       ellipse(0, 0, p.r*1.05);
@@ -996,50 +1050,16 @@ function drawPlayer(p) {
       ellipse(0, -p.r*0.3, 5); ellipse(0, p.r*0.3, 5);
   } 
   else {
-      let teeth = 12 + Math.floor(safeHp / 1000) + (p.sawType % 5) * 2; 
-      let rOuter = p.r * 1.1; 
-      let rInner = p.r * 0.95;
-
-      let bladeFill = isBuffed ? color(255, 255, 200) : color(25, 30, 35);
-      fill(bladeFill); stroke(p.color); strokeWeight(2);
-      
-      beginShape();
-      for(let i=0; i<teeth; i++) {
-          let a1 = i * TWO_PI / teeth;
-          let a2 = (i + 1) * TWO_PI / teeth;
-          
-          if (tType === 0) { 
-              let aTip = a1 + TWO_PI/teeth * 0.8;
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { 
-              let a3 = a1 + TWO_PI/teeth * 0.2;
-              let a4 = a1 + TWO_PI/teeth * 0.8;
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(a3)*rOuter, sin(a3)*rOuter);
-              vertex(cos(a4)*rOuter, sin(a4)*rOuter);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 2) { 
-              let mid = (a1 + a2) / 2;
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(mid)*rOuter, sin(mid)*rOuter);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          }
-      }
-      endShape(CLOSE);
-
       if (coreType === 0) {
-          fill(20); noStroke(); ellipse(0,0,p.r*1.05);
+          noFill(); stroke(p.color); strokeWeight(1); ellipse(0,0,p.r*0.7);
       } else if (coreType === 1) {
-          fill(30); noStroke(); ellipse(0,0,p.r*1.1);
-          fill(p.color); ellipse(0,0,p.r*0.4);
+          fill(p.color); noStroke(); ellipse(0,0,p.r*0.3);
       } else if (coreType === 2) {
-          noFill(); stroke(p.color); strokeWeight(1); ellipse(0,0,p.r*1.1); ellipse(0,0,p.r*0.7);
+          noFill(); stroke(p.color); strokeWeight(2); 
+          rectMode(CENTER); rect(0, 0, p.r*0.5, p.r*0.5, 3); rectMode(CORNER);
       } else if (coreType === 3) {
-          fill(15); noStroke(); ellipse(0,0,p.r*1.1);
-          fill(p.color);
-          for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.25); }
+          fill(p.color); noStroke();
+          for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.2); }
       }
   }
 
@@ -1065,59 +1085,84 @@ function drawPlayer(p) {
   drawingContext.lineJoin = "round"; 
   textAlign(CENTER, CENTER);
 
+  // Vržený stín textu
+  drawingContext.shadowBlur = 5; 
+  drawingContext.shadowColor = 'black';
+  
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
   fill(txtCol); textStyle(BOLD);
   let finalHpTxtSize = Math.max(11, p.r * 0.35);
   textSize(finalHpTxtSize);
   text(formatK(Math.floor(safeHp)), 0, 0); 
 
+  drawingContext.shadowBlur = 0; // Reset
   noStroke(); 
   pop();
 }
 
 function createParticles(x, y, c, count) {
   let actualCount = players.length > 50 ? Math.floor(count/2) : count;
-  for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-5,5), vy: random(-5,5), life: 255, c: c});
+  for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-8,8), vy: random(-8,8), life: 255, c: c, size: random(4, 10)});
 }
 
 function drawParticles() {
   noStroke();
+  drawingContext.shadowBlur = 10; // Jiskry svítí
+  
   for(let i=particles.length-1; i>=0; i--) {
     let p = particles[i];
+    drawingContext.shadowColor = p.c;
     fill(red(p.c), green(p.c), blue(p.c), p.life);
-    rect(p.x, p.y, 4, 4);
-    p.x += p.vx; p.y += p.vy; p.life -= 15; 
+    ellipse(p.x, p.y, p.size);
+    p.x += p.vx; p.y += p.vy; 
+    p.vx *= 0.95; // Zpomalování
+    p.vy *= 0.95;
+    p.size *= 0.98; // Zmenšování
+    p.life -= 15; 
     if(p.life <= 0) particles.splice(i, 1);
   }
+  drawingContext.shadowBlur = 0; // Reset
 }
 
 function addPopup(txt, x, y, c, isCrit = false) {
-  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit});
+  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit, scale: 0.1});
 }
 
 function drawPopups() {
   for(let i=floatingTexts.length-1; i>=0; i--) {
     let f = floatingTexts[i];
     
+    f.scale = lerp(f.scale, 1.0, 0.2); // Rychlý pop-up efekt
+    
+    push();
+    translate(f.x, f.y);
+    scale(f.scale);
+    
+    drawingContext.shadowBlur = 5;
+    drawingContext.shadowColor = 'black';
+    
     if (f.isCrit) {
         stroke(0); strokeWeight(4);
         fill(255, 215, 0, f.life); 
         let ts = 22 + sin(f.life * 0.1) * 4; 
         textSize(ts); textAlign(CENTER); textStyle(BOLD);
-        text("CRITICAL HIT!\n" + f.txt, f.x, f.y);
+        text("CRITICAL HIT!\n" + f.txt, 0, 0);
         f.y += f.vy - 0.5; 
         f.life -= 6;
     } else {
         stroke(0); strokeWeight(3);
         fill(red(f.c), green(f.c), blue(f.c), f.life);
-        textSize(14); textAlign(CENTER); textStyle(BOLD);
-        text(f.txt, f.x, f.y);
+        textSize(16); textAlign(CENTER); textStyle(BOLD);
+        text(f.txt, 0, 0);
         f.y += f.vy; 
         f.life -= 8;
     }
     
+    pop();
+    
     if(f.life <= 0) floatingTexts.splice(i, 1);
   }
+  drawingContext.shadowBlur = 0;
   textStyle(NORMAL);
 }
 
