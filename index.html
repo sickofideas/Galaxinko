@@ -56,7 +56,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.35.0"; // Calmed down physics bounce, fixed TTS ReferenceError
+var GAME_VERSION = "v19.36.0"; // Snížení odrazů, blesky dmg 1-3
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -397,7 +397,6 @@ function spawnPlayer(name, hp) {
   let spawnY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
 
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
-  // Mírnější spawn rychlost pro zamezení chaosu při spawnování davu
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
   
   let player = {
@@ -483,9 +482,9 @@ function handleCombat(p1, p2) {
   if (p1.hp <= 0 && hp1Before > 0) healLogic(p2, hp1Before);
   if (p2.hp <= 0 && hp2Before > 0) healLogic(p1, hp2Before);
   
-  // Drasticky snížena síla odpuzování přidaná nad rámec přirozené fyziky, aby koule nelétaly splašeně
+  // Drasticky snížena síla odpuzování přidaná nad rámec přirozené fyziky
   let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
-  let forceMag = 0.002 + speed * 0.001; 
+  let forceMag = 0.0008 + speed * 0.0005; // Výrazně méně, aby koule tolik neskákaly
   
   if(isFinite(forceDir.x) && isFinite(forceDir.y)) {
       Matter.Body.applyForce(p1.body, p1.body.position, { x: -forceDir.x * forceMag * p1.body.mass, y: -forceDir.y * forceMag * p1.body.mass });
@@ -656,11 +655,12 @@ function handleCameraAndPlayers() {
             if (other === p || other.hp <= 0) continue;
             let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
             if (d < range) {
-                let dmg = Math.floor(Math.log10(p.hp) * 5); 
+                // Poškození od blesků sníženo na 1-3
+                let dmg = floor(random(1, 4)); 
                 other.hp -= dmg;
                 lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 10, c: p.color});
                 if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
-                if (!isHeavyLoad || dmg > 15) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
+                if (!isHeavyLoad) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
                 safePlaySound(1200, 0.01, 0.1);
                 break; 
             }
@@ -1220,4 +1220,4 @@ function mousePressed() {
 }
 </script>
 </body>
-</html>
+</html>l
