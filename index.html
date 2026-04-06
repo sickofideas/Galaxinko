@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.15.0"; // Dmg nerf & Kill reward
+const GAME_VERSION = "v19.16.0"; // Tříúrovňový vizuální systém pil
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -407,7 +407,6 @@ function handleCombat(p1, p2) {
   let speed1 = Matter.Vector.magnitude(p1.body.velocity);
   let speed2 = Matter.Vector.magnitude(p2.body.velocity);
 
-  // Zastropování výhody hmotnosti na max 2.5x, aby obří hráči nedávali okamžitý oneshot
   let massAdvantage1 = Math.min(2.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
   let massAdvantage2 = Math.min(2.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
 
@@ -417,17 +416,15 @@ function handleCombat(p1, p2) {
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  // Snížení celkového základního poškození (zhruba na polovinu)
   let baseDmgFrom1 = (Math.log10(safeHp1) * 2.5 + speed * 1.0) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
   let baseDmgFrom2 = (Math.log10(safeHp2) * 2.5 + speed * 1.0) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
 
-  let isCrit1 = random() < 0.05;
-  let isCrit2 = random() < 0.05;
+  let isCrit1 = random() < 0.04;
+  let isCrit2 = random() < 0.04;
 
-  // Snížený CRIT násobič
   if (isCrit1) baseDmgFrom1 *= 1.3;
   if (isCrit2) baseDmgFrom2 *= 1.3;
 
@@ -440,9 +437,8 @@ function handleCombat(p1, p2) {
   p1.hp -= finalDmgTo1;
   p2.hp -= finalDmgTo2;
 
-  // Odměna za zabití (Lifesteal / Kill reward)
   if (p1.hp <= 0 && hp1Before > 0) {
-      let heal = Math.floor(hp1Before * 0.3 + 50); // Získá 30% HP poraženého
+      let heal = Math.floor(hp1Before * 0.3 + 50); 
       p2.hp += heal;
       addPopup("+" + heal + " KILL!", p2.body.position.x, p2.body.position.y - p2.r - 20, color(50, 255, 100));
       p2.auraFlash = 20;
@@ -853,80 +849,114 @@ function drawPlayer(p) {
 
   let tType = p.sawType % 5;
   let coreType = Math.floor(p.sawType / 5) % 6; 
-  let baseTeeth = 5 + (p.sawType % 6) * 2; 
-  let teeth = baseTeeth + Math.floor(safeHp / 2000); 
 
-  let isEpic = safeHp >= 1000;
-  let rOuter = isEpic ? p.r * 1.35 : p.r * 1.15; 
-  let rInner = p.r * 0.9;
-
-  let bladeFill = isEpic ? color(35, 40, 45) : color(25, 30, 35);
-  if (isBuffed) bladeFill = color(255, 255, 200);
-
-  fill(bladeFill); 
-  stroke(p.color); 
-  strokeWeight(isEpic ? 3 : 2);
-
-  beginShape();
-  for(let i=0; i<teeth; i++) {
-      let a1 = i * TWO_PI / teeth;
-      let a2 = (i + 1) * TWO_PI / teeth;
-      let mid = (a1 + a2) / 2;
-
-      if (tType === 0) { 
-          let aTip = a1 + TWO_PI/teeth * 0.2;
+  if (safeHp >= 1000) {
+      // BRUTÁLNÍ PILA (Epic)
+      fill(35, 40, 45); stroke(p.color); strokeWeight(3);
+      let teeth = 12 + Math.floor(safeHp / 2000);
+      let rOuter = p.r * 1.35; 
+      let rInner = p.r * 0.9;
+      beginShape();
+      for(let i=0; i<teeth; i++) {
+          let a1 = i * TWO_PI / teeth;
+          let a2 = (i + 1) * TWO_PI / teeth;
+          let aTip = a1 + TWO_PI/teeth * 0.15; // Velmi ostrý úhel zubu
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 1) { 
-          vertex(cos(a1)*rInner, sin(a1)*rInner);
-          vertex(cos(mid)*rOuter, sin(mid)*rOuter);
-          vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 2) { 
-          let a3 = a1 + TWO_PI/teeth * 0.25;
-          let a4 = a1 + TWO_PI/teeth * 0.75;
-          vertex(cos(a1)*rInner, sin(a1)*rInner);
-          vertex(cos(a3)*rOuter, sin(a3)*rOuter);
-          vertex(cos(a4)*rOuter, sin(a4)*rOuter);
-          vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 3) { 
-          vertex(cos(a1)*rInner, sin(a1)*rInner);
-          vertex(cos(a2)*rOuter, sin(a2)*rOuter);
-      } else if (tType === 4) { 
-          let q1 = a1 + TWO_PI/teeth * 0.3;
-          let q2 = a1 + TWO_PI/teeth * 0.7;
-          vertex(cos(a1)*rInner, sin(a1)*rInner);
-          vertex(cos(q1)*rOuter, sin(q1)*rOuter);
-          vertex(cos(mid)*rInner*1.05, sin(mid)*rInner*1.05);
-          vertex(cos(q2)*rOuter, sin(q2)*rOuter);
-          vertex(cos(a2)*rInner, sin(a2)*rInner);
       }
-  }
-  endShape(CLOSE);
+      endShape(CLOSE);
 
-  if (isEpic) {
+      // Epické detaily (zlatá linka a žhavé jádro)
       noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.5);
-  }
+      stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0);
+      ellipse(0, 0, p.r*1.1);
+      noStroke(); fill(255, 255, 0);
+      ellipse(-p.r*0.3, 0, 6); ellipse(p.r*0.3, 0, 6);
+      ellipse(0, -p.r*0.3, 6); ellipse(0, p.r*0.3, 6);
+  } 
+  else if (safeHp >= 500) {
+      // STŘEDNÍ TŘÍDA: 30 variant pil
+      let baseTeeth = 6 + (p.sawType % 4) * 2; 
+      let teeth = baseTeeth + Math.floor((safeHp - 500) / 200); 
+      let rOuter = p.r * 1.2; 
+      let rInner = p.r * 0.85;
 
-  if (coreType === 0) {
-      fill(20); noStroke(); ellipse(0,0,p.r*1.1);
-      stroke(255, 100); strokeWeight(1); line(-p.r*0.5,0, p.r*0.5,0); line(0,-p.r*0.5, 0,p.r*0.5);
-  } else if (coreType === 1) {
-      fill(30); noStroke(); ellipse(0,0,p.r*1.2);
-      fill(p.color); ellipse(0,0,p.r*0.4);
-  } else if (coreType === 2) {
-      noFill(); stroke(p.color); strokeWeight(2); ellipse(0,0,p.r*1.2); ellipse(0,0,p.r*0.8);
-  } else if (coreType === 3) {
-      fill(15); noStroke(); ellipse(0,0,p.r*1.3);
-      fill(p.color);
-      for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.25); }
-  } else if (coreType === 4) {
-      fill(30); noStroke(); ellipse(0,0,p.r*1.15);
-      noFill(); stroke(p.color); strokeWeight(2); rectMode(CENTER); rect(0, 0, p.r*0.6, p.r*0.6, 2); rectMode(CORNER);
-  } else if (coreType === 5) {
-      fill(25); noStroke(); ellipse(0,0,p.r*1.25);
-      fill(p.color);
-      beginShape(); for(let i=0; i<6; i++) { let a=i*TWO_PI/6; vertex(cos(a)*p.r*0.4, sin(a)*p.r*0.4); } endShape(CLOSE);
+      let bladeFill = isBuffed ? color(255, 255, 200) : color(25, 30, 35);
+      fill(bladeFill); stroke(p.color); strokeWeight(2);
+      
+      beginShape();
+      for(let i=0; i<teeth; i++) {
+          let a1 = i * TWO_PI / teeth;
+          let a2 = (i + 1) * TWO_PI / teeth;
+          let mid = (a1 + a2) / 2;
+
+          if (tType === 0) { // Klasická pila
+              let aTip = a1 + TWO_PI/teeth * 0.2;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 1) { // Hvězdice
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(mid)*rOuter, sin(mid)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 2) { // Ozubené kolo
+              let a3 = a1 + TWO_PI/teeth * 0.25;
+              let a4 = a1 + TWO_PI/teeth * 0.75;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(a3)*rOuter, sin(a3)*rOuter);
+              vertex(cos(a4)*rOuter, sin(a4)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 3) { // Háky
+              let aTip = a1 + TWO_PI/teeth * 0.4;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
+              vertex(cos(aTip + 0.1)*rInner*0.9, sin(aTip + 0.1)*rInner*0.9);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 4) { // Dvojité ostří
+              let q1 = a1 + TWO_PI/teeth * 0.3;
+              let q2 = a1 + TWO_PI/teeth * 0.7;
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(q1)*rOuter, sin(q1)*rOuter);
+              vertex(cos(mid)*rInner*1.05, sin(mid)*rInner*1.05);
+              vertex(cos(q2)*rOuter, sin(q2)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          }
+      }
+      endShape(CLOSE);
+
+      // Jádro pily (odlišnost)
+      if (coreType === 0) {
+          fill(20); noStroke(); ellipse(0,0,p.r*1.1);
+          stroke(255, 100); strokeWeight(1); line(-p.r*0.5,0, p.r*0.5,0); line(0,-p.r*0.5, 0,p.r*0.5);
+      } else if (coreType === 1) {
+          fill(30); noStroke(); ellipse(0,0,p.r*1.2);
+          fill(p.color); ellipse(0,0,p.r*0.4);
+      } else if (coreType === 2) {
+          noFill(); stroke(p.color); strokeWeight(2); ellipse(0,0,p.r*1.2); ellipse(0,0,p.r*0.8);
+      } else if (coreType === 3) {
+          fill(15); noStroke(); ellipse(0,0,p.r*1.3);
+          fill(p.color);
+          for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.25); }
+      } else if (coreType === 4) {
+          fill(30); noStroke(); ellipse(0,0,p.r*1.15);
+          noFill(); stroke(p.color); strokeWeight(2); rectMode(CENTER); rect(0, 0, p.r*0.6, p.r*0.6, 2); rectMode(CORNER);
+      } else if (coreType === 5) {
+          fill(25); noStroke(); ellipse(0,0,p.r*1.25);
+          fill(p.color);
+          beginShape(); for(let i=0; i<6; i++) { let a=i*TWO_PI/6; vertex(cos(a)*p.r*0.4, sin(a)*p.r*0.4); } endShape(CLOSE);
+      }
+  } else {
+      // ZÁKLADNÍ TVAR (< 500 HP)
+      fill(20, 25, 30); stroke(p.color); strokeWeight(3);
+      let teeth = 6 + Math.floor(safeHp / 100);
+      beginShape();
+      for(let i=0; i<teeth*2; i++) {
+          let a = i * PI/teeth;
+          let rad = (i%2===0) ? p.r : p.r*0.85;
+          vertex(cos(a)*rad, sin(a)*rad);
+      }
+      endShape(CLOSE);
   }
 
   rotate(-p.rot); 
