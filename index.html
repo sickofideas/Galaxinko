@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.12.0"; 
+const GAME_VERSION = "v19.13.0"; // Like Buff & Epic Crits
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -352,7 +352,8 @@ function spawnPlayer(name, hp) {
     baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     damageDealt: 0,
-    sawType: Math.floor(random(30)) // Přidělení jedinečného typu designu při spawnu (0-29)
+    sawType: Math.floor(random(30)),
+    likeBuffTimer: 0 // Nová proměnná pro Buff z lajků
   };
   
   players.push(player);
@@ -375,6 +376,7 @@ function handleAction(name, amount) {
   if(p) {
     p.hp += amount;
     p.auraFlash = 15; 
+    p.likeBuffTimer = 90; // Buff aktivní na 1.5 sekundy (při 60 FPS)
     let newR = getRadius(p.hp);
     if (newR > p.r + 0.5) {
         let scale = newR / p.r;
@@ -410,9 +412,13 @@ function handleCombat(p1, p2) {
 
   let momentum1 = speed1 / (speed1 + speed2 + 0.1);
   let momentum2 = speed2 / (speed1 + speed2 + 0.1);
+  
+  // Buff poškození, pokud hráč právě lajkuje
+  let buffMult1 = p1.likeBuffTimer > 0 ? 2.0 : 1.0;
+  let buffMult2 = p2.likeBuffTimer > 0 ? 2.0 : 1.0;
 
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 5 + speed * 2) * massAdvantage1 * (0.5 + momentum1);
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 5 + speed * 2) * massAdvantage2 * (0.5 + momentum2);
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 5 + speed * 2) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 5 + speed * 2) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
@@ -785,11 +791,21 @@ function drawPlayer(p) {
   let pos = p.body.position;
   let safeHp = Math.max(0, p.hp);
   
-  let rotSpd = (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir;
+  let isBuffed = p.likeBuffTimer > 0;
+  if (isBuffed) p.likeBuffTimer--;
+
+  // Buff způsobuje zrychlení rotace (až 4x)
+  let baseRotSpd = (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir;
+  let rotSpd = isBuffed ? baseRotSpd * 4 : baseRotSpd;
   p.rot += rotSpd;
 
   push();
   translate(pos.x, pos.y);
+  
+  // Buff způsobuje zvětšení pily o 20%
+  let currentScale = isBuffed ? 1.2 : 1.0;
+  scale(currentScale);
+  
   rotate(p.rot);
   
   let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
@@ -797,6 +813,13 @@ function drawPlayer(p) {
   noStroke();
   ellipse(0, 0, p.r * 2.4);
   if(p.auraFlash > 0) p.auraFlash--;
+
+  // Pokud je hráč nabuffovaný lajky, obklopí ho zářící svatozář
+  if (isBuffed) {
+      fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100);
+      noStroke();
+      ellipse(0, 0, p.r * 2.5);
+  }
 
   // PROCEDURÁLNÍ VYKRESLENÍ PIL (30 typů na základě p.sawType)
   let tType = p.sawType % 5;
@@ -808,7 +831,11 @@ function drawPlayer(p) {
   let rOuter = isEpic ? p.r * 1.35 : p.r * 1.15; 
   let rInner = p.r * 0.9;
 
-  fill(isEpic ? 35 : 25, isEpic ? 40 : 30, isEpic ? 45 : 35); 
+  // Mírná změna barvy čepele při buffu
+  let bladeFill = isEpic ? color(35, 40, 45) : color(25, 30, 35);
+  if (isBuffed) bladeFill = color(255, 255, 200);
+
+  fill(bladeFill); 
   stroke(p.color); 
   strokeWeight(isEpic ? 3 : 2);
 
@@ -896,6 +923,8 @@ function drawPlayer(p) {
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
   drawingContext.lineJoin = "round"; 
+  
+  // Silný černý outline pro HP text
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); 
   fill(txtCol); textAlign(CENTER, CENTER); textStyle(BOLD);
   
@@ -904,6 +933,7 @@ function drawPlayer(p) {
   text(formatK(Math.floor(safeHp)), 0, p.r * 0.25); 
 
   if (p.r > 25) {
+      // Silný černý outline pro jméno
       stroke(0); strokeWeight(Math.max(3, p.r * 0.12));
       fill(220); textStyle(NORMAL);
       textSize(Math.max(7, p.r * 0.22)); 
@@ -937,16 +967,26 @@ function addPopup(txt, x, y, c, isCrit = false) {
 function drawPopups() {
   for(let i=floatingTexts.length-1; i>=0; i--) {
     let f = floatingTexts[i];
-    stroke(0, f.life); strokeWeight(3);
-    fill(red(f.c), green(f.c), blue(f.c), f.life);
     
-    let ts = f.isCrit ? 22 : 14;
-    textSize(ts); textAlign(CENTER); textStyle(BOLD);
+    if (f.isCrit) {
+        // Epický Critical Hit efekt
+        stroke(0); strokeWeight(4);
+        fill(255, 215, 0, f.life); // Zlatá barva pro text
+        let ts = 22 + sin(f.life * 0.1) * 4; // Pulzující velikost
+        textSize(ts); textAlign(CENTER); textStyle(BOLD);
+        text("CRITICAL HIT!\n" + f.txt, f.x, f.y);
+        f.y += f.vy - 0.5; // Letí rychleji nahoru
+        f.life -= 6;
+    } else {
+        // Standardní poškození
+        stroke(0); strokeWeight(3);
+        fill(red(f.c), green(f.c), blue(f.c), f.life);
+        textSize(14); textAlign(CENTER); textStyle(BOLD);
+        text(f.txt, f.x, f.y);
+        f.y += f.vy; 
+        f.life -= 8;
+    }
     
-    text(f.isCrit ? "CRIT\n" + f.txt : f.txt, f.x, f.y);
-    
-    f.y += f.vy; 
-    f.life -= f.isCrit ? 6 : 8; 
     if(f.life <= 0) floatingTexts.splice(i, 1);
   }
   textStyle(NORMAL);
