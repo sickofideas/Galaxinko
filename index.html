@@ -56,7 +56,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.33.0"; // Smooth timer, delay zoom, lightning
+const GAME_VERSION = "v19.34.0"; // Bug fixes, anti-freeze queues, audio throttling
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;  
@@ -154,6 +154,7 @@ let lightnings = [];
 let deathShockwaves = [];
 let userAvatars = {};
 let orbs = [];
+let combatQueue = []; // Přidáno pro bezpečné vyřešení fyziky
 
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
@@ -181,11 +182,13 @@ let audioStarted = false;
 let synth;
 
 let nextCommentTime = 0;
-let lastHitSound = 0;
 let lastCommentString = "";
 let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
+
+// Omezovač zvuku (aby nespadla záložka prohlížeče)
+let lastGlobalSound = 0;
 
 let previousTop5 = [];
 let currentTop10 = [];
@@ -193,6 +196,16 @@ let currentTop10 = [];
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch", "Cosmos", "Apollo"];
+
+// Bezpečné přehrávání synth
+function safePlaySound(f, v, d) {
+    if (!audioStarted || !synth) return;
+    if (millis() - lastGlobalSound < 40) return; // Limit: max 25 zvuků za vteřinu
+    try { 
+        synth.play(f, v, 0, d); 
+        lastGlobalSound = millis(); 
+    } catch(e) {}
+}
 
 function setup() {
   let cvs = createCanvas(W, H);
@@ -262,7 +275,7 @@ function startNewRound() {
 
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = players.map(p => p.name);
-  players = []; orbs = []; screenShake = 0; winnerAnnounced = false;
+  players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = [];
   
   oldPlayers.forEach(name => spawnPlayer(name, previousTop5.includes(name) ? 1000 : 100)); 
 
@@ -285,18 +298,14 @@ function setupEvents() {
   document.getElementById('tChat').onclick = () => { if(!audioStarted) { audioStarted = true; userStartAudio(); } speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); };
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
+  // Oprava zasekávání: Místo okamžitého spouštění fyziky (ve chvíli kdy ji engine počítá) 
+  // si nárazy jen uložíme a zpracujeme je až po dokončení enginu v draw()
   Matter.Events.on(engine, 'collisionStart', (event) => {
-    let playedSoundThisFrame = false;
     event.pairs.forEach(pair => {
       let p1 = players.find(p => p.body === pair.bodyA);
       let p2 = players.find(p => p.body === pair.bodyB);
-      if(p1 && p2) {
-          handleCombat(p1, p2);
-          if (!playedSoundThisFrame && audioStarted && millis() - lastHitSound > 100) {
-              try { synth.play(random([800, 1000, 1200]), 0.02, 0, 0.1); } catch(e){} 
-              lastHitSound = millis();
-              playedSoundThisFrame = true;
-          }
+      if(p1 && p2 && p1.hp > 0 && p2.hp > 0) {
+          combatQueue.push([p1, p2]);
       }
     });
   });
@@ -333,7 +342,7 @@ function spawnPlayer(name, hp) {
   speakTTS(T[currentLang].NEW + name);
   createParticles(body.position.x, body.position.y, player.color, 10);
   
-  if(audioStarted) try { synth.play(600, 0.1, 0, 0.05); setTimeout(() => { if(synth) synth.play(900, 0.1, 0, 0.1); }, 50); } catch(e){}
+  safePlaySound(600, 0.1, 0.05);
 }
 
 function handleAction(name, amount) {
@@ -354,15 +363,26 @@ function updateHpLB(name, hp, col) {
     }
 }
 
+function processCombatQueue() {
+  for (let pair of combatQueue) {
+      let p1 = pair[0];
+      let p2 = pair[1];
+      if (p1.hp <= 0 || p2.hp <= 0) continue;
+      handleCombat(p1, p2);
+  }
+  combatQueue = []; // Vyprázdnění fronty po zpracování
+}
+
 function handleCombat(p1, p2) {
-  if (!p1 || !p2 || !p1.body || !p2.body || p1.hp <= 0 || p2.hp <= 0) return;
-  if (isNaN(p1.body.position.x) || isNaN(p1.body.position.y) || isNaN(p2.body.position.x) || isNaN(p2.body.position.y)) return;
+  if (!p1.body || !p2.body) return;
 
   let distVec = Matter.Vector.sub(p2.body.position, p1.body.position);
   if (distVec.x === 0 && distVec.y === 0) distVec.x = 1;
+  let distVal = Matter.Vector.magnitude(distVec);
 
   let speed = Matter.Vector.magnitude(Matter.Vector.sub(p1.body.velocity, p2.body.velocity));
   if (speed < 1.0 || isNaN(speed) || !isFinite(speed)) return; 
+  if (speed > 100) speed = 100; // Bezpečnostní cap na obří rychlosti (zabraňuje NaN destrukci)
 
   let safeHp1 = Math.max(1, p1.hp); let safeHp2 = Math.max(1, p2.hp);
   let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
@@ -391,7 +411,7 @@ function handleCombat(p1, p2) {
 
   if (p1.hp <= 0 && hp1Before > 0) healLogic(p2, hp1Before);
   if (p2.hp <= 0 && hp2Before > 0) healLogic(p1, hp2Before);
-
+  
   let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
   let forceMag = 0.02 + speed * 0.004;
   
@@ -411,8 +431,8 @@ function handleCombat(p1, p2) {
   if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, isCrit2 ? color(255, 215, 0) : color(255, 80, 80), isCrit2);
   if (!isHeavyLoad || finalDmgTo2 > 50 || isCrit1) addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, isCrit1 ? color(255, 215, 0) : color(255, 80, 80), isCrit1);
 
-  if ((isCrit1 || isCrit2) && audioStarted && !isHeavyLoad) {
-      try { synth.play(1500, 0.05, 0, 0.2); } catch(e){} 
+  if (isCrit1 || isCrit2) {
+      safePlaySound(1500, 0.05, 0.2);
   }
 }
 
@@ -449,14 +469,7 @@ function handleOrbs() {
           if (p.hp > 0 && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
               p.hp += o.value;
               if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
-              let newR = getRadius(p.hp);
-              if (newR > p.r + 0.5 && !isNaN(newR)) {
-                  let scale = newR / p.r;
-                  Matter.Body.scale(p.body, scale, scale);
-                  p.r = newR;
-                  Matter.Body.setDensity(p.body, 0.001 + (newR * 0.0001));
-              }
-              if(audioStarted) { try { synth.play(1200, 0.1, 0, 0.2); } catch(e){} }
+              safePlaySound(1200, 0.1, 0.2);
               collected = true; break;
           }
       }
@@ -473,7 +486,6 @@ function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
     let isHeavyLoad = players.length > 40;
     
-    // Plynulý pohyb po framech, start zprostřed horní lišty
     let p = 1.0 - (roundTimerFrames / (maxRoundTimer * 60)); 
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
@@ -531,14 +543,16 @@ function handleCameraAndPlayers() {
     
     updateHpLB(p.name, p.hp, p.color);
 
-    if (!p.body || isNaN(p.body.position.x) || isNaN(p.body.position.y)) {
-        if(p.body) Matter.World.remove(world, p.body);
-        players.splice(i, 1);
-        continue;
+    // Ochrana hranic mapy a NaN hodnot - pokud tělo zmizelo do pryč, zabijeme ho
+    let bx = p.body ? p.body.position.x : 0;
+    let by = p.body ? p.body.position.y : 0;
+    if (!p.body || isNaN(bx) || isNaN(by) || bx < -10000 || bx > W+10000 || by < -10000 || by > H+10000) {
+        p.hp = 0; // Tohle vyvolá smazání dole
     }
     
+    // Opožděné a bezpečné škálování
     let targetR = getRadius(p.hp);
-    if (Math.abs(targetR - p.r) > 0.5) {
+    if (Math.abs(targetR - p.r) > 0.5 && p.body && p.hp > 0) {
         let s = targetR / p.r;
         if (isFinite(s) && s > 0) {
             Matter.Body.scale(p.body, s, s);
@@ -547,7 +561,7 @@ function handleCameraAndPlayers() {
         }
     }
     
-    if (!isHeavyLoad) {
+    if (!isHeavyLoad && p.hp > 0) {
         p.trail.push({x: p.body.position.x, y: p.body.position.y});
         if (p.trail.length > 8) p.trail.shift();
     } else {
@@ -555,13 +569,13 @@ function handleCameraAndPlayers() {
     }
     
     if (p.hp <= 0) {
-      if (!isHeavyLoad) {
+      if (!isHeavyLoad && p.body && !isNaN(p.body.position.x)) {
           createParticles(p.body.position.x, p.body.position.y, p.color, 30);
           deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
           screenShake = 2; 
-          if(audioStarted) try{ synth.play(150, 0.1, 0, 0.1); }catch(e){}
+          safePlaySound(150, 0.1, 0.1);
       }
-      Matter.World.remove(world, p.body);
+      if (p.body) Matter.World.remove(world, p.body);
       players.splice(i, 1);
       continue;
     }
@@ -578,7 +592,7 @@ function handleCameraAndPlayers() {
                 lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 10, c: p.color});
                 if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
                 if (!isHeavyLoad || dmg > 15) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
-                if (audioStarted && random() < 0.2 && !isHeavyLoad) try{ synth.play(1200, 0.01, 0, 0.1); }catch(e){}
+                safePlaySound(1200, 0.01, 0.1);
                 break; 
             }
         }
@@ -615,7 +629,6 @@ function handleCameraAndPlayers() {
   }
 
   let len = players.length;
-  // Upraveno zpoždění oddalování arény
   if (len >= 150) targetCameraScale = 0.35;
   else if (len >= 100) targetCameraScale = 0.50;
   else if (len >= 60) targetCameraScale = 0.70;
@@ -770,6 +783,9 @@ function draw() {
   drawSpaceBackground();
   
   try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
+  
+  // Zpracování nárazů vždy až po aktualizaci fyziky, nikdy uvnitř Matter.Events
+  processCombatQueue();
 
   if (gameState === "PLAYING" || gameState === "EXPLODING") {
     if (gameState === "PLAYING") handleCameraAndPlayers(); else screenShake *= 0.95; 
@@ -1021,7 +1037,7 @@ function updateTimers() {
 
     if (roundTimerFrames <= 0) {
         gameState = "EXPLODING"; explosionTimer = 90; screenShake = 3; 
-        if(audioStarted) try { synth.play(80, 0.5, 0, 0.8); setTimeout(() => { if(synth) synth.play(60, 0.8, 0, 1.0); }, 200); } catch(e){}
+        safePlaySound(80, 0.5, 0.8); setTimeout(() => { safePlaySound(60, 0.8, 1.0); }, 200);
         let wPos = screenToWorld(shipX, shipY);
         deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
         createParticles(wPos.x, wPos.y, color(0, 255, 255), 80); createParticles(wPos.x, wPos.y, color(255, 100, 0), 80);
@@ -1132,7 +1148,7 @@ function speakTTS(txt) {
 
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { allTimeHpLeaderboard = {}; if(audioStarted) try{ synth.play(200, 0.1, 0, 0.5); }catch(e){} }
+  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { allTimeHpLeaderboard = {}; safePlaySound(200, 0.1, 0.5); }
 }
 </script>
 </body>
