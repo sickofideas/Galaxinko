@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.5.0";
+const GAME_VERSION = "v19.5.1"; // Ochrana proti NaN pádu
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -226,17 +226,20 @@ function setupEvents() {
 }
 
 function formatK(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return Math.floor(num).toString();
+  let safeNum = Math.max(0, num || 0);
+  if (safeNum >= 1000000) return (safeNum / 1000000).toFixed(1) + 'M';
+  if (safeNum >= 1000) return (safeNum / 1000).toFixed(1) + 'K';
+  return Math.floor(safeNum).toString();
 }
 
 function getRadius(hp) {
-    return Math.min(22 + Math.sqrt(hp) * 0.45, 95); 
+    let safeHp = Math.max(0, hp || 0); // Ochrana proti NaN / záporným hodnotám
+    return Math.min(22 + Math.sqrt(safeHp) * 0.45, 95); 
 }
 
 function spawnPlayer(name, hp) {
-  let r = getRadius(hp);
+  let safeHp = Math.max(0, hp || 200);
+  let r = getRadius(safeHp);
   let body = Matter.Bodies.circle(random(50, W-50), random(ARENA_TOP+50, ARENA_BOT-50), r, {
     restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
   });
@@ -244,7 +247,7 @@ function spawnPlayer(name, hp) {
   Matter.Body.setVelocity(body, { x: random(-3.5, 3.5), y: random(-3.5, 3.5) });
   
   let player = {
-    name: name, hp: hp, body: body, r: r,
+    name: name, hp: safeHp, body: body, r: r,
     color: color(random(100,255), random(100,255), random(100,255)),
     rot: 0, auraFlash: 0
   };
@@ -280,11 +283,15 @@ function handleCombat(p1, p2) {
   let speed = Matter.Vector.magnitude(Matter.Vector.sub(p1.body.velocity, p2.body.velocity));
   if (speed < 1.0) return; 
 
-  let dmg1 = Math.floor((Math.log10(p2.hp) * 3 + speed * 1.5));
-  let dmg2 = Math.floor((Math.log10(p1.hp) * 3 + speed * 1.5));
+  // Pojistka proti NaN u logaritmu tím, že hodnota nikdy neklesne pod 1
+  let safeHp1 = Math.max(1, p1.hp);
+  let safeHp2 = Math.max(1, p2.hp);
+
+  let dmg1 = Math.floor((Math.log10(safeHp2) * 3 + speed * 1.5));
+  let dmg2 = Math.floor((Math.log10(safeHp1) * 3 + speed * 1.5));
   
-  p1.hp -= max(1, dmg1);
-  p2.hp -= max(1, dmg2);
+  p1.hp -= Math.max(1, dmg1);
+  p2.hp -= Math.max(1, dmg2);
   
   let cx = (p1.body.position.x + p2.body.position.x)/2;
   let cy = (p1.body.position.y + p2.body.position.y)/2;
@@ -384,7 +391,7 @@ function drawTopHUD() {
       fill(p.color);
       text(`${i+1}. ${p.name.substring(0,8)}`, W - 90, HUD_TOP + 28 + i*14);
       fill(255); textStyle(BOLD);
-      text(formatK(floor(p.hp)), W - 20, HUD_TOP + 28 + i*14);
+      text(formatK(Math.floor(p.hp)), W - 20, HUD_TOP + 28 + i*14);
       textStyle(NORMAL);
   }
 }
@@ -437,13 +444,15 @@ function handleCameraAndPlayers() {
       continue;
     }
     
+    // Útok bleskem pro velké hráče (nad 5000 HP)
     if (p.hp >= 5000 && frameCount % 30 === (i % 30)) {
       let range = p.r + 150;
       for (let other of players) {
         if (other === p || other.hp <= 0) continue;
         let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
         if (d < range) {
-          let dmg = Math.floor(Math.log10(p.hp) * 8 + 10);
+          let safeHp = Math.max(1, p.hp);
+          let dmg = Math.floor(Math.log10(safeHp) * 8 + 10);
           other.hp -= dmg;
           lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
           createParticles(other.body.position.x, other.body.position.y, p.color, 5);
@@ -517,7 +526,8 @@ function drawLightnings() {
 
 function drawPlayer(p) {
   let pos = p.body.position;
-  let rotSpd = 0.05 + Math.min(p.hp * 0.00005, 0.3);
+  let safeHp = Math.max(0, p.hp);
+  let rotSpd = 0.05 + Math.min(safeHp * 0.00005, 0.3);
   p.rot += rotSpd;
 
   push();
@@ -535,7 +545,7 @@ function drawPlayer(p) {
     fill(160, 165, 170); stroke(80); strokeWeight(2);
     ellipse(0, 0, p.r * 1.9); 
     
-    let teeth = 12 + Math.floor(p.hp / 2000);
+    let teeth = 12 + Math.floor(safeHp / 2000);
     fill(190, 195, 200); noStroke();
     for(let i=0; i<teeth; i++) {
         let a = i * TWO_PI/teeth;
@@ -547,9 +557,9 @@ function drawPlayer(p) {
         );
     }
   } else {
-    // ZÁKLADNÍ BEYBLADE (Menší ozubené kolo)
+    // ZÁKLADNÍ BEYBLADE
     fill(20, 25, 30); stroke(p.color); strokeWeight(3);
-    let teeth = 8 + Math.floor(p.hp / 200);
+    let teeth = 8 + Math.floor(safeHp / 200);
     beginShape();
     for(let i=0; i<teeth*2; i++) {
         let a = i * PI/teeth;
@@ -562,7 +572,6 @@ function drawPlayer(p) {
   // AVATAR A TEXTY (Nerotují s tělem)
   rotate(-p.rot); 
   
-  // Zvětšený rádius pro clipping a obrázek
   if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save(); drawingContext.beginPath();
       drawingContext.arc(0, 0, p.r*1.6, 0, TWO_PI); drawingContext.clip();
@@ -574,7 +583,6 @@ function drawPlayer(p) {
 
   noFill(); stroke(0, 150); strokeWeight(3); ellipse(0,0, p.r*1.6);
 
-  // TEXTY UVNITŘ KRUHU
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
@@ -583,7 +591,7 @@ function drawPlayer(p) {
   textAlign(CENTER, CENTER); textStyle(BOLD);
   
   textSize(Math.max(10, p.r * 0.35));
-  text(formatK(Math.floor(p.hp)), 0, p.r * 0.25); 
+  text(formatK(Math.floor(safeHp)), 0, p.r * 0.25); 
 
   if (p.r > 25) {
       noStroke(); fill(220); textStyle(NORMAL);
@@ -644,7 +652,7 @@ function drawResults() {
     fill(255); textSize(18); textStyle(NORMAL);
     text(T[currentLang].WINNER, W/2, ARENA_TOP + 230);
     fill(winner.color); textSize(24); textStyle(BOLD);
-    text(winner.name + "\n" + formatK(floor(winner.hp)) + " HP", W/2, ARENA_TOP + 290);
+    text(winner.name + "\n" + formatK(floor(Math.max(0, winner.hp))) + " HP", W/2, ARENA_TOP + 290);
     textStyle(NORMAL);
     
     if (userAvatars[winner.name] && userAvatars[winner.name] !== "loaded") {
@@ -680,7 +688,6 @@ function connectTikfinity() {
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
 
-      // Okamžitý spawn při jakékoliv aktivitě (i 'member' připojení atp.)
       if (!players.find(x => x.name === u)) {
           spawnPlayer(u, 200);
       }
@@ -700,7 +707,7 @@ function connectTikfinity() {
 
 function speakTTS(txt) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
-  if (window.speechSynthesis.speaking) return; // Ochrana proti frontování a spamu zpráv za sebou
+  if (window.speechSynthesis.speaking) return; 
   let msg = new SpeechSynthesisUtterance(txt);
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US";
   msg.rate = 1.1;
