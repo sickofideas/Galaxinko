@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.21.0"; // Obrovský grafický update (Neon, Trails, Particles)
+const GAME_VERSION = "v19.22.0"; // Fuse Timer + Explosion End
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -191,6 +191,8 @@ let flowTime = 0;
 let globalFlowAngle = 0;
 
 let roundTimer = 0;
+let maxRoundTimer = 0; // Uchovává maximální čas pro knot
+let explosionTimer = 0;
 let gameState = "PLAYING"; 
 let resultsTimer = 10;
 let cameraScale = 1.0;
@@ -300,10 +302,12 @@ function startNewRound() {
   let oldPlayers = players.map(p => p.name);
   players = [];
   orbs = [];
+  screenShake = 0;
   
   oldPlayers.forEach(name => spawnPlayer(name, 500)); 
 
   roundTimer = floor(random(180, 900)); 
+  maxRoundTimer = roundTimer;
   gameState = "PLAYING";
   cameraScale = 1.0;
   particles = [];
@@ -368,7 +372,6 @@ function spawnPlayer(name, hp) {
   let safeHp = Math.max(0, hp || 500); 
   let r = getRadius(safeHp);
   
-  // Spawn u středu, ale relativně k aktuálnímu zoomu
   let cx = W/2;
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale;
@@ -391,7 +394,7 @@ function spawnPlayer(name, hp) {
     damageDealt: 0,
     sawType: Math.floor(random(30)),
     likeBuffTimer: 0,
-    trail: [] // Historie poloh pro vizuální stopu
+    trail: [] 
   };
   
   players.push(player);
@@ -454,7 +457,7 @@ function handleCombat(p1, p2) {
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  // Poloviční nerf damage (další snížení)
+  // Dmg silně nerfnuto
   let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + speed * 0.2) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
   let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + speed * 0.2) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
@@ -567,6 +570,66 @@ function handleOrbs() {
   }
 }
 
+// Převod obrazovkových na fyzické souřadnice pro jiskry z knotu
+function screenToWorld(sx, sy) {
+    let cx = W/2;
+    let cy = (ARENA_TOP + ARENA_BOT) / 2;
+    return {
+        x: (sx - cx) / cameraScale + cx,
+        y: (sy - cy) / cameraScale + cy
+    };
+}
+
+function drawFuse() {
+    if (maxRoundTimer <= 0) return;
+    let p = roundTimer / maxRoundTimer;
+    let aH = ARENA_BOT - ARENA_TOP;
+    let perim = 2 * W + 2 * aH;
+    let currentPerim = p * perim;
+    
+    stroke(255, 80, 0);
+    strokeWeight(6);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'red';
+    
+    let drawn = 0;
+    let tipX = -100, tipY = -100;
+
+    let drawLineSegment = (x1, y1, x2, y2) => {
+        if (currentPerim <= drawn) return;
+        let len = dist(x1, y1, x2, y2);
+        if (currentPerim <= drawn + len) {
+            let drawLen = currentPerim - drawn;
+            let endX = lerp(x1, x2, drawLen / len);
+            let endY = lerp(y1, y2, drawLen / len);
+            line(x1, y1, endX, endY);
+            tipX = endX; tipY = endY;
+            drawn += len;
+        } else {
+            line(x1, y1, x2, y2);
+            drawn += len;
+            tipX = x2; tipY = y2;
+        }
+    };
+
+    drawLineSegment(W/2, ARENA_TOP, W, ARENA_TOP); // Střed -> Vpravo nahoře
+    drawLineSegment(W, ARENA_TOP, W, ARENA_BOT);   // Vpravo nahoře -> Vpravo dole
+    drawLineSegment(W, ARENA_BOT, 0, ARENA_BOT);   // Vpravo dole -> Vlevo dole
+    drawLineSegment(0, ARENA_BOT, 0, ARENA_TOP);   // Vlevo dole -> Vlevo nahoře
+    drawLineSegment(0, ARENA_TOP, W/2, ARENA_TOP); // Vlevo nahoře -> Střed
+    
+    drawingContext.shadowBlur = 0;
+
+    if (tipX !== -100 && roundTimer > 0) {
+       fill(255); noStroke();
+       ellipse(tipX, tipY, 8);
+       if (frameCount % 2 === 0) {
+           let wPos = screenToWorld(tipX, tipY);
+           createParticles(wPos.x, wPos.y, color(255, 200, 50), 3);
+       }
+    }
+}
+
 function draw() {
   background(3, 4, 8); 
   
@@ -580,6 +643,10 @@ function draw() {
   stroke(0, 150, 255, 100); strokeWeight(2); noFill();
   rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
+  if (gameState === "PLAYING") {
+      drawFuse();
+  }
+
   drawingContext.save();
   drawingContext.beginPath();
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
@@ -588,8 +655,12 @@ function draw() {
   drawSpaceBackground();
   Matter.Engine.update(engine, 1000/60);
 
-  if (gameState === "PLAYING") {
-    handleCameraAndPlayers();
+  if (gameState === "PLAYING" || gameState === "EXPLODING") {
+    if (gameState === "PLAYING") {
+        handleCameraAndPlayers();
+    } else {
+        screenShake *= 0.95; // Plynulé ustálení po explozi
+    }
     
     push();
     translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
@@ -597,26 +668,26 @@ function draw() {
     
     if (screenShake > 0) {
         translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
-        screenShake *= 0.9;
-        if (screenShake < 0.5) screenShake = 0;
     }
     
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
     drawDeathShockwaves();
     drawLightnings();
-    handleOrbs();
     
-    let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
-    sortedToDraw.forEach(p => drawPlayer(p));
+    if (gameState === "PLAYING") {
+        handleOrbs();
+        let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
+        sortedToDraw.forEach(p => drawPlayer(p));
+    }
     
     drawParticles();
     drawPopups();
     pop();
 
     updateTimers();
-    handleTTSCommentary();
-  } else {
+    if (gameState === "PLAYING") handleTTSCommentary();
+  } else if (gameState === "RESULTS") {
     drawResults();
   }
   
@@ -813,7 +884,6 @@ function handleCameraAndPlayers() {
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
     
-    // Zaznamenání pozice pro Trail (Pohybovou stopu)
     p.trail.push({x: p.body.position.x, y: p.body.position.y});
     if (p.trail.length > 12) p.trail.shift();
     
@@ -872,7 +942,6 @@ function handleCameraAndPlayers() {
     }
   }
 
-  // Oddálení podle počtu hráčů (úrovně)
   let targetScale = 1.0;
   if (players.length >= 250) targetScale = 0.35;
   else if (players.length >= 150) targetScale = 0.50;
@@ -885,7 +954,6 @@ function attractToNearest(p) {
   let cx = W/2; 
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   
-  // Gravitace se uvolňuje podle toho, jak moc je oddálená kamera, aby se využil nový prostor
   let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
   let distC = Matter.Vector.magnitude(toCenter);
   if (distC > 300 / cameraScale) {
@@ -949,7 +1017,6 @@ function drawPlayer(p) {
   let rotSpd = isBuffed ? baseRotSpd * 4 : baseRotSpd;
   p.rot += rotSpd;
 
-  // Vykreslení Pohybové stopy (Trail)
   if (p.trail.length > 1) {
       noFill();
       for (let i = 0; i < p.trail.length - 1; i++) {
@@ -968,17 +1035,26 @@ function drawPlayer(p) {
   scale(currentScale);
   
   rotate(p.rot);
+  
+  let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
+  fill(red(p.color), green(p.color), blue(p.color), glowAlpha);
+  noStroke();
+  ellipse(0, 0, p.r * 2.4);
+  if(p.auraFlash > 0) p.auraFlash--;
 
-  // Vizuální styly pil (Sci-fi Tron vzhled)
+  if (isBuffed) {
+      fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100);
+      noStroke();
+      ellipse(0, 0, p.r * 2.5);
+  }
+
   let tType = p.sawType % 3; 
   let coreType = Math.floor(p.sawType / 3) % 4; 
   let isEpic = safeHp >= 3000;
   
-  // Neonový Glow pro pilu
   drawingContext.shadowBlur = isEpic ? 25 : 15;
   drawingContext.shadowColor = p.color;
 
-  // Radiální gradient pro výplň pily
   let grad = drawingContext.createRadialGradient(0, 0, 0, 0, 0, p.r);
   grad.addColorStop(0, "rgba(10, 15, 20, 1)");
   if (isBuffed) {
@@ -1016,19 +1092,19 @@ function drawPlayer(p) {
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
       } else {
-          if (tType === 0) { // Ostrá čepel
+          if (tType === 0) { 
               let aTip = a1 + TWO_PI/teeth * 0.8;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { // Průmyslový Gear
+          } else if (tType === 1) { 
               let a3 = a1 + TWO_PI/teeth * 0.25;
               let a4 = a1 + TWO_PI/teeth * 0.75;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(a3)*rOuter, sin(a3)*rOuter);
               vertex(cos(a4)*rOuter, sin(a4)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 2) { // Energetická hvězdice
+          } else if (tType === 2) { 
               let mid = (a1 + a2) / 2;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(mid)*rOuter, sin(mid)*rOuter);
@@ -1038,7 +1114,6 @@ function drawPlayer(p) {
   }
   endShape(CLOSE);
 
-  // Vypnutí vnějšího glowu pro vnitřní prvky
   drawingContext.shadowBlur = 0;
 
   if (isEpic) {
@@ -1085,7 +1160,6 @@ function drawPlayer(p) {
   drawingContext.lineJoin = "round"; 
   textAlign(CENTER, CENTER);
 
-  // Vržený stín textu
   drawingContext.shadowBlur = 5; 
   drawingContext.shadowColor = 'black';
   
@@ -1095,7 +1169,7 @@ function drawPlayer(p) {
   textSize(finalHpTxtSize);
   text(formatK(Math.floor(safeHp)), 0, 0); 
 
-  drawingContext.shadowBlur = 0; // Reset
+  drawingContext.shadowBlur = 0; 
   noStroke(); 
   pop();
 }
@@ -1107,7 +1181,7 @@ function createParticles(x, y, c, count) {
 
 function drawParticles() {
   noStroke();
-  drawingContext.shadowBlur = 10; // Jiskry svítí
+  drawingContext.shadowBlur = 10; 
   
   for(let i=particles.length-1; i>=0; i--) {
     let p = particles[i];
@@ -1115,13 +1189,13 @@ function drawParticles() {
     fill(red(p.c), green(p.c), blue(p.c), p.life);
     ellipse(p.x, p.y, p.size);
     p.x += p.vx; p.y += p.vy; 
-    p.vx *= 0.95; // Zpomalování
+    p.vx *= 0.95; 
     p.vy *= 0.95;
-    p.size *= 0.98; // Zmenšování
+    p.size *= 0.98; 
     p.life -= 15; 
     if(p.life <= 0) particles.splice(i, 1);
   }
-  drawingContext.shadowBlur = 0; // Reset
+  drawingContext.shadowBlur = 0; 
 }
 
 function addPopup(txt, x, y, c, isCrit = false) {
@@ -1132,7 +1206,7 @@ function drawPopups() {
   for(let i=floatingTexts.length-1; i>=0; i--) {
     let f = floatingTexts[i];
     
-    f.scale = lerp(f.scale, 1.0, 0.2); // Rychlý pop-up efekt
+    f.scale = lerp(f.scale, 1.0, 0.2); 
     
     push();
     translate(f.x, f.y);
@@ -1167,12 +1241,38 @@ function drawPopups() {
 }
 
 function updateTimers() {
-  if (frameCount % 60 === 0 && roundTimer > 0) {
+  if (gameState === "PLAYING" && frameCount % 60 === 0 && roundTimer > 0) {
     roundTimer--;
-    if (roundTimer <= 0) gameState = "RESULTS";
+    if (roundTimer <= 0) {
+        gameState = "EXPLODING";
+        explosionTimer = 90; // 1.5 sekundy pro velký výbuch
+        screenShake = 35; // Extrémní otřes
+        
+        if(audioStarted) {
+            try { 
+                synth.play(80, 0.5, 0, 0.8); 
+                setTimeout(() => { if(synth) synth.play(60, 0.8, 0, 1.0); }, 200);
+            } catch(e){}
+        }
+
+        players.forEach(p => {
+            createParticles(p.body.position.x, p.body.position.y, p.color, 40);
+            deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
+        });
+        
+        deathShockwaves.push({x: W/2, y: (ARENA_TOP+ARENA_BOT)/2, r: 200, color: color(255,100,50), life: 255});
+        createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255,100,0), 100);
+    }
+  } else if (gameState === "EXPLODING") {
+      explosionTimer--;
+      screenShake *= 0.95;
+      if (explosionTimer <= 0) {
+          gameState = "RESULTS";
+          resultsTimer = 10;
+      }
   }
 
-  if (frameCount % 180 === 0 && random() < 0.6 && orbs.length < 3) {
+  if (gameState === "PLAYING" && frameCount % 180 === 0 && random() < 0.6 && orbs.length < 3) {
       orbs.push({
           x: random(100, W - 100),
           y: random(ARENA_TOP + 100, ARENA_BOT - 100),
