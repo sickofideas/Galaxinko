@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.22.0"; // Fuse Timer + Explosion End
+const GAME_VERSION = "v19.23.0"; // Dynamic Walls + Tiered Camera Zoom
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -177,6 +177,8 @@ let deathShockwaves = [];
 let userAvatars = {};
 let orbs = []; 
 
+let wallTop, wallBot, wallLeft, wallRight;
+
 // Systém poškození (Pouze All-Time žebříček)
 let allTimeDamageLeaderboard = {};
 let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
@@ -222,17 +224,15 @@ function setup() {
   world.gravity.y = 0; 
   world.gravity.x = 0;
   
-  // Zdi arény velmi daleko (umožňuje takřka nekonečnou expanzi při zoom-outu)
-  let wallOpts = { isStatic: true, restitution: 1.0, friction: 0 };
   let cx = W/2;
   let cy = (ARENA_TOP+ARENA_BOT)/2;
-  let aSize = 15000;
-  Matter.World.add(world, [
-    Matter.Bodies.rectangle(cx, cy - aSize/2, aSize, 500, wallOpts),
-    Matter.Bodies.rectangle(cx, cy + aSize/2, aSize, 500, wallOpts),
-    Matter.Bodies.rectangle(cx - aSize/2, cy, 500, aSize, wallOpts),
-    Matter.Bodies.rectangle(cx + aSize/2, cy, 500, aSize, wallOpts)
-  ]);
+  let wallOpts = { isStatic: true, restitution: 1.0, friction: 0 };
+  
+  wallTop = Matter.Bodies.rectangle(cx, cy - 1000, 10000, 500, wallOpts);
+  wallBot = Matter.Bodies.rectangle(cx, cy + 1000, 10000, 500, wallOpts);
+  wallLeft = Matter.Bodies.rectangle(cx - 1000, cy, 500, 10000, wallOpts);
+  wallRight = Matter.Bodies.rectangle(cx + 1000, cy, 500, 10000, wallOpts);
+  Matter.World.add(world, [wallTop, wallBot, wallLeft, wallRight]);
 
   generateSpaceBackground();
   
@@ -376,8 +376,8 @@ function spawnPlayer(name, hp) {
   let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale;
   let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  let spawnX = cx + random(-viewW/3, viewW/3);
-  let spawnY = cy + random(-viewH/3, viewH/3);
+  let spawnX = cx + random(-viewW/2 + r, viewW/2 - r);
+  let spawnY = cy + random(-viewH/2 + r, viewH/2 - r);
 
   let body = Matter.Bodies.circle(spawnX, spawnY, r, {
     restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
@@ -457,7 +457,6 @@ function handleCombat(p1, p2) {
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  // Dmg silně nerfnuto
   let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + speed * 0.2) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
   let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + speed * 0.2) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
@@ -948,19 +947,20 @@ function handleCameraAndPlayers() {
   else if (players.length >= 50) targetScale = 0.75;
 
   cameraScale = lerp(cameraScale, targetScale, 0.02); 
+  
+  // Posun mantinelů přesně na okraj viditelné plochy
+  let cx = W/2;
+  let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let viewW = W / cameraScale;
+  let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+  
+  Matter.Body.setPosition(wallTop, { x: cx, y: cy - viewH/2 - 250 });
+  Matter.Body.setPosition(wallBot, { x: cx, y: cy + viewH/2 + 250 });
+  Matter.Body.setPosition(wallLeft, { x: cx - viewW/2 - 250, y: cy });
+  Matter.Body.setPosition(wallRight, { x: cx + viewW/2 + 250, y: cy });
 }
 
 function attractToNearest(p) {
-  let cx = W/2; 
-  let cy = (ARENA_TOP+ARENA_BOT)/2;
-  
-  let toCenter = Matter.Vector.sub({x: cx, y: cy}, p.body.position);
-  let distC = Matter.Vector.magnitude(toCenter);
-  if (distC > 300 / cameraScale) {
-      let pull = Matter.Vector.normalise(toCenter);
-      Matter.Body.applyForce(p.body, p.body.position, Matter.Vector.mult(pull, 0.000005 * p.body.mass * (distC/500)));
-  }
-
   let closest = null; let minDist = Infinity;
   for(let other of players) {
     if(other === p) continue;
