@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.17.0"; // Dynamické pozadí a Mléčná dráha
+const GAME_VERSION = "v19.18.0"; // Dmg nerf, HP 500 start, Lepší tvar pil
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -302,7 +302,7 @@ function startNewRound() {
   let oldPlayers = players.map(p => p.name);
   players = [];
   
-  oldPlayers.forEach(name => spawnPlayer(name, 200));
+  oldPlayers.forEach(name => spawnPlayer(name, 500)); // Začátek s 500 HP
 
   roundTimer = floor(random(180, 900)); 
   gameState = "PLAYING";
@@ -321,7 +321,7 @@ function setupEvents() {
     e.target.innerText = "LANG: " + currentLang;
   };
   document.getElementById('tJoin').onclick = () => {
-    handleAction(random(TEST_NAMES) + floor(random(99)), 200);
+    handleAction(random(TEST_NAMES) + floor(random(99)), 500); // 500 hp start
   };
   document.getElementById('tLike').onclick = () => {
     if(players.length > 0) handleAction(random(players).name, floor(random(50, 150)));
@@ -366,7 +366,7 @@ function getRadius(hp) {
 }
 
 function spawnPlayer(name, hp) {
-  let safeHp = Math.max(0, hp || 200);
+  let safeHp = Math.max(0, hp || 500); // Defaultně 500
   let r = getRadius(safeHp);
   let body = Matter.Bodies.circle(random(50, W-50), random(ARENA_TOP+50, ARENA_BOT-50), r, {
     restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001
@@ -415,7 +415,7 @@ function handleAction(name, amount) {
     }
     addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
-    spawnPlayer(name, 200 + amount);
+    spawnPlayer(name, 500 + amount); // Začíná na 500 + bonus
   }
 }
 
@@ -436,8 +436,9 @@ function handleCombat(p1, p2) {
   let speed1 = Matter.Vector.magnitude(p1.body.velocity);
   let speed2 = Matter.Vector.magnitude(p2.body.velocity);
 
-  let massAdvantage1 = Math.min(2.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
-  let massAdvantage2 = Math.min(2.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
+  // Silný nerf výhody velikosti. Maximálně 1.5x damage bonus, i pro obří hráče.
+  let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
+  let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
 
   let momentum1 = speed1 / (speed1 + speed2 + 0.1);
   let momentum2 = speed2 / (speed1 + speed2 + 0.1);
@@ -445,8 +446,9 @@ function handleCombat(p1, p2) {
   let buffMult1 = p1.likeBuffTimer > 0 ? 1.5 : 1.0;
   let buffMult2 = p2.likeBuffTimer > 0 ? 1.5 : 1.0;
 
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 2.5 + speed * 1.0) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 2.5 + speed * 1.0) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
+  // Celkové snížení poškození (menší násobiče u logaritmu i rychlosti)
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 1.5 + speed * 0.8) * massAdvantage1 * (0.5 + momentum1) * buffMult1;
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 1.5 + speed * 0.8) * massAdvantage2 * (0.5 + momentum2) * buffMult2;
 
   baseDmgFrom1 *= random(0.8, 1.2);
   baseDmgFrom2 *= random(0.8, 1.2);
@@ -677,19 +679,16 @@ function drawTopHUD() {
 }
 
 function drawSpaceBackground() {
-  // Update globálního směru pohybu pozadí (oscilace mezi -0.25 a 0.25 radiány)
   flowTime += 0.003;
   globalFlowAngle = sin(flowTime) * 0.25;
 
   noStroke();
   
-  // Vykreslení Mléčné dráhy
   drawingContext.save();
   milkyWay.forEach(mw => {
       fill(mw.color);
       ellipse(mw.x, mw.y, mw.r * 2);
       
-      // Mléčná dráha mírně driftuje
       mw.x += sin(globalFlowAngle) * 0.2;
       mw.y += cos(globalFlowAngle) * 0.2;
       
@@ -705,7 +704,6 @@ function drawSpaceBackground() {
   });
 
   stars.forEach(s => {
-    // Pulzování vybraných hvězd
     let currentAlpha = s.baseAlpha;
     if (s.isPulsing) {
         currentAlpha = 50 + sin(frameCount * s.pulseSpeed + s.pulsePhase) * 205;
@@ -713,7 +711,6 @@ function drawSpaceBackground() {
     fill(s.rC, s.gC, s.bC, currentAlpha);
     rect(s.x, s.y, s.s, s.s);
     
-    // Pohyb ve směru globálního toku
     s.x += sin(globalFlowAngle) * s.speed;
     s.y += cos(globalFlowAngle) * s.speed;
     
@@ -917,20 +914,20 @@ function drawPlayer(p) {
       ellipse(0, 0, p.r * 2.5);
   }
 
-  let tType = p.sawType % 5;
-  let coreType = Math.floor(p.sawType / 5) % 6; 
+  let tType = p.sawType % 3; // Menší počet čistších tvarů, aby to vypadalo reálněji jako pila
+  let coreType = Math.floor(p.sawType / 3) % 4; 
 
-  if (safeHp >= 1000) {
-      // BRUTÁLNÍ PILA (Epic)
+  if (safeHp >= 3000) {
+      // BRUTÁLNÍ PILA (Epic - od 3000 HP)
       fill(35, 40, 45); stroke(p.color); strokeWeight(3);
-      let teeth = 12 + Math.floor(safeHp / 2000);
-      let rOuter = p.r * 1.35; 
+      let teeth = 16 + Math.floor(safeHp / 2000);
+      let rOuter = p.r * 1.15; 
       let rInner = p.r * 0.9;
       beginShape();
       for(let i=0; i<teeth; i++) {
           let a1 = i * TWO_PI / teeth;
           let a2 = (i + 1) * TWO_PI / teeth;
-          let aTip = a1 + TWO_PI/teeth * 0.15; // Velmi ostrý úhel zubu
+          let aTip = a1 + TWO_PI/teeth * 0.85; // Cirkulárka design - ostrý šikmý zub
           vertex(cos(a1)*rInner, sin(a1)*rInner);
           vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
           vertex(cos(a2)*rInner, sin(a2)*rInner);
@@ -938,19 +935,18 @@ function drawPlayer(p) {
       endShape(CLOSE);
 
       // Epické detaily (zlatá linka a žhavé jádro)
-      noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.5);
+      noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.3);
       stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0);
-      ellipse(0, 0, p.r*1.1);
+      ellipse(0, 0, p.r*1.05);
       noStroke(); fill(255, 255, 0);
-      ellipse(-p.r*0.3, 0, 6); ellipse(p.r*0.3, 0, 6);
-      ellipse(0, -p.r*0.3, 6); ellipse(0, p.r*0.3, 6);
+      ellipse(-p.r*0.3, 0, 5); ellipse(p.r*0.3, 0, 5);
+      ellipse(0, -p.r*0.3, 5); ellipse(0, p.r*0.3, 5);
   } 
-  else if (safeHp >= 500) {
-      // STŘEDNÍ TŘÍDA: 30 variant pil
-      let baseTeeth = 6 + (p.sawType % 4) * 2; 
-      let teeth = baseTeeth + Math.floor((safeHp - 500) / 200); 
-      let rOuter = p.r * 1.2; 
-      let rInner = p.r * 0.85;
+  else {
+      // STŘEDNÍ TŘÍDA: Všichni od začátku (500 - 2999 HP) mají tvar reálných pil
+      let teeth = 12 + Math.floor(safeHp / 1000) + (p.sawType % 5) * 2; 
+      let rOuter = p.r * 1.1; 
+      let rInner = p.r * 0.95;
 
       let bladeFill = isBuffed ? color(255, 255, 200) : color(25, 30, 35);
       fill(bladeFill); stroke(p.color); strokeWeight(2);
@@ -959,74 +955,41 @@ function drawPlayer(p) {
       for(let i=0; i<teeth; i++) {
           let a1 = i * TWO_PI / teeth;
           let a2 = (i + 1) * TWO_PI / teeth;
-          let mid = (a1 + a2) / 2;
-
-          if (tType === 0) { // Klasická pila
-              let aTip = a1 + TWO_PI/teeth * 0.2;
+          
+          if (tType === 0) { // Ostrá cirkulárka
+              let aTip = a1 + TWO_PI/teeth * 0.8;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { // Hvězdice
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(mid)*rOuter, sin(mid)*rOuter);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 2) { // Ozubené kolo
-              let a3 = a1 + TWO_PI/teeth * 0.25;
-              let a4 = a1 + TWO_PI/teeth * 0.75;
+          } else if (tType === 1) { // Hrubé ozubené kolo
+              let a3 = a1 + TWO_PI/teeth * 0.2;
+              let a4 = a1 + TWO_PI/teeth * 0.8;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
               vertex(cos(a3)*rOuter, sin(a3)*rOuter);
               vertex(cos(a4)*rOuter, sin(a4)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 3) { // Háky
-              let aTip = a1 + TWO_PI/teeth * 0.4;
+          } else if (tType === 2) { // Vlnitá ostří
+              let mid = (a1 + a2) / 2;
               vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(aTip)*rOuter, sin(aTip)*rOuter);
-              vertex(cos(aTip + 0.1)*rInner*0.9, sin(aTip + 0.1)*rInner*0.9);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 4) { // Dvojité ostří
-              let q1 = a1 + TWO_PI/teeth * 0.3;
-              let q2 = a1 + TWO_PI/teeth * 0.7;
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(q1)*rOuter, sin(q1)*rOuter);
-              vertex(cos(mid)*rInner*1.05, sin(mid)*rInner*1.05);
-              vertex(cos(q2)*rOuter, sin(q2)*rOuter);
+              vertex(cos(mid)*rOuter, sin(mid)*rOuter);
               vertex(cos(a2)*rInner, sin(a2)*rInner);
           }
       }
       endShape(CLOSE);
 
-      // Jádro pily (odlišnost)
+      // Jádro pily 
       if (coreType === 0) {
-          fill(20); noStroke(); ellipse(0,0,p.r*1.1);
-          stroke(255, 100); strokeWeight(1); line(-p.r*0.5,0, p.r*0.5,0); line(0,-p.r*0.5, 0,p.r*0.5);
+          fill(20); noStroke(); ellipse(0,0,p.r*1.05);
       } else if (coreType === 1) {
-          fill(30); noStroke(); ellipse(0,0,p.r*1.2);
+          fill(30); noStroke(); ellipse(0,0,p.r*1.1);
           fill(p.color); ellipse(0,0,p.r*0.4);
       } else if (coreType === 2) {
-          noFill(); stroke(p.color); strokeWeight(2); ellipse(0,0,p.r*1.2); ellipse(0,0,p.r*0.8);
+          noFill(); stroke(p.color); strokeWeight(1); ellipse(0,0,p.r*1.1); ellipse(0,0,p.r*0.7);
       } else if (coreType === 3) {
-          fill(15); noStroke(); ellipse(0,0,p.r*1.3);
+          fill(15); noStroke(); ellipse(0,0,p.r*1.1);
           fill(p.color);
           for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.25); }
-      } else if (coreType === 4) {
-          fill(30); noStroke(); ellipse(0,0,p.r*1.15);
-          noFill(); stroke(p.color); strokeWeight(2); rectMode(CENTER); rect(0, 0, p.r*0.6, p.r*0.6, 2); rectMode(CORNER);
-      } else if (coreType === 5) {
-          fill(25); noStroke(); ellipse(0,0,p.r*1.25);
-          fill(p.color);
-          beginShape(); for(let i=0; i<6; i++) { let a=i*TWO_PI/6; vertex(cos(a)*p.r*0.4, sin(a)*p.r*0.4); } endShape(CLOSE);
       }
-  } else {
-      // ZÁKLADNÍ TVAR (< 500 HP)
-      fill(20, 25, 30); stroke(p.color); strokeWeight(3);
-      let teeth = 6 + Math.floor(safeHp / 100);
-      beginShape();
-      for(let i=0; i<teeth*2; i++) {
-          let a = i * PI/teeth;
-          let rad = (i%2===0) ? p.r : p.r*0.85;
-          vertex(cos(a)*rad, sin(a)*rad);
-      }
-      endShape(CLOSE);
   }
 
   rotate(-p.rot); 
@@ -1208,7 +1171,7 @@ function connectTikfinity() {
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
 
       if (!players.find(x => x.name === u)) {
-          spawnPlayer(u, 200);
+          spawnPlayer(u, 500); // 500 hp start
       }
 
       if (evt === "chat") {
