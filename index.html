@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 const GAME_TITLE = "GALAXINKO WARS";
-const GAME_VERSION = "v19.5.2"; // Přidán neustálý komentátor
+const GAME_VERSION = "v19.5.3"; // Oprava pádu při kolizi
 const W = 720;
 const H = 1280;
 const HUD_TOP = 50;   
@@ -261,7 +261,7 @@ function formatK(num) {
 }
 
 function getRadius(hp) {
-    let safeHp = Math.max(0, hp || 0); // Ochrana proti NaN / záporným hodnotám
+    let safeHp = Math.max(0, hp || 0); 
     return Math.min(22 + Math.sqrt(safeHp) * 0.45, 95); 
 }
 
@@ -311,7 +311,6 @@ function handleCombat(p1, p2) {
   let speed = Matter.Vector.magnitude(Matter.Vector.sub(p1.body.velocity, p2.body.velocity));
   if (speed < 1.0) return; 
 
-  // Pojistka proti NaN u logaritmu tím, že hodnota nikdy neklesne pod 1
   let safeHp1 = Math.max(1, p1.hp);
   let safeHp2 = Math.max(1, p2.hp);
 
@@ -324,9 +323,8 @@ function handleCombat(p1, p2) {
   let cx = (p1.body.position.x + p2.body.position.x)/2;
   let cy = (p1.body.position.y + p2.body.position.y)/2;
   
-  // Blesk při srážce
-  stroke(255, 255, 0, 200); strokeWeight(2);
-  line(p1.body.position.x, p1.body.position.y, p2.body.position.x, p2.body.position.y);
+  // Bezpečný blesk při srážce bez manipulace state canvasu
+  lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
 
   createParticles(cx, cy, color(255, 255, 100), 5);
   addPopup("-" + dmg1, p1.body.position.x, p1.body.position.y, color(255, 80, 80));
@@ -647,7 +645,7 @@ function drawPlayer(p) {
 }
 
 function createParticles(x, y, c, count) {
-  let actualCount = balls.length > 50 ? Math.floor(count/2) : count;
+  let actualCount = players.length > 50 ? Math.floor(count/2) : count;
   for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-5,5), vy: random(-5,5), life: 255, c: c});
 }
 
