@@ -47,6 +47,7 @@
       <button id="tLike">TEST LIKE (+HP)</button>
       <button id="tGift">TEST GIFT</button>
       <button id="tChat">TTS CHAT</button>
+      <button id="tFollow">TEST FOLLOW</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
     </div>
   </div>
@@ -56,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.36.0"; // Snížení odrazů, blesky dmg 1-3
+var GAME_VERSION = "v19.48.1"; // Fixed missing COMMENTARY variable completely
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -135,14 +136,12 @@ var COMMENTARY_GENERAL = {
     "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
     "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!", "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
     "Amazing atmosphere in the arena!", "One single wrong step and you fall into the abyss of history.", "This strikingly resembles the collision of two giant asteroids.", "A perfectly precise and clean hit!",
-    "The entire arena is shaking! This is a true battle of space titans.", "Unbelievable survival! This player must have nine different chances.", "Sparks as bright and large as small transport ships are exploding here!", "Who would have thought a simple circle could cause such massive havoc.",
-    "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!", "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records.",
-    "Just don't let up! This arena forgives absolutely no weakness.", "Ladies and gentlemen, you are currently watching peak space destruction.", "That piercing sound of shattering metal. It's simply music to my robotic ears!", "Fun fact: Footprints on the Moon from Apollo astronauts will stay there for millions of years.",
-    "There are no winds on the Moon to erase the footprints.", "The tallest volcano in the solar system is on Mars, named Olympus Mons.", "Did you know Jupiter is twice as massive as all other planets combined?", "The universe is made up of roughly sixty-eight percent dark energy.",
-    "One teaspoon of a neutron star weighs about a billion tons.", "The star Betelgeuse is so huge it would engulf Jupiter if placed where our Sun is.", "The light we see from some stars has traveled for thousands of years to reach us.", "Fun fact: Galaxies can collide and merge. Our Milky Way will merge with Andromeda in billions of years.",
-    "The speed of light is approximately three hundred thousand kilometers per second.", "Earth moves around the Sun at over one hundred thousand kilometers per hour.", "Fun fact: If you screamed in a vacuum, no sound waves would carry your voice.", "The Sun is actually a white star, our atmosphere makes it look yellowish.",
-    "There are over two hundred known moons in our solar system.", "Olympus Mons is roughly three times taller than Mount Everest.", "The Sun's core reaches fifteen million degrees Celsius.", "The coldest known place in the universe is just a fraction above absolute zero.",
-    "Fun fact: Pluto was only discovered in nineteen thirty.", "Scientists estimate the universe began about thirteen and a half billion years ago.", "The human body can stretch up to a few inches in zero gravity."
+    "The entire arena is shaking! This is a true battle of space titans.", "Unbelievable survival! This player must have nine different chances.",
+    "Sparks as bright and large as small transport ships are exploding here!", "Who would have thought a simple circle could cause such massive havoc.",
+    "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!",
+    "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records.",
+    "Just don't let up! This arena forgives absolutely no weakness.", "Ladies and gentlemen, you are currently watching peak space destruction.",
+    "That piercing sound of shattering metal. It's simply music to my robotic ears!"
   ]
 };
 
@@ -202,7 +201,7 @@ var COMMENTARY = {
     "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", 
     "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", 
     "Great hit! That must have taken a ton of energy!", "Don't give them a chance to breathe! Bring them to their knees!", 
-    "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby! That circle is going to need a mechanic!", 
+    "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby!", 
     "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", 
     "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
     "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!",
@@ -228,12 +227,27 @@ let deathShockwaves = [];
 let userAvatars = {};
 let orbs = [];
 let combatQueue = []; 
+let spawnModules = []; 
+
+// Variables for Follower Marquee
+let recentFollowers = [];
+let followerScrollX = W;
+
+// Variables for Secret Code Minigame
+let secretCode = "";
+let codeActive = false;
+let nextCodeTime = 0;
+let codeX = 0;
+let codeY = 0;
+let lastCodeWinner = null;
 
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
 
 let allTimeHpLeaderboard = {};
 let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
+let allTimeGifts = {}; 
+let giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
 
 let stars = [];
 let nebulas = [];
@@ -246,9 +260,10 @@ let globalFlowAngle = 0;
 let roundTimer = 0;
 let roundTimerFrames = 0;
 let maxRoundTimer = 0; 
+let bonusFrames = []; 
 let explosionTimer = 0;
 let gameState = "PLAYING"; 
-let resultsTimer = 5;
+let resultsTimer = 8;
 let cameraScale = 1.0;
 let targetCameraScale = 1.0;
 let audioStarted = false;
@@ -260,10 +275,9 @@ let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
 
-// Omezovač zvuku 
 let lastGlobalSound = 0;
 
-let previousTop5 = [];
+let previousTop10 = [];
 let currentTop10 = [];
 
 const TIKFINITY_URL = "ws://localhost:21213/";
@@ -279,6 +293,14 @@ function safePlaySound(f, v, d) {
     } catch(e) {}
 }
 
+function getStartingHp(name) {
+    let idx = previousTop10.indexOf(name);
+    if (idx !== -1) {
+        return Math.max(100, 1000 - (idx * 100));
+    }
+    return 100;
+}
+
 function setup() {
   let cvs = createCanvas(W, H);
   cvs.parent('game-container');
@@ -287,6 +309,25 @@ function setup() {
   
   synth = new p5.PolySynth();
   synth.setADSR(0.01, 0.1, 0.2, 0.1);
+  
+  let savedHp = localStorage.getItem('galaxinko_alltime_hp');
+  if (savedHp) {
+      try {
+          let parsed = JSON.parse(savedHp);
+          for(let k in parsed) { 
+              allTimeHpLeaderboard[k] = { score: parsed[k].score, color: color(parsed[k].color), avatar: null }; 
+          }
+      } catch(e){}
+  }
+  let savedGifts = localStorage.getItem('galaxinko_alltime_gifts');
+  if (savedGifts) {
+      try {
+          let parsed = JSON.parse(savedGifts);
+          for(let k in parsed) { 
+              allTimeGifts[k] = { score: parsed[k].score, color: color(parsed[k].color), lastGiftDiam: parsed[k].lastGiftDiam || 1, avatar: null }; 
+          }
+      } catch(e){}
+  }
   
   engine = Matter.Engine.create({ enableSleeping: false });
   world = engine.world;
@@ -313,27 +354,27 @@ function setup() {
 function generateSpaceBackground() {
   stars = []; nebulas = []; shootingStars = []; planets = []; milkyWay = [];
   
-  let mwPoints = 40;
+  let mwPoints = 60;
   for (let i = 0; i < mwPoints; i++) {
       let t = i / mwPoints;
-      let baseX = lerp(-100, W + 100, t) + random(-150, 150);
-      let baseY = lerp(ARENA_TOP - 100, ARENA_BOT + 100, t) + random(-200, 200);
-      milkyWay.push({ x: baseX, y: baseY, r: random(80, 250), color: color(random(50, 120), random(20, 80), random(100, 200), random(2, 8)) });
+      let baseX = lerp(-W, W * 2, t) + random(-300, 300);
+      let baseY = lerp(-H, H * 2, t) + random(-400, 400);
+      milkyWay.push({ x: baseX, y: baseY, r: random(100, 350), color: color(random(50, 120), random(20, 80), random(100, 200), random(2, 8)) });
   }
 
-  for(let i=0; i<200; i++) {
+  for(let i=0; i<600; i++) {
     stars.push({
-        x: random(W), y: random(ARENA_TOP, ARENA_BOT), s: random(1, 3.5), speed: random(0.1, 1.2),
+        x: random(-W, W * 2), y: random(-H, H * 2), s: random(1, 3.5), speed: random(0.1, 1.2),
         rC: random(150, 255), gC: random(200, 255), bC: 255, baseAlpha: random(15, 80),
         isPulsing: random() < 0.25, pulseSpeed: random(0.02, 0.06), pulsePhase: random(TWO_PI)
     });
   }
   
-  for(let i=0; i<6; i++) nebulas.push({ x: random(W), y: random(ARENA_TOP, ARENA_BOT), r: random(200, 600), color: color(random(50, 150), random(0, 100), random(150, 255), random(2, 10)) });
+  for(let i=0; i<15; nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(300, 800), color: color(random(50, 150), random(0, 100), random(150, 255), random(2, 10)) }), i++);
   
   for(let i=0; i<4; i++) {
     planets.push({
-        x: random(W), y: random(ARENA_TOP, ARENA_BOT), r: random(15, 45),
+        x: random(-W, W * 2), y: random(-H, H * 2), r: random(15, 60),
         col: color(random(20, 70), random(20, 70), random(20, 70), 80),
         ringCol: color(random(50, 150), random(50, 150), random(50, 150), 30),
         vx: random(-0.15, 0.15), vy: random(-0.15, 0.15), hasRing: random() > 0.5,
@@ -343,22 +384,33 @@ function generateSpaceBackground() {
 }
 
 function startNewRound() {
-  previousTop5 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5).map(p => p.name);
+  previousTop10 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = players.map(p => p.name);
-  players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = [];
+  players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; spawnModules = [];
   
-  oldPlayers.forEach(name => spawnPlayer(name, previousTop5.includes(name) ? 1000 : 100)); 
+  oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
 
   roundTimer = floor(random(300, 1501)); 
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
+  
+  let numBonuses = floor(random(2, 6)); 
+  bonusFrames = [];
+  for(let i = 1; i <= numBonuses; i++) {
+      let triggerFrame = maxRoundTimer * 60 - floor((maxRoundTimer * 60 / (numBonuses + 1)) * i);
+      bonusFrames.push(triggerFrame);
+  }
+  
   gameState = "PLAYING";
   cameraScale = 1.0;
   targetCameraScale = 1.0;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
   nextCommentTime = millis() + random(3000, 6000);
+  nextCodeTime = millis() + random(45000, 90000); 
+  codeActive = false;
+  lastCodeWinner = null;
   generateSpaceBackground();
 }
 
@@ -366,8 +418,23 @@ function setupEvents() {
   document.getElementById('langBtn').onclick = (e) => { currentLang = currentLang === "CZ" ? "EN" : "CZ"; e.target.innerText = "LANG: " + currentLang; };
   document.getElementById('tJoin').onclick = () => { handleAction(random(TEST_NAMES) + floor(random(99)), 100); };
   document.getElementById('tLike').onclick = () => { if(players.length > 0) handleAction(random(players).name, floor(random(50, 150))); else document.getElementById('tJoin').click(); };
-  document.getElementById('tGift').onclick = () => { if(players.length > 0) handleAction(random(players).name, 5000); };
-  document.getElementById('tChat').onclick = () => { if(!audioStarted) { audioStarted = true; userStartAudio(); } speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); };
+  document.getElementById('tGift').onclick = () => { if(players.length > 0) { let u = random(players).name; handleAction(u, 5000); updateGiftLB(u, 2, players.find(x=>x.name===u)?.color || color(255)); } };
+  document.getElementById('tChat').onclick = () => { 
+      if(!audioStarted) { audioStarted = true; userStartAudio(); } 
+      if(codeActive && players.length > 0) {
+          let u = random(players).name;
+          codeActive = false;
+          lastCodeWinner = { name: u, img: userAvatars[u] };
+          nextCodeTime = millis() + random(45000, 90000);
+          handleAction(u, 1500);
+          addPopup("CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil tajný kód!` : `Player ${u} cracked the secret code!`);
+          createParticles(W/2, H/2, color(255, 215, 0), 100);
+      } else {
+          speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); 
+      }
+  };
+  document.getElementById('tFollow').onclick = () => { let dummyUser = "User" + floor(random(100)); recentFollowers.push({ name: dummyUser, img: null, time: millis() }); };
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
   Matter.Events.on(engine, 'collisionStart', (event) => {
@@ -387,21 +454,15 @@ function formatK(num) {
 
 function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 0.5, 110); }
 
-function spawnPlayer(name, hp) {
+function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor) {
   let safeHp = Math.max(0, hp || 100); 
   let r = getRadius(safeHp);
-  
-  let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
-  let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-  let spawnX = cx + random(-viewW/2 + r*2, viewW/2 - r*2);
-  let spawnY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
-
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
   
   let player = {
     name: name, hp: safeHp, body: body, r: r, targetR: r,
-    color: color(random(100,255), random(100,255), random(100,255)),
+    color: playerColor,
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [] 
@@ -410,9 +471,99 @@ function spawnPlayer(name, hp) {
   players.push(player);
   Matter.World.add(world, body);
   speakTTS(T[currentLang].NEW + name);
-  createParticles(body.position.x, body.position.y, player.color, 10);
-  
+  createParticles(spawnX, spawnY, playerColor, 15);
   safePlaySound(600, 0.1, 0.05);
+}
+
+function spawnPlayer(name, hp) {
+  let safeHp = Math.max(0, hp || 100); 
+  let r = getRadius(safeHp);
+  
+  let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+  
+  let bestX = cx; let bestY = cy;
+  let maxMinDist = -1;
+  for (let i = 0; i < 20; i++) {
+      let testX = cx + random(-viewW/2 + r*2, viewW/2 - r*2);
+      let testY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
+      let minDist = Infinity;
+      
+      for (let p of players) {
+          if (!p.body) continue;
+          let d = dist(testX, testY, p.body.position.x, p.body.position.y);
+          if (d < minDist) minDist = d;
+      }
+      
+      if (players.length === 0) {
+          bestX = testX; bestY = testY; break;
+      }
+      if (minDist > maxMinDist) {
+          maxMinDist = minDist;
+          bestX = testX; bestY = testY;
+      }
+  }
+
+  let sx = shipX === 0 ? W/2 : shipX;
+  let sy = shipY === 0 ? ARENA_TOP : shipY;
+  let wPos = screenToWorld(sx, sy);
+  
+  let dx = bestX - wPos.x;
+  let dy = bestY - wPos.y;
+  let distToTarget = Math.sqrt(dx*dx + dy*dy);
+  let spd = distToTarget / 45; 
+  
+  let pColor = color(random(100,255), random(100,255), random(100,255));
+  
+  spawnModules.push({
+      name: name, hp: safeHp,
+      x: wPos.x, y: wPos.y,
+      targetX: bestX, targetY: bestY,
+      vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
+      life: 45, trail: [], color: pColor
+  });
+  
+  safePlaySound(400, 0.1, 0.1);
+}
+
+function handleSpawnModules() {
+    for (let i = spawnModules.length - 1; i >= 0; i--) {
+        let m = spawnModules[i];
+        m.trail.push({x: m.x, y: m.y});
+        if (m.trail.length > 12) m.trail.shift();
+        
+        m.x += m.vx; m.y += m.vy;
+        m.life--;
+        
+        noStroke();
+        for(let t=0; t<m.trail.length; t++) {
+            fill(red(m.color), green(m.color), blue(m.color), map(t, 0, m.trail.length, 0, 150));
+            ellipse(m.trail[t].x + random(-2,2), m.trail[t].y + random(-2,2), map(t, 0, m.trail.length, 2, 12));
+        }
+        
+        push();
+        translate(m.x, m.y);
+        rotate(atan2(m.vy, m.vx));
+        
+        fill(255, 100, 0); noStroke();
+        triangle(-10, -4, -10, 4, -20 - random(8), 0);
+        
+        fill(40); stroke(m.color); strokeWeight(2);
+        ellipse(0, 0, 20, 12);
+        
+        fill(m.color); noStroke();
+        ellipse(4, 0, 6, 6);
+        
+        fill(255, 200); 
+        ellipse(5, -1, 2, 2); 
+        
+        pop();
+        
+        if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
+            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color);
+            spawnModules.splice(i, 1);
+        }
+    }
 }
 
 function handleAction(name, amount) {
@@ -422,15 +573,37 @@ function handleAction(name, amount) {
     p.hp += amount; p.auraFlash = 15; p.likeBuffTimer = 90; 
     if (players.length < 50) addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
   } else {
-    let baseHp = previousTop5.includes(name) ? 1000 : 100;
+    let baseHp = getStartingHp(name);
     spawnPlayer(name, baseHp + amount); 
   }
 }
 
 function updateHpLB(name, hp, col) {
     if (!allTimeHpLeaderboard[name] || hp > allTimeHpLeaderboard[name].score) {
-        allTimeHpLeaderboard[name] = { score: hp, color: col, avatar: userAvatars[name] };
+        allTimeHpLeaderboard[name] = { score: hp, color: col, avatar: userAvatars[name] || allTimeHpLeaderboard[name]?.avatar };
+        
+        let toSave = {};
+        for(let k in allTimeHpLeaderboard) {
+            toSave[k] = { score: allTimeHpLeaderboard[k].score, color: allTimeHpLeaderboard[k].color.toString('#rrggbb') };
+        }
+        localStorage.setItem('galaxinko_alltime_hp', JSON.stringify(toSave));
     }
+}
+
+function updateGiftLB(name, diam, col) {
+    if (!allTimeGifts[name]) {
+        allTimeGifts[name] = { score: 0, color: col, lastGiftDiam: diam, avatar: userAvatars[name] || allTimeGifts[name]?.avatar };
+    } else {
+        allTimeGifts[name].lastGiftDiam = diam;
+    }
+    allTimeGifts[name].score += diam;
+    if (userAvatars[name]) allTimeGifts[name].avatar = userAvatars[name];
+    
+    let toSave = {};
+    for(let k in allTimeGifts) {
+        toSave[k] = { score: allTimeGifts[k].score, lastGiftDiam: allTimeGifts[k].lastGiftDiam, color: allTimeGifts[k].color.toString('#rrggbb') };
+    }
+    localStorage.setItem('galaxinko_alltime_gifts', JSON.stringify(toSave));
 }
 
 function processCombatQueue() {
@@ -458,8 +631,8 @@ function handleCombat(p1, p2) {
   let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
   let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
 
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + speed * 0.2) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.5 : 1.0);
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + speed * 0.2) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.5 : 1.0);
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + speed * 0.2) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.3 : 1.0);
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + speed * 0.2) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.3 : 1.0);
 
   baseDmgFrom1 *= random(0.8, 1.2); baseDmgFrom2 *= random(0.8, 1.2);
 
@@ -482,9 +655,8 @@ function handleCombat(p1, p2) {
   if (p1.hp <= 0 && hp1Before > 0) healLogic(p2, hp1Before);
   if (p2.hp <= 0 && hp2Before > 0) healLogic(p1, hp2Before);
   
-  // Drasticky snížena síla odpuzování přidaná nad rámec přirozené fyziky
   let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
-  let forceMag = 0.0008 + speed * 0.0005; // Výrazně méně, aby koule tolik neskákaly
+  let forceMag = 0.0008 + speed * 0.0005; 
   
   if(isFinite(forceDir.x) && isFinite(forceDir.y)) {
       Matter.Body.applyForce(p1.body, p1.body.position, { x: -forceDir.x * forceMag * p1.body.mass, y: -forceDir.y * forceMag * p1.body.mass });
@@ -495,7 +667,7 @@ function handleCombat(p1, p2) {
   if (!isHeavyLoad) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
       let cy = (p1.body.position.y + p2.body.position.y)/2;
-      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 10, c: color(255, 255, 0)});
+      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: color(255, 255, 0)});
       createParticles(cx, cy, color(255, 200, 50), 6); 
   }
   
@@ -507,10 +679,74 @@ function handleCombat(p1, p2) {
   }
 }
 
+function shootBonusFromShip() {
+  let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+  let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+  
+  let bestX = cx; let bestY = cy;
+  let maxMinDist = -1;
+  for (let i = 0; i < 20; i++) {
+      let testX = cx + random(-viewW/3, viewW/3);
+      let testY = cy + random(-viewH/3, viewH/3);
+      let minDist = Infinity;
+      for (let p of players) {
+          if (!p.body) continue;
+          let d = dist(testX, testY, p.body.position.x, p.body.position.y);
+          if (d < minDist) minDist = d;
+      }
+      if (players.length === 0) { bestX = testX; bestY = testY; break; }
+      if (minDist > maxMinDist) { maxMinDist = minDist; bestX = testX; bestY = testY; }
+  }
+
+  let wPos = screenToWorld(shipX, shipY);
+  let dx = bestX - wPos.x;
+  let dy = bestY - wPos.y;
+  let distToTarget = Math.sqrt(dx*dx + dy*dy);
+  let spd = 12; 
+  
+  orbs.push({ 
+      x: wPos.x, y: wPos.y, 
+      targetX: bestX, targetY: bestY,
+      vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
+      r: 15, value: 1000, 
+      isFlying: true 
+  });
+  safePlaySound(800, 0.1, 0.3);
+}
+
 function handleOrbs() {
   let isHeavyLoad = players.length > 40;
   for (let i = orbs.length - 1; i >= 0; i--) {
       let o = orbs[i];
+      
+      if (o.isFlying) {
+          o.x += o.vx; o.y += o.vy;
+          let d = dist(o.x, o.y, o.targetX, o.targetY);
+          
+          if (d < 20) {
+              o.isFlying = false;
+              o.x = o.targetX; o.y = o.targetY;
+              createParticles(o.x, o.y, color(255, 200, 0), 20);
+              safePlaySound(1000, 0.1, 0.2);
+          }
+          
+          push();
+          translate(o.x, o.y);
+          let angle = atan2(o.vy, o.vx);
+          rotate(angle);
+          fill(200); stroke(255, 200, 0); strokeWeight(2);
+          rectMode(CENTER);
+          rect(0, 0, 30, 15, 5);
+          fill(255, 100, 0); noStroke();
+          triangle(-15, -5, -15, 5, -25 - random(5), 0);
+          fill(0); textSize(6); textAlign(CENTER, CENTER); textStyle(BOLD);
+          text("BONUS", 0, 0);
+          pop();
+          
+          if (frameCount % 3 === 0 && !isHeavyLoad) createParticles(o.x, o.y, color(255, 200, 0), 2);
+          continue; 
+      }
+      
       push();
       translate(o.x, o.y);
       rotate(frameCount * 0.02);
@@ -546,6 +782,72 @@ function handleOrbs() {
       }
       if (collected) orbs.splice(i, 1);
   }
+}
+
+function handleSecretCode() {
+    if (!codeActive && gameState === "PLAYING" && millis() > nextCodeTime) {
+        codeActive = true;
+        const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        secretCode = "";
+        for(let i=0; i<6; i++) secretCode += chars.charAt(Math.floor(random(chars.length)));
+        codeX = random(150, W - 150);
+        codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
+        lastCodeWinner = null;
+        safePlaySound(400, 0.05, 0.5);
+    }
+}
+
+function drawSecretCodeUI() {
+    if (codeActive) {
+        push();
+        // 1. Mystický kód levitující na herní ploše
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = color(0, 255, 255);
+        let flicker = random(80, 180);
+        fill(150, 255, 255, flicker);
+        noStroke();
+        textSize(18);
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        let cx = codeX + sin(frameCount * 0.02) * 10;
+        let cy = codeY + cos(frameCount * 0.015) * 10;
+        if (random() < 0.1) cx += random(-3, 3); // občasný glitch
+        text(secretCode, cx, cy);
+        drawingContext.shadowBlur = 0;
+        pop();
+    }
+
+    if (codeActive || lastCodeWinner) {
+        push();
+        if (codeActive) {
+            let hint = currentLang === "CZ" ? "/// ZACHYCEN NEZNÁMÝ SIGNÁL: OPIŠ KÓD Z PLOCHY DO CHATU PRO +1500 HP ///" : "/// UNKNOWN SIGNAL: TYPE THE CODE FROM THE SCREEN FOR +1500 HP ///";
+            fill(0, 255, 255, 150 + sin(frameCount * 0.05) * 100);
+            textSize(10);
+            textAlign(CENTER, TOP);
+            text(hint, W/2, ARENA_BOT + 45);
+        } else if (lastCodeWinner) {
+            fill(255, 215, 0, 200);
+            textSize(10);
+            textAlign(CENTER, TOP);
+            let wTxt = currentLang === "CZ" ? `POSLEDNÍ KÓD PROLOMIL:` : `LAST CODE CRACKED BY:`;
+            let tw = textWidth(wTxt);
+            text(wTxt, W/2 - 20, ARENA_BOT + 45);
+            
+            if (lastCodeWinner.img && lastCodeWinner.img !== "loaded") {
+                drawingContext.save(); drawingContext.beginPath();
+                drawingContext.arc(W/2 + tw/2, ARENA_BOT + 50, 8, 0, TWO_PI);
+                drawingContext.clip();
+                image(lastCodeWinner.img, W/2 + tw/2, ARENA_BOT + 50, 16, 16);
+                drawingContext.restore();
+            } else {
+                fill(100); noStroke(); ellipse(W/2 + tw/2, ARENA_BOT + 50, 16, 16);
+            }
+            fill(255);
+            textAlign(LEFT, TOP);
+            text(lastCodeWinner.name, W/2 + tw/2 + 12, ARENA_BOT + 45);
+        }
+        pop();
+    }
 }
 
 function screenToWorld(sx, sy) {
@@ -591,15 +893,81 @@ function drawSpaceshipTimer() {
     if(!isHeavyLoad) drawingContext.shadowBlur = 0;
 
     push(); translate(shipX, shipY); rotate(shipAngle);
-    fill(255, 100, 0); noStroke(); triangle(-15, -5, -15, 5, -25 - sin(frameCount * 0.5) * 5, 0);
-    fill(200, 200, 255); stroke(0, 255, 255); strokeWeight(2); triangle(20, 0, -15, -10, -15, 10);
-    fill(0, 255, 255); noStroke(); ellipse(5, 0, 10, 6);
+    
+    fill(255, 100, 0, 150 + sin(frameCount * 0.5) * 100);
+    noStroke();
+    triangle(-20, -6, -20, 6, -35 - random(10), 0);
+    fill(255, 200, 0);
+    triangle(-20, -3, -20, 3, -28 - random(5), 0);
+    
+    fill(100, 150, 255); stroke(0, 255, 255); strokeWeight(1);
+    triangle(-10, 10, -20, 20, 5, 10);
+    triangle(-10, -10, -20, -20, 5, -10);
+    
+    fill(220, 220, 255); stroke(0, 255, 255); strokeWeight(2);
+    beginShape();
+    vertex(20, 0); vertex(5, 10); vertex(-20, 8); vertex(-20, -8); vertex(5, -10);
+    endShape(CLOSE);
+    
+    fill(0, 200, 255); noStroke(); ellipse(5, 0, 10, 6);
+    fill(255); ellipse(7, -1, 3, 2);
+    
     pop();
 
     if (frameCount % 4 === 0 && roundTimerFrames > 0 && !isHeavyLoad) {
         let wPos = screenToWorld(shipX, shipY);
         particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: color(150, 200, 255), size: random(4, 8)});
     }
+}
+
+function drawFollowerMarquee() {
+  fill(15, 15, 20); noStroke();
+  rect(0, ARENA_BOT, W, 40); 
+  stroke(0, 255, 255, 30); strokeWeight(1);
+  line(0, ARENA_BOT, W, ARENA_BOT);
+  line(0, ARENA_BOT + 40, W, ARENA_BOT + 40);
+
+  let cleanupTime = millis() - (30 * 60 * 1000); 
+  recentFollowers = recentFollowers.filter(f => f.time > cleanupTime);
+
+  if (recentFollowers.length === 0) {
+      fill(100); noStroke(); textAlign(CENTER, CENTER); textSize(10); textStyle(BOLD);
+      text(currentLang === "CZ" ? "ZATÍM ŽÁDNÍ NOVÍ SLEDUJÍCÍ..." : "NO NEW FOLLOWERS YET...", W/2, ARENA_BOT + 20);
+      textStyle(NORMAL);
+      return;
+  }
+
+  let totalW = 0;
+  for(let f of recentFollowers) {
+      let txt = currentLang === "CZ" ? `${f.name} SLEDUJE! 🎉` : `${f.name} IS FOLLOWING! 🎉`;
+      totalW += textWidth(txt) + 80;
+  }
+
+  followerScrollX -= 1.5;
+  if (followerScrollX < -totalW) followerScrollX = W;
+
+  let cx = followerScrollX;
+  
+  for (let i = 0; i < recentFollowers.length; i++) {
+      let f = recentFollowers[i];
+      let txt = currentLang === "CZ" ? `${f.name} SLEDUJE! 🎉` : `${f.name} IS FOLLOWING! 🎉`;
+      let tw = textWidth(txt);
+      
+      if (cx + tw + 60 > 0 && cx < W) {
+          if (f.img && f.img !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath();
+              drawingContext.arc(cx + 16, ARENA_BOT + 20, 12, 0, TWO_PI);
+              drawingContext.clip();
+              image(f.img, cx + 16, ARENA_BOT + 20, 24, 24);
+              drawingContext.restore();
+          } else {
+              fill(80); noStroke(); ellipse(cx + 16, ARENA_BOT + 20, 24, 24);
+          }
+          fill(0, 255, 255); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
+          text(txt, cx + 38, ARENA_BOT + 20); textStyle(NORMAL);
+      }
+      cx += tw + 80;
+  }
 }
 
 function handleCameraAndPlayers() {
@@ -655,10 +1023,9 @@ function handleCameraAndPlayers() {
             if (other === p || other.hp <= 0) continue;
             let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
             if (d < range) {
-                // Poškození od blesků sníženo na 1-3
                 let dmg = floor(random(1, 4)); 
                 other.hp -= dmg;
-                lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 10, c: p.color});
+                lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
                 if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
                 if (!isHeavyLoad) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
                 safePlaySound(1200, 0.01, 0.1);
@@ -667,13 +1034,13 @@ function handleCameraAndPlayers() {
         }
     }
     
-    p.noiseOffsetX += 0.02; p.noiseOffsetY += 0.02;
-    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.0001 * p.body.mass;
-    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.0001 * p.body.mass;
+    p.noiseOffsetX += 0.015; p.noiseOffsetY += 0.015;
+    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.000075 * p.body.mass;
+    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.000075 * p.body.mass;
     Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
 
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 2.8 : 2.4; 
+    let tSpd = isTop10 ? 2.1 : 1.8; 
 
     let vx = p.body.velocity.x;
     let vy = p.body.velocity.y;
@@ -731,9 +1098,9 @@ function drawSpaceBackground() {
       mw.x += sin(globalFlowAngle) * 0.2;
       mw.y += cos(globalFlowAngle) * 0.2;
       
-      if (mw.y > ARENA_BOT + 250) mw.y = ARENA_TOP - 250;
-      if (mw.x > W + 250) mw.x = -250;
-      if (mw.x < -250) mw.x = W + 250;
+      if (mw.y > H * 2 + 500) mw.y = -H - 500;
+      if (mw.x > W * 2 + 500) mw.x = -W - 500;
+      if (mw.x < -W - 500) mw.x = W * 2 + 500;
   });
   drawingContext.restore();
 
@@ -753,16 +1120,16 @@ function drawSpaceBackground() {
     s.x += sin(globalFlowAngle) * s.speed;
     s.y += cos(globalFlowAngle) * s.speed;
     
-    if (s.y > ARENA_BOT) { s.y = ARENA_TOP; s.x = random(W); }
-    else if (s.y < ARENA_TOP) { s.y = ARENA_BOT; s.x = random(W); }
-    if (s.x > W) { s.x = 0; s.y = random(ARENA_TOP, ARENA_BOT); }
-    else if (s.x < 0) { s.x = W; s.y = random(ARENA_TOP, ARENA_BOT); }
+    if (s.y > H * 2) { s.y = -H; s.x = random(-W, W * 2); }
+    else if (s.y < -H) { s.y = H * 2; s.x = random(-W, W * 2); }
+    if (s.x > W * 2) { s.x = -W; s.y = random(-H, H * 2); }
+    else if (s.x < -W) { s.x = W * 2; s.y = random(-H, H * 2); }
   });
 
   planets.forEach(p => {
     p.x += p.vx; p.y += p.vy;
-    if (p.x < -100) p.x = W + 100; if (p.x > W + 100) p.x = -100;
-    if (p.y < ARENA_TOP - 100) p.y = ARENA_BOT + 100; if (p.y > ARENA_BOT + 100) p.y = ARENA_TOP - 100;
+    if (p.x < -W - 200) p.x = W * 2 + 200; if (p.x > W * 2 + 200) p.x = -W - 200;
+    if (p.y < -H - 200) p.y = H * 2 + 200; if (p.y > H * 2 + 200) p.y = -H - 200;
 
     push();
     translate(p.x, p.y);
@@ -784,19 +1151,28 @@ function drawSpaceBackground() {
     p.angle += p.rotSpeed;
   });
 
-  if (random() < 0.01) { 
+  if (random() < 0.05) { 
+      let side = Math.floor(random(4));
+      let sx, sy, svx, svy;
+      
+      if (side === 0) { sx = random(-W, W*2); sy = -H; svx = random(-20, 20); svy = random(20, 40); }
+      else if (side === 1) { sx = random(-W, W*2); sy = H*2; svx = random(-20, 20); svy = random(-40, -20); }
+      else if (side === 2) { sx = -W; sy = random(-H, H*2); svx = random(20, 40); svy = random(-20, 20); }
+      else { sx = W*2; sy = random(-H, H*2); svx = random(-40, -20); svy = random(-20, 20); }
+      
       shootingStars.push({
-          x: random(W), y: ARENA_TOP, 
-          vx: random(-15, 15), vy: random(15, 30), 
-          life: 150, length: random(20, 60)
+          x: sx, y: sy, 
+          vx: svx, vy: svy, 
+          life: 255, length: random(40, 100)
       });
   }
 
   shootingStars.forEach((s, i) => {
       stroke(255, 255, 255, s.life); strokeWeight(2);
       line(s.x, s.y, s.x - s.vx * (s.length/10), s.y - s.vy * (s.length/10));
-      s.x += s.vx; s.y += s.vy; s.life -= 10;
-      if (s.life <= 0 || s.y > ARENA_BOT) shootingStars.splice(i, 1);
+      s.x += s.vx; s.y += s.vy; 
+      s.life -= 4; 
+      if (s.life <= 0 || s.x < -W*1.5 || s.x > W*2.5 || s.y < -H*1.5 || s.y > H*2.5) shootingStars.splice(i, 1);
   });
   noStroke();
 }
@@ -817,17 +1193,31 @@ function drawDeathShockwaves() {
 function drawLightnings() {
   for(let i = lightnings.length - 1; i >= 0; i--) {
     let l = lightnings[i];
-    stroke(red(l.c), green(l.c), blue(l.c), l.life * 15);
-    strokeWeight(l.life * 0.3);
+    let a = l.life * 25; 
+    let segs = 3;
+    let pts = [{x: l.x1, y: l.y1}];
+    
+    for(let j = 1; j < segs; j++) {
+        pts.push({
+            x: lerp(l.x1, l.x2, j/segs) + random(-15, 15), 
+            y: lerp(l.y1, l.y2, j/segs) + random(-15, 15)
+        });
+    }
+    pts.push({x: l.x2, y: l.y2});
+
+    stroke(red(l.c), green(l.c), blue(l.c), a);
+    strokeWeight(l.life * 0.8 + 2);
     noFill();
     beginShape();
-    vertex(l.x1, l.y1);
-    let segs = 3;
-    for(let j = 1; j < segs; j++) {
-        vertex(lerp(l.x1, l.x2, j/segs) + random(-15, 15), lerp(l.y1, l.y2, j/segs) + random(-15, 15));
-    }
-    vertex(l.x2, l.y2);
+    for(let p of pts) vertex(p.x, p.y);
     endShape();
+
+    stroke(255, a);
+    strokeWeight(l.life * 0.3 + 1);
+    beginShape();
+    for(let p of pts) vertex(p.x, p.y);
+    endShape();
+
     l.life--;
     if(l.life <= 0) lightnings.splice(i, 1);
   }
@@ -838,7 +1228,7 @@ function draw() {
   drawTopHUD();
 
   fill(10, 12, 15); noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
-  fill(50); textAlign(CENTER, CENTER); textSize(16); text(T[currentLang].DAYZ_SPACE, W/2, ARENA_BOT + (H - ARENA_BOT)/2);
+  drawFollowerMarquee(); 
 
   stroke(0, 150, 255, 100); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
@@ -855,8 +1245,19 @@ function draw() {
   
   processCombatQueue();
 
-  if (gameState === "PLAYING" || gameState === "EXPLODING") {
-    if (gameState === "PLAYING") handleCameraAndPlayers(); else screenShake *= 0.95; 
+  if (gameState === "PLAYING" || gameState === "EXPLODING" || gameState === "RESULTS") {
+    if (gameState === "PLAYING") {
+        handleSecretCode();
+        handleCameraAndPlayers(); 
+        handleSpawnModules();
+    } else {
+        screenShake *= 0.95; 
+        for (let p of players) {
+            if (p.body) {
+                Matter.Body.setVelocity(p.body, {x: 0, y: 0});
+            }
+        }
+    }
     
     push();
     translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
@@ -868,9 +1269,10 @@ function draw() {
     
     if (gameState === "PLAYING") {
         handleOrbs();
-        let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
-        sortedToDraw.forEach(p => drawPlayer(p));
     }
+    
+    let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
+    sortedToDraw.forEach(p => drawPlayer(p));
     
     if (particles.length > 80) particles.splice(0, particles.length - 80);
     if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
@@ -879,13 +1281,18 @@ function draw() {
     drawPopups();
     pop();
 
-    updateTimers();
-    if (gameState === "PLAYING") handleTTSCommentary();
-  } else if (gameState === "RESULTS") {
+    if (gameState !== "RESULTS") {
+        updateTimers();
+        if (gameState === "PLAYING") handleTTSCommentary();
+    }
+  } 
+  
+  if (gameState === "RESULTS") {
     drawResults();
   }
   
   drawingContext.restore(); 
+  drawSecretCodeUI();
 }
 
 function handleTTSCommentary() {
@@ -924,27 +1331,115 @@ function drawTopHUD() {
   if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
   text(timeStr, W/2, HUD_TOP + 65); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 85);
 
-  let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
-  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15};
+  // HP LEADERBOARD
+  let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
+  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 160, h: 15};
   
   textAlign(LEFT, TOP);
-  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) fill(255, 50, 50); else fill(255, 100, 255);
-  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL-TIME TOP 5 HP" : "ALL-TIME TOP 5 HP", 10, HUD_TOP + 10);
+  let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
+  fill(hoverHp ? color(255, 50, 50) : color(255, 100, 255));
+  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL TIME HIGHEST HP" : "ALL TIME HIGHEST HP", 10, HUD_TOP + 10);
   
-  textStyle(NORMAL);
-  for(let i=0; i<allTimeSorted.length; i++) {
-      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*14;
-      fill(pData.color); text(`${i+1}. ${pName.substring(0,8)}`, 10, y);
-      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 150, y); textStyle(NORMAL);
+  textStyle(NORMAL); textSize(8);
+  for(let i=0; i<Math.min(3, allTimeSorted.length); i++) {
+      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*16;
+      let xBase = 10;
+      if (pData.avatar && pData.avatar !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+          image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
+          fill(pData.color); text(`${i+1}. ${pName.substring(0,6)}`, xBase + 16, y);
+      } else {
+          fill(pData.color); text(`${i+1}. ${pName.substring(0,8)}`, xBase, y);
+      }
+      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
   }
 
+  if (allTimeSorted.length > 3) {
+      let numExtra = allTimeSorted.length - 3;
+      let scrollYBase = HUD_TOP + 28 + 3*16; 
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(5, scrollYBase - 2, 160, 26); drawingContext.clip();
+      let itemH = 16; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.3) % totalExtraH; 
+      
+      for(let i=0; i<numExtra * 2; i++) { 
+          let idx = 3 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; 
+          let y = scrollYBase + (i * itemH) - scrollPos;
+          let xBase = 10;
+          if (pData.avatar && pData.avatar !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+              image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
+              fill(pData.color); text(`${idx+1}. ${pName.substring(0,6)}`, xBase + 16, y);
+          } else { fill(pData.color); text(`${idx+1}. ${pName.substring(0,8)}`, xBase, y); }
+          fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
+      }
+      drawingContext.restore();
+  }
+
+  // ELITE ROUND LEADERBOARD
   let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
   textAlign(RIGHT, TOP); fill(0, 255, 255); textSize(9); textStyle(BOLD); text(T[currentLang].TOP, W - 10, HUD_TOP + 10);
-  
-  textStyle(NORMAL);
+  textStyle(NORMAL); textSize(8);
   for(let i = 0; i < hpSorted.length; i++) {
       let p = hpSorted[i]; fill(p.color); text(`${i+1}. ${p.name.substring(0,8)}`, W - 80, HUD_TOP + 28 + i*14);
       fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), W - 10, HUD_TOP + 28 + i*14); textStyle(NORMAL);
+  }
+  
+  // GIFTS LEADERBOARD
+  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
+  giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
+  
+  let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
+  textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
+  textSize(8); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI (RESET)" : "TOP GIFTERS (RESET)", W/2, HUD_TOP + 4);
+
+  textStyle(NORMAL); textSize(8); textAlign(LEFT, TOP);
+  
+  // Static 1-5 Left Side
+  for(let i=0; i<Math.min(5, allGiftsSorted.length); i++) {
+      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 28 + i*14;
+      let xBase = W/2 - 150; 
+      if (gData.avatar && gData.avatar !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+          image(gData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
+          fill(gData.color); text(gName.substring(0, 6), xBase + 16, y);
+      } else {
+          fill(gData.color); text(gName.substring(0, 8), xBase, y);
+      }
+      
+      let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
+      fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 65, y); textStyle(NORMAL);
+  }
+
+  // Scrolling 6-15 Right Side
+  if (allGiftsSorted.length > 5) {
+      let numExtraG = allGiftsSorted.length - 5;
+      let scrollYBaseG = HUD_TOP + 28; 
+      let rightXBase = W/2 + 50;
+      
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 150, 5 * 14 + 2); 
+      drawingContext.clip();
+      
+      let itemHG = 14;
+      let totalExtraHG = numExtraG * itemHG;
+      let scrollPosG = (frameCount * 0.3) % totalExtraHG; 
+      
+      for(let i=0; i<numExtraG * 2; i++) { 
+          let idx = 5 + (i % numExtraG);
+          let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; 
+          let y = scrollYBaseG + (i * itemHG) - scrollPosG;
+          
+          if (gData.avatar && gData.avatar !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+              image(gData.avatar, rightXBase + 6, y + 4, 12, 12); drawingContext.restore();
+              fill(gData.color); text(gName.substring(0, 6), rightXBase + 16, y);
+          } else {
+              fill(gData.color); text(gName.substring(0, 8), rightXBase, y);
+          }
+          let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
+          fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, rightXBase + 65, y); textStyle(NORMAL);
+      }
+      drawingContext.restore();
   }
 }
 
@@ -1101,6 +1596,11 @@ function updateTimers() {
 
   if (gameState === "PLAYING" && roundTimerFrames > 0) {
     roundTimerFrames--;
+    
+    if (bonusFrames.includes(roundTimerFrames)) {
+        shootBonusFromShip();
+    }
+    
     if (frameCount % 60 === 0) roundTimer = Math.ceil(roundTimerFrames / 60);
 
     if (roundTimerFrames <= 0) {
@@ -1114,20 +1614,20 @@ function updateTimers() {
       explosionTimer--; screenShake *= 0.95;
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
-          resultsTimer = 5; 
+          resultsTimer = 8; 
           winnerAnnounced = false;
       } 
-  }
-
-  if (gameState === "PLAYING" && frameCount % 1800 === 0 && random() < 0.15 && orbs.length < 1) { 
-      let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
-      let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
-      orbs.push({ x: cx + random(-viewW/2.5, viewW/2.5), y: cy + random(-viewH/2.5, viewH/2.5), r: 12, value: 1000 });
   }
 }
 
 function drawResults() {
-  background(0, 220); textAlign(CENTER, CENTER);
+  push();
+  fill(0, 220); 
+  noStroke(); 
+  rect(0, 0, W, H);
+  pop();
+  
+  textAlign(CENTER, CENTER);
   fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
   
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
@@ -1166,26 +1666,46 @@ function drawResults() {
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 5; startNewRound(); } } 
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 8; startNewRound(); } } 
 }
 
 function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   socket.onmessage = (e) => {
     try {
-      let d = JSON.parse(e.data); let evt = d?.event || d?.type || ""; let u = (d?.data?.nickname || d?.data?.uniqueId || "Anonym").substring(0, 15).trim();
-      if (u === "Anonym") return;
+      let d = JSON.parse(e.data); let evt = d?.event || d?.type || ""; let n = d?.data?.nickname || d?.data?.uniqueId || "Anonym";
+      if (n === "Anonym") return;
+      let u = n.substring(0, 15);
+      
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
       
+      if (evt === "follow") {
+          recentFollowers.push({ name: u, img: userAvatars[u] || null, time: millis() });
+      }
+      
       if (!players.find(x => x.name === u) && evt !== "gift") {
-          spawnPlayer(u, previousTop5.includes(u) ? 1000 : 100);
+          spawnPlayer(u, getStartingHp(u));
       }
 
-      if (evt === "chat") handleAction(u, 10); 
+      if (evt === "chat") {
+          let msg = (d?.data?.comment || "").trim();
+          if (codeActive && msg === secretCode) {
+              codeActive = false;
+              lastCodeWinner = { name: u, img: userAvatars[u] };
+              nextCodeTime = millis() + random(45000, 90000);
+              handleAction(u, 1500);
+              addPopup("CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil tajný kód!` : `Player ${u} cracked the secret code!`);
+              createParticles(W/2, H/2, color(255, 215, 0), 100);
+          }
+          handleAction(u, 10); 
+      }
       else if (evt === "like") handleAction(u, (d.data?.likeCount || 1) * 2); 
       else if (evt === "gift") { 
-          handleAction(u, (d?.data?.diamonds || 1) * 2000); 
+          let diam = d?.data?.diamonds || 1;
+          handleAction(u, diam * 2000); 
+          updateGiftLB(u, diam, players.find(x=>x.name===u)?.color || color(255));
           let giftMsgsCZ = [
               "Obrovské díky, " + u + "! Tvá energie je naprosto úžasná!",
               "Páni, " + u + " nám posílá nádhernou podporu! Moc děkujeme!",
@@ -1216,8 +1736,17 @@ function speakTTS(txt) {
 
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { allTimeHpLeaderboard = {}; safePlaySound(200, 0.1, 0.5); }
+  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { 
+      allTimeHpLeaderboard = {}; 
+      localStorage.removeItem('galaxinko_alltime_hp');
+      safePlaySound(200, 0.1, 0.5); 
+  }
+  if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
+      allTimeGifts = {}; 
+      localStorage.removeItem('galaxinko_alltime_gifts');
+      safePlaySound(200, 0.1, 0.5); 
+  }
 }
 </script>
 </body>
-</html>l
+</html>
