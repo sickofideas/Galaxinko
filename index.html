@@ -57,11 +57,11 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.53.0"; // Dynamic Themes, Larger HUD, Better Background
+var GAME_VERSION = "v19.54.2"; // Fixed handleTTSCommentary ReferenceError
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 230; // Zvětšený prostor pro horní tabulky
+var ARENA_TOP = 230; 
 var ARENA_BOT = 900; 
 
 // Theme variables
@@ -135,26 +135,108 @@ var COMMENTARY_GENERAL = {
     "Zajímavost: Pluto bylo objeveno teprve v roce devatenáct set třicet.", "Vesmír podle odhadů vědců vznikl zhruba před třinácti a půl miliardami let.", "Lidské tělo se ve stavu beztíže natáhne až o několik centimetrů."
   ],
   EN: [
-    "Did you know that in space, no one can hear you scream? Luckily, we can hear you here!", "The fastest thing in the universe is light. Followed closely by this arena!", "This arena is bigger than it looks, thanks to advanced space compression.", "Gravity is just a myth until you start dropping out of the arena.",
-    "The universe is expanding, but your chances of survival are shrinking!", "Did you know it rains sulfuric acid on Venus? Here, it only rains problems.", "If we traveled at the speed of light, we'd be in the next round by now.", "They say you are weightless in space. Here, you are just clueless.",
-    "Don't forget to breathe. Oxygen costs extra around here.", "Some players rotate so fast they time travel to the past.", "Did you know the Sun accounts for over 99 percent of the mass in our solar system?", "A single day on Venus lasts longer than an entire year on Earth.",
-    "Neutron stars can rotate at incredible speeds, up to six hundred times a second.", "There is a giant cloud in space containing an enormous amount of alcohol.", "It likely rains diamonds on planets like Jupiter and Saturn.", "Arena temperature is rising to the max. Keep a cool head.",
-    "There is no up or down in space. Only harsh survival.", "Physics here works more like a mild suggestion than a hard rule.", "The Milky Way smells like raspberries and rum. Scientifically speaking.", "Communication with base lost. Players are completely on their own.",
-    "We are currently flying past the Andromeda galaxy. Please wave!", "According to my super calculations, only the toughest will survive.", "If you see a shooting star, make a wish.", "This battle is fully sponsored by the Galactic Union. Thanks for participating!",
-    "Stardust might bring you luck. But probably not.", "Check your seatbelts. Oh wait, you actually don't have any.", "I bet aliens are eating popcorn and excitedly watching you from afar.", "Feel like you are spinning in circles? Because that's exactly what you are doing.",
-    "Not even a titanium suit will help you here. You just need energy!", "Watch that trajectory!", "They heard that crash all the way to the Moon!", "Heavy hits! Only the best succeed here!",
-    "Took that one right in the core!", "High speed brings hard hits!", "The glowing shield is taking a beating!", "Look at those bounces, absolute madness!",
-    "We are writing this round in the history books!", "Someone stop these giant spinning titans!", "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!",
-    "An epic battle of dancing circles!", "Legends are born right here!", "Without energy, you're just a tiny dot!", "What a hit, and they're still on the map!",
-    "Massive energy surge in the sector!", "Everyone is crashing into one massive pile!", "These circles could spin the entire galaxy!", "One flies here, another there... pure chaos!",
-    "Direct hit! Spot on!", "Pressure in the arena is rising to the max!", "Unbelievable speed! Rotation is rising!", "This is exactly the space ride we were waiting for!",
-    "Cruel collision between two titans!", "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", "This fight is more thrilling than a championship finals!",
-    "Watch the dynamics! Physics is working hard here!", "Great hit! That must have taken a ton of power!", "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby!",
-    "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
-    "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!", "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
-    "Amazing atmosphere in the arena!", "One single wrong step and you fall into the abyss of history.", "This strikingly resembles the collision of two giant asteroids.", "A perfectly precise and clean hit!",
-    "The entire arena is shaking! This is a true battle of space titans.", "Unbelievable survival! This player must have nine different chances.",
-    "Sparks as bright and large as small transport ships are exploding here!", "Who would have thought a simple circle could cause such massive havoc.",
+    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Watch the edges, nothing spares you here!", "Sparks are flying!", 
+    "Who will win this madness?", "What a brawl!", "Spinning to the max!", 
+    "Wow, threw him away like a toy!", "This is live space pinball!", 
+    "Watch that trajectory!", "They heard that crash all the way to the Moon!", 
+    "Heavy hits! Only the best succeed here!", "Took that one right in the core!", 
+    "Rev up those circles! We want to see more points!", "High speed brings hard hits!", 
+    "The glowing shield is taking a beating!", "Look at those bounces, absolute madness!", 
+    "We are writing this round in the history books!", "Someone stop these giant spinning titans!", 
+    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!", 
+    "An epic battle of dancing circles!", "Legends are born right here!", 
+    "Without energy, you're just a tiny dot!", "What a hit, and they're still on the map!", 
+    "Massive energy surge in the sector!", "Everyone is crashing into one massive pile!", 
+    "Tactics won't help, raw power decides here!", "These circles could spin the entire galaxy!", 
+    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points!", 
+    "Pressure in the arena is rising to the max!", "Unbelievable speed! Spin it even faster!", 
+    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!", 
+    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", 
+    "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", 
+    "Great hit! That must have taken a ton of power!", "Don't give them a chance to breathe! Bring them to their knees!", 
+    "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby!", 
+    "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", 
+    "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
+    "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!",
+    "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
+    "Amazing atmosphere in the arena! Can you feel this massive energy?", "One single wrong step and you end up in the deep abyss of history.",
+    "This strikingly resembles the collision of two giant asteroids.", "Watch that unbelievable trajectory. A perfectly precise and clean hit!",
+    "Someone obviously had raw energy for breakfast. That's an incredible drive!", "The entire arena is shaking! This is a true battle of space titans.",
+    "Unbelievable survival! This player must have nine different chances.", "Sparks as bright and large as small transport ships are exploding here!",
+    "Spin those giant saws! We all want to see much more action!", "Who would have thought a simple circle could cause such massive havoc.",
+    "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!",
+    "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records. I can feel it.",
+    "Just don't let up! This arena forgives absolutely no weakness.", "How much more space energy can they even absorb? They are completely unstoppable!",
+    "Ladies and gentlemen, you are currently watching peak space destruction.", "That piercing sound of shattering metal. It's simply music to my robotic ears!"
+  ]
+};
+
+var COMMENTARY = {
+  CZ: [
+    "Au, to byla rána!", "Neskutečný odraz v aréně!", "Pozor na okraje, tady vás nic nešetří!", "Tady lítají jiskry!", 
+    "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!", 
+    "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!", 
+    "Sledujte tu trajektorii!", "Ten náraz slyšeli až na Měsíci!", 
+    "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!", 
+    "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Vysoká rychlost přináší tvrdé nárazy!", 
+    "Zářivý štít dostává pořádně zabrat!", "Podívejte se na ty odrazy, to je naprosté šílenství!", 
+    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!", 
+    "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!", 
+    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!", 
+    "Bez energie jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!", 
+    "Masivní nárůst energie v sektoru!", "Všichni se sráží do jednoho velkého chumlu!", 
+    "Taktika tu nepomůže, tady rozhoduje čistá síla!", "Tyhle kruhy by roztočily i celou galaxii!", 
+    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?", 
+    "Tlak v aréně stoupá na maximum!", "Neuvěřitelná rychlost! Roztočte to ještě víc!", 
+    "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!", 
+    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!", 
+    "Tenhle souboj je napínavější než finále mistrovství!", "Sledujte tu dynamiku! Fyzika tady dostává zabrat!", 
+    "Skvělý zásah! Tohle stálo hodně energie!", "Nedávejte jim šanci vydechnout! Srazte je na kolena!", 
+    "Točí se to jako šílené! Kdo to zastaví?", "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!", 
+    "Totální chaos! Tohle je to, co chceme vidět!", "Brutální rotace! Tohle muselo obrovsky bolet.", 
+    "Viděli jste ten neuvěřitelný úhybný manévr? Naprostá nádhera!", "Někdo by měl zavolat úklidovou četu. Bude tu velký nepořádek.",
+    "Drtivý dopad! Vesmírné úlomky teď létají úplně všude kolem.", "Štíty sice selhávají a motory hoří, ale obrovský boj pokračuje dál!",
+    "Tohle je přesně ta chvíle, kdy se v aréně rodí skuteční hrdinové.", "Ten úder byl tak silný, že by dokázal prorazit i samotnou planetu!",
+    "Úžasná atmosféra v aréně! Cítíte tu masivní energii?", "Jeden jediný chybný krok a končíte v hlubokém propadlišti dějin.",
+    "Tohle nápadně připomíná srážku dvou obřích asteroidů.", "Sledujte tu neuvěřitelnou trajektorii. Naprosto přesný a čistý zásah!",
+    "Někdo tady evidentně snídal syrovou energii. To je neskutečný tah!", "Celá aréna se třese! Tohle je nefalšovaná bitva vesmírných titánů.",
+    "Neuvěřitelné přežití! Tenhle hráč má snad devět různých šancí.", "Vybuchují tady jasné jiskry o velikosti menších dopravních lodí!",
+    "Roztočte ty obří pily! Chceme všichni vidět mnohem víc akce!", "Kdo by to byl řekl, že takový obyčejný kruh dokáže způsobit takovou paseku.",
+    "A je to tam! Přímý zásah na hlavní komoru protivníka.", "Vysoké otáčky znamenají obrovské plošné poškození. Bacha na to!",
+    "Taková šílená dynamika! Moje optické senzory nestíhají vůbec sledovat.", "Tohle probíhající kolo bude stoprocentně trhat všechny dosavadní rekordy. Už to cítím.",
+    "Hlavně nepolevujte! Tahle aréna neodpouští absolutně žádnou slabost.", "Kolik vesmírné energie se do něj ještě vůbec vejde? Je naprosto k nezastavení!",
+    "Dámy a pánové, právě sledujete vrcholnou vesmírnou destrukci.", "Ten pronikavý zvuk tříštícího se kovu. To je prostě hudba pro mé robotické uši!"
+  ],
+  EN: [
+    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Watch the edges, nothing spares you here!", "Sparks are flying!", 
+    "Who will win this madness?", "What a brawl!", "Spinning to the max!", 
+    "Wow, threw him away like a toy!", "This is live space pinball!", 
+    "Watch that trajectory!", "They heard that crash all the way to the Moon!", 
+    "Heavy hits! Only the best succeed here!", "Took that one right in the core!", 
+    "Rev up those circles! We want to see more points!", "High speed brings hard hits!", 
+    "The glowing shield is taking a beating!", "Look at those bounces, absolute madness!", 
+    "We are writing this round in the history books!", "Someone stop these giant spinning titans!", 
+    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!", 
+    "An epic battle of dancing circles!", "Legends are born right here!", 
+    "Without energy, you're just a tiny dot!", "What a hit, and they're still on the map!", 
+    "Massive energy surge in the sector!", "Everyone is crashing into one massive pile!", 
+    "Tactics won't help, raw power decides here!", "These circles could spin the entire galaxy!", 
+    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points!", 
+    "Pressure in the arena is rising to the max!", "Unbelievable speed! Spin it even faster!", 
+    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!", 
+    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", 
+    "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", 
+    "Great hit! That must have taken a ton of power!", "Don't give them a chance to breathe! Bring them to their knees!", 
+    "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby!", 
+    "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", 
+    "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
+    "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!",
+    "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
+    "Amazing atmosphere in the arena! Can you feel this massive energy?", "One single wrong step and you end up in the deep abyss of history.",
+    "This strikingly resembles the collision of two giant asteroids.", "Watch that unbelievable trajectory. A perfectly precise and clean hit!",
+    "Someone obviously had raw energy for breakfast. That's an incredible drive!", "The entire arena is shaking! This is a true battle of space titans.",
+    "Unbelievable survival! This player must have nine different chances.", "Sparks as bright and large as small transport ships are exploding here!",
+    "Spin those giant saws! We all want to see much more action!", "Who would have thought a simple circle could cause such massive havoc.",
     "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!",
     "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records. I can feel it.",
     "Just don't let up! This arena forgives absolutely no weakness.", "How much more space energy can they even absorb? They are completely unstoppable!",
@@ -678,7 +760,7 @@ function handleCombat(p1, p2) {
   let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
   let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
 
-  // IMMUNITY CHECK
+  // IMMUNITY CHECK (Nové pravidlo pro prevenci damage)
   if (p1.immunityTimer > 0) finalDmgTo1 = 0;
   if (p2.immunityTimer > 0) finalDmgTo2 = 0;
 
@@ -861,15 +943,12 @@ function drawSecretCodeUI() {
         textAlign(CENTER, CENTER);
         textStyle(BOLD);
         
-        // Rychlejší a nečitelný pohyb kódu po aréně
         let cx = codeX + sin(frameCount * 0.1) * 40;
         let cy = codeY + cos(frameCount * 0.08) * 25;
         
-        // Občasné přeskočení vykreslení (blikání)
         let skipText = random() < 0.15;
         
         if (!skipText) {
-            // Glitch interference
             if (random() < 0.2) {
                 cx += random(-15, 15);
                 cy += random(-10, 10);
@@ -880,7 +959,6 @@ function drawSecretCodeUI() {
             
             text(secretCode, cx, cy);
             
-            // RGB Split - Chromatická aberace (CRT efekt)
             if (random() < 0.6) {
                 fill(255, 0, 0, flicker * 0.7);
                 text(secretCode, cx - 3, cy);
@@ -1069,7 +1147,7 @@ function handleCameraAndPlayers() {
     
     let targetR = getRadius(p.hp);
     if (Math.abs(targetR - p.r) > 0.1 && p.body && p.hp > 0) {
-        let newR = lerp(p.r, targetR, 0.1); // Plynulé škálování tlumí vibrace těl
+        let newR = lerp(p.r, targetR, 0.1); 
         let s = newR / p.r;
         if (isFinite(s) && s > 0) {
             Matter.Body.scale(p.body, s, s);
@@ -1147,7 +1225,6 @@ function handleCameraAndPlayers() {
   }
 
   let len = players.length;
-  // Oddálí arénu až při větším počtu hráčů
   if (len >= 200) targetCameraScale = 0.35;
   else if (len >= 150) targetCameraScale = 0.50;
   else if (len >= 100) targetCameraScale = 0.70;
