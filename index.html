@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.50.2"; // Fixed missing drawTopHUD and handleTTSCommentary
+var GAME_VERSION = "v19.51.0"; // Tiered Gifts, Immunity Shield & Royal Crown integrated
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -442,11 +442,12 @@ function setupEvents() {
   document.getElementById('tGift').onclick = () => { 
       if(players.length > 0) { 
           let u = random(players).name; 
-          handleAction(u, 5000); 
+          let testDiam = random([10, 150, 1200, 6000]); // Simulace Tiered Gifts
+          handleAction(u, 0, true, testDiam); 
           let c = players.find(x=>x.name===u)?.color || color(255);
-          updateGiftLB(u, 2, c); 
+          updateGiftLB(u, testDiam, c); 
           if (!roundGifts[u]) roundGifts[u] = { score: 0, color: c, avatar: userAvatars[u] || null };
-          roundGifts[u].score += 2;
+          roundGifts[u].score += testDiam;
       } 
   };
   document.getElementById('tChat').onclick = () => { 
@@ -485,7 +486,63 @@ function formatK(num) {
 
 function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 0.5, 110); }
 
-function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor) {
+// ==========================================
+// TIERED GIFTS A IMUNITA EFEKTY
+// ==========================================
+function triggerGiftEffect(p, diam) {
+    if (diam >= 5000) {
+        p.immunityTimer += 120 * 60; // 120 sec (60FPS)
+        p.hasCrown = true;
+        screenShake = 30;
+        p.auraFlash = 60;
+        speakTTS(currentLang === "CZ" ? `GALAXY GIFT OD ${p.name}!!!` : `GALAXY GIFT FROM ${p.name}!!!`);
+        addPopup("GALAXY GIFT!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 0, 255), true);
+        addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
+        createParticles(p.body.position.x, p.body.position.y, color(255, 0, 255), 100);
+    } else if (diam >= 1000) {
+        p.immunityTimer += 120 * 60;
+        screenShake = 20;
+        p.auraFlash = 45;
+        speakTTS(currentLang === "CZ" ? `Mega dárek od ${p.name}! Lev se probouzí!` : `Mega gift from ${p.name}! The Lion awakens!`);
+        addPopup("LION GIFT!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 150, 0), true);
+        addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
+        createParticles(p.body.position.x, p.body.position.y, color(255, 150, 0), 60);
+    } else if (diam >= 100) {
+        p.immunityTimer += 120 * 60;
+        screenShake = 10;
+        p.auraFlash = 30;
+        speakTTS(currentLang === "CZ" ? `Nádherný dárek od ${p.name}!` : `Beautiful gift from ${p.name}!`);
+        addPopup("EPIC GIFT!", p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
+        addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
+        createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
+    } else {
+        addPopup("+" + (diam * 900) + " HP", p.body.position.x, p.body.position.y - p.r, color(255, 100, 150));
+    }
+}
+
+function handleAction(name, amount, isGift = false, diam = 0) {
+  if(!audioStarted) { audioStarted = true; userStartAudio(); }
+  
+  let finalAmount = amount;
+  if (isGift) {
+      if (diam >= 5000) finalAmount = diam * 2800;
+      else if (diam >= 1000) finalAmount = diam * 2200;
+      else if (diam >= 100) finalAmount = diam * 1600;
+      else finalAmount = diam * 900;
+  }
+
+  let p = players.find(x => x.name === name);
+  if(p) {
+    p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
+    if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+    if (isGift) triggerGiftEffect(p, diam);
+  } else {
+    let baseHp = getStartingHp(name);
+    spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
+  }
+}
+
+function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0) {
   let safeHp = Math.max(0, hp || 100); 
   let r = getRadius(safeHp);
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
@@ -496,17 +553,24 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor) {
     color: playerColor,
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
-    sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [] 
+    sawType: Math.floor(random(30)), likeBuffTimer: 0, trail: [],
+    immunityTimer: 0, hasCrown: false
   };
   
   players.push(player);
   Matter.World.add(world, body);
-  speakTTS(T[currentLang].NEW + name);
+  
+  if (isGift) {
+      triggerGiftEffect(player, diam);
+  } else {
+      speakTTS(T[currentLang].NEW + name);
+  }
+  
   createParticles(spawnX, spawnY, playerColor, 15);
   safePlaySound(600, 0.1, 0.05);
 }
 
-function spawnPlayer(name, hp) {
+function spawnPlayer(name, hp, isGift = false, diam = 0) {
   let safeHp = Math.max(0, hp || 100); 
   let r = getRadius(safeHp);
   
@@ -551,7 +615,8 @@ function spawnPlayer(name, hp) {
       x: wPos.x, y: wPos.y,
       targetX: bestX, targetY: bestY,
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
-      life: 45, trail: [], color: pColor
+      life: 45, trail: [], color: pColor,
+      isGift: isGift, diam: diam
   });
   
   safePlaySound(400, 0.1, 0.1);
@@ -591,22 +656,10 @@ function handleSpawnModules() {
         pop();
         
         if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
-            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color);
+            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam);
             spawnModules.splice(i, 1);
         }
     }
-}
-
-function handleAction(name, amount) {
-  if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  let p = players.find(x => x.name === name);
-  if(p) {
-    p.hp += amount; p.auraFlash = 15; p.likeBuffTimer = 90; 
-    if (players.length < 50) addPopup("+" + amount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-  } else {
-    let baseHp = getStartingHp(name);
-    spawnPlayer(name, baseHp + amount); 
-  }
 }
 
 function updateHpLB(name, hp, col) {
@@ -673,6 +726,10 @@ function handleCombat(p1, p2) {
   let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
   let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
 
+  // IMMUNITY CHECK (Poškození zrušeno, pokud je imunita)
+  if (p1.immunityTimer > 0) finalDmgTo1 = 0;
+  if (p2.immunityTimer > 0) finalDmgTo2 = 0;
+
   let hp1Before = p1.hp; let hp2Before = p2.hp;
   p1.hp -= finalDmgTo1; p2.hp -= finalDmgTo2;
 
@@ -704,8 +761,12 @@ function handleCombat(p1, p2) {
       createParticles(cx, cy, color(255, 200, 50), 6); 
   }
   
-  if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, isCrit2 ? color(255, 215, 0) : color(255, 80, 80), isCrit2);
-  if (!isHeavyLoad || finalDmgTo2 > 50 || isCrit1) addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, isCrit1 ? color(255, 215, 0) : color(255, 80, 80), isCrit1);
+  if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
+      if(finalDmgTo1 > 0) addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, isCrit2 ? color(255, 215, 0) : color(255, 80, 80), isCrit2);
+  }
+  if (!isHeavyLoad || finalDmgTo2 > 50 || isCrit1) {
+      if(finalDmgTo2 > 0) addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, isCrit1 ? color(255, 215, 0) : color(255, 80, 80), isCrit1);
+  }
 
   if (isCrit1 || isCrit2) {
       safePlaySound(1500, 0.05, 0.2);
@@ -1344,6 +1405,38 @@ function drawPlayer(p) {
 
   rotate(-p.rot); 
   
+  if (p.immunityTimer > 0) {
+      push();
+      let pulse = sin(frameCount * 0.1) * 10;
+      drawingContext.shadowBlur = 20;
+      drawingContext.shadowColor = color(100, 50, 255);
+      fill(50, 100, 255, 60 + sin(frameCount * 0.2) * 40);
+      stroke(100, 150, 255, 200);
+      strokeWeight(3);
+      ellipse(0, 0, p.r * 2.8 + pulse);
+      
+      rotate(frameCount * 0.05);
+      for(let o = 0; o < 3; o++) {
+          let a = (o * TWO_PI) / 3;
+          let ox = cos(a) * (p.r * 1.4 + pulse/2);
+          let oy = sin(a) * (p.r * 1.4 + pulse/2);
+          fill(255); noStroke();
+          ellipse(ox, oy, 6 + random(-2, 2));
+      }
+      pop();
+  }
+
+  if (p.hasCrown) {
+      push();
+      translate(0, -p.r * 1.5 - 10);
+      fill(255, 215, 0); stroke(255); strokeWeight(2);
+      beginShape();
+      vertex(-15, 0); vertex(-25, -15); vertex(-8, -8); 
+      vertex(0, -25); vertex(8, -8); vertex(25, -15); vertex(15, 0);
+      endShape(CLOSE);
+      pop();
+  }
+  
   let imgSize = p.r * 1.6;
   if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); drawingContext.clip();
@@ -1355,9 +1448,16 @@ function drawPlayer(p) {
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
   if (!isHeavyLoad) { drawingContext.shadowBlur = 5; drawingContext.shadowColor = 'black'; }
   
+  let nameCol = color(230);
+  if (p.immunityTimer > 0) {
+      colorMode(HSB);
+      nameCol = color((frameCount * 5) % 360, 255, 255);
+      colorMode(RGB);
+  }
+
   if (p.r > 20) {
       stroke(0); strokeWeight(Math.max(3, p.r * 0.12));
-      fill(230); textStyle(NORMAL);
+      fill(nameCol); textStyle(NORMAL);
       textSize(Math.max(8, p.r * 0.22)); 
       text(p.name.substring(0, 10), 0, -p.r * 0.4); 
   }
@@ -1426,6 +1526,17 @@ function drawPopups() {
 function updateTimers() {
   if (frameCount % 60 === 0) {
       currentTop10 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
+  }
+
+  for (let p of players) {
+      if (p.immunityTimer > 0) {
+          p.immunityTimer--;
+          if (p.immunityTimer <= 0) {
+              safePlaySound(300, 0.1, 0.5);
+              createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 40);
+              p.hasCrown = false; 
+          }
+      }
   }
 
   if (gameState === "PLAYING" && roundTimerFrames > 0) {
@@ -1824,7 +1935,7 @@ function connectTikfinity() {
       else if (evt === "like") handleAction(u, (d.data?.likeCount || 1) * 2); 
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
-          handleAction(u, diam * 2000); 
+          handleAction(u, 0, true, diam); 
           let col = players.find(x=>x.name===u)?.color || color(255);
           updateGiftLB(u, diam, col);
           
