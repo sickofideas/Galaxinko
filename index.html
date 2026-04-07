@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+l<!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
@@ -1830,7 +1830,7 @@ function drawTopHUD() {
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
-  textSize(10); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI (RESET)" : "TOP GIFTERS (RESET)", W/2, HUD_TOP + 120);
+  textSize(10); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", W/2, HUD_TOP + 120);
 
   textStyle(NORMAL); textSize(10); textAlign(LEFT, TOP);
   
