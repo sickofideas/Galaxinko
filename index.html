@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.49.1"; // Fixed missing COMMENTARY variable
+var GAME_VERSION = "v19.50.2"; // Fixed missing drawTopHUD and handleTTSCommentary
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -86,6 +86,19 @@ var COMMENTARY_EMPTY = {
 var COMMENTARY_SOLO = {
   CZ: ["Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", "Aréna patří jen hráči {p}! Změňte to někdo!", "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", "Jeden hráč jaro nedělá. Připojte se!"],
   EN: ["Player {p} is circling all alone! Who challenges them?", "The arena belongs only to {p}! Someone change that!", "{p} thinks they are unstoppable. Prove them wrong!", "One player doesn't make a match. Join in!"]
+};
+
+var COMMENTARY_GIFT = {
+  CZ: [
+    "Neuvěřitelné! Hráč {p} posílá mega podporu!",
+    "Všichni povstaňte, velitel {p} právě shodil bombu!",
+    "Tohle je naprosté šílenství! Děkujeme ti, {p}!"
+  ],
+  EN: [
+    "Unbelievable! Player {p} sends mega support!",
+    "Everyone stand up, commander {p} just dropped a bomb!",
+    "This is absolute madness! Thank you, {p}!"
+  ]
 };
 
 var COMMENTARY_GENERAL = {
@@ -240,6 +253,8 @@ let nextCodeTime = 0;
 let codeX = 0;
 let codeY = 0;
 let lastCodeWinner = null;
+let failedCodeAttempts = 0;
+let isUltraCode = false;
 
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
@@ -248,6 +263,7 @@ let allTimeHpLeaderboard = {};
 let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
 let allTimeGifts = {}; 
 let giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
+let roundGifts = {}; 
 
 let stars = [];
 let nebulas = [];
@@ -370,7 +386,9 @@ function generateSpaceBackground() {
     });
   }
   
-  for(let i=0; i<15; nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(300, 800), color: color(random(50, 150), random(0, 100), random(150, 255), random(2, 10)) }), i++);
+  for(let i=0; i<15; i++) {
+      nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(300, 800), color: color(random(50, 150), random(0, 100), random(150, 255), random(2, 10)) });
+  }
   
   for(let i=0; i<4; i++) {
     planets.push({
@@ -389,6 +407,7 @@ function startNewRound() {
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = players.map(p => p.name);
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; spawnModules = [];
+  roundGifts = {}; 
   
   oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
 
@@ -411,6 +430,8 @@ function startNewRound() {
   nextCodeTime = millis() + random(45000, 90000); 
   codeActive = false;
   lastCodeWinner = null;
+  failedCodeAttempts = 0;
+  isUltraCode = false;
   generateSpaceBackground();
 }
 
@@ -418,7 +439,16 @@ function setupEvents() {
   document.getElementById('langBtn').onclick = (e) => { currentLang = currentLang === "CZ" ? "EN" : "CZ"; e.target.innerText = "LANG: " + currentLang; };
   document.getElementById('tJoin').onclick = () => { handleAction(random(TEST_NAMES) + floor(random(99)), 100); };
   document.getElementById('tLike').onclick = () => { if(players.length > 0) handleAction(random(players).name, floor(random(50, 150))); else document.getElementById('tJoin').click(); };
-  document.getElementById('tGift').onclick = () => { if(players.length > 0) { let u = random(players).name; handleAction(u, 5000); updateGiftLB(u, 2, players.find(x=>x.name===u)?.color || color(255)); } };
+  document.getElementById('tGift').onclick = () => { 
+      if(players.length > 0) { 
+          let u = random(players).name; 
+          handleAction(u, 5000); 
+          let c = players.find(x=>x.name===u)?.color || color(255);
+          updateGiftLB(u, 2, c); 
+          if (!roundGifts[u]) roundGifts[u] = { score: 0, color: c, avatar: userAvatars[u] || null };
+          roundGifts[u].score += 2;
+      } 
+  };
   document.getElementById('tChat').onclick = () => { 
       if(!audioStarted) { audioStarted = true; userStartAudio(); } 
       if(codeActive && players.length > 0) {
@@ -426,9 +456,10 @@ function setupEvents() {
           codeActive = false;
           lastCodeWinner = { name: u, img: userAvatars[u] };
           nextCodeTime = millis() + random(45000, 90000);
-          handleAction(u, 1500);
-          addPopup("CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil tajný kód!` : `Player ${u} cracked the secret code!`);
+          let reward = isUltraCode ? 3000 : 1500;
+          handleAction(u, reward);
+          addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
           createParticles(W/2, H/2, color(255, 215, 0), 100);
       } else {
           speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); 
@@ -786,12 +817,18 @@ function handleOrbs() {
   }
 }
 
+function generateSecretCodeStr(len) {
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    secretCode = "";
+    for(let i=0; i<len; i++) secretCode += chars.charAt(Math.floor(random(chars.length)));
+}
+
 function handleSecretCode() {
     if (!codeActive && gameState === "PLAYING" && millis() > nextCodeTime) {
         codeActive = true;
-        const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        secretCode = "";
-        for(let i=0; i<6; i++) secretCode += chars.charAt(Math.floor(random(chars.length)));
+        isUltraCode = false;
+        failedCodeAttempts = 0;
+        generateSecretCodeStr(6);
         codeX = random(150, W - 150);
         codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
         lastCodeWinner = null;
@@ -802,18 +839,19 @@ function handleSecretCode() {
 function drawSecretCodeUI() {
     if (codeActive) {
         push();
-        // 1. Mystický kód levitující na herní ploše
+        let baseCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
         drawingContext.shadowBlur = 10;
-        drawingContext.shadowColor = color(0, 255, 255);
+        drawingContext.shadowColor = baseCol;
         let flicker = random(80, 180);
-        fill(150, 255, 255, flicker);
+        fill(red(baseCol), green(baseCol), blue(baseCol), flicker);
         noStroke();
-        textSize(18);
+        textSize(isUltraCode ? 22 : 18);
         textAlign(CENTER, CENTER);
         textStyle(BOLD);
         let cx = codeX + sin(frameCount * 0.02) * 10;
         let cy = codeY + cos(frameCount * 0.015) * 10;
-        if (random() < 0.1) cx += random(-3, 3); // občasný glitch
+        if (random() < 0.1) cx += random(-3, 3); 
+        if (isUltraCode && random() < 0.2) cy += random(-3, 3);
         text(secretCode, cx, cy);
         drawingContext.shadowBlur = 0;
         pop();
@@ -822,8 +860,10 @@ function drawSecretCodeUI() {
     if (codeActive || lastCodeWinner) {
         push();
         if (codeActive) {
-            let hint = currentLang === "CZ" ? "/// ZACHYCEN NEZNÁMÝ SIGNÁL: OPIŠ KÓD Z PLOCHY DO CHATU PRO +1500 HP ///" : "/// UNKNOWN SIGNAL: TYPE THE CODE FROM THE SCREEN FOR +1500 HP ///";
-            fill(0, 255, 255, 150 + sin(frameCount * 0.05) * 100);
+            let rewardTxt = isUltraCode ? "+3000 HP" : "+1500 HP";
+            let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'ZACHYCEN NEZNÁMÝ SIGNÁL'}: OPIŠ KÓD Z PLOCHY DO CHATU PRO ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'UNKNOWN SIGNAL'}: TYPE THE CODE FROM THE SCREEN FOR ${rewardTxt} ///`;
+            let hintCol = isUltraCode ? color(255, 100, 100) : color(0, 255, 255);
+            fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
             textSize(10);
             textAlign(CENTER, TOP);
             text(hint, W/2, ARENA_BOT + 45);
@@ -1228,227 +1268,6 @@ function drawLightnings() {
   }
 }
 
-function draw() {
-  background(3, 4, 8); 
-  drawTopHUD();
-
-  fill(10, 12, 15); noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
-  drawFollowerMarquee(); 
-
-  stroke(0, 150, 255, 100); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
-
-  if (gameState === "PLAYING") drawSpaceshipTimer();
-
-  drawingContext.save();
-  drawingContext.beginPath();
-  drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
-  drawingContext.clip();
-
-  drawSpaceBackground();
-  
-  try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
-  
-  processCombatQueue();
-
-  if (gameState === "PLAYING" || gameState === "EXPLODING" || gameState === "RESULTS") {
-    if (gameState === "PLAYING") {
-        handleSecretCode();
-        handleCameraAndPlayers(); 
-        handleSpawnModules();
-    } else {
-        screenShake *= 0.95; 
-        for (let p of players) {
-            if (p.body) {
-                Matter.Body.setVelocity(p.body, {x: 0, y: 0});
-            }
-        }
-    }
-    
-    push();
-    translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
-    scale(cameraScale);
-    if (screenShake > 0.5) translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
-    translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
-    
-    if(players.length < 50) { drawDeathShockwaves(); }
-    if(players.length < 60) { drawLightnings(); }
-    
-    if (gameState === "PLAYING") {
-        handleOrbs();
-    }
-    
-    let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
-    sortedToDraw.forEach(p => drawPlayer(p));
-    
-    if (particles.length > 80) particles.splice(0, particles.length - 80);
-    if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
-    
-    drawParticles();
-    drawPopups();
-    pop();
-
-    if (gameState !== "RESULTS") {
-        updateTimers();
-        if (gameState === "PLAYING") handleTTSCommentary();
-    }
-  } 
-  
-  if (gameState === "RESULTS") {
-    drawResults();
-  }
-  
-  drawingContext.restore(); 
-  drawSecretCodeUI();
-}
-
-function handleTTSCommentary() {
-  if (millis() > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
-      let txt = ""; let arr = [];
-      if (players.length === 0) arr = COMMENTARY_EMPTY[currentLang];
-      else if (players.length === 1) arr = COMMENTARY_SOLO[currentLang];
-      else {
-          if (random() < 0.25) {
-              let top = [...players].sort((a,b) => b.hp - a.hp)[0];
-              if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${Math.floor(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${Math.floor(Math.max(0, top.hp))} points! Go after them!`;
-          } else if (random() < 0.3) {
-              arr = COMMENTARY_GENERAL[currentLang];
-          } else {
-              arr = COMMENTARY[currentLang];
-          }
-      }
-      if (txt === "") {
-          let attempts = 0;
-          do { txt = random(arr); attempts++; } while (txt === lastCommentString && attempts < 5);
-          if (players.length === 1) txt = txt.replace("{p}", players[0].name);
-      }
-      lastCommentString = txt; speakTTS(txt); nextCommentTime = millis() + random(5000, 10000); 
-  }
-}
-
-function drawTopHUD() {
-  fill(8, 10, 18); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
-
-  textAlign(CENTER, CENTER); drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(0, 255, 255);
-  fill(0, 255, 255); textSize(16); textStyle(BOLD); text(GAME_TITLE, W/2, HUD_TOP + 20);
-  drawingContext.shadowBlur = 0; fill(150); textSize(8); textStyle(NORMAL); text(GAME_VERSION, W/2, HUD_TOP + 35);
-
-  let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
-  fill(100, 255, 100); textSize(28); textStyle(BOLD);
-  if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-  text(timeStr, W/2, HUD_TOP + 65); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 85);
-
-  // HP LEADERBOARD
-  let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
-  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 160, h: 15};
-  
-  textAlign(LEFT, TOP);
-  let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
-  fill(hoverHp ? color(255, 50, 50) : color(255, 100, 255));
-  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL TIME HIGHEST HP" : "ALL TIME HIGHEST HP", 10, HUD_TOP + 10);
-  
-  textStyle(NORMAL); textSize(8);
-  for(let i=0; i<Math.min(3, allTimeSorted.length); i++) {
-      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*16;
-      let xBase = 10;
-      if (pData.avatar && pData.avatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-          image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
-          fill(pData.color); text(`${i+1}. ${pName.substring(0,6)}`, xBase + 16, y);
-      } else {
-          fill(pData.color); text(`${i+1}. ${pName.substring(0,8)}`, xBase, y);
-      }
-      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
-  }
-
-  if (allTimeSorted.length > 3) {
-      let numExtra = allTimeSorted.length - 3;
-      let scrollYBase = HUD_TOP + 28 + 3*16; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(5, scrollYBase - 2, 160, 26); drawingContext.clip();
-      let itemH = 16; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.3) % totalExtraH; 
-      
-      for(let i=0; i<numExtra * 2; i++) { 
-          let idx = 3 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; 
-          let y = scrollYBase + (i * itemH) - scrollPos;
-          let xBase = 10;
-          if (pData.avatar && pData.avatar !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-              image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
-              fill(pData.color); text(`${idx+1}. ${pName.substring(0,6)}`, xBase + 16, y);
-          } else { fill(pData.color); text(`${idx+1}. ${pName.substring(0,8)}`, xBase, y); }
-          fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
-      }
-      drawingContext.restore();
-  }
-
-  // ELITE ROUND LEADERBOARD
-  let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
-  textAlign(RIGHT, TOP); fill(0, 255, 255); textSize(9); textStyle(BOLD); text(T[currentLang].TOP, W - 10, HUD_TOP + 10);
-  textStyle(NORMAL); textSize(8);
-  for(let i = 0; i < hpSorted.length; i++) {
-      let p = hpSorted[i]; fill(p.color); text(`${i+1}. ${p.name.substring(0,8)}`, W - 80, HUD_TOP + 28 + i*14);
-      fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), W - 10, HUD_TOP + 28 + i*14); textStyle(NORMAL);
-  }
-  
-  // GIFTS LEADERBOARD
-  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
-  giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
-  
-  let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
-  textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
-  textSize(8); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI (RESET)" : "TOP GIFTERS (RESET)", W/2, HUD_TOP + 4);
-
-  textStyle(NORMAL); textSize(8); textAlign(LEFT, TOP);
-  
-  // Static 1-5 Left Side
-  for(let i=0; i<Math.min(5, allGiftsSorted.length); i++) {
-      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 28 + i*14;
-      let xBase = W/2 - 150; 
-      if (gData.avatar && gData.avatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-          image(gData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
-          fill(gData.color); text(gName.substring(0, 6), xBase + 16, y);
-      } else {
-          fill(gData.color); text(gName.substring(0, 8), xBase, y);
-      }
-      
-      let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 65, y); textStyle(NORMAL);
-  }
-
-  // Scrolling 6-15 Right Side
-  if (allGiftsSorted.length > 5) {
-      let numExtraG = allGiftsSorted.length - 5;
-      let scrollYBaseG = HUD_TOP + 28; 
-      let rightXBase = W/2 + 50;
-      
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 150, 5 * 14 + 2); 
-      drawingContext.clip();
-      
-      let itemHG = 14;
-      let totalExtraHG = numExtraG * itemHG;
-      let scrollPosG = (frameCount * 0.3) % totalExtraHG; 
-      
-      for(let i=0; i<numExtraG * 2; i++) { 
-          let idx = 5 + (i % numExtraG);
-          let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; 
-          let y = scrollYBaseG + (i * itemHG) - scrollPosG;
-          
-          if (gData.avatar && gData.avatar !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-              image(gData.avatar, rightXBase + 6, y + 4, 12, 12); drawingContext.restore();
-              fill(gData.color); text(gName.substring(0, 6), rightXBase + 16, y);
-          } else {
-              fill(gData.color); text(gName.substring(0, 8), rightXBase, y);
-          }
-          let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-          fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, rightXBase + 65, y); textStyle(NORMAL);
-      }
-      drawingContext.restore();
-  }
-}
-
 function drawPlayer(p) {
   let pos = p.body.position; let safeHp = Math.max(0, p.hp);
   let isBuffed = p.likeBuffTimer > 0; if (isBuffed) p.likeBuffTimer--;
@@ -1492,7 +1311,7 @@ function drawPlayer(p) {
   stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
   let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
-  if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); // Snížení zubů o 60 % při velkém množství hráčů
+  if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4));
   teeth = Math.min(teeth, 60); 
   let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1; let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
   let tType = p.sawType % 3;
@@ -1557,9 +1376,14 @@ function drawPlayer(p) {
 function createParticles(x, y, c, count) {
   if (players.length > 80) return; 
   let actualCount = count;
-  if (players.length > 60) actualCount = Math.max(1, Math.floor(count * 0.3)); // 30% částic
-  else if (players.length > 40) actualCount = Math.max(1, Math.floor(count / 2)); // 50% částic
-  for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: random(4, 10)});
+  if (players.length > 60) {
+      actualCount = Math.max(1, Math.floor(count * 0.3));
+  } else if (players.length > 40) {
+      actualCount = Math.max(1, Math.floor(count / 2));
+  }
+  for(let i=0; i<actualCount; i++) {
+      particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: random(4, 10)});
+  }
 }
 
 function drawParticles() {
@@ -1650,20 +1474,78 @@ function drawResults() {
       speakTTS(wMsg);
   }
 
-  if(winner) {
-    if (userAvatars[winner.name] && userAvatars[winner.name] !== "loaded") {
-      imageMode(CENTER); stroke(winner.color); strokeWeight(3); noFill(); rect(W/2 - 40, ARENA_TOP + 70, 80, 80, 10);
-      image(userAvatars[winner.name], W/2, ARENA_TOP + 110, 75, 75);
-    }
-    noStroke(); fill(winner.color); textSize(18); textStyle(BOLD); text(winner.name, W/2, ARENA_TOP + 175);
-    fill(255); textSize(16); text(Math.floor(Math.max(0, winner.hp)).toLocaleString() + " HP", W/2, ARENA_TOP + 200);
+  let bY = ARENA_TOP + 220; 
+  let anim = constrain(map(resultsTimer, 8, 7, 0, 1), 0, 1);
+
+  for (let i = 0; i < Math.min(3, sorted.length); i++) {
+      let p = sorted[i];
+      let px, ph, pcol;
+      if (i === 0) { px = W/2; ph = 100; pcol = color(255, 215, 0); }
+      else if (i === 1) { px = W/2 - 120; ph = 70; pcol = color(192, 192, 192); }
+      else { px = W/2 + 120; ph = 50; pcol = color(205, 127, 50); }
+
+      let curH = ph * anim;
+      
+      push();
+      fill(10, 15, 30, 200); stroke(pcol); strokeWeight(3);
+      rect(px - 45, bY - curH, 90, curH, 10, 10, 0, 0);
+      
+      fill(pcol); noStroke(); textSize(24); textAlign(CENTER, CENTER); textStyle(BOLD);
+      text(i+1, px, bY - curH/2);
+      pop();
+
+      if (anim > 0.8) {
+          push();
+          let imgSize = i === 0 ? 60 : 45;
+          let imgY = bY - curH - imgSize/2 - 10;
+          if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(px, imgY, imgSize/2, 0, TWO_PI); drawingContext.clip();
+              imageMode(CENTER); image(userAvatars[p.name], px, imgY, imgSize, imgSize); drawingContext.restore();
+          } else {
+              fill(p.color); noStroke(); ellipse(px, imgY, imgSize);
+          }
+          noFill(); stroke(pcol); strokeWeight(3); ellipse(px, imgY, imgSize);
+
+          fill(p.color); noStroke(); textSize(i===0 ? 14 : 11); textStyle(BOLD); textAlign(CENTER, BOTTOM);
+          text(p.name.substring(0,10), px, imgY - imgSize/2 - 5);
+          fill(255); textSize(i===0 ? 12 : 10);
+          text(formatK(p.hp) + " HP", px, bY - curH - imgSize - 25);
+          pop();
+      }
   }
-  
-  textAlign(LEFT, CENTER); let listStartY = ARENA_TOP + 240; let listLimit = Math.min(sorted.length, 15);
-  for (let i = 0; i < listLimit; i++) {
-    let p = sorted[i]; let yPos = listStartY + i * 28;
+
+  let mvpArr = Object.entries(roundGifts).sort((a,b)=>b[1].score - a[1].score);
+  if (mvpArr.length > 0 && anim > 0.8) {
+      let mvp = mvpArr[0];
+      push();
+      fill(30, 10, 30, 200); stroke(255, 50, 150); strokeWeight(2);
+      rect(W/2 - 150, bY + 15, 300, 50, 10);
+      fill(255, 50, 150); noStroke(); textSize(10); textAlign(CENTER, TOP); textStyle(BOLD);
+      text("💎 MVP GIFTER KOLA 💎", W/2, bY + 20);
+      
+      let mX = W/2;
+      let mY = bY + 45;
+      if (mvp[1].avatar && mvp[1].avatar !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(mX - 60, mY, 12, 0, TWO_PI); drawingContext.clip();
+          imageMode(CENTER); image(mvp[1].avatar, mX - 60, mY, 24, 24); drawingContext.restore();
+      } else {
+          fill(mvp[1].color); ellipse(mX - 60, mY, 24, 24);
+      }
+      fill(mvp[1].color); textAlign(LEFT, CENTER); textSize(12);
+      text(mvp[0].substring(0,10), mX - 40, mY);
+      fill(255, 215, 0); textAlign(RIGHT, CENTER);
+      let giftEmoji = mvp[1].score >= 1000 ? '🚀' : '💎';
+      text(mvp[1].score + " " + giftEmoji, mX + 130, mY);
+      pop();
+  }
+
+  textAlign(LEFT, CENTER); 
+  let listStartY = bY + 80; 
+  let listLimit = Math.min(sorted.length, 15);
+  for (let i = 3; i < listLimit; i++) {
+    let p = sorted[i]; let yPos = listStartY + (i-3) * 26;
     fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5)); noStroke(); rect(W/2 - 200, yPos - 12, 400, 24, 5);
-    fill(p.color); textSize(12); textStyle(BOLD); text((i + 1) + ".", W/2 - 180, yPos);
+    fill(p.color); textSize(11); textStyle(BOLD); text((i + 1) + ".", W/2 - 180, yPos);
     if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
         drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 140, yPos, 9, 0, TWO_PI); drawingContext.clip();
         image(userAvatars[p.name], W/2 - 140, yPos, 18, 18); drawingContext.restore();
@@ -1672,11 +1554,227 @@ function drawResults() {
     textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); text(Math.floor(Math.max(0, p.hp)).toLocaleString(), W/2 + 180, yPos); textAlign(LEFT, CENTER); 
   }
   
-  let timerY = ARENA_BOT - 50; 
+  let timerY = ARENA_BOT - 40; 
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
   if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 8; startNewRound(); } } 
+}
+
+function drawTopHUD() {
+  fill(8, 10, 18); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
+
+  textAlign(CENTER, CENTER); drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(0, 255, 255);
+  fill(0, 255, 255); textSize(16); textStyle(BOLD); text(GAME_TITLE, W/2, HUD_TOP + 20);
+  drawingContext.shadowBlur = 0; fill(150); textSize(8); textStyle(NORMAL); text(GAME_VERSION, W/2, HUD_TOP + 35);
+
+  let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
+  fill(100, 255, 100); textSize(28); textStyle(BOLD);
+  if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
+  text(timeStr, W/2, HUD_TOP + 65); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 85);
+
+  let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
+  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 160, h: 15};
+  
+  textAlign(LEFT, TOP);
+  let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
+  fill(hoverHp ? color(255, 50, 50) : color(255, 100, 255));
+  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL TIME HIGHEST HP" : "ALL TIME HIGHEST HP", 10, HUD_TOP + 10);
+  
+  textStyle(NORMAL); textSize(8);
+  for(let i=0; i<Math.min(3, allTimeSorted.length); i++) {
+      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*16;
+      let xBase = 10;
+      if (pData.avatar && pData.avatar !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+          image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
+          fill(pData.color); text(`${i+1}. ${pName.substring(0,6)}`, xBase + 16, y);
+      } else {
+          fill(pData.color); text(`${i+1}. ${pName.substring(0,8)}`, xBase, y);
+      }
+      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
+  }
+
+  if (allTimeSorted.length > 3) {
+      let numExtra = allTimeSorted.length - 3;
+      let scrollYBase = HUD_TOP + 28 + 3*16; 
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(5, scrollYBase - 2, 160, 26); drawingContext.clip();
+      let itemH = 16; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.3) % totalExtraH; 
+      
+      for(let i=0; i<numExtra * 2; i++) { 
+          let idx = 3 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; 
+          let y = scrollYBase + (i * itemH) - scrollPos;
+          let xBase = 10;
+          if (pData.avatar && pData.avatar !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+              image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
+              fill(pData.color); text(`${idx+1}. ${pName.substring(0,6)}`, xBase + 16, y);
+          } else { fill(pData.color); text(`${idx+1}. ${pName.substring(0,8)}`, xBase, y); }
+          fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
+      }
+      drawingContext.restore();
+  }
+
+  let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
+  textAlign(RIGHT, TOP); fill(0, 255, 255); textSize(9); textStyle(BOLD); text(T[currentLang].TOP, W - 10, HUD_TOP + 10);
+  textStyle(NORMAL); textSize(8);
+  for(let i = 0; i < hpSorted.length; i++) {
+      let p = hpSorted[i]; fill(p.color); text(`${i+1}. ${p.name.substring(0,8)}`, W - 80, HUD_TOP + 28 + i*14);
+      fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), W - 10, HUD_TOP + 28 + i*14); textStyle(NORMAL);
+  }
+  
+  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
+  giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
+  
+  let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
+  textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
+  textSize(8); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI (RESET)" : "TOP GIFTERS (RESET)", W/2, HUD_TOP + 4);
+
+  textStyle(NORMAL); textSize(8); textAlign(LEFT, TOP);
+  
+  for(let i=0; i<Math.min(5, allGiftsSorted.length); i++) {
+      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 28 + i*14;
+      let xBase = W/2 - 150; 
+      if (gData.avatar && gData.avatar !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+          image(gData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
+          fill(gData.color); text(gName.substring(0, 6), xBase + 16, y);
+      } else {
+          fill(gData.color); text(gName.substring(0, 8), xBase, y);
+      }
+      
+      let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
+      fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 65, y); textStyle(NORMAL);
+  }
+
+  if (allGiftsSorted.length > 5) {
+      let numExtraG = allGiftsSorted.length - 5;
+      let scrollYBaseG = HUD_TOP + 28; 
+      let rightXBase = W/2 + 50;
+      
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 150, 5 * 14 + 2); 
+      drawingContext.clip();
+      
+      let itemHG = 14;
+      let totalExtraHG = numExtraG * itemHG;
+      let scrollPosG = (frameCount * 0.3) % totalExtraHG; 
+      
+      for(let i=0; i<numExtraG * 2; i++) { 
+          let idx = 5 + (i % numExtraG);
+          let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; 
+          let y = scrollYBaseG + (i * itemHG) - scrollPosG;
+          
+          if (gData.avatar && gData.avatar !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
+              image(gData.avatar, rightXBase + 6, y + 4, 12, 12); drawingContext.restore();
+              fill(gData.color); text(gName.substring(0, 6), rightXBase + 16, y);
+          } else {
+              fill(gData.color); text(gName.substring(0, 8), rightXBase, y);
+          }
+          let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
+          fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, rightXBase + 65, y); textStyle(NORMAL);
+      }
+      drawingContext.restore();
+  }
+}
+
+function handleTTSCommentary() {
+  if (millis() > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
+      let txt = ""; let arr = [];
+      if (players.length === 0) arr = COMMENTARY_EMPTY[currentLang];
+      else if (players.length === 1) arr = COMMENTARY_SOLO[currentLang];
+      else {
+          if (random() < 0.25) {
+              let top = [...players].sort((a,b) => b.hp - a.hp)[0];
+              if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${Math.floor(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${Math.floor(Math.max(0, top.hp))} points! Go after them!`;
+          } else if (random() < 0.3) {
+              arr = COMMENTARY_GENERAL[currentLang];
+          } else {
+              arr = COMMENTARY[currentLang];
+          }
+      }
+      if (txt === "") {
+          let attempts = 0;
+          do { txt = random(arr); attempts++; } while (txt === lastCommentString && attempts < 5);
+          if (players.length === 1) txt = txt.replace("{p}", players[0].name);
+      }
+      lastCommentString = txt; speakTTS(txt); nextCommentTime = millis() + random(5000, 10000); 
+  }
+}
+
+function draw() {
+  background(3, 4, 8); 
+  drawTopHUD();
+
+  fill(10, 12, 15); noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
+  drawFollowerMarquee(); 
+
+  stroke(0, 150, 255, 100); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
+
+  if (gameState === "PLAYING") drawSpaceshipTimer();
+
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
+  drawingContext.clip();
+
+  drawSpaceBackground();
+  
+  try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
+  
+  processCombatQueue();
+
+  if (gameState === "PLAYING" || gameState === "EXPLODING" || gameState === "RESULTS") {
+    if (gameState === "PLAYING") {
+        handleSecretCode();
+        handleCameraAndPlayers(); 
+        handleSpawnModules();
+    } else {
+        screenShake *= 0.95; 
+        for (let p of players) {
+            if (p.body) {
+                Matter.Body.setVelocity(p.body, {x: 0, y: 0});
+            }
+        }
+    }
+    
+    push();
+    translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
+    scale(cameraScale);
+    if (screenShake > 0.5) translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
+    translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
+    
+    if(players.length < 50) { drawDeathShockwaves(); }
+    if(players.length < 60) { drawLightnings(); }
+    
+    if (gameState === "PLAYING") {
+        handleOrbs();
+    }
+    
+    let sortedToDraw = [...players].sort((a,b) => a.r - b.r);
+    sortedToDraw.forEach(p => drawPlayer(p));
+    
+    if (particles.length > 80) particles.splice(0, particles.length - 80);
+    if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
+    
+    drawParticles();
+    drawPopups();
+    pop();
+
+    if (gameState !== "RESULTS") {
+        updateTimers();
+        if (gameState === "PLAYING") handleTTSCommentary();
+    }
+  } 
+  
+  if (gameState === "RESULTS") {
+    drawResults();
+  }
+  
+  drawingContext.restore(); 
+  drawSecretCodeUI();
 }
 
 function connectTikfinity() {
@@ -1704,10 +1802,22 @@ function connectTikfinity() {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
               nextCodeTime = millis() + random(45000, 90000);
-              handleAction(u, 1500);
-              addPopup("CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil tajný kód!` : `Player ${u} cracked the secret code!`);
+              let reward = isUltraCode ? 3000 : 1500;
+              handleAction(u, reward);
+              addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
               createParticles(W/2, H/2, color(255, 215, 0), 100);
+          } else if (codeActive) {
+              failedCodeAttempts++;
+              if (failedCodeAttempts >= 3 && !isUltraCode) {
+                  isUltraCode = true;
+                  generateSecretCodeStr(8);
+                  codeX = random(150, W - 150);
+                  codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
+                  safePlaySound(800, 0.1, 0.8);
+                  addPopup("ULTRA CODE INITIATED!", W/2, H/2, color(255, 50, 50), true);
+                  speakTTS(currentLang === "CZ" ? `Pozor, aktivován Ultra kód za tři tisíce bodů!` : `Warning, Ultra code activated for three thousand points!`);
+              }
           }
           handleAction(u, 10); 
       }
@@ -1715,20 +1825,31 @@ function connectTikfinity() {
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
           handleAction(u, diam * 2000); 
-          updateGiftLB(u, diam, players.find(x=>x.name===u)?.color || color(255));
-          let giftMsgsCZ = [
-              "Obrovské díky, " + u + "! Tvá energie je naprosto úžasná!",
-              "Páni, " + u + " nám posílá nádhernou podporu! Moc děkujeme!",
-              "Vesmír jásá! Děkujeme ti, " + u + ", za tvoji štědrost!",
-              "Neuvěřitelné! " + u + " je opravdová hvězda arény. Děkujeme moc!"
-          ];
-          let giftMsgsEN = [
-              "Massive thanks, " + u + "! Your energy is absolutely amazing!",
-              "Wow, " + u + " is sending beautiful support! Thank you so much!",
-              "The universe rejoices! Thank you, " + u + ", for your generosity!",
-              "Incredible! " + u + " is a true star of the arena. Thank you very much!"
-          ];
-          speakTTS(currentLang === "CZ" ? random(giftMsgsCZ) : random(giftMsgsEN)); 
+          let col = players.find(x=>x.name===u)?.color || color(255);
+          updateGiftLB(u, diam, col);
+          
+          if (!roundGifts[u]) roundGifts[u] = { score: 0, color: col, avatar: userAvatars[u] || null };
+          roundGifts[u].score += diam;
+          if (userAvatars[u]) roundGifts[u].avatar = userAvatars[u];
+
+          if (diam >= 1000) {
+              let msg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", u);
+              speakTTS(msg);
+          } else {
+              let giftMsgsCZ = [
+                  "Obrovské díky, " + u + "! Tvá energie je naprosto úžasná!",
+                  "Páni, " + u + " nám posílá nádhernou podporu! Moc děkujeme!",
+                  "Vesmír jásá! Děkujeme ti, " + u + ", za tvoji štědrost!",
+                  "Neuvěřitelné! " + u + " je opravdová hvězda arény. Děkujeme moc!"
+              ];
+              let giftMsgsEN = [
+                  "Massive thanks, " + u + "! Your energy is absolutely amazing!",
+                  "Wow, " + u + " is sending beautiful support! Thank you so much!",
+                  "The universe rejoices! Thank you, " + u + ", for your generosity!",
+                  "Incredible! " + u + " is a true star of the arena. Thank you very much!"
+              ];
+              speakTTS(currentLang === "CZ" ? random(giftMsgsCZ) : random(giftMsgsEN)); 
+          }
       }
     } catch (err) {}
   };
