@@ -57,12 +57,16 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.52.0"; 
+var GAME_VERSION = "v19.53.0"; // Dynamic Themes, Larger HUD, Better Background
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 150; 
+var ARENA_TOP = 230; // Zvětšený prostor pro horní tabulky
 var ARENA_BOT = 900; 
+
+// Theme variables
+var roundThemeColor;
+var roundThemeColorDark;
 
 var currentLang = "CZ";
 var T = {
@@ -152,79 +156,6 @@ var COMMENTARY_GENERAL = {
     "The entire arena is shaking! This is a true battle of space titans.", "Unbelievable survival! This player must have nine different chances.",
     "Sparks as bright and large as small transport ships are exploding here!", "Who would have thought a simple circle could cause such massive havoc.",
     "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!",
-    "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records.",
-    "Just don't let up! This arena forgives absolutely no weakness.", "Ladies and gentlemen, you are currently watching peak space destruction.",
-    "That piercing sound of shattering metal. It's simply music to my robotic ears!"
-  ]
-};
-
-var COMMENTARY = {
-  CZ: [
-    "Au, to byla rána!", "Neskutečný odraz v aréně!", "Pozor na okraje, tady vás nic nešetří!", "Tady lítají jiskry!", 
-    "Kdo ovládne tohle šílenství?", "To je ale mela!", "Rotace na maximum!", 
-    "Páni, ten ho odhodil jako hračku!", "Tohle je vesmírný pinball v přímém přenosu!", 
-    "Sledujte tu trajektorii!", "Ten náraz slyšeli až na Měsíci!", 
-    "Tvrdé srážky! Tady uspějí jen ti nejlepší!", "Ten to koupil přímo na komoru!", 
-    "Rozjeďte ty kruhy! Chceme vidět víc bodů!", "Vysoká rychlost přináší tvrdé nárazy!", 
-    "Zářivý štít dostává pořádně zabrat!", "Podívejte se na ty odrazy, to je naprosté šílenství!", 
-    "Tohle kolo s radostí zapíšeme do historie!", "Zastavte někdo tyhle obří rotující giganty!", 
-    "Kdo má největší kruh, ten tady velí!", "Přichází drtivý úder zprava!", 
-    "Epický souboj tancujících kruhů!", "Tady se tvoří legendy!", 
-    "Bez energie jste jen malá tečka!", "Taková pecka a on se ještě drží na mapě!", 
-    "Masivní nárůst energie v sektoru!", "Všichni se sráží do jednoho velkého chumlu!", 
-    "Taktika tu nepomůže, tady rozhoduje čistá síla!", "Tyhle kruhy by roztočily i celou galaxii!", 
-    "Jeden letí tam, druhý sem... naprostý chaos!", "Zásah! Kdo si půjde pro další body?", 
-    "Tlak v aréně stoupá na maximum!", "Neuvěřitelná rychlost! Roztočte to ještě víc!", 
-    "Tohle je přesně ta vesmírná jízda, na kterou jsme čekali!", "Krutá srážka dvou titánů!", 
-    "Vesmírný bumerang v praxi, tohle je slušná jízda!", "Jiskry létají, tohle jsou Galaxinko Wars!", 
-    "Tenhle souboj je napínavější než finále mistrovství!", "Sledujte tu dynamiku! Fyzika tady dostává zabrat!", 
-    "Skvělý zásah! Tohle stálo hodně energie!", "Nedávejte jim šanci vydechnout! Srazte je na kolena!", 
-    "Točí se to jako šílené! Kdo to zastaví?", "Úúú, čistý průlet! Tenhle kruh bude potřebovat opraváře!", 
-    "Totální chaos! Tohle je to, co chceme vidět!", "Brutální rotace! Tohle muselo obrovsky bolet.", 
-    "Viděli jste ten neuvěřitelný úhybný manévr? Naprostá nádhera!", "Někdo by měl zavolat úklidovou četu. Bude tu velký nepořádek.",
-    "Drtivý dopad! Vesmírné úlomky teď létají úplně všude kolem.", "Štíty sice selhávají a motory hoří, ale obrovský boj pokračuje dál!",
-    "Tohle je přesně ta chvíle, kdy se v aréně rodí skuteční hrdinové.", "Ten úder byl tak silný, že by dokázal prorazit i samotnou planetu!",
-    "Úžasná atmosféra v aréně! Cítíte tu masivní energii?", "Jeden jediný chybný krok a končíte v hlubokém propadlišti dějin.",
-    "Tohle nápadně připomíná srážku dvou obřích asteroidů.", "Sledujte tu neuvěřitelnou trajektorii. Naprosto přesný a čistý zásah!",
-    "Někdo tady evidentně snídal syrovou energii. To je neskutečný tah!", "Celá aréna se třese! Tohle je nefalšovaná bitva vesmírných titánů.",
-    "Neuvěřitelné přežití! Tenhle hráč má snad devět různých šancí.", "Vybuchují tady jasné jiskry o velikosti menších dopravních lodí!",
-    "Roztočte ty obří pily! Chceme všichni vidět mnohem víc akce!", "Kdo by to byl řekl, že takový obyčejný kruh dokáže způsobit takovou paseku.",
-    "A je to tam! Přímý zásah na hlavní komoru protivníka.", "Vysoké otáčky znamenají obrovské plošné poškození. Bacha na to!",
-    "Taková šílená dynamika! Moje optické senzory nestíhají vůbec sledovat.", "Tohle probíhající kolo bude stoprocentně trhat všechny dosavadní rekordy. Už to cítím.",
-    "Hlavně nepolevujte! Tahle aréna neodpouští absolutně žádnou slabost.", "Kolik vesmírné energie se do něj ještě vůbec vejde? Je naprosto k nezastavení!",
-    "Dámy a pánové, právě sledujete vrcholnou vesmírnou destrukci.", "Ten pronikavý zvuk tříštícího se kovu. To je prostě hudba pro mé robotické uši!"
-  ],
-  EN: [
-    "Ouch, that was a huge bump!", "Incredible bounce in the arena!", "Watch the edges, nothing spares you here!", "Sparks are flying!", 
-    "Who will win this madness?", "What a brawl!", "Spinning to the max!", 
-    "Wow, threw him away like a toy!", "This is live space pinball!", 
-    "Watch that trajectory!", "They heard that crash all the way to the Moon!", 
-    "Heavy hits! Only the best succeed here!", "Took that one right in the core!", 
-    "Rev up those circles! We want to see more points!", "High speed brings hard hits!", 
-    "The glowing shield is taking a beating!", "Look at those bounces, absolute madness!", 
-    "We are writing this round in the history books!", "Someone stop these giant spinning titans!", 
-    "Whoever has the biggest circle rules the arena!", "Here comes a crushing blow from the right!", 
-    "An epic battle of dancing circles!", "Legends are born right here!", 
-    "Without energy, you're just a tiny dot!", "What a hit, and they're still on the map!", 
-    "Massive energy surge in the sector!", "Everyone is crashing into one massive pile!", 
-    "Tactics won't help, raw power decides here!", "These circles could spin the entire galaxy!", 
-    "One flies here, another there... pure chaos!", "Direct hit! Who's taking the next points!", 
-    "Pressure in the arena is rising to the max!", "Unbelievable speed! Spin it even faster!", 
-    "This is exactly the space ride we were waiting for!", "Cruel collision between two titans!", 
-    "Space boomerang in action, what a ride!", "Sparks flying, this is Galaxinko Wars!", 
-    "This fight is more thrilling than a championship finals!", "Watch the dynamics! Physics is working hard here!", 
-    "Great hit! That must have taken a ton of energy!", "Don't give them a chance to breathe! Bring them to their knees!", 
-    "Spinning like crazy! Who's gonna stop it!", "Ooh, clean flyby!", 
-    "Total chaos! This is what we want to see!", "Brutal rotation! That must have hurt massively.", 
-    "Did you see that incredible evasive maneuver? Absolutely beautiful!", "Someone should call the cleanup crew. It's going to be a huge mess.",
-    "Crushing impact! Space debris is flying everywhere now.", "Shields might be failing and engines burning, but the massive fight continues!",
-    "This is exactly the moment true heroes are born in the arena.", "That strike was strong enough to shatter a planet itself!",
-    "Amazing atmosphere in the arena! Can you feel this massive energy?", "One single wrong step and you end up in the deep abyss of history.",
-    "This strikingly resembles the collision of two giant asteroids.", "Watch that unbelievable trajectory. A perfectly precise and clean hit!",
-    "Someone obviously had raw energy for breakfast. That's an incredible drive!", "The entire arena is shaking! This is a true battle of space titans.",
-    "Unbelievable survival! This player must have nine different chances.", "Sparks as bright and large as small transport ships are exploding here!",
-    "Spin those giant saws! We all want to see much more action!", "Who would have thought a simple circle could cause such massive havoc.",
-    "And there it is! A direct hit to the opponent's main core.", "High RPM means massive area damage. Watch out for that!",
     "Such insane dynamics! My optical sensors can't even keep up.", "This ongoing round will absolutely break all previous records. I can feel it.",
     "Just don't let up! This arena forgives absolutely no weakness.", "How much more space energy can they even absorb? They are completely unstoppable!",
     "Ladies and gentlemen, you are currently watching peak space destruction.", "That piercing sound of shattering metal. It's simply music to my robotic ears!"
@@ -260,9 +191,9 @@ let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
 
 let allTimeHpLeaderboard = {};
-let allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 200, h: 15}; 
+let allTimeLbRect = {x: 10, y: HUD_TOP + 15, w: 200, h: 20}; 
 let allTimeGifts = {}; 
-let giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
+let giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 20};
 let roundGifts = {}; 
 
 let stars = [];
@@ -270,6 +201,7 @@ let nebulas = [];
 let shootingStars = [];
 let planets = [];
 let milkyWay = [];
+let spacecrafts = [];
 let flowTime = 0;
 let globalFlowAngle = 0;
 
@@ -360,22 +292,23 @@ function setup() {
   wallRight = Matter.Bodies.rectangle(cx + 1000, cy, wallThick, 20000, wallOpts);
   Matter.World.add(world, [wallTop, wallBot, wallLeft, wallRight]);
 
-  generateSpaceBackground();
-  
-  setupEvents();
   startNewRound();
+  setupEvents();
   connectTikfinity();
 }
 
 function generateSpaceBackground() {
-  stars = []; nebulas = []; shootingStars = []; planets = []; milkyWay = [];
+  stars = []; nebulas = []; shootingStars = []; planets = []; milkyWay = []; spacecrafts = [];
   
   let mwPoints = 60;
   for (let i = 0; i < mwPoints; i++) {
       let t = i / mwPoints;
       let baseX = lerp(-W, W * 2, t) + random(-300, 300);
       let baseY = lerp(-H, H * 2, t) + random(-400, 400);
-      milkyWay.push({ x: baseX, y: baseY, r: random(100, 350), color: color(random(50, 120), random(20, 80), random(100, 200), random(2, 8)) });
+      colorMode(HSB);
+      let mwCol = color((hue(roundThemeColor) + random(-20, 20)) % 360, 60, random(50, 100), random(0.02, 0.05));
+      colorMode(RGB);
+      milkyWay.push({ x: baseX, y: baseY, r: random(100, 350), color: mwCol });
   }
 
   for(let i=0; i<600; i++) {
@@ -387,16 +320,29 @@ function generateSpaceBackground() {
   }
   
   for(let i=0; i<15; i++) {
-      nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(300, 800), color: color(random(50, 150), random(0, 100), random(150, 255), random(2, 10)) });
+      colorMode(HSB);
+      let nCol = color((hue(roundThemeColor) + random(-30, 30)) % 360, random(60, 100), random(50, 100), random(0.02, 0.06));
+      colorMode(RGB);
+      nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(300, 800), color: nCol });
   }
   
-  for(let i=0; i<4; i++) {
+  let pTypes = ['EARTH', 'MOON', 'JUPITER', 'SATURN', 'GENERIC'];
+  for(let i=0; i<5; i++) {
+    let pt = random(pTypes);
     planets.push({
-        x: random(-W, W * 2), y: random(-H, H * 2), r: random(15, 60),
-        col: color(random(20, 70), random(20, 70), random(20, 70), 80),
-        ringCol: color(random(50, 150), random(50, 150), random(50, 150), 30),
-        vx: random(-0.15, 0.15), vy: random(-0.15, 0.15), hasRing: random() > 0.5,
+        x: random(-W, W * 2), y: random(-H, H * 2), r: random(20, 80),
+        type: pt,
+        vx: random(-0.15, 0.15), vy: random(-0.15, 0.15),
         angle: random(TWO_PI), rotSpeed: random(-0.01, 0.01)
+    });
+  }
+  
+  for(let i=0; i<3; i++) {
+    let st = random(['SPUTNIK', 'HUBBLE']);
+    spacecrafts.push({
+        type: st, x: random(-100, W + 100), y: random(ARENA_TOP, ARENA_BOT),
+        s: random(0.4, 0.8), vx: random(-0.5, 0.5), vy: random(-0.5, 0.5),
+        rot: random(TWO_PI), rotS: random(-0.03, 0.03)
     });
   }
 }
@@ -414,6 +360,12 @@ function startNewRound() {
   roundTimer = floor(random(300, 901)); // 5 až 15 minut
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
+  
+  colorMode(HSB, 360, 100, 100, 1);
+  let hVal = map(roundTimer, 300, 900, 0, 360);
+  roundThemeColor = color(hVal, 80, 100);
+  roundThemeColorDark = color(hVal, 80, 40, 0.5);
+  colorMode(RGB, 255);
   
   let numBonuses = floor(random(2, 6)); 
   bonusFrames = [];
@@ -945,7 +897,7 @@ function drawSecretCodeUI() {
         push();
         if (codeActive) {
             let rewardTxt = isUltraCode ? "+3000 HP" : "+1500 HP";
-            let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'NEZNÁMÝ SIGNÁL'}: KDO PRVNÍ OPÍŠE KÓD DO CHATU, BERE ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'UNKNOWN SIGNAL'}: FIRST TO TYPE IT GETS ${rewardTxt} ///`;
+            let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'ZACHYCEN KÓD'}: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'SIGNAL DETECTED'}: FIRST IN CHAT GETS ${rewardTxt} ///`;
             let hintCol = isUltraCode ? color(255, 100, 100) : color(0, 255, 255);
             fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
             textSize(10);
@@ -990,8 +942,8 @@ function drawSpaceshipTimer() {
     let perim = 2 * W + 2 * aH;
     let currentDist = p * perim;
     
-    stroke(0, 255, 255); strokeWeight(3);
-    if(!isHeavyLoad) { drawingContext.shadowBlur = 10; drawingContext.shadowColor = 'cyan'; }
+    stroke(roundThemeColor); strokeWeight(3);
+    if(!isHeavyLoad) { drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor; }
     
     let points = [ 
         {x: W/2, y: ARENA_TOP}, 
@@ -1042,7 +994,7 @@ function drawSpaceshipTimer() {
 
     if (frameCount % 4 === 0 && roundTimerFrames > 0 && !isHeavyLoad) {
         let wPos = screenToWorld(shipX, shipY);
-        particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: color(150, 200, 255), size: random(4, 8)});
+        particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: roundThemeColor, size: random(4, 8)});
     }
 }
 
@@ -1215,6 +1167,27 @@ function handleCameraAndPlayers() {
   }
 }
 
+function drawSpacecraft(sc) {
+    push();
+    translate(sc.x, sc.y);
+    rotate(sc.rot);
+    scale(sc.s);
+    fill(200); stroke(100); strokeWeight(1);
+    if (sc.type === 'SPUTNIK') {
+        ellipse(0, 0, 30, 30);
+        stroke(200); strokeWeight(2);
+        line(0, 0, -40, -40); line(0, 0, -40, 40);
+        line(0, 0, 40, -40);  line(0, 0, 40, 40);
+        fill(255, 50, 50); noStroke(); ellipse(0, 0, 8, 8);
+    } else if (sc.type === 'HUBBLE') {
+        fill(150); rect(-40, -15, 80, 30, 5);
+        fill(200); rect(40, -10, 20, 20);
+        fill(50, 100, 200, 200); stroke(200);
+        rect(-20, -50, 40, 35); rect(-20, 15, 40, 35);
+    }
+    pop();
+}
+
 function drawSpaceBackground() {
   flowTime += 0.003;
   globalFlowAngle = sin(flowTime) * 0.25;
@@ -1266,20 +1239,34 @@ function drawSpaceBackground() {
     translate(p.x, p.y);
     rotate(p.angle);
     noStroke();
-    fill(p.col);
-    ellipse(0, 0, p.r * 2);
     
-    fill(0, 150);
-    arc(0, 0, p.r * 2, p.r * 2, HALF_PI, PI + HALF_PI); 
-    
-    if (p.hasRing) {
-        noFill();
-        stroke(p.ringCol);
-        strokeWeight(p.r * 0.2);
+    if (p.type === 'EARTH') {
+        fill(30, 80, 200, 200); ellipse(0, 0, p.r * 2);
+        fill(50, 180, 50, 200); ellipse(-p.r*0.3, -p.r*0.2, p.r*0.8, p.r*0.5); ellipse(p.r*0.2, p.r*0.4, p.r*0.6, p.r*0.6);
+    } else if (p.type === 'MOON') {
+        fill(180, 180, 180, 200); ellipse(0, 0, p.r * 2);
+        fill(120, 120, 120, 200); ellipse(-p.r*0.4, -p.r*0.3, p.r*0.4); ellipse(p.r*0.3, p.r*0.2, p.r*0.3);
+    } else if (p.type === 'JUPITER') {
+        fill(200, 140, 80, 200); ellipse(0, 0, p.r * 2);
+        fill(150, 80, 40, 150); rect(-p.r, -p.r*0.4, p.r*2, p.r*0.2); rect(-p.r, p.r*0.1, p.r*2, p.r*0.3);
+        fill(180, 50, 30, 200); ellipse(-p.r*0.3, p.r*0.2, p.r*0.4, p.r*0.2);
+    } else if (p.type === 'SATURN') {
+        fill(220, 200, 150, 200); ellipse(0, 0, p.r * 2);
+        noFill(); stroke(180, 160, 120, 180); strokeWeight(p.r * 0.2);
         ellipse(0, 0, p.r * 3.5, p.r * 0.8);
+    } else {
+        fill(100, 100, 100, 100); ellipse(0, 0, p.r * 2);
     }
+    
     pop();
     p.angle += p.rotSpeed;
+  });
+
+  spacecrafts.forEach(sc => {
+      sc.x += sc.vx; sc.y += sc.vy; sc.rot += sc.rotS;
+      if (sc.x > W + 200) sc.x = -200; if (sc.x < -200) sc.x = W + 200;
+      if (sc.y > H + 200) sc.y = -200; if (sc.y < -200) sc.y = H + 200;
+      drawSpacecraft(sc);
   });
 
   if (random() < 0.05) { 
@@ -1611,8 +1598,8 @@ function drawResults() {
       speakTTS(wMsg);
   }
 
-  // Zvýšená hodnota bY o kus níže zabrání překryvu s nápisem konce kola
-  let bY = ARENA_TOP + 270; 
+  // Zvýšená hodnota bY o kus níže zabrání překryvu s nápisem konce kola (nyní +300 pro jistotu)
+  let bY = ARENA_TOP + 300; 
   let anim = constrain(map(resultsTimer, 8, 7, 0, 1), 0, 1);
 
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
@@ -1702,100 +1689,100 @@ function drawResults() {
 function drawTopHUD() {
   fill(8, 10, 18); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
 
-  textAlign(CENTER, CENTER); drawingContext.shadowBlur = 10; drawingContext.shadowColor = color(0, 255, 255);
-  fill(0, 255, 255); textSize(16); textStyle(BOLD); text(GAME_TITLE, W/2, HUD_TOP + 20);
-  drawingContext.shadowBlur = 0; fill(150); textSize(8); textStyle(NORMAL); text(GAME_VERSION, W/2, HUD_TOP + 35);
+  textAlign(CENTER, CENTER); drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor;
+  fill(roundThemeColor); textSize(20); textStyle(BOLD); text(GAME_TITLE, W/2, HUD_TOP + 25);
+  drawingContext.shadowBlur = 0; fill(150); textSize(8); textStyle(NORMAL); text(GAME_VERSION, W/2, HUD_TOP + 40);
 
   let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
-  fill(100, 255, 100); textSize(28); textStyle(BOLD);
+  fill(100, 255, 100); textSize(32); textStyle(BOLD);
   if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-  text(timeStr, W/2, HUD_TOP + 65); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 85);
+  text(timeStr, W/2, HUD_TOP + 80); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 105);
 
   let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
-  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 160, h: 15};
+  allTimeLbRect = {x: 10, y: HUD_TOP + 15, w: 200, h: 20}; 
   
   textAlign(LEFT, TOP);
   let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
-  fill(hoverHp ? color(255, 50, 50) : color(255, 100, 255));
-  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "ALL TIME HIGHEST HP" : "ALL TIME HIGHEST HP", 10, HUD_TOP + 10);
+  fill(hoverHp ? color(255, 50, 50) : roundThemeColor);
+  textSize(12); textStyle(BOLD); text(currentLang === "CZ" ? "ALL TIME HIGHEST HP" : "ALL TIME HIGHEST HP", 15, HUD_TOP + 15);
   
-  textStyle(NORMAL); textSize(8);
+  textStyle(NORMAL); textSize(10);
   for(let i=0; i<Math.min(3, allTimeSorted.length); i++) {
-      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*16;
-      let xBase = 10;
+      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 40 + i*22;
+      let xBase = 15;
       if (pData.avatar && pData.avatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-          image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
-          fill(pData.color); text(`${i+1}. ${pName.substring(0,6)}`, xBase + 16, y);
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 6, 10, 0, TWO_PI); drawingContext.clip();
+          image(pData.avatar, xBase + 10, y + 6, 20, 20); drawingContext.restore();
+          fill(pData.color); textSize(12); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,6)}`, xBase + 25, y);
       } else {
-          fill(pData.color); text(`${i+1}. ${pName.substring(0,8)}`, xBase, y);
+          fill(pData.color); textSize(12); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,8)}`, xBase, y);
       }
-      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
+      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 170, y); textStyle(NORMAL);
   }
 
   if (allTimeSorted.length > 3) {
       let numExtra = allTimeSorted.length - 3;
-      let scrollYBase = HUD_TOP + 28 + 3*16; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(5, scrollYBase - 2, 160, 26); drawingContext.clip();
-      let itemH = 16; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.3) % totalExtraH; 
+      let scrollYBase = HUD_TOP + 40 + 3*22; 
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(5, scrollYBase - 2, 220, 36); drawingContext.clip();
+      let itemH = 22; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.3) % totalExtraH; 
       
       for(let i=0; i<numExtra * 2; i++) { 
           let idx = 3 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; 
           let y = scrollYBase + (i * itemH) - scrollPos;
-          let xBase = 10;
+          let xBase = 15;
           if (pData.avatar && pData.avatar !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-              image(pData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
-              fill(pData.color); text(`${idx+1}. ${pName.substring(0,6)}`, xBase + 16, y);
-          } else { fill(pData.color); text(`${idx+1}. ${pName.substring(0,8)}`, xBase, y); }
-          fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 130, y); textStyle(NORMAL);
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 8, y + 5, 8, 0, TWO_PI); drawingContext.clip();
+              image(pData.avatar, xBase + 8, y + 5, 16, 16); drawingContext.restore();
+              fill(pData.color); textSize(10); text(`${idx+1}. ${pName.substring(0,6)}`, xBase + 20, y);
+          } else { fill(pData.color); textSize(10); text(`${idx+1}. ${pName.substring(0,8)}`, xBase, y); }
+          fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 170, y); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
 
   let hpSorted = [...players].sort((a,b) => b.hp - a.hp).slice(0, 5);
-  textAlign(RIGHT, TOP); fill(0, 255, 255); textSize(9); textStyle(BOLD); text(T[currentLang].TOP, W - 10, HUD_TOP + 10);
-  textStyle(NORMAL); textSize(8);
+  textAlign(RIGHT, TOP); fill(roundThemeColor); textSize(12); textStyle(BOLD); text(T[currentLang].TOP, W - 15, HUD_TOP + 15);
+  textStyle(NORMAL); textSize(10);
   for(let i = 0; i < hpSorted.length; i++) {
-      let p = hpSorted[i]; fill(p.color); text(`${i+1}. ${p.name.substring(0,8)}`, W - 80, HUD_TOP + 28 + i*14);
-      fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), W - 10, HUD_TOP + 28 + i*14); textStyle(NORMAL);
+      let p = hpSorted[i]; fill(p.color); text(`${i+1}. ${p.name.substring(0,8)}`, W - 100, HUD_TOP + 40 + i*20);
+      fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), W - 15, HUD_TOP + 40 + i*20); textStyle(NORMAL);
   }
   
   let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
-  giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 15};
+  giftLbRect = {x: W/2 - 80, y: HUD_TOP + 120, w: 160, h: 20};
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
-  textSize(8); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI (RESET)" : "TOP GIFTERS (RESET)", W/2, HUD_TOP + 4);
+  textSize(10); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI (RESET)" : "TOP GIFTERS (RESET)", W/2, HUD_TOP + 120);
 
-  textStyle(NORMAL); textSize(8); textAlign(LEFT, TOP);
+  textStyle(NORMAL); textSize(10); textAlign(LEFT, TOP);
   
   for(let i=0; i<Math.min(5, allGiftsSorted.length); i++) {
-      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 28 + i*14;
-      let xBase = W/2 - 150; 
+      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 140 + i*16;
+      let xBase = W/2 - 180; 
       if (gData.avatar && gData.avatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-          image(gData.avatar, xBase + 6, y + 4, 12, 12); drawingContext.restore();
-          fill(gData.color); text(gName.substring(0, 6), xBase + 16, y);
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 8, y + 5, 8, 0, TWO_PI); drawingContext.clip();
+          image(gData.avatar, xBase + 8, y + 5, 16, 16); drawingContext.restore();
+          fill(gData.color); text(gName.substring(0, 6), xBase + 20, y);
       } else {
           fill(gData.color); text(gName.substring(0, 8), xBase, y);
       }
       
       let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 65, y); textStyle(NORMAL);
+      fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 85, y); textStyle(NORMAL);
   }
 
   if (allGiftsSorted.length > 5) {
       let numExtraG = allGiftsSorted.length - 5;
-      let scrollYBaseG = HUD_TOP + 28; 
-      let rightXBase = W/2 + 50;
+      let scrollYBaseG = HUD_TOP + 140; 
+      let rightXBase = W/2 + 30;
       
       drawingContext.save();
       drawingContext.beginPath();
-      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 150, 5 * 14 + 2); 
+      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 180, 5 * 16 + 2); 
       drawingContext.clip();
       
-      let itemHG = 14;
+      let itemHG = 16;
       let totalExtraHG = numExtraG * itemHG;
       let scrollPosG = (frameCount * 0.3) % totalExtraHG; 
       
@@ -1805,14 +1792,14 @@ function drawTopHUD() {
           let y = scrollYBaseG + (i * itemHG) - scrollPosG;
           
           if (gData.avatar && gData.avatar !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 6, y + 4, 6, 0, TWO_PI); drawingContext.clip();
-              image(gData.avatar, rightXBase + 6, y + 4, 12, 12); drawingContext.restore();
-              fill(gData.color); text(gName.substring(0, 6), rightXBase + 16, y);
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 8, y + 5, 8, 0, TWO_PI); drawingContext.clip();
+              image(gData.avatar, rightXBase + 8, y + 5, 16, 16); drawingContext.restore();
+              fill(gData.color); text(gName.substring(0, 6), rightXBase + 20, y);
           } else {
               fill(gData.color); text(gName.substring(0, 8), rightXBase, y);
           }
           let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-          fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, rightXBase + 65, y); textStyle(NORMAL);
+          fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, rightXBase + 85, y); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -1849,7 +1836,7 @@ function draw() {
   fill(10, 12, 15); noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
   drawFollowerMarquee(); 
 
-  stroke(0, 150, 255, 100); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
+  stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
   if (gameState === "PLAYING") drawSpaceshipTimer();
 
@@ -1946,7 +1933,6 @@ function connectTikfinity() {
               speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
               createParticles(W/2, H/2, color(255, 215, 0), 100);
           } else if (codeActive) {
-              // Rychlý úhybný manévr pro případ skip textu
               failedCodeAttempts++;
               if (failedCodeAttempts >= 3 && !isUltraCode) {
                   isUltraCode = true;
@@ -2020,4 +2006,3 @@ function mousePressed() {
 </script>
 </body>
 </html>
-
