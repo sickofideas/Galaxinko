@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.51.1"; 
+var GAME_VERSION = "v19.52.0"; 
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -442,7 +442,7 @@ function setupEvents() {
   document.getElementById('tGift').onclick = () => { 
       if(players.length > 0) { 
           let u = random(players).name; 
-          let testDiam = random([10, 150, 1200, 6000]); // Simulace Tiered Gifts
+          let testDiam = random([10, 150, 1200, 6000]); 
           handleAction(u, 0, true, testDiam); 
           let c = players.find(x=>x.name===u)?.color || color(255);
           updateGiftLB(u, testDiam, c); 
@@ -901,19 +901,42 @@ function drawSecretCodeUI() {
     if (codeActive) {
         push();
         let baseCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
-        drawingContext.shadowBlur = 10;
+        drawingContext.shadowBlur = random(5, 20);
         drawingContext.shadowColor = baseCol;
-        let flicker = random(80, 180);
-        fill(red(baseCol), green(baseCol), blue(baseCol), flicker);
-        noStroke();
-        textSize(isUltraCode ? 22 : 18);
+        let flicker = random(100, 255);
+        
+        textSize(isUltraCode ? 26 : 22);
         textAlign(CENTER, CENTER);
         textStyle(BOLD);
-        let cx = codeX + sin(frameCount * 0.02) * 10;
-        let cy = codeY + cos(frameCount * 0.015) * 10;
-        if (random() < 0.1) cx += random(-3, 3); 
-        if (isUltraCode && random() < 0.2) cy += random(-3, 3);
-        text(secretCode, cx, cy);
+        
+        // Rychlejší a nečitelný pohyb kódu po aréně
+        let cx = codeX + sin(frameCount * 0.1) * 40;
+        let cy = codeY + cos(frameCount * 0.08) * 25;
+        
+        // Občasné přeskočení vykreslení (blikání)
+        let skipText = random() < 0.15;
+        
+        if (!skipText) {
+            // Glitch interference
+            if (random() < 0.2) {
+                cx += random(-15, 15);
+                cy += random(-10, 10);
+                fill(255); 
+            } else {
+                fill(red(baseCol), green(baseCol), blue(baseCol), flicker);
+            }
+            
+            text(secretCode, cx, cy);
+            
+            // RGB Split - Chromatická aberace (CRT efekt)
+            if (random() < 0.6) {
+                fill(255, 0, 0, flicker * 0.7);
+                text(secretCode, cx - 3, cy);
+                fill(0, 255, 255, flicker * 0.7);
+                text(secretCode, cx + 3, cy);
+            }
+        }
+        
         drawingContext.shadowBlur = 0;
         pop();
     }
@@ -1093,11 +1116,12 @@ function handleCameraAndPlayers() {
     }
     
     let targetR = getRadius(p.hp);
-    if (Math.abs(targetR - p.r) > 0.5 && p.body && p.hp > 0) {
-        let s = targetR / p.r;
+    if (Math.abs(targetR - p.r) > 0.1 && p.body && p.hp > 0) {
+        let newR = lerp(p.r, targetR, 0.1); // Plynulé škálování tlumí vibrace těl
+        let s = newR / p.r;
         if (isFinite(s) && s > 0) {
             Matter.Body.scale(p.body, s, s);
-            p.r = targetR;
+            p.r = newR;
             Matter.Body.setDensity(p.body, 0.001 + (p.r * 0.0001));
         }
     }
@@ -1171,7 +1195,7 @@ function handleCameraAndPlayers() {
   }
 
   let len = players.length;
-  // Změna pro zobrazení plnější arény
+  // Oddálí arénu až při větším počtu hráčů
   if (len >= 200) targetCameraScale = 0.35;
   else if (len >= 150) targetCameraScale = 0.50;
   else if (len >= 100) targetCameraScale = 0.70;
@@ -1459,8 +1483,9 @@ function drawPlayer(p) {
   if (p.r > 20) {
       stroke(0); strokeWeight(Math.max(3, p.r * 0.12));
       fill(nameCol); textStyle(NORMAL);
-      textSize(Math.max(8, p.r * 0.22)); 
-      text(p.name.substring(0, 10), 0, -p.r * 0.4); 
+      textSize(Math.floor(Math.max(8, p.r * 0.22))); 
+      // Zafixována pozice pro zamezení subpixel vibrací 
+      text(p.name.substring(0, 10), 0, Math.floor(-p.r * 0.4)); 
   }
 
   let txtCol = color(255);
@@ -1468,8 +1493,8 @@ function drawPlayer(p) {
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
   stroke(0); strokeWeight(Math.max(4, p.r * 0.15)); fill(txtCol); textStyle(BOLD);
-  textSize(Math.max(11, p.r * 0.35)); 
-  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.3 : 0); 
+  textSize(Math.floor(Math.max(11, p.r * 0.35))); 
+  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? Math.floor(p.r * 0.3) : 0); 
   
   drawingContext.shadowBlur = 0; noStroke(); pop();
 }
@@ -1574,7 +1599,7 @@ function drawResults() {
   pop();
   
   textAlign(CENTER, CENTER);
-  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 20);
+  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
   
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
   
@@ -1586,7 +1611,8 @@ function drawResults() {
       speakTTS(wMsg);
   }
 
-  let bY = ARENA_TOP + 200; 
+  // Zvýšená hodnota bY o kus níže zabrání překryvu s nápisem konce kola
+  let bY = ARENA_TOP + 270; 
   let anim = constrain(map(resultsTimer, 8, 7, 0, 1), 0, 1);
 
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
@@ -1920,6 +1946,7 @@ function connectTikfinity() {
               speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
               createParticles(W/2, H/2, color(255, 215, 0), 100);
           } else if (codeActive) {
+              // Rychlý úhybný manévr pro případ skip textu
               failedCodeAttempts++;
               if (failedCodeAttempts >= 3 && !isUltraCode) {
                   isUltraCode = true;
@@ -1993,3 +2020,4 @@ function mousePressed() {
 </script>
 </body>
 </html>
+
