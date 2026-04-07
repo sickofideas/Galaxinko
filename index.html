@@ -326,9 +326,9 @@ function safePlaySound(f, v, d) {
 function getStartingHp(name) {
     let idx = previousTop10.indexOf(name);
     if (idx !== -1) {
-        return Math.max(100, 1000 - (idx * 100));
+        return Math.max(150, 1000 - (idx * 100));
     }
-    return 100;
+    return 150;
 }
 
 function setup() {
@@ -471,7 +471,7 @@ function startNewRound() {
 
 function setupEvents() {
   document.getElementById('langBtn').onclick = (e) => { currentLang = currentLang === "CZ" ? "EN" : "CZ"; e.target.innerText = "LANG: " + currentLang; };
-  document.getElementById('tJoin').onclick = () => { handleAction(random(TEST_NAMES) + floor(random(99)), 100); };
+  document.getElementById('tJoin').onclick = () => { handleAction(random(TEST_NAMES) + floor(random(99)), 0); };
   document.getElementById('tLike').onclick = () => { if(players.length > 0) handleAction(random(players).name, floor(random(50, 150))); else document.getElementById('tJoin').click(); };
   document.getElementById('tGift').onclick = () => { 
       if(players.length > 0) { 
@@ -577,7 +577,7 @@ function handleAction(name, amount, isGift = false, diam = 0) {
 }
 
 function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0) {
-  let safeHp = Math.max(0, hp || 100); 
+  let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
@@ -605,7 +605,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
 }
 
 function spawnPlayer(name, hp, isGift = false, diam = 0) {
-  let safeHp = Math.max(0, hp || 100); 
+  let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -1460,24 +1460,29 @@ function drawPlayer(p) {
   
   stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
-  let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
-  if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); // Snížení zubů o 60 % při velkém množství hráčů
-  teeth = Math.min(teeth, 60); 
   let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1; let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
-  let tType = p.sawType % 3;
 
-  beginShape();
-  for(let i=0; i<teeth; i++) {
-      let a1 = i * TWO_PI / teeth; let a2 = (i + 1) * TWO_PI / teeth;
-      if (isEpic || tType === 0) { 
-          vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos(a1 + TWO_PI/teeth * 0.85)*rOuter, sin(a1 + TWO_PI/teeth * 0.85)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 1) { 
-          vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos(a1 + TWO_PI/teeth * 0.25)*rOuter, sin(a1 + TWO_PI/teeth * 0.25)*rOuter); vertex(cos(a1 + TWO_PI/teeth * 0.75)*rOuter, sin(a1 + TWO_PI/teeth * 0.75)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
-      } else if (tType === 2) { 
-          vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos((a1 + a2) / 2)*rOuter, sin((a1 + a2) / 2)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+  if (safeHp >= 200) {
+      let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
+      if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); // Snížení zubů o 60 % při velkém množství hráčů
+      teeth = Math.min(teeth, 60); 
+      let tType = p.sawType % 3;
+      
+      beginShape();
+      for(let i=0; i<teeth; i++) {
+          let a1 = i * TWO_PI / teeth; let a2 = (i + 1) * TWO_PI / teeth;
+          if (isEpic || tType === 0) { 
+              vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos(a1 + TWO_PI/teeth * 0.85)*rOuter, sin(a1 + TWO_PI/teeth * 0.85)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 1) { 
+              vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos(a1 + TWO_PI/teeth * 0.25)*rOuter, sin(a1 + TWO_PI/teeth * 0.25)*rOuter); vertex(cos(a1 + TWO_PI/teeth * 0.75)*rOuter, sin(a1 + TWO_PI/teeth * 0.75)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 2) { 
+              vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos((a1 + a2) / 2)*rOuter, sin((a1 + a2) / 2)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+          }
       }
+      endShape(CLOSE);
+  } else {
+      ellipse(0, 0, rInner * 2);
   }
-  endShape(CLOSE);
   drawingContext.shadowBlur = 0;
 
   let coreType = Math.floor(p.sawType / 3) % 4; 
