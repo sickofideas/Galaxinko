@@ -1767,13 +1767,13 @@ function drawTopHUD() {
   fill(8, 10, 18); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
 
   textAlign(CENTER, CENTER); drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor;
-  fill(roundThemeColor); textSize(20); textStyle(BOLD); text(GAME_TITLE, W/2, HUD_TOP + 25);
-  drawingContext.shadowBlur = 0; fill(150); textSize(8); textStyle(NORMAL); text(GAME_VERSION, W/2, HUD_TOP + 40);
+  fill(roundThemeColor); textSize(20); textStyle(BOLD); text(GAME_TITLE, W/2, HUD_TOP + 20);
+  drawingContext.shadowBlur = 0; fill(150); textSize(8); textStyle(NORMAL); text(GAME_VERSION, W/2, HUD_TOP + 32);
 
   let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
-  fill(100, 255, 100); textSize(32); textStyle(BOLD);
+  fill(100, 255, 100); textSize(30); textStyle(BOLD);
   if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-  text(timeStr, W/2, HUD_TOP + 80); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 105);
+  text(timeStr, W/2, HUD_TOP + 65); fill(150); textSize(8); textStyle(NORMAL); text(T[currentLang].TIME, W/2, HUD_TOP + 85);
 
   let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
   allTimeLbRect = {x: 10, y: HUD_TOP + 15, w: 200, h: 20}; 
@@ -1826,20 +1826,20 @@ function drawTopHUD() {
   }
   
   let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 15);
-  giftLbRect = {x: W/2 - 80, y: HUD_TOP + 120, w: 160, h: 20};
+  giftLbRect = {x: W/2 - 80, y: HUD_TOP + 100, w: 160, h: 20};
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
-  textSize(10); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", W/2, HUD_TOP + 120);
+  textSize(10); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", W/2, HUD_TOP + 100);
 
   textStyle(NORMAL); textSize(10); textAlign(LEFT, TOP);
   
-  for(let i=0; i<Math.min(5, allGiftsSorted.length); i++) {
-      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 140 + i*16;
+  for(let i=0; i<Math.min(4, allGiftsSorted.length); i++) {
+      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 118 + i*15;
       let xBase = W/2 - 180; 
       if (gData.avatar && gData.avatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 8, y + 5, 8, 0, TWO_PI); drawingContext.clip();
-          image(gData.avatar, xBase + 8, y + 5, 16, 16); drawingContext.restore();
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 7, y + 5, 7, 0, TWO_PI); drawingContext.clip();
+          image(gData.avatar, xBase + 7, y + 5, 14, 14); drawingContext.restore();
           fill(gData.color); text(gName.substring(0, 6), xBase + 20, y);
       } else {
           fill(gData.color); text(gName.substring(0, 8), xBase, y);
@@ -1849,28 +1849,28 @@ function drawTopHUD() {
       fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 85, y); textStyle(NORMAL);
   }
 
-  if (allGiftsSorted.length > 5) {
-      let numExtraG = allGiftsSorted.length - 5;
-      let scrollYBaseG = HUD_TOP + 140; 
+  if (allGiftsSorted.length > 4) {
+      let numExtraG = allGiftsSorted.length - 4;
+      let scrollYBaseG = HUD_TOP + 118; 
       let rightXBase = W/2 + 30;
       
       drawingContext.save();
       drawingContext.beginPath();
-      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 180, 5 * 16 + 2); 
+      drawingContext.rect(rightXBase - 5, scrollYBaseG - 2, 180, 4 * 15 + 2); 
       drawingContext.clip();
       
-      let itemHG = 16;
+      let itemHG = 15;
       let totalExtraHG = numExtraG * itemHG;
       let scrollPosG = (frameCount * 0.3) % totalExtraHG; 
       
       for(let i=0; i<numExtraG * 2; i++) { 
-          let idx = 5 + (i % numExtraG);
+          let idx = 4 + (i % numExtraG);
           let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; 
           let y = scrollYBaseG + (i * itemHG) - scrollPosG;
           
           if (gData.avatar && gData.avatar !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 8, y + 5, 8, 0, TWO_PI); drawingContext.clip();
-              image(gData.avatar, rightXBase + 8, y + 5, 16, 16); drawingContext.restore();
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(rightXBase + 7, y + 5, 7, 0, TWO_PI); drawingContext.clip();
+              image(gData.avatar, rightXBase + 7, y + 5, 14, 14); drawingContext.restore();
               fill(gData.color); text(gName.substring(0, 6), rightXBase + 20, y);
           } else {
               fill(gData.color); text(gName.substring(0, 8), rightXBase, y);
