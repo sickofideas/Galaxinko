@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.51.0"; // Tiered Gifts, Immunity Shield & Royal Crown integrated
+var GAME_VERSION = "v19.51.1"; 
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -411,7 +411,7 @@ function startNewRound() {
   
   oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
 
-  roundTimer = floor(random(300, 1501)); 
+  roundTimer = floor(random(300, 901)); // 5 až 15 minut
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
   
@@ -491,7 +491,7 @@ function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 
 // ==========================================
 function triggerGiftEffect(p, diam) {
     if (diam >= 5000) {
-        p.immunityTimer += 120 * 60; // 120 sec (60FPS)
+        p.immunityTimer += 50 * 60; // 50 sec (60FPS)
         p.hasCrown = true;
         screenShake = 30;
         p.auraFlash = 60;
@@ -500,7 +500,7 @@ function triggerGiftEffect(p, diam) {
         addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(255, 0, 255), 100);
     } else if (diam >= 1000) {
-        p.immunityTimer += 120 * 60;
+        p.immunityTimer += 50 * 60;
         screenShake = 20;
         p.auraFlash = 45;
         speakTTS(currentLang === "CZ" ? `Mega dárek od ${p.name}! Lev se probouzí!` : `Mega gift from ${p.name}! The Lion awakens!`);
@@ -508,7 +508,7 @@ function triggerGiftEffect(p, diam) {
         addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(255, 150, 0), 60);
     } else if (diam >= 100) {
-        p.immunityTimer += 120 * 60;
+        p.immunityTimer += 50 * 60;
         screenShake = 10;
         p.auraFlash = 30;
         speakTTS(currentLang === "CZ" ? `Nádherný dárek od ${p.name}!` : `Beautiful gift from ${p.name}!`);
@@ -726,7 +726,7 @@ function handleCombat(p1, p2) {
   let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
   let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
 
-  // IMMUNITY CHECK (Poškození zrušeno, pokud je imunita)
+  // IMMUNITY CHECK
   if (p1.immunityTimer > 0) finalDmgTo1 = 0;
   if (p2.immunityTimer > 0) finalDmgTo2 = 0;
 
@@ -922,7 +922,7 @@ function drawSecretCodeUI() {
         push();
         if (codeActive) {
             let rewardTxt = isUltraCode ? "+3000 HP" : "+1500 HP";
-            let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'ZACHYCEN NEZNÁMÝ SIGNÁL'}: OPIŠ KÓD Z PLOCHY DO CHATU PRO ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'UNKNOWN SIGNAL'}: TYPE THE CODE FROM THE SCREEN FOR ${rewardTxt} ///`;
+            let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'NEZNÁMÝ SIGNÁL'}: KDO PRVNÍ OPÍŠE KÓD DO CHATU, BERE ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'UNKNOWN SIGNAL'}: FIRST TO TYPE IT GETS ${rewardTxt} ///`;
             let hintCol = isUltraCode ? color(255, 100, 100) : color(0, 255, 255);
             fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
             textSize(10);
@@ -1171,10 +1171,11 @@ function handleCameraAndPlayers() {
   }
 
   let len = players.length;
-  if (len >= 150) targetCameraScale = 0.35;
-  else if (len >= 100) targetCameraScale = 0.50;
-  else if (len >= 60) targetCameraScale = 0.70;
-  else if (len >= 30) targetCameraScale = 0.85;
+  // Změna pro zobrazení plnější arény
+  if (len >= 200) targetCameraScale = 0.35;
+  else if (len >= 150) targetCameraScale = 0.50;
+  else if (len >= 100) targetCameraScale = 0.70;
+  else if (len >= 60) targetCameraScale = 0.85;
   else targetCameraScale = 1.0;
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.05); 
@@ -1372,7 +1373,7 @@ function drawPlayer(p) {
   stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
   let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
-  if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4));
+  if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); // Snížení zubů o 60 % při velkém množství hráčů
   teeth = Math.min(teeth, 60); 
   let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1; let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
   let tType = p.sawType % 3;
@@ -1573,7 +1574,7 @@ function drawResults() {
   pop();
   
   textAlign(CENTER, CENTER);
-  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
+  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 20);
   
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
   
@@ -1585,7 +1586,7 @@ function drawResults() {
       speakTTS(wMsg);
   }
 
-  let bY = ARENA_TOP + 220; 
+  let bY = ARENA_TOP + 200; 
   let anim = constrain(map(resultsTimer, 8, 7, 0, 1), 0, 1);
 
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
