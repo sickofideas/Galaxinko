@@ -57,7 +57,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.48.1"; // Fixed missing COMMENTARY variable completely
+var GAME_VERSION = "v19.49.1"; // Fixed missing COMMENTARY variable
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -664,7 +664,9 @@ function handleCombat(p1, p2) {
   }
   
   let isHeavyLoad = players.length > 40;
-  if (!isHeavyLoad) {
+  let isExtremeLoad = players.length > 60;
+  
+  if (!isExtremeLoad) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
       let cy = (p1.body.position.y + p2.body.position.y)/2;
       lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: color(255, 255, 0)});
@@ -975,6 +977,7 @@ function handleCameraAndPlayers() {
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 40;
+  let isExtremeLoad = players.length > 60;
   let maxV = 15; 
   
   for (let i = players.length - 1; i >= 0; i--) {
@@ -998,7 +1001,7 @@ function handleCameraAndPlayers() {
         }
     }
     
-    if (!isHeavyLoad && p.hp > 0) {
+    if (!isExtremeLoad && p.hp > 0) {
         p.trail.push({x: p.body.position.x, y: p.body.position.y});
         if (p.trail.length > 8) p.trail.shift();
     } else {
@@ -1025,7 +1028,9 @@ function handleCameraAndPlayers() {
             if (d < range) {
                 let dmg = floor(random(1, 4)); 
                 other.hp -= dmg;
-                lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
+                if (!isExtremeLoad) {
+                    lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
+                }
                 if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
                 if (!isHeavyLoad) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
                 safePlaySound(1200, 0.01, 0.1);
@@ -1265,7 +1270,8 @@ function draw() {
     if (screenShake > 0.5) translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
-    if(players.length < 50) { drawDeathShockwaves(); drawLightnings(); }
+    if(players.length < 50) { drawDeathShockwaves(); }
+    if(players.length < 60) { drawLightnings(); }
     
     if (gameState === "PLAYING") {
         handleOrbs();
@@ -1449,12 +1455,13 @@ function drawPlayer(p) {
   p.rot += isBuffed ? (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir * 4 : (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir;
 
   let isHeavyLoad = players.length > 40; 
+  let isExtremeLoad = players.length > 60;
   let isEpic = safeHp >= 3000;
 
   let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1);
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
-  if (!isHeavyLoad && p.trail.length > 1) {
+  if (!isExtremeLoad && p.trail.length > 1) {
       noFill();
       for (let i = 0; i < p.trail.length - 1; i++) {
           stroke(red(actualColor), green(actualColor), blue(actualColor), map(i, 0, p.trail.length, 0, 150));
@@ -1485,6 +1492,7 @@ function drawPlayer(p) {
   stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
   let teeth = isEpic ? 16 + Math.floor(safeHp / 2000) : 10 + Math.floor(safeHp / 1000) + (p.sawType % 4) * 2; 
+  if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); // Snížení zubů o 60 % při velkém množství hráčů
   teeth = Math.min(teeth, 60); 
   let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1; let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
   let tType = p.sawType % 3;
@@ -1548,7 +1556,9 @@ function drawPlayer(p) {
 
 function createParticles(x, y, c, count) {
   if (players.length > 80) return; 
-  let actualCount = players.length > 40 ? Math.floor(count/3) : count;
+  let actualCount = count;
+  if (players.length > 60) actualCount = Math.max(1, Math.floor(count * 0.3)); // 30% částic
+  else if (players.length > 40) actualCount = Math.max(1, Math.floor(count / 2)); // 50% částic
   for(let i=0; i<actualCount; i++) particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: random(4, 10)});
 }
 
