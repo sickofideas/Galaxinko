@@ -1801,6 +1801,27 @@ function drawPopups() {
   drawingContext.shadowBlur = 0; textStyle(NORMAL);
 }
 
+function triggerRandomEvent() {
+  if (random() < 0.5 && players.length > 0) {
+      activeEvent = "BOUNTY";
+      let p = random(players);
+      bountyTarget = p.name;
+      p.isBounty = true;
+      eventTimer = 1800; // 30 sec (při 60 FPS)
+      let msg = currentLang === "CZ" ? `Vypsána odměna na hráče ${bountyTarget}! Zničte ho!` : `Bounty placed on ${bountyTarget}! Destroy them!`;
+      speakTTS(msg);
+      addPopup("BOUNTY TARGET!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 50, 50), true);
+      safePlaySound(600, 0.2, 1.0);
+  } else {
+      activeEvent = "MAGNET";
+      eventTimer = 900; // 15 sec (při 60 FPS)
+      let msg = currentLang === "CZ" ? `Aktivován gravitační magnet!` : `Gravity magnet activated!`;
+      speakTTS(msg);
+      addPopup("MAGNET ACTIVATED!", W/2, (ARENA_TOP+ARENA_BOT)/2, color(150, 50, 255), true);
+      safePlaySound(300, 0.3, 2.0);
+  }
+}
+
 function updateTimers() {
   if (frameCount % 60 === 0) {
       currentTop10 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
