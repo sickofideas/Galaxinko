@@ -1224,18 +1224,23 @@ function drawFollowerMarquee() {
 
 function drawChatCommands() {
     let cmdY = ARENA_BOT + 60;
-    fill(15, 15, 20); stroke(0, 255, 255, 50); strokeWeight(2);
-    rect(20, cmdY, W - 40, 70, 10);
+    let pulse = sin(frameCount * 0.1) * 50;
+    
+    fill(15, 15, 20); stroke(0, 255, 255, 100 + pulse); strokeWeight(3);
+    drawingContext.shadowBlur = 15 + pulse/5;
+    drawingContext.shadowColor = color(0, 255, 255);
+    rect(20, cmdY, W - 40, 80, 10);
     
     textAlign(CENTER, TOP);
-    fill(0, 255, 255); textSize(12); textStyle(BOLD);
+    fill(0, 255, 255); textSize(16); textStyle(BOLD);
     text(currentLang === "CZ" ? "🚀 HRAJ POMOCÍ CHATU (PŘÍKAZY) 🚀" : "🚀 PLAY VIA CHAT (COMMANDS) 🚀", W/2, cmdY + 15);
     
-    textSize(10);
+    textSize(13);
     fill(220);
     textAlign(CENTER, BOTTOM);
     let cmds = currentLang === "CZ" ? "!boost (10s)  |  !shield (10s)  |  !attack (100x ❤️)" : "!boost (10s)  |  !shield (10s)  |  !attack (100x ❤️)";
-    text(cmds, W/2, cmdY + 55);
+    text(cmds, W/2, cmdY + 65);
+    drawingContext.shadowBlur = 0;
     textStyle(NORMAL);
 }
 
@@ -1319,6 +1324,11 @@ function handleCameraAndPlayers() {
     let isTop10 = currentTop10.includes(p.name);
     let tSpd = isTop10 ? 2.1 : 1.8; 
     let currentMaxV = maxV;
+    
+    if (p.isBounty) {
+        tSpd *= 1.4;
+        currentMaxV *= 1.4;
+    }
     
     if (p.giftSpeedTimer > 0) {
         p.giftSpeedTimer--;
@@ -1661,14 +1671,19 @@ function drawPlayer(p) {
   
   if (p.isBounty) {
       push();
-      translate(0, -p.r * 1.5 - 25);
       rotate(frameCount * 0.05);
-      fill(255, 0, 0, 100); stroke(255); strokeWeight(2);
-      ellipse(0, 0, 30);
-      line(-20, 0, 20, 0);
-      line(0, -20, 0, 20);
-      noFill(); stroke(255, 0, 0); strokeWeight(3);
-      ellipse(0, 0, 45 + sin(frameCount * 0.2) * 10);
+      let tSize = p.r * 2.8 + sin(frameCount * 0.2) * 10;
+      drawingContext.shadowBlur = 20;
+      drawingContext.shadowColor = color(255, 0, 0);
+      fill(255, 0, 0, 40); stroke(255, 50, 50, 200); strokeWeight(3);
+      ellipse(0, 0, tSize);
+      let cL = tSize * 0.2;
+      line(-tSize/2 - 10, 0, -tSize/2 + cL, 0);
+      line(tSize/2 + 10, 0, tSize/2 - cL, 0);
+      line(0, -tSize/2 - 10, 0, -tSize/2 + cL);
+      line(0, tSize/2 + 10, 0, tSize/2 - cL);
+      noFill(); stroke(255, 0, 0, 100); strokeWeight(1);
+      ellipse(0, 0, tSize * 0.6);
       pop();
   }
 
@@ -1839,6 +1854,19 @@ function updateTimers() {
               activeEvent = null;
               bountyTarget = null;
               nextEventTime = millis() + random(60000, 150000);
+          } else if (activeEvent === "BOUNTY" && bountyTarget) {
+              let bp = players.find(p => p.name === bountyTarget);
+              if (bp && bp.body) {
+                  for (let p of players) {
+                      if (!p.body || p === bp) continue;
+                      let dx = bp.body.position.x - p.body.position.x;
+                      let dy = bp.body.position.y - p.body.position.y;
+                      let distSq = dx*dx + dy*dy;
+                      let dist = Math.sqrt(distSq) || 1;
+                      let forceMag = 0.0001 * p.body.mass;
+                      Matter.Body.applyForce(p.body, p.body.position, { x: (dx/dist)*forceMag, y: (dy/dist)*forceMag });
+                  }
+              }
           } else if (activeEvent === "MAGNET") {
               let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
               for (let p of players) {
