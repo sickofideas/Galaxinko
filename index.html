@@ -1652,7 +1652,12 @@ function drawPlayer(p) {
   noStroke(); ellipse(0, 0, p.r * 2.4);
   if(p.auraFlash > 0) p.auraFlash--;
 
-  if (isBuffed) { fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100); noStroke(); ellipse(0, 0, p.r * 2.5); }
+  if (isBuffed) { 
+      fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100); noStroke(); ellipse(0, 0, p.r * 2.5); 
+      if (frameCount % 5 === 0 && !isExtremeLoad) {
+          createParticles(pos.x, pos.y, color(255, 150, 0), 1);
+      }
+  }
 
   if (!isHeavyLoad) { drawingContext.shadowBlur = isEpic ? 25 : 15; drawingContext.shadowColor = actualColor; }
   
@@ -1779,7 +1784,8 @@ function drawPlayer(p) {
       stroke(0); strokeWeight(Math.max(4, p.r * 0.15));
       fill(nameCol); textStyle(NORMAL);
       textSize(Math.floor(Math.max(10, p.r * 0.28))); 
-      text(p.name.substring(0, 10), 0, Math.round(-p.r * 0.45)); 
+      let dispName = isBuffed ? "🔥 " + p.name.substring(0, 8) : p.name.substring(0, 10);
+      text(dispName, 0, Math.round(-p.r * 0.45)); 
   }
 
   let txtCol = color(255);
