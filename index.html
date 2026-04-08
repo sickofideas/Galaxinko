@@ -339,6 +339,10 @@ let lastGlobalSound = 0;
 let previousTop10 = [];
 let currentTop10 = [];
 let sessionLikes = {};
+let nextEventTime = 0;
+let activeEvent = null;
+let eventTimer = 0;
+let bountyTarget = null;
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -506,6 +510,10 @@ function startNewRound() {
   failedCodeAttempts = 0;
   isUltraCode = false;
   generateSpaceBackground();
+  nextEventTime = millis() + random(60000, 150000); 
+  activeEvent = null;
+  eventTimer = 0;
+  bountyTarget = null;
 }
 
 function setupEvents() {
@@ -658,7 +666,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, trail: [],
     immunityTimer: 0, hasCrown: false,
-    boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0
+    boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false
   };
   
   players.push(player);
@@ -851,15 +859,24 @@ function handleCombat(p1, p2) {
   let hp1Before = p1.hp; let hp2Before = p2.hp;
   p1.hp -= finalDmgTo1; p2.hp -= finalDmgTo2;
 
-  let healLogic = (winner, loserHpBefore) => {
-      let heal = Math.floor(loserHpBefore * 0.3 + 50); 
+  let healLogic = (winner, loserData) => {
+      let mult = loserData.isBounty ? 5 : 1;
+      let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 50) * mult; 
       winner.hp += heal;
-      if(players.length < 50) addPopup("+" + heal + " TAKEDOWN!", winner.body.position.x, winner.body.position.y - winner.r - 20, color(50, 255, 100));
+      if(players.length < 50) addPopup("+" + heal + (loserData.isBounty ? " BOUNTY TAKEDOWN!" : " TAKEDOWN!"), winner.body.position.x, winner.body.position.y - winner.r - 20, color(50, 255, 100));
       winner.auraFlash = 20;
+      
+      if (loserData.isBounty) {
+          activeEvent = null;
+          bountyTarget = null;
+          nextEventTime = millis() + random(60000, 150000);
+          speakTTS(currentLang === "CZ" ? `Odměna vybrána! ${winner.name} zničil cíl!` : `Bounty claimed! ${winner.name} destroyed the target!`);
+          safePlaySound(1000, 0.2, 0.5); 
+      }
   };
 
-  if (p1.hp <= 0 && hp1Before > 0) { healLogic(p2, hp1Before); addKill(p2.name, p2.color); }
-  if (p2.hp <= 0 && hp2Before > 0) { healLogic(p1, hp2Before); addKill(p1.name, p1.color); }
+  if (p1.hp <= 0 && hp1Before > 0) { healLogic(p2, {hpBeforeDead: hp1Before, isBounty: p1.isBounty}); addKill(p2.name, p2.color); }
+  if (p2.hp <= 0 && hp2Before > 0) { healLogic(p1, {hpBeforeDead: hp2Before, isBounty: p2.isBounty}); addKill(p1.name, p1.color); }
   
   let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
   let forceMag = 0.0008 + speed * 0.0005; 
@@ -1227,7 +1244,7 @@ function drawChatCommands() {
     textSize(10);
     fill(220);
     textAlign(CENTER, BOTTOM);
-    let cmds = currentLang === "CZ" ? "!boost (10s)  |  !shield (10s)  |  !attack (100 LIKES)" : "!boost (10s)  |  !shield (10s)  |  !attack (100 LIKES)";
+    let cmds = currentLang === "CZ" ? "!boost (10s)  |  !shield (10s)  |  !attack (100x ❤️)" : "!boost (10s)  |  !shield (10s)  |  !attack (100x ❤️)";
     text(cmds, W/2, cmdY + 55);
     textStyle(NORMAL);
 }
@@ -1652,6 +1669,19 @@ function drawPlayer(p) {
 
   rotate(-p.rot); 
   
+  if (p.isBounty) {
+      push();
+      translate(0, -p.r * 1.5 - 25);
+      rotate(frameCount * 0.05);
+      fill(255, 0, 0, 100); stroke(255); strokeWeight(2);
+      ellipse(0, 0, 30);
+      line(-20, 0, 20, 0);
+      line(0, -20, 0, 20);
+      noFill(); stroke(255, 0, 0); strokeWeight(3);
+      ellipse(0, 0, 45 + sin(frameCount * 0.2) * 10);
+      pop();
+  }
+
   if (p.immunityTimer > 0) {
       push();
       let pulse = sin(frameCount * 0.1) * 10;
@@ -1784,6 +1814,34 @@ function updateTimers() {
               createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 40);
               p.hasCrown = false; 
           }
+      }
+  }
+  
+  if (gameState === "PLAYING") {
+      if (activeEvent) {
+          eventTimer--;
+          if (eventTimer <= 0) {
+              if (activeEvent === "BOUNTY" && bountyTarget) {
+                  let bp = players.find(p => p.name === bountyTarget);
+                  if (bp) bp.isBounty = false;
+              }
+              activeEvent = null;
+              bountyTarget = null;
+              nextEventTime = millis() + random(60000, 150000);
+          } else if (activeEvent === "MAGNET") {
+              let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+              for (let p of players) {
+                  if (!p.body) continue;
+                  let dx = cx - p.body.position.x;
+                  let dy = cy - p.body.position.y;
+                  let distSq = dx*dx + dy*dy;
+                  let dist = Math.sqrt(distSq) || 1;
+                  let forceMag = 0.0003 * p.body.mass;
+                  Matter.Body.applyForce(p.body, p.body.position, { x: (dx/dist)*forceMag, y: (dy/dist)*forceMag });
+              }
+          }
+      } else if (millis() > nextEventTime && players.length > 2) {
+          triggerRandomEvent();
       }
   }
 
@@ -2107,6 +2165,21 @@ function draw() {
     if(players.length < 50) { drawDeathShockwaves(); }
     if(players.length < 60) { drawLightnings(); }
     
+    if (gameState === "PLAYING" && activeEvent === "MAGNET") {
+        let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+        push(); translate(cx, cy); rotate(frameCount * 0.1); noStroke();
+        let pulse = sin(frameCount * 0.2) * 20;
+        fill(20, 0, 40, 150); ellipse(0, 0, 200 + pulse);
+        fill(10, 0, 20, 200); ellipse(0, 0, 120 + pulse);
+        fill(0); ellipse(0, 0, 60);
+        stroke(100, 50, 255, 150); strokeWeight(4);
+        for(let i=0; i<4; i++) {
+            let a = i * HALF_PI;
+            arc(0, 0, 100 + pulse, 100 + pulse, a, a + QUARTER_PI);
+        }
+        pop();
+    }
+
     if (gameState === "PLAYING") {
         handleOrbs();
     }
@@ -2195,7 +2268,7 @@ function connectTikfinity() {
                   safePlaySound(200, 0.2, 0.5);
                   screenShake = Math.max(screenShake, 8);
               } else {
-                  addPopup("100 LIKES REQ!", p.body.position.x, p.body.position.y - p.r, color(255, 100, 100));
+                  addPopup("100x ❤️ REQ!", p.body.position.x, p.body.position.y - p.r, color(255, 100, 100));
               }
           }
 
