@@ -659,7 +659,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     color: playerColor,
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
-    sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, trail: [],
+    sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
     immunityTimer: 0, hasCrown: false,
     boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false
   };
@@ -928,12 +928,14 @@ function shootBonusFromShip() {
   let distToTarget = Math.sqrt(dx*dx + dy*dy);
   let spd = 12; 
   
+  let isSpeedOrb = random() < 0.35; // 35% šance na speed orb
   orbs.push({ 
       x: wPos.x, y: wPos.y, 
       targetX: bestX, targetY: bestY,
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
       r: 15, value: 1000, 
-      isFlying: true 
+      isFlying: true,
+      type: isSpeedOrb ? 'SPEED' : 'HP'
   });
   safePlaySound(800, 0.1, 0.3);
 }
@@ -942,6 +944,8 @@ function handleOrbs() {
   let isHeavyLoad = players.length > 40;
   for (let i = orbs.length - 1; i >= 0; i--) {
       let o = orbs[i];
+      
+      let orbColor = o.type === 'SPEED' ? color(255, 255, 0) : color(0, 255, 255);
       
       if (o.isFlying) {
           o.x += o.vx; o.y += o.vy;
@@ -958,16 +962,16 @@ function handleOrbs() {
           translate(o.x, o.y);
           let angle = atan2(o.vy, o.vx);
           rotate(angle);
-          fill(20, 30, 50); stroke(0, 255, 255); strokeWeight(2);
+          fill(20, 30, 50); stroke(orbColor); strokeWeight(2);
           rectMode(CENTER);
           rect(0, 0, 30, 15, 5);
-          fill(0, 255, 255); noStroke();
+          fill(orbColor); noStroke();
           triangle(-15, -5, -15, 5, -25 - random(5), 0);
           fill(255); textSize(6); textAlign(CENTER, CENTER); textStyle(BOLD);
-          text("BONUS", 0, 0);
+          text(o.type === 'SPEED' ? "SPEED" : "BONUS", 0, 0);
           pop();
           
-          if (frameCount % 3 === 0 && !isHeavyLoad) createParticles(o.x, o.y, color(0, 255, 255), 2);
+          if (frameCount % 3 === 0 && !isHeavyLoad) createParticles(o.x, o.y, orbColor, 2);
           continue; 
       }
       
@@ -977,35 +981,49 @@ function handleOrbs() {
       
       if (!isHeavyLoad) {
           drawingContext.shadowBlur = 15;
-          drawingContext.shadowColor = color(0, 255, 255);
+          drawingContext.shadowColor = orbColor;
       }
       
       fill(20, 30, 50, 200);
-      stroke(0, 255, 255, 180 + sin(frameCount * 0.1) * 75);
+      stroke(red(orbColor), green(orbColor), blue(orbColor), 180 + sin(frameCount * 0.1) * 75);
       strokeWeight(2);
       rectMode(CENTER);
       rect(0, 0, o.r * 2.2, o.r * 2.2, 5); 
       
       noStroke();
-      fill(0, 255, 255, 150 + sin(frameCount * 0.2) * 100);
+      fill(red(orbColor), green(orbColor), blue(orbColor), 150 + sin(frameCount * 0.2) * 100);
       ellipse(0, 0, o.r * 1.2);
       fill(255);
-      rect(0, 0, o.r * 0.4, o.r * 1.2);
-      rect(0, 0, o.r * 1.2, o.r * 0.4);
+      if (o.type === 'SPEED') {
+          beginShape();
+          vertex(2, -8); vertex(-4, 0); vertex(1, 0);
+          vertex(-2, 8); vertex(4, 0); vertex(-1, 0);
+          endShape(CLOSE);
+      } else {
+          rect(-o.r * 0.2, -o.r * 0.6, o.r * 0.4, o.r * 1.2);
+          rect(-o.r * 0.6, -o.r * 0.2, o.r * 1.2, o.r * 0.4);
+      }
       rectMode(CORNER);
       
       if (!isHeavyLoad) drawingContext.shadowBlur = 0;
       pop();
 
       fill(255); textSize(10); textStyle(BOLD); textAlign(CENTER);
-      text("+" + o.value, o.x, o.y - 20);
+      text(o.type === 'SPEED' ? "5x SPEED" : "+" + o.value, o.x, o.y - 20);
 
       let collected = false;
       for (let p of players) {
           if (p.hp > 0 && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
-              p.hp += o.value;
-              if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
-              safePlaySound(1200, 0.1, 0.2);
+              if (o.type === 'SPEED') {
+                  p.orbSpeedTimer = 10 * 60; // 10 sekund při 60 FPS
+                  if (!isHeavyLoad) addPopup("5x SPEED BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 255, 0));
+                  safePlaySound(1500, 0.1, 0.3);
+              } else {
+                  p.hp += o.value;
+                  if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+                  safePlaySound(1200, 0.1, 0.2);
+              }
+              createParticles(o.x, o.y, orbColor, 15);
               collected = true; break;
           }
       }
@@ -1342,6 +1360,15 @@ function handleCameraAndPlayers() {
         let speedMult = map(p.giftSpeedTimer, 0, 300, 1.0, 3.0); // Postupné vytrácení rychlosti
         tSpd *= speedMult;
         currentMaxV *= speedMult;
+    }
+
+    if (p.orbSpeedTimer > 0) {
+        p.orbSpeedTimer--;
+        tSpd *= 5.0;
+        currentMaxV *= 5.0;
+        if (frameCount % 5 === 0 && !isExtremeLoad) {
+            createParticles(p.body.position.x, p.body.position.y, color(255, 255, 0), 2);
+        }
     }
 
     let vx = p.body.velocity.x;
