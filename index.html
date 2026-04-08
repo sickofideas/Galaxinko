@@ -337,6 +337,7 @@ let lastGlobalSound = 0;
 
 let previousTop10 = [];
 let currentTop10 = [];
+let sessionLikes = {};
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -635,7 +636,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, trail: [],
-    immunityTimer: 0, hasCrown: false
+    immunityTimer: 0, hasCrown: false,
+    boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0
   };
   
   players.push(player);
@@ -1192,6 +1194,23 @@ function drawFollowerMarquee() {
   }
 }
 
+function drawChatCommands() {
+    let cmdY = ARENA_BOT + 60;
+    fill(15, 15, 20); stroke(0, 255, 255, 50); strokeWeight(2);
+    rect(20, cmdY, W - 40, 70, 10);
+    
+    textAlign(CENTER, TOP);
+    fill(0, 255, 255); textSize(12); textStyle(BOLD);
+    text(currentLang === "CZ" ? "🚀 HRAJ POMOCÍ CHATU (PŘÍKAZY) 🚀" : "🚀 PLAY VIA CHAT (COMMANDS) 🚀", W/2, cmdY + 15);
+    
+    textSize(10);
+    fill(220);
+    textAlign(CENTER, BOTTOM);
+    let cmds = currentLang === "CZ" ? "!boost (10s)  |  !shield (10s)  |  !attack (100 LIKES)" : "!boost (10s)  |  !shield (10s)  |  !attack (100 LIKES)";
+    text(cmds, W/2, cmdY + 55);
+    textStyle(NORMAL);
+}
+
 function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
@@ -1211,6 +1230,10 @@ function handleCameraAndPlayers() {
         p.hp = 0; 
     }
     
+    if (p.boostCooldown > 0) p.boostCooldown--;
+    if (p.shieldCooldown > 0) p.shieldCooldown--;
+    if (p.attackCooldown > 0) p.attackCooldown--;
+
     let targetR = getRadius(p.hp);
     if (Math.abs(targetR - p.r) > 0.1 && p.body && p.hp > 0) {
         let newR = lerp(p.r, targetR, 0.1); 
@@ -2014,6 +2037,7 @@ function draw() {
 
   fill(10, 12, 15); noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
   drawFollowerMarquee(); 
+  drawChatCommands();
 
   stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
@@ -2102,6 +2126,49 @@ function connectTikfinity() {
 
       if (evt === "chat") {
           let msg = (d?.data?.comment || "").trim();
+          let msgLower = msg.toLowerCase();
+          let p = players.find(x => x.name === u);
+          
+          if (p && msgLower.startsWith("!boost") && p.boostCooldown <= 0) {
+              p.boostCooldown = 10 * 60;
+              let speed = Math.sqrt(p.body.velocity.x**2 + p.body.velocity.y**2);
+              let vx = speed > 0.5 ? p.body.velocity.x * 2.5 : random(-5, 5);
+              let vy = speed > 0.5 ? p.body.velocity.y * 2.5 : random(-5, 5);
+              Matter.Body.setVelocity(p.body, { x: vx, y: vy });
+              createParticles(p.body.position.x, p.body.position.y, color(0,255,255), 20);
+              addPopup("BOOST!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+              safePlaySound(600, 0.1, 0.1);
+          }
+          else if (p && msgLower.startsWith("!shield") && p.shieldCooldown <= 0) {
+              p.shieldCooldown = 10 * 60;
+              p.immunityTimer = Math.max(p.immunityTimer, 3 * 60);
+              addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
+              safePlaySound(800, 0.1, 0.2);
+          }
+          else if (p && msgLower.startsWith("!attack") && p.attackCooldown <= 0) {
+              if ((sessionLikes[u] || 0) >= 100) {
+                  p.attackCooldown = 10 * 60;
+                  sessionLikes[u] -= 100; // Spotřebování liků pro další útok (zabrání zadarmo spamu)
+                  deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255,50,50), life: 255});
+                  for (let other of players) {
+                      if (other === p || other.hp <= 0) continue;
+                      let dx = other.body.position.x - p.body.position.x;
+                      let dy = other.body.position.y - p.body.position.y;
+                      let distSq = dx*dx + dy*dy;
+                      if (distSq < 22500) { // 150px radius
+                          let dist = Math.sqrt(distSq) || 1;
+                          let forceMag = 0.08 * other.body.mass;
+                          Matter.Body.applyForce(other.body, other.body.position, { x: (dx/dist) * forceMag, y: (dy/dist) * forceMag });
+                      }
+                  }
+                  addPopup("ATTACK!", p.body.position.x, p.body.position.y - p.r, color(255, 50, 50));
+                  safePlaySound(200, 0.2, 0.5);
+                  screenShake = Math.max(screenShake, 8);
+              } else {
+                  addPopup("100 LIKES REQ!", p.body.position.x, p.body.position.y - p.r, color(255, 100, 100));
+              }
+          }
+
           if (codeActive && msg === secretCode) {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
@@ -2125,7 +2192,11 @@ function connectTikfinity() {
           }
           handleAction(u, 10); 
       }
-      else if (evt === "like") handleAction(u, (d.data?.likeCount || 1) * 2); 
+      else if (evt === "like") {
+          let likesCount = d.data?.likeCount || 1;
+          sessionLikes[u] = (sessionLikes[u] || 0) + likesCount;
+          handleAction(u, likesCount * 2); 
+      }
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
           handleAction(u, 0, true, diam); 
