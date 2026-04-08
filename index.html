@@ -1224,22 +1224,24 @@ function drawFollowerMarquee() {
 
 function drawChatCommands() {
     let cmdY = ARENA_BOT + 60;
-    let pulse = sin(frameCount * 0.1) * 50;
+    // Pomalejší a jemnější pulzování od 0 do 1
+    let pulse = (sin(frameCount * 0.05) + 1) / 2;
     
-    fill(15, 15, 20); stroke(0, 255, 255, 100 + pulse); strokeWeight(3);
-    drawingContext.shadowBlur = 15 + pulse/5;
+    fill(15, 15, 20, 240); stroke(0, 255, 255, 100 + pulse * 100); strokeWeight(2);
+    drawingContext.shadowBlur = 10 + pulse * 15;
     drawingContext.shadowColor = color(0, 255, 255);
-    rect(20, cmdY, W - 40, 80, 10);
+    // Menší výška boxu, posunuté lehce dolů
+    rect(20, cmdY + 10, W - 40, 60, 10);
     
-    textAlign(CENTER, TOP);
-    fill(0, 255, 255); textSize(16); textStyle(BOLD);
-    text(currentLang === "CZ" ? "🚀 HRAJ POMOCÍ CHATU (PŘÍKAZY) 🚀" : "🚀 PLAY VIA CHAT (COMMANDS) 🚀", W/2, cmdY + 15);
+    textAlign(CENTER, CENTER);
+    textSize(18); textStyle(BOLD);
     
-    textSize(13);
-    fill(220);
-    textAlign(CENTER, BOTTOM);
-    let cmds = currentLang === "CZ" ? "!boost (10s)  |  !shield (10s)  |  !attack (100x ❤️)" : "!boost (10s)  |  !shield (10s)  |  !attack (100x ❤️)";
-    text(cmds, W/2, cmdY + 65);
+    // Text je neustále čistě bílý pro maximální čitelnost, pulzuje jen jeho záře
+    fill(255);
+    drawingContext.shadowBlur = 5 + pulse * 10;
+    let cmds = "!boost (10s)   |   !shield (10s)   |   !attack (100x ❤️)";
+    text(cmds, W/2, cmdY + 40);
+    
     drawingContext.shadowBlur = 0;
     textStyle(NORMAL);
 }
