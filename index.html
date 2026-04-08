@@ -129,6 +129,10 @@ var COMMENTARY_GIFT = {
 
 var COMMENTARY_GENERAL = {
   CZ: [
+    "Chcete v aréně přežít? Ťukejte na obrazovku! Tap tap vám zvětšuje kouli a přidává sílu!",
+    "Kdo neťuká, ten umře! Tap tap tap se rovná víc HP a větší damage!",
+    "Vidíte ty největší hráče? Ti klikají jako o život! Dělejte to taky!",
+    "Bez ťukání jste jen potrava pro ostatní. Klikejte ať vyrostete!",
     "Víte, že ve vesmíru není slyšet váš křik? Tady ale naštěstí ano!",
     "Nejrychlejší věc ve vesmíru je světlo. A hned po něm tahle aréna!",
     "Tato aréna je větší než se zdá, díky pokročilé kompresi prostoru.",
@@ -1262,7 +1266,7 @@ function drawChatCommands() {
     // Text je neustále čistě bílý pro maximální čitelnost, pulzuje jen jeho záře
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
-        let cmds = "!boost (10s)   |   !shield (10s)   |   TapTap = !join";
+        let cmds = "TAP TAP = VĚTŠÍ KOULE A DMG!   |   !boost   |   !shield";
     text(cmds, W/2, cmdY + 40);
     
     drawingContext.shadowBlur = 0;
