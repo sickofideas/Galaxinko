@@ -603,21 +603,23 @@ function handleAction(name, amount, isGift = false, diam = 0) {
   }
 
   let p = players.find(x => x.name === name);
-      let m = spawnModules.find(x => x.name === name);
 
       if (p) {
     p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam);
-      } else if (m) {
-        m.hp += finalAmount;
-        if (isGift) {
-            m.isGift = true;
-            m.diam = Math.max(m.diam || 0, diam);
-        }
   } else {
-    let baseHp = getStartingHp(name);
-    spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
+    let m = spawnModules.find(x => x.name === name);
+    if (m) {
+      m.hp += finalAmount;
+      if (isGift) {
+          m.isGift = true;
+          m.diam = Math.max(m.diam || 0, diam);
+      }
+    } else {
+      let baseHp = getStartingHp(name);
+      spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
+    }
   }
 }
 
@@ -675,11 +677,6 @@ function spawnPlayer(name, hp, isGift = false, diam = 0) {
       if (minDist > maxMinDist) {
           maxMinDist = minDist;
           bestX = testX; bestY = testY;
-      }
-      if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
-          allTimeKills = {}; 
-          localStorage.removeItem('galaxinko_alltime_kills');
-          safePlaySound(200, 0.1, 0.5); 
       }
   }
 
@@ -1995,21 +1992,19 @@ function handleTTSCommentary() {
           } else { arr = currentLang === "CZ" ? COMMENTARY_GENERAL.CZ : COMMENTARY_GENERAL.EN; }
       }
               
-              if (txt === "" && arr && arr.length > 0) {
-                  let attempts = 0; 
-                  do { 
-                      txt = random(arr); 
-                      attempts++; 
-                  } while (txt === lastCommentString && attempts < 5);
-                  
-                  if (players.length === 1 && txt) txt = txt.replace("{p}", players[0].name);
+      if (txt === "" && arr && arr.length > 0) {
+          let attempts = 0; 
+          do { txt = random(arr); attempts++; } while (txt === lastCommentString && attempts < 5);
+          if (players.length === 1 && txt) txt = txt.replace("{p}", players[0].name);
       }
               
-              if (txt) {
-                  lastCommentString = txt; 
-                  speakTTS(txt); 
-              }
-              nextCommentTime = millis() + random(5000, 10000); 
+      if (txt) {
+          lastCommentString = txt; 
+          speakTTS(txt);
+          nextCommentTime = millis() + random(8000, 15000); 
+      } else {
+          nextCommentTime = millis() + 2000;
+      }
   }
 }
 
@@ -2184,6 +2179,11 @@ function mousePressed() {
   if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
       allTimeGifts = {}; 
       localStorage.removeItem('galaxinko_alltime_gifts');
+      safePlaySound(200, 0.1, 0.5); 
+  }
+  if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
+      allTimeKills = {}; 
+      localStorage.removeItem('galaxinko_alltime_kills');
       safePlaySound(200, 0.1, 0.5); 
   }
 }
