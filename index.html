@@ -321,6 +321,7 @@ let maxRoundTimer = 0;
 let bonusFrames = []; 
 let explosionTimer = 0;
 let gameState = "PLAYING"; 
+let nukeEffectTimer = 0;
 let resultsTimer = 8;
 let cameraScale = 1.0;
 let targetCameraScale = 1.0;
@@ -493,6 +494,8 @@ function startNewRound() {
   }
   
   gameState = "PLAYING";
+  nukeEffectTimer = 0;
+  engine.timing.timeScale = 1.0;
   cameraScale = 1.0;
   targetCameraScale = 1.0;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
@@ -560,6 +563,24 @@ function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 
 // TIERED GIFTS A IMUNITA EFEKTY
 // ==========================================
 function triggerGiftEffect(p, diam) {
+    if (diam >= 1000) {
+        nukeEffectTimer = 120; // 2 vteřiny slow-mo (60 fps)
+        engine.timing.timeScale = 0.2; // Zpomalení času
+        
+        // Gigantická rázová vlna (odhodí všechny k okrajům)
+        for (let other of players) {
+            if (other === p || other.hp <= 0) continue;
+            let dx = other.body.position.x - p.body.position.x;
+            let dy = other.body.position.y - p.body.position.y;
+            let distSq = dx * dx + dy * dy;
+            let dist = Math.sqrt(distSq) || 1;
+            let forceMag = 0.3 * other.body.mass; // Masivní síla
+            Matter.Body.applyForce(other.body, other.body.position, { x: (dx / dist) * forceMag, y: (dy / dist) * forceMag });
+        }
+        deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255, 50, 50), life: 255, isNuke: true});
+        safePlaySound(100, 0.6, 2.0); // Epic basový výbuch
+    }
+
     if (diam >= 5000) {
         p.immunityTimer += 50 * 60; // 50 sec (60FPS)
         p.hasCrown = true;
@@ -1502,10 +1523,10 @@ function drawDeathShockwaves() {
       let sw = deathShockwaves[i];
       noFill();
       stroke(red(sw.color), green(sw.color), blue(sw.color), sw.life);
-      strokeWeight(map(sw.life, 255, 0, 15, 1));
+          strokeWeight(map(sw.life, 255, 0, sw.isNuke ? 50 : 15, 1));
       ellipse(sw.x, sw.y, sw.r * 2);
-      sw.r += 4;
-      sw.life -= 12;
+          sw.r += sw.isNuke ? 25 : 4;
+          sw.life -= sw.isNuke ? 4 : 12;
       if (sw.life <= 0) deathShockwaves.splice(i, 1);
   }
 }
@@ -2050,6 +2071,15 @@ function draw() {
 
   drawSpaceBackground();
   
+  // Temné pozadí při Slow-mo Nuke efektu
+  if (nukeEffectTimer > 0) {
+      nukeEffectTimer--;
+      let alpha = constrain(map(nukeEffectTimer, 120, 0, 220, 0), 0, 220);
+      fill(0, 0, 0, alpha);
+      rect(-W, -H, W * 3, H * 3);
+      if (nukeEffectTimer <= 0) engine.timing.timeScale = 1.0;
+  }
+
   try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
   
   processCombatQueue();
