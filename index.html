@@ -620,7 +620,7 @@ function triggerGiftEffect(p, diam) {
     p.giftSpeedTimer = 300; // Zvýšeno na 5 sekund (300 snímků při 60 FPS)
 }
 
-function handleAction(name, amount, isGift = false, diam = 0) {
+function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true) {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
   let finalAmount = amount;
@@ -638,8 +638,13 @@ function handleAction(name, amount, isGift = false, diam = 0) {
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam);
   } else {
-        let baseHp = getStartingHp(name);
-        spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
+        let m = spawnModules.find(x => x.name === name);
+        if (m) {
+            m.hp += finalAmount;
+        } else if (allowSpawn) {
+            let baseHp = getStartingHp(name);
+            spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
+        }
   }
 }
 
@@ -1239,7 +1244,7 @@ function drawChatCommands() {
     // Text je neustále čistě bílý pro maximální čitelnost, pulzuje jen jeho záře
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
-    let cmds = "!boost (10s)   |   !shield (10s)";
+        let cmds = "!boost (10s)   |   !shield (10s)   |   TapTap = !join";
     text(cmds, W/2, cmdY + 40);
     
     drawingContext.shadowBlur = 0;
@@ -2295,21 +2300,21 @@ function connectTikfinity() {
               lastCodeWinner = { name: u, img: userAvatars[u] };
               nextCodeTime = millis() + random(45000, 90000);
               let reward = isUltraCode ? 3000 : 1500;
-              handleAction(u, reward);
+                handleAction(u, reward, false, 0, true);
               addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
               speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
               createParticles(W/2, H/2, color(255, 215, 0), 100);
           }
-          handleAction(u, 10); 
+            handleAction(u, 10, false, 0, false); 
       }
       else if (evt === "like") {
           let likesCount = d.data?.likeCount || 1;
           sessionLikes[u] = (sessionLikes[u] || 0) + likesCount;
-          handleAction(u, likesCount * 2); 
+            handleAction(u, likesCount * 2, false, 0, true); 
       }
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
-          handleAction(u, 0, true, diam); 
+            handleAction(u, 0, true, diam, true); 
           let col = players.find(x=>x.name===u)?.color || color(255);
           updateGiftLB(u, diam, col);
           
@@ -2370,4 +2375,4 @@ function mousePressed() {
 }
 </script>
 </body>
-</html>ll
+</html>
