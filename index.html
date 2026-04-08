@@ -586,9 +586,9 @@ function triggerGiftEffect(p, diam) {
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
     } else {
         addPopup("+" + (diam * 900) + " HP", p.body.position.x, p.body.position.y - p.r, color(255, 100, 150));
+            p.immunityTimer = Math.max(p.immunityTimer, 120);
     }
     p.giftSpeedTimer = 300; // Zvýšeno na 5 sekund (300 snímků při 60 FPS)
-    p.immunityTimer = Math.max(p.immunityTimer, 120);
 }
 
 function handleAction(name, amount, isGift = false, diam = 0) {
@@ -675,6 +675,11 @@ function spawnPlayer(name, hp, isGift = false, diam = 0) {
       if (minDist > maxMinDist) {
           maxMinDist = minDist;
           bestX = testX; bestY = testY;
+      }
+      if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
+          allTimeKills = {}; 
+          localStorage.removeItem('galaxinko_alltime_kills');
+          safePlaySound(200, 0.1, 0.5); 
       }
   }
 
@@ -1989,16 +1994,22 @@ function handleTTSCommentary() {
               if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${Math.floor(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${Math.floor(Math.max(0, top.hp))} points! Go after them!`;
           } else { arr = currentLang === "CZ" ? COMMENTARY_GENERAL.CZ : COMMENTARY_GENERAL.EN; }
       }
-      if (txt === "") {
-          let attempts = 0; do { txt = random(arr); attempts++; } while (txt === lastCommentString && attempts < 5);
-          if (players.length === 1) txt = txt.replace("{p}", players[0].name);
+              
+              if (txt === "" && arr && arr.length > 0) {
+                  let attempts = 0; 
+                  do { 
+                      txt = random(arr); 
+                      attempts++; 
+                  } while (txt === lastCommentString && attempts < 5);
+                  
+                  if (players.length === 1 && txt) txt = txt.replace("{p}", players[0].name);
       }
-      lastCommentString = txt; speakTTS(txt); nextCommentTime = millis() + random(5000, 10000); 
-  }
-  if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
-      allTimeKills = {}; 
-      localStorage.removeItem('galaxinko_alltime_kills');
-      safePlaySound(200, 0.1, 0.5); 
+              
+              if (txt) {
+                  lastCommentString = txt; 
+                  speakTTS(txt); 
+              }
+              nextCommentTime = millis() + random(5000, 10000); 
   }
 }
 
