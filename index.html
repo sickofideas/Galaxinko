@@ -616,7 +616,6 @@ function triggerGiftEffect(p, diam) {
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
     } else {
         addPopup("+" + (diam * 900) + " HP", p.body.position.x, p.body.position.y - p.r, color(255, 100, 150));
-            p.immunityTimer = Math.max(p.immunityTimer, 120);
     }
     p.giftSpeedTimer = 300; // Zvýšeno na 5 sekund (300 snímků při 60 FPS)
 }
@@ -639,17 +638,8 @@ function handleAction(name, amount, isGift = false, diam = 0) {
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam);
   } else {
-    let m = spawnModules.find(x => x.name === name);
-    if (m) {
-      m.hp += finalAmount;
-      if (isGift) {
-          m.isGift = true;
-          m.diam = Math.max(m.diam || 0, diam);
-      }
-    } else {
-      let baseHp = getStartingHp(name);
-      spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
-    }
+        let baseHp = getStartingHp(name);
+        spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
   }
 }
 
