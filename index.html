@@ -1009,7 +1009,7 @@ function handleOrbs() {
 }
 
 function generateSecretCodeStr(len) {
-    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     secretCode = "";
     for(let i=0; i<len; i++) secretCode += chars.charAt(Math.floor(random(chars.length)));
 }
@@ -1017,9 +1017,9 @@ function generateSecretCodeStr(len) {
 function handleSecretCode() {
     if (!codeActive && gameState === "PLAYING" && millis() > nextCodeTime) {
         codeActive = true;
-        isUltraCode = false;
+        isUltraCode = random() < 0.2; // 20% šance na Ultra kód hned od začátku
         failedCodeAttempts = 0;
-        generateSecretCodeStr(6);
+        generateSecretCodeStr(isUltraCode ? 8 : 6);
         codeX = random(150, W - 150);
         codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
         lastCodeWinner = null;
@@ -1212,7 +1212,7 @@ function drawFollowerMarquee() {
               drawingContext.clip();
               image(f.img, cx + 16, ARENA_BOT + 20, 24, 24);
               drawingContext.restore();
-          } else {
+          } else {llll
               fill(80); noStroke(); ellipse(cx + 16, ARENA_BOT + 20, 24, 24);
           }
           fill(0, 255, 255); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
@@ -1239,7 +1239,7 @@ function drawChatCommands() {
     // Text je neustále čistě bílý pro maximální čitelnost, pulzuje jen jeho záře
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
-    let cmds = "!boost (10s)   |   !shield (10s)   |   !attack (100x ❤️)";
+    let cmds = "!boost (10s)   |   !shield (10s)";
     text(cmds, W/2, cmdY + 40);
     
     drawingContext.shadowBlur = 0;
@@ -2289,31 +2289,8 @@ function connectTikfinity() {
               addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
               safePlaySound(800, 0.1, 0.2);
           }
-          else if (p && msgLower.startsWith("!attack") && p.attackCooldown <= 0) {
-              if ((sessionLikes[u] || 0) >= 100) {
-                  p.attackCooldown = 10 * 60;
-                  sessionLikes[u] -= 100; // Spotřebování liků pro další útok (zabrání zadarmo spamu)
-                  deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255,50,50), life: 255});
-                  for (let other of players) {
-                      if (other === p || other.hp <= 0) continue;
-                      let dx = other.body.position.x - p.body.position.x;
-                      let dy = other.body.position.y - p.body.position.y;
-                      let distSq = dx*dx + dy*dy;
-                      if (distSq < 22500) { // 150px radius
-                          let dist = Math.sqrt(distSq) || 1;
-                          let forceMag = 0.08 * other.body.mass;
-                          Matter.Body.applyForce(other.body, other.body.position, { x: (dx/dist) * forceMag, y: (dy/dist) * forceMag });
-                      }
-                  }
-                  addPopup("ATTACK!", p.body.position.x, p.body.position.y - p.r, color(255, 50, 50));
-                  safePlaySound(200, 0.2, 0.5);
-                  screenShake = Math.max(screenShake, 8);
-              } else {
-                  addPopup("100x ❤️ REQ!", p.body.position.x, p.body.position.y - p.r, color(255, 100, 100));
-              }
-          }
 
-          if (codeActive && msg === secretCode) {
+          if (codeActive && msg.toUpperCase() === secretCode) {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
               nextCodeTime = millis() + random(45000, 90000);
@@ -2322,17 +2299,6 @@ function connectTikfinity() {
               addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
               speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
               createParticles(W/2, H/2, color(255, 215, 0), 100);
-          } else if (codeActive) {
-              failedCodeAttempts++;
-              if (failedCodeAttempts >= 3 && !isUltraCode) {
-                  isUltraCode = true;
-                  generateSecretCodeStr(8);
-                  codeX = random(150, W - 150);
-                  codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
-                  safePlaySound(800, 0.1, 0.8);
-                  addPopup("ULTRA CODE INITIATED!", W/2, H/2, color(255, 50, 50), true);
-                  speakTTS(currentLang === "CZ" ? `Pozor, aktivován Ultra kód za tři tisíce bodů!` : `Warning, Ultra code activated for three thousand points!`);
-              }
           }
           handleAction(u, 10); 
       }
@@ -2404,4 +2370,4 @@ function mousePressed() {
 }
 </script>
 </body>
-</html>
+</html>ll
