@@ -2410,20 +2410,19 @@ function connectTikfinity() {
           let p = players.find(x => x.name === u);
           
           if (p && msgLower.startsWith("!boost") && p.boostCooldown <= 0) {
-              p.boostCooldown = 10 * 60;
-              let speed = Math.sqrt(p.body.velocity.x**2 + p.body.velocity.y**2);
-              let vx = speed > 0.5 ? p.body.velocity.x * 2.5 : random(-5, 5);
-              let vy = speed > 0.5 ? p.body.velocity.y * 2.5 : random(-5, 5);
-              Matter.Body.setVelocity(p.body, { x: vx, y: vy });
+              p.boostCooldown = 60 * 60; // 60 vteřin cooldown
+              p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 2.5 * 60); // 2.5 sekundy speed boost
               createParticles(p.body.position.x, p.body.position.y, color(0,255,255), 20);
               addPopup("BOOST!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
               safePlaySound(600, 0.1, 0.1);
+              addNotification('BOOST', u, userAvatars[u]);
           }
           else if (p && msgLower.startsWith("!shield") && p.shieldCooldown <= 0) {
-              p.shieldCooldown = 10 * 60;
-              p.immunityTimer = Math.max(p.immunityTimer, 3 * 60);
+              p.shieldCooldown = 60 * 60; // 60 vteřin cooldown
+              p.immunityTimer = Math.max(p.immunityTimer, 2.5 * 60); // 2.5 sekundy štít
               addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
               safePlaySound(800, 0.1, 0.2);
+              addNotification('SHIELD', u, userAvatars[u]);
           }
 
           if (codeActive && msg.toUpperCase() === secretCode) {
