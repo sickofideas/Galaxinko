@@ -1303,17 +1303,25 @@ function drawNotifications() {
       if (n.type === 'JOIN') { borderColor = color(50, 255, 100); actionText = "Vstoupil do arény!"; icon = "⚔️"; }
       else if (n.type === 'FOLLOW') { borderColor = color(255, 50, 255); actionText = "Sleduje hru!"; icon = "🎉"; }
       else if (n.type === 'LIKE') { borderColor = color(255, 50, 50); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
+      else { borderColor = color(255); actionText = "Akce"; icon = "✨"; }
+      
+      // Glow efekt (Záře)
+      drawingContext.shadowBlur = 20;
+      drawingContext.shadowColor = borderColor;
       
       // Samotná buňka (štítek)
       fill(10, 12, 18, 240); stroke(borderColor); strokeWeight(2);
       rect(0, 0, 340, 64, 15);
       
+      drawingContext.shadowBlur = 0; // Vypneme záři pro text a obrázek
+      
       // Profilovka z TikTok API
-      if (n.img && n.img !== "loaded") {
+      let currentAvatar = userAvatars[n.name] || n.img;
+      if (currentAvatar && currentAvatar !== "loaded") {
           drawingContext.save(); drawingContext.beginPath();
           drawingContext.arc(32, 32, 22, 0, TWO_PI);
           drawingContext.clip();
-          image(n.img, 10, 10, 44, 44);
+          image(currentAvatar, 10, 10, 44, 44);
           drawingContext.restore();
       } else {
           fill(80); noStroke(); ellipse(32, 32, 44, 44);
@@ -1322,7 +1330,7 @@ function drawNotifications() {
       // Texty ve štítku
       textAlign(LEFT, CENTER);
       fill(255); textSize(18); textStyle(BOLD);
-      text(n.name.substring(0, 11), 64, 20); // Jméno nahoře
+      text((n.name || "").substring(0, 11), 64, 20); // Jméno nahoře
       
       fill(borderColor); textSize(16); textStyle(NORMAL);
       text(`${icon} ${actionText}`, 64, 44); // Akce dole
@@ -1330,8 +1338,8 @@ function drawNotifications() {
       pop();
   }
   
-  // Průběžně mažeme ty, co už odletěly pryč z obrazovky
-  notifications = notifications.filter(n => n.x > -400);
+  // Odstranění těch, kterým vypršel čas (life <= 0) místo zaseknutí na x souřadnici
+  notifications = notifications.filter(n => n.life > 0);
 }
 
 function drawChatCommands() {
