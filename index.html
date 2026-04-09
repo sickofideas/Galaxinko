@@ -1098,31 +1098,34 @@ function drawSecretCodeUI() {
         if (codeActive) {
             let rewardTxt = isUltraCode ? "+3000 HP" : "+1500 HP";
             let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'ZACHYCEN KÓD'}: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'SIGNAL DETECTED'}: FIRST IN CHAT GETS ${rewardTxt} ///`;
-            let hintCol = isUltraCode ? color(255, 100, 100) : color(0, 255, 255);
+            
+            // Barva textu podle arény
+            let hintCol = isUltraCode ? color(255, 100, 100) : roundThemeColor; 
+            
             fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
             textSize(10);
             textAlign(CENTER, TOP);
-            text(hint, W/2, ARENA_BOT + 45);
+            text(hint, W/2, ARENA_BOT + 105); // Posunuto dolů pod TAP TAP box
         } else if (lastCodeWinner) {
             fill(255, 215, 0, 200);
             textSize(10);
             textAlign(CENTER, TOP);
             let wTxt = currentLang === "CZ" ? `POSLEDNÍ KÓD PROLOMIL:` : `LAST CODE CRACKED BY:`;
             let tw = textWidth(wTxt);
-            text(wTxt, W/2 - 20, ARENA_BOT + 45);
+            text(wTxt, W/2 - 20, ARENA_BOT + 105); // Posunuto
             
             if (lastCodeWinner.img && lastCodeWinner.img !== "loaded") {
                 drawingContext.save(); drawingContext.beginPath();
-                drawingContext.arc(W/2 + tw/2, ARENA_BOT + 50, 8, 0, TWO_PI);
+                drawingContext.arc(W/2 + tw/2, ARENA_BOT + 110, 8, 0, TWO_PI); // Posunuto
                 drawingContext.clip();
-                image(lastCodeWinner.img, W/2 + tw/2, ARENA_BOT + 50, 16, 16);
+                image(lastCodeWinner.img, W/2 + tw/2, ARENA_BOT + 110, 16, 16); // Posunuto
                 drawingContext.restore();
             } else {
-                fill(100); noStroke(); ellipse(W/2 + tw/2, ARENA_BOT + 50, 16, 16);
+                fill(100); noStroke(); ellipse(W/2 + tw/2, ARENA_BOT + 110, 16, 16); // Posunuto
             }
             fill(255);
             textAlign(LEFT, TOP);
-            text(lastCodeWinner.name, W/2 + tw/2 + 12, ARENA_BOT + 45);
+            text(lastCodeWinner.name, W/2 + tw/2 + 12, ARENA_BOT + 105); // Posunuto
         }
         pop();
     }
@@ -1272,23 +1275,23 @@ function drawNotifications() {
 }
 
 function drawChatCommands() {
-    let cmdY = ARENA_BOT + 60;
-    // Pomalejší a jemnější pulzování od 0 do 1
+    let cmdY = ARENA_BOT + 30; // Posunuto těsně pod notifikace
     let pulse = (sin(frameCount * 0.05) + 1) / 2;
     
-    fill(15, 15, 20, 240); stroke(0, 255, 255, 100 + pulse * 100); strokeWeight(2);
+    fill(15, 15, 20, 240); 
+    // Barva okraje podle barvy arény
+    stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), 100 + pulse * 100); 
+    strokeWeight(2);
     drawingContext.shadowBlur = 10 + pulse * 15;
-    drawingContext.shadowColor = color(0, 255, 255);
-    // Menší výška boxu, posunuté lehce dolů
+    drawingContext.shadowColor = roundThemeColor; // Záře podle arény
     rect(20, cmdY + 10, W - 40, 60, 10);
     
     textAlign(CENTER, CENTER);
     textSize(18); textStyle(BOLD);
     
-    // Text je neustále čistě bílý pro maximální čitelnost, pulzuje jen jeho záře
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
-        let cmds = "TAP TAP = VĚTŠÍ KOULE A DMG!   |   !boost   |   !shield";
+    let cmds = "TAP TAP = VĚTŠÍ KOULE A DMG!   |   !boost   |   !shield";
     text(cmds, W/2, cmdY + 40);
     
     drawingContext.shadowBlur = 0;
