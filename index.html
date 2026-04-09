@@ -1329,18 +1329,13 @@ function drawNotifications() {
       else if (n.type === 'FOLLOW') { borderColor = color(255, 50, 255); actionText = currentLang === "CZ" ? "Sleduje hru!" : "Followed!"; icon = "🎉"; }
       else if (n.type === 'LIKE') { borderColor = color(255, 50, 50); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
       else if (n.type === 'BOOST') { borderColor = color(0, 255, 255); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
-      else if (n.type === 'SHIELD') { borderColor = color(100, 50, 255); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
+      else if (n.type === 'SHIELD') { borderColor = color(150, 100, 255); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
       else if (n.type === 'CODE') { borderColor = color(255, 215, 0); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
       else { borderColor = color(255); actionText = "Akce"; icon = "✨"; }
       
-      drawingContext.shadowBlur = 20;
-      drawingContext.shadowColor = borderColor;
-      
-      fill(10, 12, 18, 240); stroke(borderColor); strokeWeight(2);
+      // Glow zcela odstraněn pro maximální ostrost textu, pozadí plně neprůhledné
+      fill(10, 12, 18, 255); stroke(borderColor); strokeWeight(2);
       rect(0, 0, 340, 64, 15);
-      
-      drawingContext.shadowBlur = 0;
-      drawingContext.shadowColor = "transparent";
       
       let currentAvatar = userAvatars[n.name] || n.img;
       if (currentAvatar && currentAvatar !== "loaded") {
@@ -1357,7 +1352,7 @@ function drawNotifications() {
       fill(255); textSize(18); textStyle(BOLD); noStroke();
       text((n.name || "").substring(0, 11), 64, 20);
       
-      fill(220); textSize(16); textStyle(NORMAL); noStroke();
+      fill(borderColor); textSize(16); textStyle(NORMAL); noStroke();
       text(`${icon} ${actionText}`, 64, 44);
       
       pop();
