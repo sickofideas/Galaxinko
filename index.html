@@ -484,7 +484,19 @@ function startNewRound() {
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; spawnModules = [];
   roundGifts = {}; 
   
+  // 1. Spawni aktivní přeživší z minulého kola normálně
   oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
+
+  // 2. Spawni ZOMBIES z historie (5 až 50 hráčů, co vypadli)
+  let zombieCount = floor(random(5, 51));
+  let availableZombies = Object.keys(userAvatars).filter(u => !oldPlayers.includes(u));
+  availableZombies.sort(() => 0.5 - random()); // Náhodně zamíchat
+  
+  for (let i = 0; i < zombieCount; i++) {
+      let zName = availableZombies[i];
+      if (!zName) zName = "Zombot_" + floor(random(1000, 9999)); // Když nejsou skuteční lidé
+      spawnPlayer(zName, 50, false, 0, true); // true = isZombie
+  }
 
   roundTimer = floor(random(300, 901)); // 5 až 15 minut
   maxRoundTimer = roundTimer;
@@ -714,84 +726,37 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true)
   }
 }
 
-function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0) {
-  let safeHp = Math.max(0, hp || 150); // Základ pro nové hráče 150 HP
+function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false) {
+  let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
-  let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
-  Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
-  
-  let player = {
-    name: name, hp: safeHp, body: body, r: r, targetR: r,
-    color: playerColor,
-    rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
-    noiseOffsetX: random(1000), noiseOffsetY: random(2000),
-    sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
-    immunityTimer: 0, hasCrown: false,
-    boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false
-  };
-  
-  players.push(player);
-  Matter.World.add(world, body);
-  
-  if (isGift) {
-      triggerGiftEffect(player, diam);
-  } else {
-      speakTTS(T[currentLang].NEW + name);
-  }
-  
-  createParticles(spawnX, spawnY, playerColor, 15);
-  safePlaySound(600, 0.1, 0.05);
-}
-
-function spawnPlayer(name, hp, isGift = false, diam = 0) {
-  let safeHp = Math.max(0, hp || 150); // Základ pro nové hráče 150 HP
-  let r = getRadius(safeHp);
-  
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
+  let bestX = cx; let bestY = cy; let maxMinDist = -1;
   
-  let bestX = cx; let bestY = cy;
-  let maxMinDist = -1;
   for (let i = 0; i < 20; i++) {
       let testX = cx + random(-viewW/2 + r*2, viewW/2 - r*2);
       let testY = cy + random(-viewH/2 + r*2, viewH/2 - r*2);
       let minDist = Infinity;
-      
       for (let p of players) {
           if (!p.body) continue;
           let d = dist(testX, testY, p.body.position.x, p.body.position.y);
           if (d < minDist) minDist = d;
       }
-      
-      if (players.length === 0) {
-          bestX = testX; bestY = testY; break;
-      }
-      if (minDist > maxMinDist) {
-          maxMinDist = minDist;
-          bestX = testX; bestY = testY;
-      }
+      if (players.length === 0) { bestX = testX; bestY = testY; break; }
+      if (minDist > maxMinDist) { maxMinDist = minDist; bestX = testX; bestY = testY; }
   }
 
-  let sx = shipX === 0 ? W/2 : shipX;
-  let sy = shipY === 0 ? ARENA_TOP : shipY;
+  let sx = shipX === 0 ? W/2 : shipX; let sy = shipY === 0 ? ARENA_TOP : shipY;
   let wPos = screenToWorld(sx, sy);
-  
-  let dx = bestX - wPos.x;
-  let dy = bestY - wPos.y;
-  let distToTarget = Math.sqrt(dx*dx + dy*dy);
-  let spd = distToTarget / 45; 
-  
+  let dx = bestX - wPos.x; let dy = bestY - wPos.y;
+  let distToTarget = Math.sqrt(dx*dx + dy*dy); let spd = distToTarget / 45; 
   let pColor = color(random(100,255), random(100,255), random(100,255));
   
   spawnModules.push({
-      name: name, hp: safeHp,
-      x: wPos.x, y: wPos.y,
-      targetX: bestX, targetY: bestY,
+      name: name, hp: safeHp, x: wPos.x, y: wPos.y, targetX: bestX, targetY: bestY,
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
-      life: 45, trail: [], color: pColor,
-      isGift: isGift, diam: diam
+      life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie
   });
-  
   safePlaySound(400, 0.1, 0.1);
 }
 
@@ -800,9 +765,7 @@ function handleSpawnModules() {
         let m = spawnModules[i];
         m.trail.push({x: m.x, y: m.y});
         if (m.trail.length > 12) m.trail.shift();
-        
-        m.x += m.vx; m.y += m.vy;
-        m.life--;
+        m.x += m.vx; m.y += m.vy; m.life--;
         
         noStroke();
         for(let t=0; t<m.trail.length; t++) {
@@ -810,29 +773,43 @@ function handleSpawnModules() {
             ellipse(m.trail[t].x + random(-2,2), m.trail[t].y + random(-2,2), map(t, 0, m.trail.length, 2, 12));
         }
         
-        push();
-        translate(m.x, m.y);
-        rotate(atan2(m.vy, m.vx));
-        
-        fill(255, 100, 0); noStroke();
-        triangle(-10, -4, -10, 4, -20 - random(8), 0);
-        
-        fill(40); stroke(m.color); strokeWeight(2);
-        ellipse(0, 0, 20, 12);
-        
-        fill(m.color); noStroke();
-        ellipse(4, 0, 6, 6);
-        
-        fill(255, 200); 
-        ellipse(5, -1, 2, 2); 
-        
-        pop();
+        push(); translate(m.x, m.y); rotate(atan2(m.vy, m.vx));
+        fill(255, 100, 0); noStroke(); triangle(-10, -4, -10, 4, -20 - random(8), 0);
+        fill(40); stroke(m.color); strokeWeight(2); ellipse(0, 0, 20, 12);
+        fill(m.color); noStroke(); ellipse(4, 0, 6, 6);
+        fill(255, 200); ellipse(5, -1, 2, 2); pop();
         
         if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
-            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam);
+            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie);
             spawnModules.splice(i, 1);
         }
     }
+}
+
+function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false) {
+  let safeHp = Math.max(0, hp || 150); 
+  let r = getRadius(safeHp);
+  let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
+  Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
+  
+  let player = {
+    name: name, hp: safeHp, body: body, r: r, targetR: r, color: playerColor,
+    rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
+    noiseOffsetX: random(1000), noiseOffsetY: random(2000),
+    sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
+    immunityTimer: 0, hasCrown: false, boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false,
+    isZombie: isZombie
+  };
+  
+  players.push(player); Matter.World.add(world, body);
+  
+  if (!isZombie) { 
+      if (isGift) triggerGiftEffect(player, diam);
+      else speakTTS(T[currentLang].NEW + name);
+  }
+  
+  createParticles(spawnX, spawnY, playerColor, 15);
+  safePlaySound(600, 0.1, 0.05);
 }
 
 function updateHpLB(name, hp, col) {
