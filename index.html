@@ -1267,9 +1267,10 @@ function addNotification(type, name, img, extra = "") {
         name: name,
         img: img,
         extra: extra,
-        life: 240, // Zobrazí se na 4 vteřiny (60 fps * 4)
-        x: W + 200, // Přiletí zprava mimo obrazovku
-        targetX: 0
+        age: 0,
+        state: 'WAITING',
+        x: W + 400,
+        targetX: W + 400
     });
 }
 
@@ -1281,41 +1282,66 @@ function drawNotifications() {
   line(0, ARENA_BOT, W, ARENA_BOT);
   line(0, ARENA_BOT + 80, W, ARENA_BOT + 80);
 
-  // Vezmeme jen první 2 aktivní notifikace, aby se vešly
-  let active = notifications.slice(0, 2);
-  
-  for (let i = 0; i < active.length; i++) {
-      let n = active[i];
+  // Zvýšíme věk aktuálně zobrazeným notifikacím
+  for (let n of notifications) {
+      if (n.state === 'DISPLAY') n.age++;
+  }
+
+  // Logika pro zařazování do fronty zobrazení
+  let displayed = notifications.filter(n => n.state === 'DISPLAY');
+  let waiting = notifications.filter(n => n.state === 'WAITING');
+
+  if (waiting.length > 0) {
+      // Pokud je plno (2), odstraníme nejstarší pouze pokud je na obrazovce už alespoň 3 vteřiny
+      if (displayed.length >= 2) {
+          if (displayed[0].age >= 180) {
+              displayed[0].state = 'LEAVING';
+              displayed.shift(); 
+          }
+      }
+      // Pokud je místo (méně než 2 zobrazené), nasadíme novou
+      if (displayed.length < 2) {
+          let next = waiting[0];
+          next.state = 'DISPLAY';
+          next.x = W + 400; // Start zprava
+          displayed.push(next);
+      }
+  }
+
+  // Určíme pozice pro aktuálně zobrazené (nejnovější napravo)
+  displayed.reverse();
+  for (let i = 0; i < displayed.length; i++) {
+      displayed[i].targetX = W - 350 - (i * 350);
+  }
+
+  for (let n of notifications) {
+      if (n.state === 'WAITING') continue;
       
-      // Animace: Zařadí se za sebe zprava doleva (max 2)
-      n.targetX = W - 350 - (i * 350); 
-      // Když jim dochází čas, odletí doleva
-      if (n.life < 30) n.targetX = -400; 
+      if (n.state === 'LEAVING') n.targetX = -400;
       
-      n.x = lerp(n.x, n.targetX, 0.15); // Plynulý pohyb
-      n.life--;
+      n.x = lerp(n.x, n.targetX, 0.15);
       
       push();
       translate(n.x, ARENA_BOT + 8);
       
-      // Stylování podle typu akce
       let borderColor, actionText, icon;
-      if (n.type === 'JOIN') { borderColor = color(50, 255, 100); actionText = "Vstoupil do arény!"; icon = "⚔️"; }
-      else if (n.type === 'FOLLOW') { borderColor = color(255, 50, 255); actionText = "Sleduje hru!"; icon = "🎉"; }
+      if (n.type === 'JOIN') { borderColor = color(50, 255, 100); actionText = currentLang === "CZ" ? "Vstoupil do arény!" : "Joined the arena!"; icon = "⚔️"; }
+      else if (n.type === 'FOLLOW') { borderColor = color(255, 50, 255); actionText = currentLang === "CZ" ? "Sleduje hru!" : "Followed!"; icon = "🎉"; }
       else if (n.type === 'LIKE') { borderColor = color(255, 50, 50); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
+      else if (n.type === 'BOOST') { borderColor = color(0, 255, 255); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
+      else if (n.type === 'SHIELD') { borderColor = color(100, 50, 255); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
+      else if (n.type === 'CODE') { borderColor = color(255, 215, 0); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
       else { borderColor = color(255); actionText = "Akce"; icon = "✨"; }
       
-      // Glow efekt (Záře)
       drawingContext.shadowBlur = 20;
       drawingContext.shadowColor = borderColor;
       
-      // Samotná buňka (štítek)
       fill(10, 12, 18, 240); stroke(borderColor); strokeWeight(2);
       rect(0, 0, 340, 64, 15);
       
-      drawingContext.shadowBlur = 0; // Vypneme záři pro text a obrázek
+      drawingContext.shadowBlur = 0;
+      drawingContext.shadowColor = "transparent";
       
-      // Profilovka z TikTok API
       let currentAvatar = userAvatars[n.name] || n.img;
       if (currentAvatar && currentAvatar !== "loaded") {
           drawingContext.save(); drawingContext.beginPath();
@@ -1327,19 +1353,17 @@ function drawNotifications() {
           fill(80); noStroke(); ellipse(32, 32, 44, 44);
       }
       
-      // Texty ve štítku
       textAlign(LEFT, CENTER);
-      fill(255); textSize(18); textStyle(BOLD);
-      text((n.name || "").substring(0, 11), 64, 20); // Jméno nahoře
+      fill(255); textSize(18); textStyle(BOLD); noStroke();
+      text((n.name || "").substring(0, 11), 64, 20);
       
-      fill(borderColor); textSize(16); textStyle(NORMAL);
-      text(`${icon} ${actionText}`, 64, 44); // Akce dole
+      fill(220); textSize(16); textStyle(NORMAL); noStroke();
+      text(`${icon} ${actionText}`, 64, 44);
       
       pop();
   }
   
-  // Odstranění těch, kterým vypršel čas (life <= 0) místo zaseknutí na x souřadnici
-  notifications = notifications.filter(n => n.life > 0);
+  notifications = notifications.filter(n => !(n.state === 'LEAVING' && n.x < -390));
 }
 
 function drawChatCommands() {
