@@ -294,6 +294,9 @@ let codeActive = false;
 let nextCodeTime = 0;
 let codeX = 0;
 let codeY = 0;
+let codeVX = 0;
+let codeVY = 0;
+let codeExpireTime = 0;
 let lastCodeWinner = null;
 let failedCodeAttempts = 0;
 let isUltraCode = false;
@@ -507,7 +510,7 @@ function startNewRound() {
   targetCameraScale = 1.0;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
   nextCommentTime = millis() + random(3000, 6000);
-  nextCodeTime = millis() + random(45000, 90000); 
+  nextCodeTime = millis() + random(30000, 60000); 
   codeActive = false;
   lastCodeWinner = null;
   failedCodeAttempts = 0;
@@ -540,7 +543,7 @@ function setupEvents() {
           let u = random(players).name;
           codeActive = false;
           lastCodeWinner = { name: u, img: userAvatars[u] };
-          nextCodeTime = millis() + random(45000, 90000);
+          nextCodeTime = millis() + random(30000, 60000);
           let reward = isUltraCode ? 3000 : 1500;
           handleAction(u, reward);
           addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
@@ -1108,13 +1111,33 @@ function handleSecretCode() {
         generateSecretCodeStr(isUltraCode ? 8 : 6);
         codeX = random(150, W - 150);
         codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
+            
+            // Startovací rychlosti pro poletování
+            codeVX = random() < 0.5 ? random(-3, -1.5) : random(1.5, 3);
+            codeVY = random() < 0.5 ? random(-3, -1.5) : random(1.5, 3);
+            
+            codeExpireTime = millis() + 40000; // Zmizí za 40 vteřin
+            
         lastCodeWinner = null;
         safePlaySound(400, 0.05, 0.5);
     }
+        
+        // Zmizení kódu, pokud ho nikdo nedal do 40 vteřin
+        if (codeActive && millis() > codeExpireTime) {
+            codeActive = false;
+            nextCodeTime = millis() + random(30000, 60000); // Nový za 30-60 vteřin
+        }
 }
 
 function drawSecretCodeUI() {
     if (codeActive) {
+        codeX += codeVX;
+        codeY += codeVY;
+        
+        // Odrazy od mantinelů arény
+        if (codeX < 100 || codeX > W - 100) codeVX *= -1;
+        if (codeY < ARENA_TOP + 50 || codeY > ARENA_BOT - 50) codeVY *= -1;
+        
         push();
         let baseCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
         drawingContext.shadowBlur = random(5, 20);
@@ -2447,7 +2470,7 @@ function connectTikfinity() {
           if (codeActive && msg.toUpperCase() === secretCode) {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
-              nextCodeTime = millis() + random(45000, 90000);
+              nextCodeTime = millis() + random(30000, 60000);
               let reward = isUltraCode ? 3000 : 1500;
                 handleAction(u, reward, false, 0, true);
               addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
