@@ -477,24 +477,23 @@ function generateSpaceBackground() {
 }
 
 function startNewRound() {
-  previousTop10 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
+  previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
   players.forEach(p => Matter.World.remove(world, p.body));
-  let oldPlayers = players.map(p => p.name);
+  let oldPlayers = players.filter(p => !p.isZombie).map(p => p.name); // Zombíci se nepřevádí
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; spawnModules = [];
   roundGifts = {}; 
   
   // 1. Spawni aktivní přeživší z minulého kola normálně
   oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
 
-  // 2. Spawni ZOMBIES z historie (5 až 50 hráčů, co vypadli)
-  let zombieCount = floor(random(5, 51));
+  // 2. Spawni ZOMBIES z historie (až 50 skutečných hráčů, co vypadli)
   let availableZombies = Object.keys(userAvatars).filter(u => !oldPlayers.includes(u));
   availableZombies.sort(() => 0.5 - random()); // Náhodně zamíchat
+  let zombieCount = Math.min(floor(random(5, 51)), availableZombies.length);
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      if (!zName) zName = "Zombot_" + floor(random(1000, 9999)); // Když nejsou skuteční lidé
       spawnPlayer(zName, 50, false, 0, true); // true = isZombie
   }
 
@@ -1396,7 +1395,7 @@ function handleCameraAndPlayers() {
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
     
-    updateHpLB(p.name, p.hp, p.color);
+    if (!p.isZombie) updateHpLB(p.name, p.hp, p.color);
 
     let bx = p.body ? p.body.position.x : 0;
     let by = p.body ? p.body.position.y : 0;
@@ -1466,6 +1465,12 @@ function handleCameraAndPlayers() {
     let tSpd = isTop10 ? 2.1 : 1.8; 
     let currentMaxV = maxV;
     
+    // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
+    if (p.isZombie) {
+        tSpd *= 0.4;
+        currentMaxV *= 0.4;
+    }
+
     if (p.isBounty) {
         tSpd *= 1.4;
         currentMaxV *= 1.4;
