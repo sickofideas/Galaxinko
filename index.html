@@ -285,9 +285,8 @@ let orbs = [];
 let combatQueue = []; 
 let spawnModules = []; 
 
-// Variables for Follower Marquee
-let recentFollowers = [];
-let followerScrollX = W;
+// Fronta pro infotainment
+let notifications = []; 
 
 // Variables for Secret Code Minigame
 let secretCode = "";
@@ -551,7 +550,7 @@ function setupEvents() {
           speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); 
       }
   };
-  document.getElementById('tFollow').onclick = () => { let dummyUser = "User" + floor(random(100)); recentFollowers.push({ name: dummyUser, img: null, time: millis() }); };
+  document.getElementById('tFollow').onclick = () => { let dummyUser = "User" + floor(random(100)); addNotification('FOLLOW', dummyUser, null); };
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
   Matter.Events.on(engine, 'collisionStart', (event) => {
@@ -1199,54 +1198,77 @@ function drawSpaceshipTimer() {
     }
 }
 
-function drawFollowerMarquee() {
+function addNotification(type, name, img, extra = "") {
+    notifications.push({
+        type: type,
+        name: name,
+        img: img,
+        extra: extra,
+        life: 240, // Zobrazí se na 4 vteřiny (60 fps * 4)
+        x: W + 200, // Přiletí zprava mimo obrazovku
+        targetX: 0
+    });
+}
+
+function drawNotifications() {
+  // Pozadí spodní lišty
   fill(15, 15, 20); noStroke();
   rect(0, ARENA_BOT, W, 40); 
   stroke(0, 255, 255, 30); strokeWeight(1);
   line(0, ARENA_BOT, W, ARENA_BOT);
   line(0, ARENA_BOT + 40, W, ARENA_BOT + 40);
 
-  let cleanupTime = millis() - (30 * 60 * 1000); 
-  recentFollowers = recentFollowers.filter(f => f.time > cleanupTime);
-
-  if (recentFollowers.length === 0) {
-      fill(100); noStroke(); textAlign(CENTER, CENTER); textSize(10); textStyle(BOLD);
-      text(currentLang === "CZ" ? "ZATÍM ŽÁDNÍ NOVÍ SLEDUJÍCÍ..." : "NO NEW FOLLOWERS YET...", W/2, ARENA_BOT + 20);
-      textStyle(NORMAL);
-      return;
-  }
-
-  let totalW = 0;
-  for(let f of recentFollowers) {
-      let txt = currentLang === "CZ" ? `${f.name} SLEDUJE! 🎉` : `${f.name} IS FOLLOWING! 🎉`;
-      totalW += textWidth(txt) + 80;
-  }
-
-  followerScrollX -= 1.5;
-  if (followerScrollX < -totalW) followerScrollX = W;
-
-  let cx = followerScrollX;
+  // Vezmeme jen první 3 aktivní notifikace
+  let active = notifications.slice(0, 3);
   
-  for (let i = 0; i < recentFollowers.length; i++) {
-      let f = recentFollowers[i];
-      let txt = currentLang === "CZ" ? `${f.name} SLEDUJE! 🎉` : `${f.name} IS FOLLOWING! 🎉`;
-      let tw = textWidth(txt);
+  for (let i = 0; i < active.length; i++) {
+      let n = active[i];
       
-      if (cx + tw + 60 > 0 && cx < W) {
-          if (f.img && f.img !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath();
-              drawingContext.arc(cx + 16, ARENA_BOT + 20, 12, 0, TWO_PI);
-              drawingContext.clip();
-              image(f.img, cx + 16, ARENA_BOT + 20, 24, 24);
-              drawingContext.restore();
-          } else {llll
-              fill(80); noStroke(); ellipse(cx + 16, ARENA_BOT + 20, 24, 24);
-          }
-          fill(0, 255, 255); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
-          text(txt, cx + 38, ARENA_BOT + 20); textStyle(NORMAL);
+      // Animace: Zařadí se za sebe zprava doleva (max 3)
+      n.targetX = W - 230 - (i * 235); 
+      // Když jim dochází čas, odletí doleva
+      if (n.life < 30) n.targetX = -300; 
+      
+      n.x = lerp(n.x, n.targetX, 0.15); // Plynulý pohyb
+      n.life--;
+      
+      push();
+      translate(n.x, ARENA_BOT + 4);
+      
+      // Stylování podle typu akce
+      let borderColor, actionText, icon;
+      if (n.type === 'JOIN') { borderColor = color(50, 255, 100); actionText = "Vstoupil do arény!"; icon = "⚔️"; }
+      else if (n.type === 'FOLLOW') { borderColor = color(255, 50, 255); actionText = "Sleduje hru!"; icon = "🎉"; }
+      else if (n.type === 'LIKE') { borderColor = color(255, 50, 50); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
+      
+      // Samotná buňka (štítek)
+      fill(10, 12, 18, 240); stroke(borderColor); strokeWeight(1.5);
+      rect(0, 0, 220, 32, 10);
+      
+      // Profilovka z TikTok API
+      if (n.img && n.img !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath();
+          drawingContext.arc(16, 16, 11, 0, TWO_PI);
+          drawingContext.clip();
+          image(n.img, 5, 5, 22, 22);
+          drawingContext.restore();
+      } else {
+          fill(80); noStroke(); ellipse(16, 16, 22, 22);
       }
-      cx += tw + 80;
+      
+      // Texty ve štítku
+      textAlign(LEFT, CENTER);
+      fill(255); textSize(9); textStyle(BOLD);
+      text(n.name.substring(0, 11), 32, 10); // Jméno nahoře
+      
+      fill(borderColor); textSize(8); textStyle(NORMAL);
+      text(`${icon} ${actionText}`, 32, 22); // Akce dole
+      
+      pop();
   }
+  
+  // Průběžně mažeme ty, co už odletěly pryč z obrazovky
+  notifications = notifications.filter(n => n.x > -200);
 }
 
 function drawChatCommands() {
@@ -2198,7 +2220,7 @@ function draw() {
   drawTopHUD();
 
   fill(10, 12, 15); noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
-  drawFollowerMarquee(); 
+  drawNotifications(); 
   drawChatCommands();
 
   stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
@@ -2303,11 +2325,12 @@ function connectTikfinity() {
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
       
       if (evt === "follow") {
-          recentFollowers.push({ name: u, img: userAvatars[u] || null, time: millis() });
+          addNotification('FOLLOW', u, userAvatars[u]);
       }
       
       if (!players.find(x => x.name === u) && evt !== "gift") {
           spawnPlayer(u, getStartingHp(u));
+          addNotification('JOIN', u, userAvatars[u]); // Nový štítek pro připojení
       }
 
       if (evt === "chat") {
@@ -2348,6 +2371,7 @@ function connectTikfinity() {
           let likesCount = d.data?.likeCount || 1;
           sessionLikes[u] = (sessionLikes[u] || 0) + likesCount;
             handleAction(u, likesCount * 2, false, 0, true); 
+          addNotification('LIKE', u, userAvatars[u], likesCount); // Štítek se srdíčkem a počtem Tapů
       }
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
