@@ -574,53 +574,113 @@ function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 
 // TIERED GIFTS A IMUNITA EFEKTY
 // ==========================================
 function triggerGiftEffect(p, diam) {
-    if (diam >= 1000) {
-        nukeEffectTimer = 120; // 2 vteřiny slow-mo (60 fps)
-        engine.timing.timeScale = 0.2; // Zpomalení času
+    // TIER 5: Pán Vesmíru (Armagedon - 10000+ mincí)
+    if (diam >= 10000) {
+        p.immunityTimer += 120 * 60; // 2 minuty God Mode
+        p.hasCrown = true;
+        screenShake = 15;
+        p.auraFlash = 120;
+        nukeEffectTimer = 180; // 3 vteřiny slow-mo a temnoty
+        engine.timing.timeScale = 0.2;
         
-        // Gigantická rázová vlna (odhodí všechny k okrajům)
+        // Zničení všech malých a středních hráčů (Armagedon)
         for (let other of players) {
-            if (other === p || other.hp <= 0) continue;
+            if (other === p || other.hp <= 0 || other.immunityTimer > 0) continue;
             let dx = other.body.position.x - p.body.position.x;
             let dy = other.body.position.y - p.body.position.y;
             let distSq = dx * dx + dy * dy;
             let dist = Math.sqrt(distSq) || 1;
-            let forceMag = 0.3 * other.body.mass; // Masivní síla
+            
+            // Masivní síla odhození
+            let forceMag = 1.5 * other.body.mass; 
+            Matter.Body.applyForce(other.body, other.body.position, { x: (dx / dist) * forceMag, y: (dy / dist) * forceMag });
+            
+            // Instakill pro všechny, co nemají aspoň 5000 HP
+            if (other.hp < 5000) {
+                other.hp = 0;
+            }
+        }
+        
+        deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 100, color: color(255, 0, 0), life: 255, isNuke: true});
+        speakTTS(currentLang === "CZ" ? `BŮH VSTOUPIL DO ARÉNY! ${p.name} NIČÍ VŠE ŽIVÉ!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`);
+        addPopup("ARMAGEDON!", p.body.position.x, p.body.position.y - p.r - 30, color(255, 0, 0), true);
+        safePlaySound(80, 0.8, 3.0); // Ultra hluboký drop
+    }
+    
+    // TIER 4: Bůh Arény (Černá díra - 5000+ mincí)
+    else if (diam >= 5000) {
+        p.immunityTimer += 15 * 60; // 15s imunita
+        p.hasCrown = true;
+        screenShake = 10;
+        p.auraFlash = 60;
+        
+        // Efekt černé díry (přitahuje ostatní)
+        activeEvent = "MAGNET";
+        eventTimer = 900; // 15 vteřin magnet
+        
+        speakTTS(currentLang === "CZ" ? `GALAXY GIFT! ${p.name} VYSÁVÁ ARÉNU!` : `GALAXY GIFT! ${p.name} IS SUCKING THE ARENA!`);
+        addPopup("BLACK HOLE!", p.body.position.x, p.body.position.y - p.r - 20, color(150, 0, 255), true);
+        createParticles(p.body.position.x, p.body.position.y, color(150, 0, 255), 100);
+        safePlaySound(150, 0.6, 2.0);
+    }
+    
+    // TIER 3: Absolutní dominance (Nuke / Slow-mo - 1000+ mincí)
+    else if (diam >= 1000) {
+        p.immunityTimer += 10 * 60; // 10s imunita
+        nukeEffectTimer = 90; // 1.5 vteřiny slow-mo
+        engine.timing.timeScale = 0.3;
+        screenShake = 8;
+        p.auraFlash = 45;
+        
+        // Nuke knockback
+        for (let other of players) {
+            if (other === p || other.hp <= 0 || other.immunityTimer > 0) continue;
+            let dx = other.body.position.x - p.body.position.x;
+            let dy = other.body.position.y - p.body.position.y;
+            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            let forceMag = 0.4 * other.body.mass; 
             Matter.Body.applyForce(other.body, other.body.position, { x: (dx / dist) * forceMag, y: (dy / dist) * forceMag });
         }
-        deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255, 50, 50), life: 255, isNuke: true});
-        safePlaySound(100, 0.6, 2.0); // Epic basový výbuch
+        
+        deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255, 150, 0), life: 255, isNuke: true});
+        speakTTS(currentLang === "CZ" ? `Mega dárek od ${p.name}! Rázová vlna!` : `Mega gift from ${p.name}! Shockwave!`);
+        addPopup("NUKE!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 150, 0), true);
+        safePlaySound(100, 0.5, 1.5);
     }
-
-    if (diam >= 5000) {
-        p.immunityTimer += 50 * 60; // 50 sec (60FPS)
-        p.hasCrown = true;
-            screenShake = 8;
-        p.auraFlash = 60;
-        speakTTS(currentLang === "CZ" ? `GALAXY GIFT OD ${p.name}!!!` : `GALAXY GIFT FROM ${p.name}!!!`);
-        addPopup("GALAXY GIFT!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 0, 255), true);
-        addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
-        createParticles(p.body.position.x, p.body.position.y, color(255, 0, 255), 100);
-    } else if (diam >= 1000) {
-        p.immunityTimer += 50 * 60;
-            screenShake = 5;
-        p.auraFlash = 45;
-        speakTTS(currentLang === "CZ" ? `Mega dárek od ${p.name}! Lev se probouzí!` : `Mega gift from ${p.name}! The Lion awakens!`);
-        addPopup("LION GIFT!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 150, 0), true);
-        addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
-        createParticles(p.body.position.x, p.body.position.y, color(255, 150, 0), 60);
-    } else if (diam >= 100) {
-        p.immunityTimer += 50 * 60;
-            screenShake = 3;
+    
+    // TIER 2: Šikana a obrana (Shield + Knockback - 100+ mincí)
+    else if (diam >= 100) {
+        p.immunityTimer += 10 * 60; // 10s imunita
+        screenShake = 3;
         p.auraFlash = 30;
-        speakTTS(currentLang === "CZ" ? `Nádherný dárek od ${p.name}!` : `Beautiful gift from ${p.name}!`);
-        addPopup("EPIC GIFT!", p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
-        addPopup("IMMUNITY ACTIVATED!", W/2, H/2, color(0, 255, 255), true);
+        
+        // Lehký knockback do okolí
+        for (let other of players) {
+            if (other === p || other.hp <= 0 || other.immunityTimer > 0) continue;
+            let dx = other.body.position.x - p.body.position.x;
+            let dy = other.body.position.y - p.body.position.y;
+            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist < p.r + 150) { // Jen blízcí hráči
+                let forceMag = 0.1 * other.body.mass; 
+                Matter.Body.applyForce(other.body, other.body.position, { x: (dx / dist) * forceMag, y: (dy / dist) * forceMag });
+            }
+        }
+        
+        speakTTS(currentLang === "CZ" ? `Nádherný dárek od ${p.name}! Štít aktivován!` : `Beautiful gift from ${p.name}! Shield up!`);
+        addPopup("SHIELD + PUSH!", p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
-    } else {
-        addPopup("+" + (diam * 900) + " HP", p.body.position.x, p.body.position.y - p.r, color(255, 100, 150));
+        safePlaySound(300, 0.3, 1.0);
     }
-    p.giftSpeedTimer = 300; // Zvýšeno na 5 sekund (300 snímků při 60 FPS)
+    
+    // TIER 1: Základní potrava (Speed Boost + HP - 1+ mincí)
+    else {
+        p.orbSpeedTimer = 5 * 60; // 5s Speed boost
+        addPopup("+" + (diam * 900) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+        createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 10);
+        safePlaySound(600, 0.1, 0.5);
+    }
+    
+    p.giftSpeedTimer = 300; 
 }
 
 function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true) {
@@ -1105,27 +1165,27 @@ function drawSecretCodeUI() {
             fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
             textSize(10);
             textAlign(CENTER, TOP);
-            text(hint, W/2, ARENA_BOT + 105); // Posunuto dolů pod TAP TAP box
+            text(hint, W/2, ARENA_BOT + 160); // Posunuto dolů pod TAP TAP box
         } else if (lastCodeWinner) {
             fill(255, 215, 0, 200);
             textSize(10);
             textAlign(CENTER, TOP);
             let wTxt = currentLang === "CZ" ? `POSLEDNÍ KÓD PROLOMIL:` : `LAST CODE CRACKED BY:`;
             let tw = textWidth(wTxt);
-            text(wTxt, W/2 - 20, ARENA_BOT + 105); // Posunuto
+            text(wTxt, W/2 - 20, ARENA_BOT + 160); // Posunuto
             
             if (lastCodeWinner.img && lastCodeWinner.img !== "loaded") {
                 drawingContext.save(); drawingContext.beginPath();
-                drawingContext.arc(W/2 + tw/2, ARENA_BOT + 110, 8, 0, TWO_PI); // Posunuto
+                drawingContext.arc(W/2 + tw/2, ARENA_BOT + 165, 8, 0, TWO_PI); // Posunuto
                 drawingContext.clip();
-                image(lastCodeWinner.img, W/2 + tw/2, ARENA_BOT + 110, 16, 16); // Posunuto
+                image(lastCodeWinner.img, W/2 + tw/2, ARENA_BOT + 165, 16, 16); // Posunuto
                 drawingContext.restore();
             } else {
-                fill(100); noStroke(); ellipse(W/2 + tw/2, ARENA_BOT + 110, 16, 16); // Posunuto
+                fill(100); noStroke(); ellipse(W/2 + tw/2, ARENA_BOT + 165, 16, 16); // Posunuto
             }
             fill(255);
             textAlign(LEFT, TOP);
-            text(lastCodeWinner.name, W/2 + tw/2 + 12, ARENA_BOT + 105); // Posunuto
+            text(lastCodeWinner.name, W/2 + tw/2 + 12, ARENA_BOT + 160); // Posunuto
         }
         pop();
     }
@@ -1216,27 +1276,27 @@ function addNotification(type, name, img, extra = "") {
 function drawNotifications() {
   // Pozadí spodní lišty
   fill(15, 15, 20); noStroke();
-  rect(0, ARENA_BOT, W, 40); 
+  rect(0, ARENA_BOT, W, 80); 
   stroke(0, 255, 255, 30); strokeWeight(1);
   line(0, ARENA_BOT, W, ARENA_BOT);
-  line(0, ARENA_BOT + 40, W, ARENA_BOT + 40);
+  line(0, ARENA_BOT + 80, W, ARENA_BOT + 80);
 
-  // Vezmeme jen první 3 aktivní notifikace
-  let active = notifications.slice(0, 3);
+  // Vezmeme jen první 2 aktivní notifikace, aby se vešly
+  let active = notifications.slice(0, 2);
   
   for (let i = 0; i < active.length; i++) {
       let n = active[i];
       
-      // Animace: Zařadí se za sebe zprava doleva (max 3)
-      n.targetX = W - 230 - (i * 235); 
+      // Animace: Zařadí se za sebe zprava doleva (max 2)
+      n.targetX = W - 350 - (i * 350); 
       // Když jim dochází čas, odletí doleva
-      if (n.life < 30) n.targetX = -300; 
+      if (n.life < 30) n.targetX = -400; 
       
       n.x = lerp(n.x, n.targetX, 0.15); // Plynulý pohyb
       n.life--;
       
       push();
-      translate(n.x, ARENA_BOT + 4);
+      translate(n.x, ARENA_BOT + 8);
       
       // Stylování podle typu akce
       let borderColor, actionText, icon;
@@ -1245,37 +1305,37 @@ function drawNotifications() {
       else if (n.type === 'LIKE') { borderColor = color(255, 50, 50); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
       
       // Samotná buňka (štítek)
-      fill(10, 12, 18, 240); stroke(borderColor); strokeWeight(1.5);
-      rect(0, 0, 220, 32, 10);
+      fill(10, 12, 18, 240); stroke(borderColor); strokeWeight(2);
+      rect(0, 0, 340, 64, 15);
       
       // Profilovka z TikTok API
       if (n.img && n.img !== "loaded") {
           drawingContext.save(); drawingContext.beginPath();
-          drawingContext.arc(16, 16, 11, 0, TWO_PI);
+          drawingContext.arc(32, 32, 22, 0, TWO_PI);
           drawingContext.clip();
-          image(n.img, 5, 5, 22, 22);
+          image(n.img, 10, 10, 44, 44);
           drawingContext.restore();
       } else {
-          fill(80); noStroke(); ellipse(16, 16, 22, 22);
+          fill(80); noStroke(); ellipse(32, 32, 44, 44);
       }
       
       // Texty ve štítku
       textAlign(LEFT, CENTER);
-      fill(255); textSize(9); textStyle(BOLD);
-      text(n.name.substring(0, 11), 32, 10); // Jméno nahoře
+      fill(255); textSize(18); textStyle(BOLD);
+      text(n.name.substring(0, 11), 64, 20); // Jméno nahoře
       
-      fill(borderColor); textSize(8); textStyle(NORMAL);
-      text(`${icon} ${actionText}`, 32, 22); // Akce dole
+      fill(borderColor); textSize(16); textStyle(NORMAL);
+      text(`${icon} ${actionText}`, 64, 44); // Akce dole
       
       pop();
   }
   
   // Průběžně mažeme ty, co už odletěly pryč z obrazovky
-  notifications = notifications.filter(n => n.x > -200);
+  notifications = notifications.filter(n => n.x > -400);
 }
 
 function drawChatCommands() {
-    let cmdY = ARENA_BOT + 30; // Posunuto těsně pod notifikace
+    let cmdY = ARENA_BOT + 80; // Posunuto těsně pod zvětšené notifikace
     let pulse = (sin(frameCount * 0.05) + 1) / 2;
     
     fill(15, 15, 20, 240); 
