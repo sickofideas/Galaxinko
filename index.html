@@ -1292,15 +1292,15 @@ function drawNotifications() {
   let waiting = notifications.filter(n => n.state === 'WAITING');
 
   if (waiting.length > 0) {
-      // Pokud je plno (2), odstraníme nejstarší pouze pokud je na obrazovce už alespoň 3 vteřiny
-      if (displayed.length >= 2) {
+      // Pokud je plno (3), odstraníme nejstarší pouze pokud je na obrazovce už alespoň 3 vteřiny
+      if (displayed.length >= 3) {
           if (displayed[0].age >= 180) {
               displayed[0].state = 'LEAVING';
               displayed.shift(); 
           }
       }
-      // Pokud je místo (méně než 2 zobrazené), nasadíme novou
-      if (displayed.length < 2) {
+      // Pokud je místo (méně než 3 zobrazené), nasadíme novou
+      if (displayed.length < 3) {
           let next = waiting[0];
           next.state = 'DISPLAY';
           next.x = W + 400; // Start zprava
@@ -1311,7 +1311,7 @@ function drawNotifications() {
   // Určíme pozice pro aktuálně zobrazené (nejnovější napravo)
   displayed.reverse();
   for (let i = 0; i < displayed.length; i++) {
-      displayed[i].targetX = W - 350 - (i * 350);
+      displayed[i].targetX = W - 235 - (i * 240);
   }
 
   for (let n of notifications) {
@@ -1335,7 +1335,7 @@ function drawNotifications() {
       
       // Glow zcela odstraněn pro maximální ostrost textu, pozadí plně neprůhledné
       fill(10, 12, 18, 255); stroke(borderColor); strokeWeight(2);
-      rect(0, 0, 340, 64, 15);
+      rect(0, 0, 230, 64, 15);
       
       let currentAvatar = userAvatars[n.name] || n.img;
       if (currentAvatar && currentAvatar !== "loaded") {
