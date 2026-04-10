@@ -489,7 +489,14 @@ function startNewRound() {
       spawnPlayer(zName, 100, false, 0, true); // true = isZombie
   }
 
-  roundTimer = floor(random(300, 901)); // 5 až 15 minut
+      // --- VÁŽENÝ ČASOVAČ KOLA ---
+      if (random() < 0.80) {
+          // 80% šance na rychlé a dynamické kolo (4 až 9 minut)
+          roundTimer = floor(random(240, 541)); 
+      } else {
+          // 20% šance na dlouhé epické kolo (9 až 15 minut)
+          roundTimer = floor(random(541, 901)); 
+      }
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
   
