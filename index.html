@@ -1465,7 +1465,7 @@ function drawChatCommands() {
     
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
-    let cmds = "TAP TAP = VĚTŠÍ KOULE A DMG!   |   !boost   |   !shield";
+    let cmds = "TAP TAP = VĚTŠÍ KOULE! | !join | !boost | !shield";
     text(cmds, W/2, cmdY + 40);
     
     drawingContext.shadowBlur = 0;
@@ -2539,6 +2539,15 @@ function connectTikfinity() {
               addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
               safePlaySound(800, 0.1, 0.2);
               addNotification('SHIELD', u, userAvatars[u]);
+          }
+          else if (!p && msgLower === "!join") {
+              let m = spawnModules.find(x => x.name === u);
+              if (!m) {
+                  let baseHp = getStartingHp(u);
+                  spawnPlayer(u, baseHp);
+                  addNotification('JOIN', u, userAvatars[u]);
+                  speakTTS(currentLang === "CZ" ? `Hráč ${u} se oživil a vrátil se do bitvy!` : `Player ${u} has respawned and joined the battle!`);
+              }
           }
 
           if (codeActive && msg.toUpperCase() === secretCode) {
