@@ -409,6 +409,7 @@ let lastGlobalSound = 0;
 let previousTop10 = [];
 let currentTop10 = [];
 let sessionLikes = {};
+let pendingLikes = {}; // PAMĚŤ PRO NASTŘÁDANÉ LAJKY
 let nextEventTime = 0;
 let activeEvent = null;
 let eventTimer = 0;
@@ -1354,12 +1355,13 @@ function drawSpaceshipTimer() {
     pop();
 }
 
-function addNotification(type, name, img, extra = "") {
+function addNotification(type, name, img, extra = "", isMegaLike = false) {
     notifications.push({
         type: type,
         name: name,
         img: img,
         extra: extra,
+        isMegaLike: isMegaLike,
         age: 0,
         state: 'WAITING',
         x: W + 400,
@@ -1454,6 +1456,10 @@ function drawNotifications() {
           colorMode(HSB);
           actionTextColor = color((frameCount * 8) % 360, 80, 100); // Duhová barva pro epic Tapery (100+)
           colorMode(RGB);
+          textStyle(BOLD);
+          textSize(17);
+      } else if (n.type === 'LIKE' && n.isMegaLike) {
+          actionTextColor = color(255, 215, 0); // Zlatá barva pro mega like
           textStyle(BOLD);
           textSize(17);
       } else {
@@ -2181,6 +2187,41 @@ function updateTimers() {
           winnerAnnounced = false;
       } 
   }
+  
+  // ZPRACOVÁNÍ NASTŘÁDANÝCH LAJKŮ (Ochrana výkonu)
+  let nowTime = millis();
+  for (let u in pendingLikes) {
+      let data = pendingLikes[u];
+      // Odpal po 50 lajcích, NEBO když je vteřinu klid
+      if (data.count >= 50 || (data.count > 0 && nowTime - data.lastUpdate > 1000)) {
+          let amount = data.count;
+          let isMega = amount >= 50;
+
+          let p = players.find(x => x.name === u);
+          if (p) {
+              p.auraFlash = 20;
+              p.likeBuffTimer = 90;
+              if (players.length < 50) {
+                  addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+                  // Méně částic = méně lagů
+                  createParticles(p.body.position.x, p.body.position.y, color(255, 50, 100), isMega ? 8 : 3);
+              }
+              safePlaySound(600, 0.1, 0.1);
+          }
+
+          if (amount >= 5) {
+              let existingNotif = notifications.find(n => n.type === 'LIKE' && n.name === u && (n.state === 'WAITING' || n.state === 'DISPLAY'));
+              if (existingNotif) {
+                  existingNotif.extra += amount;
+                  existingNotif.age = 0; // Reset věku pro setrvání na obrazovce
+                  if (existingNotif.extra >= 50) existingNotif.isMegaLike = true;
+              } else {
+                  addNotification('LIKE', u, userAvatars[u], amount, isMega);
+              }
+          }
+          data.count = 0; 
+      }
+  }
 }
 
 function drawResults() {
@@ -2588,14 +2629,19 @@ function connectTikfinity() {
       else if (evt === "like") {
           let likesCount = d.data?.likeCount || 1;
           sessionLikes[u] = (sessionLikes[u] || 0) + likesCount;
-            handleAction(u, likesCount * 2, false, 0, true); 
           
-          let existingNotif = notifications.find(n => n.type === 'LIKE' && n.name === u && (n.state === 'WAITING' || n.state === 'DISPLAY'));
-          if (existingNotif) {
-              existingNotif.extra += likesCount;
-              existingNotif.age = 0; // Reset věku pro setrvání na obrazovce
+          if(!pendingLikes[u]) pendingLikes[u] = { count: 0, lastUpdate: millis() };
+          pendingLikes[u].count += likesCount;
+          pendingLikes[u].lastUpdate = millis();
+
+          // Plynulé přidávání HP bez zátěže (řeší lagy)
+          let p = players.find(x => x.name === u);
+          if (p) {
+              p.hp += likesCount * 2;
           } else {
-              addNotification('LIKE', u, userAvatars[u], likesCount); // Štítek se srdíčkem a počtem Tapů
+              if(!spawnModules.find(x => x.name === u)) {
+                  handleAction(u, likesCount * 2, false, 0, true);
+              }
           }
       }
       else if (evt === "gift") { 
