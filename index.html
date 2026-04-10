@@ -82,20 +82,50 @@ var T = {
   }
 };
 
+// --- 1. SEZNAM ZAKÁZANÝCH SLOV (CENZURA) ---
+const FORBIDDEN_WORDS = [
+    "pica", "pyca", "kurva", "zmrd", "jeban", "kokot", "debil", "negr", "hitler",
+    "fick", "fuck", "bitch", "asshole", "curak", "čurák", "mrd", "prdel", "hovn"
+];
+
+// --- 2. ROZŠÍŘENÉ KNIHOVNY HLÁŠEK ---
+var COMMENTARY_TAP = {
+  CZ: [
+    "Chcete v aréně přežít? Ťukejte na obrazovku! Tap tap vám zvětšuje kouli a přidává sílu!",
+    "Kdo neťuká, ten prohraje! Rychlé prsty znamenají víc HP a větší damage!",
+    "Vidíte ty obry? Ti ťukají jako o život! Dělejte to taky!",
+    "Bez ťukání jste jen potrava pro ostatní. Tapujte, ať vyrostete!",
+    "Bum bum bum! Přidejte plyn, nebo vás ten obrovský kruh vyřadí!",
+    "Jedeme, jedeme! Každý tap se počítá! Ukažte, kdo má nejrychlejší prsty!",
+    "Aréna se zmenšuje! Pouze ti, co nejvíc ťukají, mají šanci na vítězství!"
+  ],
+  EN: [
+    "Want to survive? Tap the screen! Tap tap makes your circle grow and adds power!",
+    "Those who don't tap, lose! Fast fingers mean more HP and bigger damage!",
+    "See those giants? They are tapping for their lives! Do it too!",
+    "Without tapping, you are just food for others. Tap to grow!",
+    "Bang bang bang! Step on the gas or the giant circle will eliminate you!",
+    "Let's go, let's go! Every tap counts! Show them who has the fastest fingers!",
+    "The arena is shrinking! Only the hardest tappers stand a chance!"
+  ]
+};
+
 var COMMENTARY_EMPTY = {
   CZ: [
       "Haló? Je tam někdo? Aréna je trapně prázdná!", 
       "Čekáme na prvního hrdinu! Kde jste všichni?", 
       "Vstupte do arény! Zábava čeká!", 
-      "Ticho před bouří... Odstartujte to!", 
-      "Diváci spí! Vzbuďte se a pojďte hrát!"
+      "Ticho před bouří... Odstartujte to někdo!", 
+      "Diváci spí! Vzbuďte se a pojďte hrát!",
+      "Vesmír je prázdný, stejně jako tato aréna. Kdo ji zaplní?"
   ],
   EN: [
       "Hello? Anyone there? The arena is embarrassingly empty!", 
       "Waiting for the first hero! Where is everyone?", 
       "Enter the arena! Fun awaits!", 
-      "Calm before the storm... Start it!", 
-      "The viewers are sleeping! Wake up and let's play!"
+      "Calm before the storm... Someone start it!", 
+      "The viewers are sleeping! Wake up and let's play!",
+      "Space is empty, just like this arena. Who will fill it?"
   ]
 };
 
@@ -104,13 +134,15 @@ var COMMENTARY_SOLO = {
       "Hráč {p} tu krouží úplně sám! Kdo ho vyzve?", 
       "Aréna patří jen hráči {p}! Změňte to někdo!", 
       "{p} si myslí, že je nezastavitelný. Dokažte mu opak!", 
-      "Jeden hráč jaro nedělá. Připojte se!"
+      "Jeden hráč jaro nedělá. Připojte se!",
+      "Zatím je to nuda. {p} jen sbírá body bez boje."
   ],
   EN: [
       "Player {p} is circling all alone! Who challenges them?", 
       "The arena belongs only to {p}! Someone change that!", 
       "{p} thinks they are unstoppable. Prove them wrong!", 
-      "One player doesn't make a match. Join in!"
+      "One player doesn't make a match. Join in!",
+      "It's boring so far. {p} is just collecting points without a fight."
   ]
 };
 
@@ -118,12 +150,33 @@ var COMMENTARY_GIFT = {
   CZ: [
     "Neuvěřitelné! Hráč {p} posílá mega podporu!",
     "Všichni povstaňte, velitel {p} právě shodil bombu!",
-    "Tohle je naprosté šílenství! Děkujeme ti, {p}!"
+    "Tohle je naprosté šílenství! Děkujeme ti, {p}!",
+    "Pozor, přilétá masivní podpora od {p}! Tohle změní hru!",
+    "Hráč {p} se právě stal hlavním sponzorem této bitvy!"
   ],
   EN: [
     "Unbelievable! Player {p} sends mega support!",
     "Everyone stand up, commander {p} just dropped a bomb!",
-    "This is absolute madness! Thank you, {p}!"
+    "This is absolute madness! Thank you, {p}!",
+    "Watch out, massive support arriving from {p}! This changes everything!",
+    "Player {p} just became the main sponsor of this battle!"
+  ]
+};
+
+var COMMENTARY_NEW_PLAYER = {
+  CZ: [
+    "Nový bojovník vstoupil do arény: {p}!",
+    "Vítejte, {p}! Rychle ťukej, ať vyrosteš!",
+    "Bojovník {p} se připojuje k masakru!",
+    "Aréna se rozrůstá! Přichází {p}!",
+    "Uvidíme, co {p} předvede!"
+  ],
+  EN: [
+    "A new warrior entered the arena: {p}!",
+    "Welcome, {p}! Tap fast to grow!",
+    "Warrior {p} joins the mayhem!",
+    "The arena is growing! {p} has arrived!",
+    "Let's see what {p} can do!"
   ]
 };
 
@@ -806,8 +859,14 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   players.push(player); Matter.World.add(world, body);
   
   if (!isZombie) { 
-      if (isGift) triggerGiftEffect(player, diam);
-      else speakTTS(T[currentLang].NEW + name);
+      if (isGift) {
+          triggerGiftEffect(player, diam);
+          let giftMsg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", name);
+          speakTTS(giftMsg);
+      } else {
+          let newPlayerMsg = random(COMMENTARY_NEW_PLAYER[currentLang]).replace("{p}", name);
+          speakTTS(newPlayerMsg);
+      }
   }
   
   createParticles(spawnX, spawnY, playerColor, 15);
