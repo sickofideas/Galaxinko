@@ -2593,13 +2593,34 @@ function connectTikfinity() {
   socket.onclose = () => setTimeout(connectTikfinity, 5000);
 }
 
+function removeDiacritics(text) {
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function speakTTS(txt) {
   if (!audioStarted || !('speechSynthesis' in window)) return;
   if (window.speechSynthesis.speaking) return; 
   
+  // Očištění od emoji
   let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
   
-  var msg = new SpeechSynthesisUtterance(cleanTxt); msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; msg.rate = 1.15; msg.pitch = 1.2; window.speechSynthesis.speak(msg);
+  // 1. KONTROLA VULGARIT
+  let textWithoutDiacritics = removeDiacritics(cleanTxt.toLowerCase());
+  for (let word of FORBIDDEN_WORDS) {
+      if (textWithoutDiacritics.includes(word)) {
+          console.log("TTS zablokováno (vulgarita): " + cleanTxt);
+          return; // Zastaví čtení
+      }
+  }
+
+  // 2. OPRAVA VÝSLOVNOSTI
+  cleanTxt = cleanTxt.replace(/ú ú ú/gi, "bum bum bum");
+  
+  var msg = new SpeechSynthesisUtterance(cleanTxt); 
+  msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
+  msg.rate = 1.15; 
+  msg.pitch = 1.2; 
+  window.speechSynthesis.speak(msg);
 }
 
 function mousePressed() {
