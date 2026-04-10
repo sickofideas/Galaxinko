@@ -311,6 +311,7 @@ let giftLbRect = {x: W/2 - 60, y: HUD_TOP + 2, w: 120, h: 20};
 let allTimeKills = {};
 let killsLbRect = {x: 530, y: HUD_TOP + 30, w: 150, h: 15};
 let roundGifts = {}; 
+let previousRoundGifts = {}; // Přidáno pro ukládání dárců z minulého kola
 
 let stars = [];
 let nebulas = [];
@@ -364,6 +365,7 @@ function safePlaySound(f, v, d) {
 }
 
 function getStartingHp(name) {
+    if (previousRoundGifts[name] && previousRoundGifts[name].score >= 1) return 500;
     let idx = previousTop10.indexOf(name);
     if (idx === 0) return 300;
     if (idx === 1) return 240;
@@ -482,6 +484,7 @@ function startNewRound() {
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = players.filter(p => !p.isZombie).map(p => p.name); // Zombíci se nepřevádí
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; spawnModules = [];
+  previousRoundGifts = Object.assign({}, roundGifts);
   roundGifts = {}; 
   
   // 1. Spawni aktivní přeživší z minulého kola normálně
@@ -494,7 +497,7 @@ function startNewRound() {
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      spawnPlayer(zName, 50, false, 0, true); // true = isZombie
+      spawnPlayer(zName, 100, false, 0, true); // true = isZombie
   }
 
   roundTimer = floor(random(300, 901)); // 5 až 15 minut
@@ -1258,6 +1261,25 @@ function drawSpaceshipTimer() {
         let wPos = screenToWorld(shipX, shipY);
         particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: roundThemeColor, size: random(4, 8)});
     }
+    
+    // Časomíra vedle raketky
+    let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
+    push();
+    translate(shipX, shipY);
+    let dirX = (W/2) - shipX;
+    let dirY = ((ARENA_TOP+ARENA_BOT)/2) - shipY;
+    let len = dist(0, 0, dirX, dirY);
+    if (len > 0) {
+        dirX = (dirX / len) * 35;
+        dirY = (dirY / len) * 35;
+    }
+    
+    fill(100, 255, 100);
+    if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
+    textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
+    drawingContext.shadowBlur = 5; drawingContext.shadowColor = color(0);
+    text(timeStr, dirX, dirY);
+    pop();
 }
 
 function addNotification(type, name, img, extra = "") {
@@ -1323,14 +1345,18 @@ function drawNotifications() {
       push();
       translate(n.x, ARENA_BOT + 8);
       
-      let borderColor, actionText, icon;
-      if (n.type === 'JOIN') { borderColor = color(50, 255, 100); actionText = currentLang === "CZ" ? "Vstoupil do arény!" : "Joined the arena!"; icon = "⚔️"; }
-      else if (n.type === 'FOLLOW') { borderColor = color(255, 50, 255); actionText = currentLang === "CZ" ? "Sleduje hru!" : "Followed!"; icon = "🎉"; }
-      else if (n.type === 'LIKE') { borderColor = color(255, 50, 50); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
-      else if (n.type === 'BOOST') { borderColor = color(0, 255, 255); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
-      else if (n.type === 'SHIELD') { borderColor = color(150, 100, 255); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
-      else if (n.type === 'CODE') { borderColor = color(255, 215, 0); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
-      else { borderColor = color(255); actionText = "Akce"; icon = "✨"; }
+      let actionText, icon;
+      colorMode(HSB);
+      let hueShift = sin(frameCount * 0.05 + n.age * 0.1) * 25;
+      let borderColor;
+      if (n.type === 'JOIN') { borderColor = color((120 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Vstoupil do arény!" : "Joined the arena!"; icon = "⚔️"; }
+      else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Sleduje hru!" : "Followed!"; icon = "🎉"; }
+      else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
+      else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
+      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
+      else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
+      else { borderColor = color(0, 0, 100); actionText = "Akce"; icon = "✨"; }
+      colorMode(RGB);
       
       // Glow zcela odstraněn pro maximální ostrost textu, pozadí plně neprůhledné
       fill(10, 12, 18, 255); stroke(borderColor); strokeWeight(2);
@@ -2190,12 +2216,6 @@ function drawTopHUD() {
   fill(roundThemeColor); textSize(18); textStyle(BOLD); text(GAME_TITLE, 370, HUD_TOP + 5);
   drawingContext.shadowBlur = 0; 
 
-  // Časomíra
-  let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
-  fill(100, 255, 100); textSize(32); textStyle(BOLD); textAlign(CENTER, CENTER);
-  if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-  text(timeStr, 370, HUD_TOP + 70); 
-
   // ALL TIME HP
   let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
   allTimeLbRect = {x: 10, y: HUD_TOP + 30, w: 150, h: 15}; 
@@ -2219,26 +2239,29 @@ function drawTopHUD() {
       fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 145, y); textStyle(NORMAL);
   }
   
-  // TOP GIFTERS
-  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
-  giftLbRect = {x: 180, y: HUD_TOP + 30, w: 120, h: 15}; 
+  // TOP GIFTERS (2 sloupce, zvětšeno, nepřekrývá arénu)
+  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 6);
+  giftLbRect = {x: 360 - 80, y: HUD_TOP + 25, w: 160, h: 20}; 
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
-  textAlign(LEFT, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
-  textSize(9); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", 180, HUD_TOP + 30);
+  textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
+  textSize(14); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", 360, HUD_TOP + 25);
   
-  textStyle(NORMAL); textSize(9);
+  textStyle(NORMAL); textSize(13);
   for(let i=0; i<allGiftsSorted.length; i++) {
-      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; let y = HUD_TOP + 45 + i*16; let xBase = 180; 
+      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; 
+      let col = Math.floor(i / 3); let row = i % 3;
+      let xBase = 185 + col * 170; let y = HUD_TOP + 48 + row * 26; 
+      
       let currAv = userAvatars[gName] || gData.avatar;
       if (currAv && currAv !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 5, 6, 0, TWO_PI); drawingContext.clip();
-          image(currAv, xBase, y - 1, 12, 12); drawingContext.restore();
-          fill(gData.color); textStyle(BOLD); text(gName.substring(0, 7), xBase + 16, y);
-      } else { fill(gData.color); textStyle(BOLD); text(gName.substring(0, 9), xBase, y); }
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 12, y + 12, 12, 0, TWO_PI); drawingContext.clip();
+          image(currAv, xBase, y, 24, 24); drawingContext.restore();
+          textAlign(LEFT, CENTER); fill(gData.color); textStyle(BOLD); text(gName.substring(0, 7), xBase + 30, y + 12);
+      } else { textAlign(LEFT, CENTER); fill(gData.color); textStyle(BOLD); text(gName.substring(0, 8), xBase + 5, y + 12); }
       
       let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 95, y); textStyle(NORMAL);
+      textAlign(RIGHT, CENTER); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 165, y + 12); textStyle(NORMAL);
   }
 
   // TOP ZABIJACI
