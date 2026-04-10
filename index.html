@@ -1449,8 +1449,21 @@ function drawNotifications() {
       fill(255); textSize(18); textStyle(BOLD); noStroke();
       text((n.name || "").substring(0, 11), 64, 20);
       
-      fill(borderColor); textSize(16); textStyle(NORMAL); noStroke();
+      let actionTextColor = borderColor;
+      if (n.type === 'LIKE' && n.extra >= 100) {
+          colorMode(HSB);
+          actionTextColor = color((frameCount * 8) % 360, 80, 100); // Duhová barva pro epic Tapery (100+)
+          colorMode(RGB);
+          textStyle(BOLD);
+          textSize(17);
+      } else {
+          textStyle(NORMAL);
+          textSize(16);
+      }
+      
+      fill(actionTextColor); noStroke();
       text(`${icon} ${actionText}`, 64, 44);
+      textStyle(NORMAL); // Reset
       
       pop();
   }
@@ -2576,7 +2589,14 @@ function connectTikfinity() {
           let likesCount = d.data?.likeCount || 1;
           sessionLikes[u] = (sessionLikes[u] || 0) + likesCount;
             handleAction(u, likesCount * 2, false, 0, true); 
-          addNotification('LIKE', u, userAvatars[u], likesCount); // Štítek se srdíčkem a počtem Tapů
+          
+          let existingNotif = notifications.find(n => n.type === 'LIKE' && n.name === u && (n.state === 'WAITING' || n.state === 'DISPLAY'));
+          if (existingNotif) {
+              existingNotif.extra += likesCount;
+              existingNotif.age = 0; // Reset věku pro setrvání na obrazovce
+          } else {
+              addNotification('LIKE', u, userAvatars[u], likesCount); // Štítek se srdíčkem a počtem Tapů
+          }
       }
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
