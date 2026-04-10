@@ -1172,6 +1172,9 @@ function handleSecretCode() {
             
         lastCodeWinner = null;
         safePlaySound(400, 0.05, 0.5);
+        
+        createParticles(codeX, codeY, isUltraCode ? color(255, 50, 50) : color(0, 255, 255), 40);
+        speakTTS(currentLang === "CZ" ? `Pozor! V aréně poletuje ${isUltraCode ? "ultra" : "tajný"} kód! Kdo ho první napíše do chatu, získá obrovské HP!` : `Attention! A ${isUltraCode ? "ultra" : "secret"} code is flying in the arena! First to type it in chat gets massive HP!`);
     }
         
         // Zmizení kódu, pokud ho nikdo nedal do 40 vteřin
