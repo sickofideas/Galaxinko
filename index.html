@@ -1390,14 +1390,23 @@ function drawNotifications() {
   let waiting = notifications.filter(n => n.state === 'WAITING');
 
   if (waiting.length > 0) {
-      // Pokud je plno (3), odstraníme nejstarší pouze pokud je na obrazovce už alespoň 3 vteřiny
+      // 1. VIP PŘEDNOST: Dárky přeskakují frontu na první místo
+      waiting.sort((a, b) => (a.type === 'GIFT' ? -1 : (b.type === 'GIFT' ? 1 : 0)));
+
       if (displayed.length >= 3) {
-          if (displayed[0].age >= 180) {
+          // 2. ČASOVÁNÍ: Dárky drží 6s (360 framů), normální 3s (180 framů)
+          let requiredAge = displayed[0].type === 'GIFT' ? 360 : 180;
+          
+          // 3. VYHAZOVÁK: Pokud čeká Dárek a zavazí tam obyčejná věc déle než 1 vteřinu, vykopni ji!
+          if (waiting[0].type === 'GIFT' && displayed[0].type !== 'GIFT' && displayed[0].age >= 60) {
+              requiredAge = 60; 
+          }
+
+          if (displayed[0].age >= requiredAge) {
               displayed[0].state = 'LEAVING';
               displayed.shift(); 
           }
       }
-      // Pokud je místo (méně než 3 zobrazené), nasadíme novou
       if (displayed.length < 3) {
           let next = waiting[0];
           next.state = 'DISPLAY';
@@ -1432,12 +1441,31 @@ function drawNotifications() {
       else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
       else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
       else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
+      else if (n.type === 'GIFT') { 
+          colorMode(HSB);
+          borderColor = color((frameCount * 5) % 360, 100, 100); // Rychlá duhová barva
+          colorMode(RGB);
+          actionText = currentLang === "CZ" ? `POSLAL DÁREK! (${n.extra}💎)` : `SENT A GIFT! (${n.extra}💎)`; 
+          icon = n.extra >= 1000 ? "🚀" : (n.extra >= 100 ? "💣" : "🎁"); 
+      }
       else { borderColor = color(0, 0, 100); actionText = "Akce"; icon = "✨"; }
       colorMode(RGB);
       
-      // Glow zcela odstraněn pro maximální ostrost textu, pozadí plně neprůhledné
-      fill(10, 12, 18, 255); stroke(borderColor); strokeWeight(2);
+      // VIP Zářivý rámeček pro dárky
+      if (n.type === 'GIFT') {
+          fill(30, 0, 40, 255); // Tmavě fialové VIP pozadí
+          stroke(borderColor); 
+          strokeWeight(3 + sin(frameCount * 0.2) * 2); // Pulzující tloušťka okraje
+          drawingContext.shadowBlur = 15; // Zářivý stín
+          drawingContext.shadowColor = borderColor;
+      } else {
+          fill(10, 12, 18, 255);
+          stroke(borderColor); 
+          strokeWeight(2);
+          drawingContext.shadowBlur = 0;
+      }
       rect(0, 0, 230, 64, 15);
+      drawingContext.shadowBlur = 0; // Vypnout stín pro další prvky
       
       let currentAvatar = userAvatars[n.name] || n.img;
       if (currentAvatar && currentAvatar !== "loaded") {
@@ -1465,6 +1493,12 @@ function drawNotifications() {
           actionTextColor = color(255, 215, 0); // Zlatá barva pro mega like
           textStyle(BOLD);
           textSize(17);
+      } else if (n.type === 'GIFT') {
+          colorMode(HSB);
+          actionTextColor = color((frameCount * 5 + 180) % 360, 80, 100); // Text má opačnou duhovou barvu než rámeček
+          colorMode(RGB);
+          textStyle(BOLD);
+          textSize(16);
       } else {
           textStyle(NORMAL);
           textSize(16);
@@ -2294,7 +2328,7 @@ function drawResults() {
       fill(30, 10, 30, 200); stroke(255, 50, 150); strokeWeight(2);
       rect(W/2 - 150, bY + 15, 300, 50, 10);
       fill(255, 50, 150); noStroke(); textSize(10); textAlign(CENTER, TOP); textStyle(BOLD);
-      text("💎 MVP GIFTER KOLA 💎", W/2, bY + 20);
+      text(currentLang === "CZ" ? "💎 MVP GIFTER KOLA 💎" : "💎 ROUND MVP GIFTER 💎", W/2, bY + 20);
       
       let mX = W/2;
       let mY = bY + 45;
@@ -2310,11 +2344,33 @@ function drawResults() {
       let giftEmoji = mvp[1].score >= 1000 ? '🚀' : '💎';
       text(mvp[1].score + " " + giftEmoji, mX + 130, mY);
       pop();
+
+      // === SEZNAM VŠECH DÁRCŮ KOLA ===
+      push();
+      let bY_donors = bY + 80; // Posunuto pod MVP blok
+      fill(255, 215, 0);
+      textSize(11); textAlign(CENTER, TOP); textStyle(BOLD);
+      let donorTitle = currentLang === "CZ" ? "PODPOROVATELÉ TOHOTO KOLA:" : "ROUND SUPPORTERS:";
+      text(donorTitle, W/2, bY_donors);
+      
+      let donorText = "";
+      for (let i = 0; i < mvpArr.length; i++) {
+          let dIcon = mvpArr[i][1].score >= 1000 ? '🚀' : '💎';
+          donorText += mvpArr[i][0] + " " + dIcon;
+          if (i < mvpArr.length - 1) donorText += "  •  ";
+      }
+      
+      fill(200);
+      textSize(10); textStyle(NORMAL);
+      text(donorText, W/2 - 230, bY_donors + 20, 460, 65); 
+      pop();
   }
 
   textAlign(LEFT, CENTER); 
-  let listStartY = bY + 80; 
-  let listLimit = Math.min(sorted.length, 15);
+  let showDonors = (mvpArr.length > 0 && anim > 0.8);
+  let listStartY = showDonors ? bY + 165 : bY + 80; 
+  let maxListItems = showDonors ? 10 : 15;
+  let listLimit = Math.min(sorted.length, maxListItems);
   for (let i = 3; i < listLimit; i++) {
     let p = sorted[i]; let yPos = listStartY + (i-3) * 26;
     fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5)); noStroke(); rect(W/2 - 200, yPos - 12, 400, 24, 5);
@@ -2656,6 +2712,9 @@ function connectTikfinity() {
           if (!roundGifts[u]) roundGifts[u] = { score: 0, color: col, avatar: userAvatars[u] || null };
           roundGifts[u].score += diam;
           if (userAvatars[u]) roundGifts[u].avatar = userAvatars[u];
+
+          // PŘIDÁNO: Odpálení VIP notifikace!
+          addNotification('GIFT', u, userAvatars[u], diam);
 
           if (diam >= 1000) {
               let msg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", u);
