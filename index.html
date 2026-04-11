@@ -229,7 +229,21 @@ var COMMENTARY_GENERAL = {
     "Helikoptéra Ingenuity dokázala, že je možné létat v řídké atmosféře Marsu. Úžasný technologický úspěch!",
     "Rakety Falcon devět dokážou samy přistát zpět na Zemi. Dnes už je to rutina, ale dříve to znělo jako sci-fi!",
     "Sonda Parker Solar Probe se dotkla Slunce, když proletěla jeho vnější atmosférou zvanou koróna.",
-    "Na Marsu operuje hned několik vozítek, které pátrají po stopách dávného života. Kdo ví, co tam najdou!"
+    "Na Marsu operuje hned několik vozítek, které pátrají po stopách dávného života. Kdo ví, co tam najdou!",
+    "Věděli jste, že Slunce tvoří 99,8 % veškeré hmoty v naší sluneční soustavě? Zbytek jsme my a pár kamenů.",
+    "Na Venuši sněží kyselina sírová a prší tam kov. Ideální místo na letní dovolenou!",
+    "Kdybyste mohli jet autem přímo nahoru do vesmíru, trvalo by to jen něco málo přes hodinu.",
+    "Ve vesmíru poletuje obrovský mrak vodní páry, který by naplnil pozemské oceány třímilionkrát!",
+    "Den na planetě Venuši trvá déle než její celý rok. Rotuje totiž neuvěřitelně pomalu.",
+    "Černé díry nezpívají, ale jedna v kupě galaxií Perseus vydává tón B, 57 oktáv pod středním C.",
+    "Saturn by plaval na vodě, kdybyste našli dost velkou vanu. Je totiž méně hustý než voda!",
+    "Vesmír je starý asi 13,8 miliardy let. To by na dortu bylo opravdu hodně svíček.",
+    "Na Měsíci se nacházejí zrcadla, která tam zanechali astronauti mise Apollo, aby se dala měřit vzdálenost.",
+    "Olympus Mons na Marsu je nejvyšší sopka ve sluneční soustavě. Je třikrát vyšší než Mount Everest.",
+    "Západ slunce na Marsu je zbarvený do modra. Úžasná romantika v rudém prachu!",
+    "Pokud byste spadli do Jupiteru, propadali byste se hustšími a hustšími vrstvami plynu až by vás rozdrtil tlak.",
+    "Stopy astronautů na Měsíci tam zůstanou klidně i miliony let, protože tam nefouká vůbec žádný vítr.",
+    "Ve vesmíru se nedá krkat. Kvůli stavu beztíže se plyn v žaludku neodděluje od tekutin."
   ],
   EN: [
     "Want to survive? Tap the screen! Tap tap makes your circle grow and adds power!",
@@ -274,7 +288,21 @@ var COMMENTARY_GENERAL = {
     "The Ingenuity helicopter proved that powered flight is possible in the thin atmosphere of Mars. An amazing achievement!",
     "Falcon Nine rockets can land themselves back on Earth. It's routine now, but it used to sound like pure sci-fi!",
     "The Parker Solar Probe touched the Sun by flying through its outer atmosphere called the corona.",
-    "There are multiple rovers currently operating on Mars, searching for signs of ancient life. Who knows what they'll find!"
+    "There are multiple rovers currently operating on Mars, searching for signs of ancient life. Who knows what they'll find!",
+    "Did you know the Sun makes up 99.8% of all mass in our solar system? The rest is just us and some rocks.",
+    "It snows sulfuric acid and rains metal on Venus. A perfect summer vacation spot!",
+    "If you could drive your car straight up into space, it would only take a little over an hour.",
+    "There is a massive water vapor cloud in space that holds three million times more water than Earth's oceans!",
+    "A day on planet Venus lasts longer than its entire year. It rotates incredibly slowly.",
+    "Black holes don't sing, but one in the Perseus cluster hums a B flat, 57 octaves below middle C.",
+    "Saturn would float if you could find a bathtub big enough. It is actually less dense than water!",
+    "The universe is about 13.8 billion years old. That would be a lot of candles on a cake.",
+    "There are mirrors on the Moon left by Apollo astronauts so we can measure the distance to it.",
+    "Olympus Mons on Mars is the tallest volcano in the solar system. It's three times taller than Mount Everest.",
+    "Sunsets on Mars have a blue tint. Amazing romance in the red dust!",
+    "If you fell into Jupiter, you would sink through thicker and thicker layers of gas until the pressure crushed you.",
+    "Astronaut footprints on the Moon will stay there for millions of years because there is absolutely no wind.",
+    "You can't burp in space. Due to zero gravity, the gas in your stomach doesn't separate from the liquids."
   ]
 };
 
@@ -342,6 +370,7 @@ let synth;
 
 let nextCommentTime = 0;
 let lastCommentString = "";
+let spokenHistory = {}; // Paměť pro 3 minutový limit opakováni TTS hlášek
 let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
@@ -1589,7 +1618,7 @@ function handleCameraAndPlayers() {
       continue;
     }
 
-    if (p.hp >= 1000 && frameCount % 30 === (i % 30)) {
+    if (p.hp >= 1000 && currentTop10.includes(p.name) && frameCount % 30 === (i % 30)) {
         let range = p.r + 150;
         for (let other of players) {
             if (other === p || other.hp <= 0) continue;
@@ -2559,7 +2588,8 @@ function drawTopHUD() {
 }
 
 function handleTTSCommentary() {
-  if (millis() > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
+  let now = millis();
+  if (now > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
       let txt = "", arr = [];
       if (players.length === 0) arr = currentLang === "CZ" ? COMMENTARY_EMPTY.CZ : COMMENTARY_EMPTY.EN;
       else if (players.length === 1) arr = currentLang === "CZ" ? COMMENTARY_SOLO.CZ : COMMENTARY_SOLO.EN;
@@ -2571,17 +2601,21 @@ function handleTTSCommentary() {
       }
               
       if (txt === "" && arr && arr.length > 0) {
-          let attempts = 0; 
-          do { txt = random(arr); attempts++; } while (txt === lastCommentString && attempts < 5);
+          // Filtrace hlášek (nesmí se opakovat dříve jak za 3 minuty = 180000 ms)
+          let available = arr.filter(s => !spokenHistory[s] || (now - spokenHistory[s] > 180000));
+          if (available.length === 0) available = arr; // Fallback, kdyby všechny byly v cooldownu
+          
+          txt = random(available);
           if (players.length === 1 && txt) txt = txt.replace("{p}", players[0].name);
       }
               
       if (txt) {
+          spokenHistory[txt] = now;
           lastCommentString = txt; 
           speakTTS(txt);
-          nextCommentTime = millis() + random(8000, 15000); 
+          nextCommentTime = now + random(8000, 15000); 
       } else {
-          nextCommentTime = millis() + 2000;
+          nextCommentTime = now + 2000;
       }
   }
 }
