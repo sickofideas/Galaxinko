@@ -1258,7 +1258,11 @@ function drawSecretCodeUI() {
         if (codeY < ARENA_TOP + 50 || codeY > ARENA_BOT - 50) codeVY *= -1;
         
         push();
-        let baseCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
+        let baseCol = color(0, 255, 255);
+        if (codeType === "HP" && isUltraCode) baseCol = color(255, 50, 50);
+        else if (codeType === "BOOST") baseCol = color(255, 255, 0);
+        else if (codeType === "SHIELD") baseCol = color(150, 50, 255);
+        
         drawingContext.shadowBlur = random(5, 20);
         drawingContext.shadowColor = baseCol;
         let flicker = random(100, 255);
@@ -1298,11 +1302,20 @@ function drawSecretCodeUI() {
     if (codeActive || lastCodeWinner) {
         push();
         if (codeActive) {
-            let rewardTxt = isUltraCode ? "+3000 HP" : "+1500 HP";
-            let hint = currentLang === "CZ" ? `/// ${isUltraCode ? 'ULTRA KÓD AKTIVOVÁN' : 'ZACHYCEN KÓD'}: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ${isUltraCode ? 'ULTRA CODE ACTIVATED' : 'SIGNAL DETECTED'}: FIRST IN CHAT GETS ${rewardTxt} ///`;
+            let rewardTxt = "";
+            let hintCol = roundThemeColor;
             
-            // Barva textu podle arény
-            let hintCol = isUltraCode ? color(255, 100, 100) : roundThemeColor; 
+            if (codeType === "HP") {
+                rewardTxt = isUltraCode ? "+3000 HP" : "+1500 HP";
+                hintCol = isUltraCode ? color(255, 100, 100) : roundThemeColor; 
+            } else if (codeType === "BOOST") {
+                rewardTxt = "10s BOOST"; hintCol = color(255, 255, 0);
+            } else if (codeType === "SHIELD") {
+                rewardTxt = "10s SHIELD"; hintCol = color(150, 100, 255);
+            }
+            
+            let hint = currentLang === "CZ" ? `/// ZACHYCEN KÓD: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// SIGNAL DETECTED: FIRST IN CHAT GETS ${rewardTxt} ///`;
+            if (isUltraCode && codeType === "HP") hint = currentLang === "CZ" ? `/// ULTRA KÓD AKTIVOVÁN: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ULTRA CODE ACTIVATED: FIRST IN CHAT GETS ${rewardTxt} ///`;
             
             fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
             textSize(10);
