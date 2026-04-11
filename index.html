@@ -1582,21 +1582,14 @@ function drawChatCommands() {
     let cmdY = ARENA_BOT + 80; // Posunuto těsně pod zvětšené notifikace
     let pulse = (sin(frameCount * 0.05) + 1) / 2;
     
-    fill(15, 15, 20, 240); 
-    // Barva okraje podle barvy arény
-    stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), 100 + pulse * 100); 
-    strokeWeight(2);
-    drawingContext.shadowBlur = 10 + pulse * 15;
-    drawingContext.shadowColor = roundThemeColor; // Záře podle arény
-    rect(20, cmdY + 10, W - 40, 60, 10);
-    
     textAlign(CENTER, CENTER);
-    textSize(18); textStyle(BOLD);
+    textSize(16); textStyle(BOLD);
     
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
-    let cmds = currentLang === "CZ" ? "TAP TAP = VĚTŠÍ KOULE! | !join | !boost | !shield" : "TAP TAP = BIGGER BALL! | !join | !boost | !shield";
-    text(cmds, W/2, cmdY + 40);
+    drawingContext.shadowColor = roundThemeColor; // Záře textu v barvě arény
+    let cmds = currentLang === "CZ" ? "TAP TAP = VĚTŠÍ KOULE! | join | boost | shield" : "TAP TAP = BIGGER BALL! | join | boost | shield";
+    text(cmds, W/2, cmdY + 20); // Zvednuto těsně pod notifikace a bez obdélníku
     
     drawingContext.shadowBlur = 0;
     textStyle(NORMAL);
@@ -2797,7 +2790,7 @@ function connectTikfinity() {
 
           playChatSound();
 
-          if (p && msgLower.startsWith("!boost") && p.boostCooldown <= 0) {
+          if (p && (msgLower.startsWith("!boost") || msgLower.startsWith("boost")) && p.boostCooldown <= 0) {
               p.boostCooldown = 60 * 60; // 60 vteřin cooldown
               p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 2.5 * 60); // 2.5 sekundy speed boost
               createParticles(p.body.position.x, p.body.position.y, color(0,255,255), 20);
@@ -2805,14 +2798,14 @@ function connectTikfinity() {
               safePlaySound(600, 0.1, 0.1);
               addNotification('BOOST', u, userAvatars[u]);
           }
-          else if (p && msgLower.startsWith("!shield") && p.shieldCooldown <= 0) {
+          else if (p && (msgLower.startsWith("!shield") || msgLower.startsWith("shield")) && p.shieldCooldown <= 0) {
               p.shieldCooldown = 60 * 60; // 60 vteřin cooldown
               p.immunityTimer = Math.max(p.immunityTimer, 2.5 * 60); // 2.5 sekundy štít
               addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
               safePlaySound(800, 0.1, 0.2);
               addNotification('SHIELD', u, userAvatars[u]);
           }
-          else if (!p && msgLower === "!join") {
+          else if (!p && (msgLower === "!join" || msgLower === "join")) {
               let m = spawnModules.find(x => x.name === u);
               if (!m) {
                   let baseHp = getStartingHp(u);
