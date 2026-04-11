@@ -1575,10 +1575,8 @@ function handleCameraAndPlayers() {
     }
     
     if (p.hp <= 0) {
-      // PŘIDÁNO: Zapsání do fronty na oživení (pokud už není zombík)
-      if (!p.isZombie) {
-          deadPlayersQueue.push({name: p.name, timeOfDeath: millis()});
-      }
+      // PŘIDÁNO: Zapsání do fronty na oživení (VŽDY, aby se zombíci vraceli donekonečna)
+      deadPlayersQueue.push({name: p.name, timeOfDeath: millis()});
 
       if (!isHeavyLoad && p.body && !isNaN(p.body.position.x)) {
           createParticles(p.body.position.x, p.body.position.y, p.color, 30);
@@ -2307,14 +2305,26 @@ function updateTimers() {
   }
 
   // ZOMBIE COOLDOWN (Vystřelení po 20 vteřinách)
+  let alivePlayersCount = players.filter(p => !p.isZombie).length;
+  let activeZombiesCount = players.filter(p => p.isZombie).length;
+
   for (let i = deadPlayersQueue.length - 1; i >= 0; i--) {
       if (millis() - deadPlayersQueue[i].timeOfDeath > 20000) {
           let zName = deadPlayersQueue[i].name;
           // Pokud hráč náhodou už nehraje (např. nedal hned !join)
           if (!players.find(x => x.name === zName) && !spawnModules.find(x => x.name === zName)) {
-              spawnPlayer(zName, 50, false, 0, true); // true = isZombie
+              if (alivePlayersCount < 25 && activeZombiesCount < 15) {
+                  spawnPlayer(zName, 50, false, 0, true); // true = isZombie
+                  activeZombiesCount++;
+                  deadPlayersQueue.splice(i, 1);
+              } else {
+                  // Pokud je na ploše už dost hráčů, odložíme spawn tohoto zombíka o 5 vteřin
+                  deadPlayersQueue[i].timeOfDeath += 5000;
+              }
+          } else {
+              // Hráč se už připojil jako živý, mažeme z fronty mrtvých
+              deadPlayersQueue.splice(i, 1);
           }
-          deadPlayersQueue.splice(i, 1);
       }
   }
 }
