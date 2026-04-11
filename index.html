@@ -42,6 +42,7 @@
 <body>
   <div id="game-container">
     <div id="admin-bar">
+      <span id="version-display" style="color: #00ffff; font-size: 10px; margin-right: 15px; text-shadow: 1px 1px 0 #000;"></span>
       <button id="langBtn" class="lang-btn">LANG: CZ</button>
       <button id="tJoin">SPAWN HRÁČE</button>
       <button id="tLike">TEST LIKE (+HP)</button>
@@ -58,7 +59,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.55.0"; // Rychlejší změna barev pozadí, více planet
+var GAME_VERSION = "v19.57.0"; // Hustší 3D vesmír, rychlejší antibot pozadí
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -355,6 +356,30 @@ function safePlaySound(f, v, d) {
     } catch(e) {}
 }
 
+function playDonateSound() {
+    if (!audioStarted || !synth) return;
+    // C4, E4, G4, C5, E5 - příjemné a neutrální tóny
+    let notes = [261.63, 329.63, 392.00, 523.25, 659.25]; 
+    let base = random(notes) + random(-10, 10); // Lehká odchylka pro variabilitu
+    
+    safePlaySound(base, 0.1, 0.1);
+    setTimeout(() => safePlaySound(base * 1.25, 0.1, 0.2), 80);
+    setTimeout(() => safePlaySound(base * 1.5, 0.1, 0.3), 160);
+}
+
+function playFollowSound() {
+    if (!audioStarted || !synth) return;
+    let base = random([440, 554, 659]);
+    safePlaySound(base, 0.05, 0.15);
+    setTimeout(() => safePlaySound(base * 2, 0.05, 0.2), 100);
+}
+
+function playChatSound() {
+    if (!audioStarted || !synth) return;
+    // Velmi tichý, krátký a náhodný 'pop' zvuk pro oživení, nerušivý
+    safePlaySound(random(400, 800), 0.01, 0.05);
+}
+
 function getStartingHp(name) {
     if (previousRoundGifts[name] && previousRoundGifts[name].score >= 1) return 500;
     let idx = previousTop10.indexOf(name);
@@ -414,6 +439,8 @@ function setup() {
   wallRight = Matter.Bodies.rectangle(cx + 1000, cy, wallThick, 20000, wallOpts);
   Matter.World.add(world, [wallTop, wallBot, wallLeft, wallRight]);
 
+  document.getElementById('version-display').innerText = GAME_TITLE + " " + GAME_VERSION;
+
   startNewRound();
   setupEvents();
   connectTikfinity();
@@ -422,49 +449,52 @@ function setup() {
 function generateSpaceBackground() {
   stars = []; nebulas = []; shootingStars = []; activePlanets = []; milkyWay = []; activeCrafts = [];
   
-  let mwPoints = 60;
+  let mwPoints = 80;
   for (let i = 0; i < mwPoints; i++) {
       let t = i / mwPoints;
-      let baseX = lerp(-W, W * 2, t) + random(-300, 300);
-      let baseY = lerp(-H, H * 2, t) + random(-400, 400);
+      let baseX = lerp(-W, W * 2, t) + random(-400, 400);
+      let baseY = lerp(-H, H * 2, t) + random(-500, 500);
       colorMode(HSB);
-      let mwCol = color((hue(roundThemeColor) + random(-20, 20)) % 360, 60, random(50, 100), random(0.02, 0.05));
+      let mwCol = color((hue(roundThemeColor) + random(-30, 30)) % 360, 60, random(50, 100), random(0.02, 0.08));
       colorMode(RGB);
-      milkyWay.push({ x: baseX, y: baseY, r: random(100, 350), color: mwCol });
+      milkyWay.push({ x: baseX, y: baseY, r: random(150, 450), color: mwCol });
   }
 
-  for(let i=0; i<600; i++) {
+  for(let i=0; i<1200; i++) {
+    let layer = random([0.2, 0.5, 1.0]); 
     stars.push({
-        x: random(-W, W * 2), y: random(-H, H * 2), s: random(1, 3.5), speed: random(0.1, 1.2),
-        rC: random(150, 255), gC: random(200, 255), bC: 255, baseAlpha: random(15, 80),
-        isPulsing: random() < 0.25, pulseSpeed: random(0.02, 0.06), pulsePhase: random(TWO_PI)
+        x: random(-W, W * 2), y: random(-H, H * 2), s: random(1, 4) * layer, speed: random(0.5, 2.5) * layer,
+        rC: random(150, 255), gC: random(200, 255), bC: 255, baseAlpha: random(30, 150) * layer,
+        isPulsing: random() < 0.25, pulseSpeed: random(0.02, 0.06), pulsePhase: random(TWO_PI), layer: layer
     });
   }
   
-  for(let i=0; i<15; i++) {
+  for(let i=0; i<30; i++) {
       colorMode(HSB);
-      let nCol = color((hue(roundThemeColor) + random(-30, 30)) % 360, random(60, 100), random(50, 100), random(0.02, 0.06));
+      let nCol = color((hue(roundThemeColor) + random(-40, 40)) % 360, random(60, 100), random(50, 100), random(0.02, 0.09));
       colorMode(RGB);
-      nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(300, 800), color: nCol });
+      nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(200, 1000), color: nCol, speed: random(0.1, 0.4) });
   }
   
-  let pTypes = ['EARTH', 'MOON', 'JUPITER', 'SATURN', 'MARS'];
-  for(let i=0; i<10; i++) {
+  let pTypes = ['EARTH', 'MOON', 'JUPITER', 'SATURN', 'MARS', 'ICE_GIANT', 'SUN'];
+  for(let i=0; i<25; i++) {
     let pt = random(pTypes);
+    let z = random(0.1, 1.0); 
     activePlanets.push({
-        x: random(-W, W * 2), y: random(-H, H * 2), r: random(20, 80),
+        x: random(-W, W * 2), y: random(-H, H * 2), r: random(30, 150) * z,
         type: pt,
-        vx: random(-0.15, 0.15), vy: random(-0.15, 0.15),
-        angle: random(TWO_PI), rotSpeed: random(-0.01, 0.01)
+        vx: random(-0.2, 0.2) * z, vy: random(0.5, 2.5) * z,
+        angle: random(TWO_PI), rotSpeed: random(-0.02, 0.02), z: z
     });
   }
   
-  for(let i=0; i<3; i++) {
-    let st = random(['SPUTNIK', 'HUBBLE', 'VOYAGER']);
+  for(let i=0; i<6; i++) {
+    let st = random(['SPUTNIK', 'HUBBLE', 'VOYAGER', 'UFO']);
+    let z = random(0.3, 1.2);
     activeCrafts.push({
-        type: st, x: random(-100, W + 100), y: random(ARENA_TOP, ARENA_BOT),
-        s: random(0.4, 0.8), vx: random(-0.5, 0.5), vy: random(-0.5, 0.5),
-        rot: random(TWO_PI), rotS: random(-0.03, 0.03)
+        type: st, x: random(-100, W + 100), y: random(-H, H * 2),
+        s: random(0.4, 1.0) * z, vx: random(-1.0, 1.0), vy: random(1.0, 3.0) * z,
+        rot: random(TWO_PI), rotS: random(-0.03, 0.03), z: z
     });
   }
 }
@@ -819,7 +849,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   }
   
   createParticles(spawnX, spawnY, playerColor, 15);
-  safePlaySound(600, 0.1, 0.05);
+  safePlaySound(random([400, 500, 600, 700, 800]), 0.05, 0.1);
 }
 
 function updateHpLB(name, hp, col) {
@@ -955,7 +985,7 @@ function handleCombat(p1, p2) {
   }
 
   if (isCrit1 || isCrit2) {
-      safePlaySound(1500, 0.05, 0.2);
+      safePlaySound(random(1200, 1800), 0.05, 0.2);
   }
 }
 
@@ -993,7 +1023,7 @@ function shootBonusFromShip() {
       isFlying: true,
       type: isSpeedOrb ? 'SPEED' : 'HP'
   });
-  safePlaySound(800, 0.1, 0.3);
+  safePlaySound(random(700, 900), 0.1, 0.3);
 }
 
 function handleOrbs() {
@@ -1073,11 +1103,11 @@ function handleOrbs() {
               if (o.type === 'SPEED') {
                   p.orbSpeedTimer = 10 * 60; // 10 sekund při 60 FPS
                   if (!isHeavyLoad) addPopup("5x SPEED BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 255, 0));
-                  safePlaySound(1500, 0.1, 0.3);
+                  safePlaySound(random(1400, 1600), 0.1, 0.3);
               } else {
                   p.hp += o.value;
                   if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
-                  safePlaySound(1200, 0.1, 0.2);
+                  safePlaySound(random(1000, 1300), 0.1, 0.2);
               }
               createParticles(o.x, o.y, orbColor, 15);
               collected = true; break;
@@ -1109,7 +1139,7 @@ function handleSecretCode() {
             codeExpireTime = millis() + 40000; // Zmizí za 40 vteřin
             
         lastCodeWinner = null;
-        safePlaySound(400, 0.05, 0.5);
+        safePlaySound(random(300, 500), 0.05, 0.5);
         
         createParticles(codeX, codeY, isUltraCode ? color(255, 50, 50) : color(0, 255, 255), 40);
         speakTTS(currentLang === "CZ" ? `Pozor! V aréně poletuje ${isUltraCode ? "ultra" : "tajný"} kód! Kdo ho první napíše do chatu, získá obrovské HP!` : `Attention! A ${isUltraCode ? "ultra" : "secret"} code is flying in the arena! First to type it in chat gets massive HP!`);
@@ -1632,6 +1662,7 @@ function drawPlanet(p) {
     translate(p.x, p.y);
     rotate(p.angle);
     noStroke();
+    drawingContext.globalAlpha = p.z * 0.8 + 0.2; 
     
     if (p.type === 'EARTH') {
         fill(30, 80, 200, 100); ellipse(0, 0, p.r * 2);
@@ -1650,6 +1681,12 @@ function drawPlanet(p) {
     } else if (p.type === 'MARS') {
         fill(180, 60, 30, 100); ellipse(0, 0, p.r * 2);
         fill(120, 40, 20, 100); ellipse(p.r*0.2, -p.r*0.2, p.r*0.5); ellipse(-p.r*0.3, p.r*0.3, p.r*0.4);
+    } else if (p.type === 'ICE_GIANT') {
+        fill(60, 180, 255, 100); ellipse(0, 0, p.r * 2);
+        fill(255, 50); rect(-p.r, -p.r*0.1, p.r*2, p.r*0.2);
+    } else if (p.type === 'SUN') {
+        fill(255, 230, 150, 150); ellipse(0, 0, p.r * 2);
+        fill(255, 200, 50, 100); ellipse(0, 0, p.r * 2.4);
     } else {
         fill(100, 100, 100, 70); ellipse(0, 0, p.r * 2);
     }
@@ -1662,6 +1699,7 @@ function drawSpacecraft(sc) {
     translate(sc.x, sc.y);
     rotate(sc.rot);
     scale(sc.s);
+    drawingContext.globalAlpha = sc.z * 0.9 + 0.1;
     fill(200, 100); stroke(100, 100); strokeWeight(1);
     if (sc.type === 'SPUTNIK') {
         ellipse(0, 0, 30, 30);
@@ -1683,39 +1721,47 @@ function drawSpacecraft(sc) {
         line(0, 0, -50, 30);
         fill(100, 100); noStroke();
         rect(60, 40, 20, 10);
+    } else if (sc.type === 'UFO') {
+        fill(0, 255, 100, 150); rect(-30, -10, 60, 20, 10);
+        fill(200, 200, 255, 200); ellipse(0, -10, 30, 20);
+        fill(255, 255, 100); ellipse(-20, 0, 5, 5); ellipse(0, 0, 5, 5); ellipse(20, 0, 5, 5);
     }
     pop();
 }
 
-function handleBackgroundObjects() {
+function handleBackgroundObjects(baseSpeed) {
+  activePlanets.sort((a, b) => a.z - b.z);
+  activeCrafts.sort((a, b) => a.z - b.z);
+
   for (let p of activePlanets) {
       drawPlanet(p);
       p.x += p.vx;
-      p.y += p.vy;
+      p.y += p.vy + (baseSpeed * p.z);
       p.angle += p.rotSpeed;
 
-      if (p.y > H * 2 + 500) p.y = -H - 500;
-      else if (p.y < -H - 500) p.y = H * 2 + 500;
-      if (p.x > W * 2 + 500) p.x = -W - 500;
-      else if (p.x < -W - 500) p.x = W * 2 + 500;
+      if (p.y > H * 2 + 500) { p.y = -H - 500; p.x = random(-W, W*2); }
+      else if (p.y < -H - 500) { p.y = H * 2 + 500; p.x = random(-W, W*2); }
+      if (p.x > W * 2 + 500) { p.x = -W - 500; }
+      else if (p.x < -W - 500) { p.x = W * 2 + 500; }
   }
 
   for (let c of activeCrafts) {
       drawSpacecraft(c);
       c.x += c.vx;
-      c.y += c.vy;
+      c.y += c.vy + (baseSpeed * c.z);
       c.rot += c.rotS;
 
-      if (c.y > H * 2 + 200) c.y = -H - 200;
-      else if (c.y < -H - 200) c.y = H * 2 + 200;
-      if (c.x > W * 2 + 200) c.x = -W - 200;
-      else if (c.x < -W - 200) c.x = W * 2 + 200;
+      if (c.y > H * 2 + 200) { c.y = -H - 200; c.x = random(-W, W*2); }
+      else if (c.y < -H - 200) { c.y = H * 2 + 200; c.x = random(-W, W*2); }
+      if (c.x > W * 2 + 200) { c.x = -W - 200; }
+      else if (c.x < -W - 200) { c.x = W * 2 + 200; }
   }
 }
 
 function drawSpaceBackground() {
   flowTime += 0.003;
   globalFlowAngle = sin(flowTime) * 0.25;
+  let baseScrollSpeed = 1.5; 
 
   noStroke();
   
@@ -1725,29 +1771,31 @@ function drawSpaceBackground() {
       ellipse(mw.x, mw.y, mw.r * 2);
       
       mw.x += sin(globalFlowAngle) * 0.2;
-      mw.y += cos(globalFlowAngle) * 0.2;
+      mw.y += cos(globalFlowAngle) * 0.2 + (baseScrollSpeed * 0.1);
       
-      if (mw.y > H * 2 + 500) mw.y = -H - 500;
-      if (mw.x > W * 2 + 500) mw.x = -W - 500;
-      if (mw.x < -W - 500) mw.x = W * 2 + 500;
+      if (mw.y > H * 2 + 500) { mw.y = -H - 500; mw.x = random(-W, W*2); }
+      if (mw.x > W * 2 + 500) { mw.x = -W - 500; }
+      if (mw.x < -W - 500) { mw.x = W * 2 + 500; }
   });
   drawingContext.restore();
 
   nebulas.forEach(n => {
      fill(n.color);
      ellipse(n.x, n.y, n.r); 
+     n.y += n.speed + (baseScrollSpeed * 0.2);
+     if (n.y > H * 2 + 1000) { n.y = -H - 1000; n.x = random(-W, W*2); }
   });
 
   stars.forEach(s => {
     let currentAlpha = s.baseAlpha;
     if (s.isPulsing) {
-        currentAlpha = 50 + sin(frameCount * s.pulseSpeed + s.pulsePhase) * 205;
+        currentAlpha = (s.baseAlpha * 0.5) + sin(frameCount * s.pulseSpeed + s.pulsePhase) * (s.baseAlpha * 0.5);
     }
     fill(s.rC, s.gC, s.bC, currentAlpha);
     rect(s.x, s.y, s.s, s.s);
     
-    s.x += sin(globalFlowAngle) * s.speed;
-    s.y += cos(globalFlowAngle) * s.speed;
+    s.x += sin(globalFlowAngle) * (s.speed * 0.5);
+    s.y += s.speed + baseScrollSpeed * s.layer; 
     
     if (s.y > H * 2) { s.y = -H; s.x = random(-W, W * 2); }
     else if (s.y < -H) { s.y = H * 2; s.x = random(-W, W * 2); }
@@ -1755,27 +1803,30 @@ function drawSpaceBackground() {
     else if (s.x < -W) { s.x = W * 2; s.y = random(-H, H * 2); }
   });
 
-  handleBackgroundObjects();
+  drawingContext.save();
+  handleBackgroundObjects(baseScrollSpeed);
+  drawingContext.restore();
 
-  if (random() < 0.05) { 
+  if (random() < 0.15) { 
       let side = Math.floor(random(4));
       let sx, sy, svx, svy;
       
-      if (side === 0) { sx = random(-W, W*2); sy = -H; svx = random(-20, 20); svy = random(20, 40); }
-      else if (side === 1) { sx = random(-W, W*2); sy = H*2; svx = random(-20, 20); svy = random(-40, -20); }
-      else if (side === 2) { sx = -W; sy = random(-H, H*2); svx = random(20, 40); svy = random(-20, 20); }
-      else { sx = W*2; sy = random(-H, H*2); svx = random(-40, -20); svy = random(-20, 20); }
+      if (side === 0) { sx = random(-W, W*2); sy = -H; svx = random(-20, 20); svy = random(20, 50); }
+      else if (side === 1) { sx = random(-W, W*2); sy = H*2; svx = random(-20, 20); svy = random(-50, -20); }
+      else if (side === 2) { sx = -W; sy = random(-H, H*2); svx = random(20, 50); svy = random(-20, 20); }
+      else { sx = W*2; sy = random(-H, H*2); svx = random(-50, -20); svy = random(-20, 20); }
       
       shootingStars.push({
           x: sx, y: sy, 
           vx: svx, vy: svy, 
-          life: 255, length: random(40, 100)
+          life: 255, length: random(40, 150),
+          thick: random(1, 4)
       });
   }
 
   shootingStars.forEach((s, i) => {
-      stroke(255, 255, 255, s.life); strokeWeight(2);
-      line(s.x, s.y, s.x - s.vx * (s.length/10), s.y - s.vy * (s.length/10));
+      stroke(255, 255, 255, s.life); strokeWeight(s.thick);
+      line(s.x, s.y, s.x - s.vx * (s.length/20), s.y - s.vy * (s.length/20));
       s.x += s.vx; s.y += s.vy; 
       s.life -= 4; 
       if (s.life <= 0 || s.x < -W*1.5 || s.x > W*2.5 || s.y < -H*1.5 || s.y > H*2.5) shootingStars.splice(i, 1);
@@ -2181,7 +2232,7 @@ function updateTimers() {
                   // Méně částic = méně lagů
                   createParticles(p.body.position.x, p.body.position.y, color(255, 50, 100), isMega ? 8 : 3);
               }
-              safePlaySound(600, 0.1, 0.1);
+              safePlaySound(random([400, 500, 600, 700]), 0.05, 0.1);
           }
 
           if (amount >= 5) {
@@ -2331,9 +2382,6 @@ function drawResults() {
 function drawTopHUD() {
   fill(8, 10, 18); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
 
-  // Verze vlevo nahoře
-  fill(150); textSize(8); textAlign(LEFT, TOP); textStyle(NORMAL);
-  text(GAME_VERSION, 10, HUD_TOP + 5);
 
   // Titulek uprostřed
   textAlign(CENTER, TOP); drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor;
@@ -2462,7 +2510,7 @@ function handleTTSCommentary() {
 function draw() {
   // Plynulá změna barvy (Anti-Bot TikTok ochrana)
   colorMode(HSB, 360, 100, 100);
-  let dynamicBg = color((frameCount * 0.05) % 360, 45, 8); 
+  let dynamicBg = color((frameCount * 0.1) % 360, 45, 8); 
   background(dynamicBg);
   colorMode(RGB, 255);
   
@@ -2575,6 +2623,7 @@ function connectTikfinity() {
       if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
       
       if (evt === "follow") {
+          playFollowSound();
           addNotification('FOLLOW', u, userAvatars[u]);
       }
       
@@ -2588,6 +2637,8 @@ function connectTikfinity() {
           let msgLower = msg.toLowerCase();
           let p = players.find(x => x.name === u);
           
+          playChatSound();
+
           if (p && msgLower.startsWith("!boost") && p.boostCooldown <= 0) {
               p.boostCooldown = 60 * 60; // 60 vteřin cooldown
               p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 2.5 * 60); // 2.5 sekundy speed boost
@@ -2645,6 +2696,7 @@ function connectTikfinity() {
       }
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || 1;
+          playDonateSound();
             handleAction(u, 0, true, diam, true); 
           let col = players.find(x=>x.name===u)?.color || color(255);
           updateGiftLB(u, diam, col);
@@ -2733,3 +2785,4 @@ function mousePressed() {
 </script>
 </body>
 </html>
+
