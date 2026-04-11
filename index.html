@@ -48,6 +48,7 @@
       <button id="tGift">TEST GIFT</button>
       <button id="tChat">TTS CHAT</button>
       <button id="tFollow">TEST FOLLOW</button>
+      <button id="toggleLBBtn">ZOBRAZIT ŽEBŘÍČKY</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
     </div>
   </div>
@@ -328,6 +329,7 @@ let lastCommentString = "";
 let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
+let showLeaderboards = false;
 
 let lastGlobalSound = 0;
 
@@ -564,6 +566,10 @@ function setupEvents() {
       }
   };
   document.getElementById('tFollow').onclick = () => { let dummyUser = "User" + floor(random(100)); addNotification('FOLLOW', dummyUser, null); };
+  document.getElementById('toggleLBBtn').onclick = (e) => { 
+      showLeaderboards = !showLeaderboards; 
+      e.target.innerText = showLeaderboards ? "SKRÝT ŽEBŘÍČKY" : "ZOBRAZIT ŽEBŘÍČKY"; 
+  };
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
   Matter.Events.on(engine, 'collisionStart', (event) => {
@@ -2334,6 +2340,8 @@ function drawTopHUD() {
   fill(roundThemeColor); textSize(18); textStyle(BOLD); text(GAME_TITLE, 370, HUD_TOP + 5);
   drawingContext.shadowBlur = 0; 
 
+  if (!showLeaderboards) return;
+
   // ALL TIME HP
   let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 5);
   allTimeLbRect = {x: 10, y: HUD_TOP + 30, w: 150, h: 15}; 
@@ -2704,20 +2712,22 @@ function speakTTS(txt) {
 
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
-  if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { 
-      allTimeHpLeaderboard = {}; 
-      localStorage.removeItem('galaxinko_alltime_hp');
-      safePlaySound(200, 0.1, 0.5); 
-  }
-  if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
-      allTimeGifts = {}; 
-      localStorage.removeItem('galaxinko_alltime_gifts');
-      safePlaySound(200, 0.1, 0.5); 
-  }
-  if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
-      allTimeKills = {}; 
-      localStorage.removeItem('galaxinko_alltime_kills');
-      safePlaySound(200, 0.1, 0.5); 
+  if (showLeaderboards) {
+      if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { 
+          allTimeHpLeaderboard = {}; 
+          localStorage.removeItem('galaxinko_alltime_hp');
+          safePlaySound(200, 0.1, 0.5); 
+      }
+      if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
+          allTimeGifts = {}; 
+          localStorage.removeItem('galaxinko_alltime_gifts');
+          safePlaySound(200, 0.1, 0.5); 
+      }
+      if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
+          allTimeKills = {}; 
+          localStorage.removeItem('galaxinko_alltime_kills');
+          safePlaySound(200, 0.1, 0.5); 
+      }
   }
 }
 </script>
