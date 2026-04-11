@@ -1535,7 +1535,7 @@ function drawNotifications() {
       colorMode(RGB);
       
       // VIP Zářivý rámeček pro dárky
-      if (n.type === 'GIFT') {
+      if (n.type === 'GIFT' && n.extra >= 100) {
           fill(30, 0, 40, 255); // Tmavě fialové VIP pozadí
           stroke(borderColor); 
           strokeWeight(3 + sin(frameCount * 0.2) * 2); // Pulzující tloušťka okraje
