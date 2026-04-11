@@ -1872,7 +1872,10 @@ function handleBackgroundObjects(baseSpeed) {
 function drawSpaceBackground() {
   flowTime += 0.003;
   globalFlowAngle = sin(flowTime) * 0.25;
-  let baseScrollSpeed = 1.5; 
+  
+  // ANTI-DETECT: Rychlost scrollování se v čase neustále plynule mění
+  let antiBotShift = sin(frameCount * 0.002) * 0.8; 
+  let baseScrollSpeed = 1.2 + antiBotShift; 
 
   noStroke();
   
@@ -2354,10 +2357,15 @@ function updateTimers() {
   let nowTime = millis();
   for (let u in pendingLikes) {
       let data = pendingLikes[u];
-      // Odpal po 50 lajcích, NEBO když je vteřinu klid
-      if (data.count >= 50 || (data.count > 0 && nowTime - data.lastUpdate > 1000)) {
+      
+      // Dynamický limit: čím víc lidí, tím víc lajků je potřeba na efekt
+      let reqLikes = players.length > 30 ? 100 : 50; 
+      let timeLimit = players.length > 30 ? 2000 : 1000;
+
+      // Odpal až při splnění dynamického limitu
+      if (data.count >= reqLikes || (data.count > 0 && nowTime - data.lastUpdate > timeLimit)) {
           let amount = data.count;
-          let isMega = amount >= 50;
+          let isMega = amount >= reqLikes;
 
           let p = players.find(x => x.name === u);
           if (p) {
