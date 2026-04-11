@@ -2769,6 +2769,10 @@ function speakTTS(txt) {
   // 2. OPRAVA VÝSLOVNOSTI
   cleanTxt = cleanTxt.replace(/ú ú ú/gi, "bum bum bum");
   
+ // Explicitní čtení vykřičníku u herních příkazů
+  let exclamWord = currentLang === "CZ" ? "vykřičník " : "exclamation mark ";
+  cleanTxt = cleanTxt.replace(/!(join|boost|shield)/gi, exclamWord + "$1");
+  
   var msg = new SpeechSynthesisUtterance(cleanTxt); 
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
   msg.rate = 1.15; 
