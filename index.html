@@ -409,6 +409,7 @@ let audioStarted = false;
 let synth;
 
 let nextCommentTime = 0;
+let humanPauseEnd = 0;
 let lastCommentString = "";
 let spokenHistory = {}; // Paměť pro 3 minutový limit opakováni TTS hlášek
 let screenShake = 0;
@@ -2640,6 +2641,14 @@ function drawTopHUD() {
 
 function handleTTSCommentary() {
   let now = millis();
+
+  // NÁHODNÁ LIDSKÁ PAUZA (Každých cca 7-10 minut nastane ticho na 45-90 vteřin)
+  if (now > humanPauseEnd && random() < 0.0005) {
+      humanPauseEnd = now + random(45000, 90000);
+      nextCommentTime = humanPauseEnd; 
+  }
+  if (now < humanPauseEnd) return; // Běží lidská pauza, mlčíme
+
   if (now > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
       let txt = "", arr = [];
       if (players.length === 0) arr = currentLang === "CZ" ? COMMENTARY_EMPTY.CZ : COMMENTARY_EMPTY.EN;
@@ -2664,9 +2673,10 @@ function handleTTSCommentary() {
           spokenHistory[txt] = now;
           lastCommentString = txt; 
           speakTTS(txt);
-          nextCommentTime = now + random(8000, 15000); 
+              // ZPOMALENÍ TTS: Nová hláška přijde za 20 až 40 vteřin (místo 8-15)
+              nextCommentTime = now + random(20000, 40000); 
       } else {
-          nextCommentTime = now + 2000;
+              nextCommentTime = now + 5000;
       }
   }
 }
