@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Galaxinko Wars - Epic Space Arena</title>
+  <link rel="shortcut icon" href="#">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -363,6 +364,7 @@ let notifications = [];
 
 // Variables for Secret Code Minigame
 let secretCode = "";
+let codeType = "HP"; // PŘIDÁNO: Výchozí typ kódu
 let codeActive = false;
 let nextCodeTime = 0;
 let codeX = 0;
@@ -1229,6 +1231,7 @@ function handleSecretCode() {
     if (!codeActive && gameState === "PLAYING" && millis() > nextCodeTime) {
         codeActive = true;
         isUltraCode = random() < 0.2; // 20% šance na Ultra kód hned od začátku
+        codeType = random(["HP", "BOOST", "SHIELD"]); // PŘIDÁNO: Losování odměny
         failedCodeAttempts = 0;
         generateSecretCodeStr(isUltraCode ? 8 : 6);
         codeX = random(150, W - 150);
@@ -2854,29 +2857,23 @@ function connectTikfinity() {
           if (codeActive && msg.toUpperCase() === secretCode) {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
-              nextCodeTime = millis() + random(30000, 90000); // 30s - 90s cooldown
-              
-              let pCol = color(0, 255, 255);
-              let rewardMsg = ""; let rewardMsgEN = "";
+              nextCodeTime = millis() + random(30000, 60000);
 
+              let p = players.find(x => x.name === u);
               if (codeType === "HP") {
                   let reward = isUltraCode ? 3000 : 1500;
                   handleAction(u, reward, false, 0, true);
-                  rewardMsg = "HP"; rewardMsgEN = "HP";
-                  pCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
               } else if (codeType === "BOOST") {
-                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 10 * 60); p.hp += 500; } else handleAction(u, 500, false, 0, true);
-                  rewardMsg = "rychlost"; rewardMsgEN = "speed";
-                  pCol = color(255, 255, 0);
+                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 10 * 60); p.hp += 500; } 
+                  else handleAction(u, 500, false, 0, true);
               } else if (codeType === "SHIELD") {
-                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 10 * 60); p.hp += 500; } else handleAction(u, 500, false, 0, true);
-                  rewardMsg = "štít"; rewardMsgEN = "shield";
-                  pCol = color(150, 50, 255);
+                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 10 * 60); p.hp += 500; } 
+                  else handleAction(u, 500, false, 0, true);
               }
               
-              addPopup(isUltraCode && codeType === "HP" ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód a získává ${rewardMsg}!` : `Player ${u} cracked the code and gets ${rewardMsgEN}!`);
-              createParticles(W/2, H/2, pCol, 100);
+              addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód!` : `Player ${u} cracked the code!`);
+              createParticles(W/2, H/2, color(255, 215, 0), 100);
           }
             handleAction(u, 10, false, 0, false); 
       }
