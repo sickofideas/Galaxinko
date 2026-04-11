@@ -433,7 +433,12 @@ const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch
 
 function safePlaySound(f, v, d) {
     if (!audioStarted || !synth) return;
-    if (millis() - lastGlobalSound < 40) return; 
+    
+    // ZTLUMENÍ PŘI ZÁTĚŽI: Čím víc hráčů, tím menší šance na přehrání běžného zvuku
+    let loadFactor = players.length;
+    if (loadFactor > 30 && random() < (loadFactor / 100)) return; 
+
+    if (millis() - lastGlobalSound < 40) return;
     try { 
         synth.play(f, v, 0, d); 
         lastGlobalSound = millis(); 
