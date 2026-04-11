@@ -2750,8 +2750,8 @@ function connectTikfinity() {
           let msgLower = msg.toLowerCase();
           let p = players.find(x => x.name === u);
           
-          // PŘIDÁNO: Oživení pokud napíše jakýkoliv příkaz s vykřičníkem
-          if (p && p.isZombie && msgLower.startsWith("!")) {
+          // Oživení zombíka při jakémkoliv chatu
+          if (p && p.isZombie) {
               reviveZombie(p);
           }
 
@@ -2805,6 +2805,7 @@ function connectTikfinity() {
           // Plynulé přidávání HP bez zátěže (řeší lagy)
           let p = players.find(x => x.name === u);
           if (p) {
+              if (p.isZombie) reviveZombie(p); // Oživení při liku
               p.hp += likesCount * 2;
           } else {
               if(!spawnModules.find(x => x.name === u)) {
