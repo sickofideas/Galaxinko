@@ -59,7 +59,7 @@
 // GALAXINKO WARS - EPIC SPACE ARENA
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
-var GAME_VERSION = "v19.57.0"; // Hustší 3D vesmír, rychlejší antibot pozadí
+var GAME_VERSION = "v19.58.0"; // Okamžité TTS při startu a nové vesmírné zajímavosti
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
@@ -222,7 +222,14 @@ var COMMENTARY_GENERAL = {
     "Zemřeli jste? Nezoufejte! Napište do chatu příkaz !join a vraťte se okamžitě do bitvy!",
     "Potřebujete rychlost? Napište do chatu příkaz !boost a uleťte nepřátelům!",
     "Když jde do tuhého, napište příkaz !shield a získejte na chvíli nezranitelnost!",
-    "Vidíte ten tajný kód, co poletuje arénou? Kdo ho napíše do chatu jako první, získá obrovský bonus!"
+    "Vidíte ten tajný kód, co poletuje arénou? Kdo ho napíše do chatu jako první, získá obrovský bonus!",
+    "Věděli jste, že teleskop Jamese Webba dokáže dohlédnout až k úplně prvním galaxiím, které vznikly po Velkém třesku?",
+    "Program Artemis plánuje návrat lidí na Měsíc. Tentokrát tam chceme zůstat a vybudovat stálou základnu!",
+    "Vesmírná stanice ISS oběhne Zemi každých devadesát minut. Astronauti tak zažijí šestnáct východů slunce za den!",
+    "Helikoptéra Ingenuity dokázala, že je možné létat v řídké atmosféře Marsu. Úžasný technologický úspěch!",
+    "Rakety Falcon devět dokážou samy přistát zpět na Zemi. Dnes už je to rutina, ale dříve to znělo jako sci-fi!",
+    "Sonda Parker Solar Probe se dotkla Slunce, když proletěla jeho vnější atmosférou zvanou koróna.",
+    "Na Marsu operuje hned několik vozítek, které pátrají po stopách dávného života. Kdo ví, co tam najdou!"
   ],
   EN: [
     "Want to survive? Tap the screen! Tap tap makes your circle grow and adds power!",
@@ -260,7 +267,14 @@ var COMMENTARY_GENERAL = {
     "Did you die? Don't worry! Type command !join in the chat to return to the battle immediately!",
     "Need speed? Type command !boost in the chat and fly away from your enemies!",
     "When things get tough, type command !shield and gain temporary invulnerability!",
-    "See that secret code flying around the arena? The first one to type it in the chat gets a massive bonus!"
+    "See that secret code flying around the arena? The first one to type it in the chat gets a massive bonus!",
+    "Did you know the James Webb Space Telescope can look back in time to see the first galaxies formed after the Big Bang?",
+    "The Artemis program plans to return humans to the Moon. This time, we want to stay and build a permanent base!",
+    "The ISS orbits Earth every ninety minutes. Astronauts experience sixteen sunrises every single day!",
+    "The Ingenuity helicopter proved that powered flight is possible in the thin atmosphere of Mars. An amazing achievement!",
+    "Falcon Nine rockets can land themselves back on Earth. It's routine now, but it used to sound like pure sci-fi!",
+    "The Parker Solar Probe touched the Sun by flying through its outer atmosphere called the corona.",
+    "There are multiple rovers currently operating on Mars, searching for signs of ancient life. Who knows what they'll find!"
   ]
 };
 
@@ -551,7 +565,7 @@ function startNewRound() {
   cameraScale = 1.0;
   targetCameraScale = 1.0;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
-  nextCommentTime = millis() + random(3000, 6000);
+  nextCommentTime = millis() + 1500;
   nextCodeTime = millis() + random(30000, 60000); 
   codeActive = false;
   lastCodeWinner = null;
@@ -2737,7 +2751,7 @@ function removeDiacritics(text) {
 }
 
 function speakTTS(txt) {
-  if (!audioStarted || !('speechSynthesis' in window)) return;
+  if (!('speechSynthesis' in window)) return;
   if (window.speechSynthesis.speaking) return; 
   
   // Očištění od emoji
@@ -2785,4 +2799,3 @@ function mousePressed() {
 </script>
 </body>
 </html>
-
