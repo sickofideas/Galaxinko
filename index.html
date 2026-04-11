@@ -675,27 +675,12 @@ function setupEvents() {
           let u = random(players).name;
           codeActive = false;
           lastCodeWinner = { name: u, img: userAvatars[u] };
-          nextCodeTime = millis() + random(30000, 90000);
-          let pCol = color(0, 255, 255);
-          let rewardMsg = ""; let rewardMsgEN = "";
-          let p = players.find(x => x.name === u);
-          if (codeType === "HP") {
-              let reward = isUltraCode ? 3000 : 1500;
-              handleAction(u, reward, false, 0, true);
-              rewardMsg = "HP"; rewardMsgEN = "HP";
-              pCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
-          } else if (codeType === "BOOST") {
-              if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 10 * 60); p.hp += 500; } else handleAction(u, 500, false, 0, true);
-              rewardMsg = "rychlost"; rewardMsgEN = "speed";
-              pCol = color(255, 255, 0);
-          } else if (codeType === "SHIELD") {
-              if (p) { p.immunityTimer = Math.max(p.immunityTimer, 10 * 60); p.hp += 500; } else handleAction(u, 500, false, 0, true);
-              rewardMsg = "štít"; rewardMsgEN = "shield";
-              pCol = color(150, 50, 255);
-          }
-          addPopup(isUltraCode && codeType === "HP" ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód a získává ${rewardMsg}!` : `Player ${u} cracked the code and gets ${rewardMsgEN}!`);
-          createParticles(W/2, H/2, pCol, 100);
+          nextCodeTime = millis() + random(30000, 60000);
+          let reward = isUltraCode ? 3000 : 1500;
+          handleAction(u, reward);
+          addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
+          createParticles(W/2, H/2, color(255, 215, 0), 100);
       } else {
           speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); 
       }
@@ -2869,12 +2854,29 @@ function connectTikfinity() {
           if (codeActive && msg.toUpperCase() === secretCode) {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
-              nextCodeTime = millis() + random(30000, 60000);
-              let reward = isUltraCode ? 3000 : 1500;
-                handleAction(u, reward, false, 0, true);
-              addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
-              createParticles(W/2, H/2, color(255, 215, 0), 100);
+              nextCodeTime = millis() + random(30000, 90000); // 30s - 90s cooldown
+              
+              let pCol = color(0, 255, 255);
+              let rewardMsg = ""; let rewardMsgEN = "";
+
+              if (codeType === "HP") {
+                  let reward = isUltraCode ? 3000 : 1500;
+                  handleAction(u, reward, false, 0, true);
+                  rewardMsg = "HP"; rewardMsgEN = "HP";
+                  pCol = isUltraCode ? color(255, 50, 50) : color(0, 255, 255);
+              } else if (codeType === "BOOST") {
+                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 10 * 60); p.hp += 500; } else handleAction(u, 500, false, 0, true);
+                  rewardMsg = "rychlost"; rewardMsgEN = "speed";
+                  pCol = color(255, 255, 0);
+              } else if (codeType === "SHIELD") {
+                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 10 * 60); p.hp += 500; } else handleAction(u, 500, false, 0, true);
+                  rewardMsg = "štít"; rewardMsgEN = "shield";
+                  pCol = color(150, 50, 255);
+              }
+              
+              addPopup(isUltraCode && codeType === "HP" ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód a získává ${rewardMsg}!` : `Player ${u} cracked the code and gets ${rewardMsgEN}!`);
+              createParticles(W/2, H/2, pCol, 100);
           }
             handleAction(u, 10, false, 0, false); 
       }
