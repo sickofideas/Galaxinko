@@ -287,6 +287,7 @@ let deathShockwaves = [];
 let userAvatars = {};
 let orbs = [];
 let combatQueue = []; 
+let deadPlayersQueue = []; // Fronta pro 20s cooldown zombíků
 let spawnModules = []; 
 
 // Fronta pro infotainment
@@ -518,7 +519,7 @@ function startNewRound() {
 
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = players.filter(p => !p.isZombie).map(p => p.name); // Zombíci se nepřevádí
-  players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; spawnModules = [];
+  players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; deadPlayersQueue = []; spawnModules = [];
   previousRoundGifts = Object.assign({}, roundGifts);
   roundGifts = {}; 
   
@@ -746,6 +747,17 @@ function triggerGiftEffect(p, diam) {
     p.giftSpeedTimer = 300; 
 }
 
+function reviveZombie(p) {
+    if (!p.isZombie) return;
+    p.isZombie = false;
+    p.hp = 150;
+    p.color = color(random(100, 255), random(100, 255), random(100, 255));
+    p.auraFlash = 30;
+    addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+    createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 30);
+    safePlaySound(800, 0.1, 0.2);
+}
+
 function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true) {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
@@ -759,7 +771,8 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true)
 
   let p = players.find(x => x.name === name);
 
-      if (p) {
+  if (p) {
+    if (p.isZombie) reviveZombie(p); // Okamžité oživení!
     p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam);
@@ -798,7 +811,7 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false) {
   let wPos = screenToWorld(sx, sy);
   let dx = bestX - wPos.x; let dy = bestY - wPos.y;
   let distToTarget = Math.sqrt(dx*dx + dy*dy); let spd = distToTarget / 45; 
-  let pColor = color(random(100,255), random(100,255), random(100,255));
+  let pColor = isZombie ? color(100, 100, 100) : color(random(100,255), random(100,255), random(100,255));
   
   spawnModules.push({
       name: name, hp: safeHp, x: wPos.x, y: wPos.y, targetX: bestX, targetY: bestY,
@@ -941,8 +954,8 @@ function handleCombat(p1, p2) {
   let isCrit1 = random() < 0.04; let isCrit2 = random() < 0.04;
   if (isCrit1) baseDmgFrom1 *= 1.3; if (isCrit2) baseDmgFrom2 *= 1.3;
 
-  if (p1.isZombie) baseDmgFrom1 *= 0.5;
-  if (p2.isZombie) baseDmgFrom2 *= 0.5;
+  if (p1.isZombie) baseDmgFrom1 = 0; // Zombíci nedávají damage
+  if (p2.isZombie) baseDmgFrom2 = 0;
 
   let finalDmgTo2 = Math.max(1, Math.floor(baseDmgFrom1)); 
   let finalDmgTo1 = Math.max(1, Math.floor(baseDmgFrom2)); 
@@ -1113,7 +1126,7 @@ function handleOrbs() {
 
       let collected = false;
       for (let p of players) {
-          if (p.hp > 0 && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
+          if (p.hp > 0 && !p.isZombie && dist(p.body.position.x, p.body.position.y, o.x, o.y) < p.r + o.r) {
               if (o.type === 'SPEED') {
                   p.orbSpeedTimer = 10 * 60; // 10 sekund při 60 FPS
                   if (!isHeavyLoad) addPopup("5x SPEED BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 255, 0));
@@ -1562,6 +1575,11 @@ function handleCameraAndPlayers() {
     }
     
     if (p.hp <= 0) {
+      // PŘIDÁNO: Zapsání do fronty na oživení (pokud už není zombík)
+      if (!p.isZombie) {
+          deadPlayersQueue.push({name: p.name, timeOfDeath: millis()});
+      }
+
       if (!isHeavyLoad && p.body && !isNaN(p.body.position.x)) {
           createParticles(p.body.position.x, p.body.position.y, p.color, 30);
           deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
@@ -2038,10 +2056,34 @@ function drawPlayer(p) {
   }
   
   let imgSize = p.r * 1.6;
-  if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); drawingContext.clip();
-      imageMode(CENTER); image(userAvatars[p.name], 0, 0, imgSize, imgSize); drawingContext.restore();
-  } else { fill(35); noStroke(); ellipse(0, 0, imgSize); }
+  
+  // Zjistíme, jestli je hráč aktuálně v TOP 10 největších
+  let isTop10 = currentTop10.includes(p.name);
+
+  // Vykreslíme profilovku JEN pokud je hráč v TOP 10,
+  // NEBO pokud je v aréně zrovna málo lidí (méně než 20, např. na začátku kola)
+  let shouldDrawAvatar = isTop10 || players.length <= 20;
+
+  if (shouldDrawAvatar && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
+      drawingContext.save(); 
+      drawingContext.beginPath();
+      drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
+      drawingContext.clip();
+      
+      // Zombíkům dáme šedý filtr (pokud jsi už přidal zombie mód)
+      if (p.isZombie) drawingContext.filter = 'grayscale(100%)'; 
+      
+      imageMode(CENTER); 
+      image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
+      
+      drawingContext.filter = 'none'; // Vypnutí filtru pro jistotu
+      drawingContext.restore();
+  } else { 
+      // Ostatní hráči mimo TOP 10 dostanou jen čisté, na výkon nenáročné kolečko
+      fill(35); 
+      noStroke();
+      ellipse(0, 0, imgSize); 
+  }
 
   noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
 
@@ -2114,7 +2156,8 @@ function drawPopups() {
     drawingContext.shadowBlur = 5; drawingContext.shadowColor = 'black';
     if (f.isCrit) {
         stroke(0); strokeWeight(4); fill(255, 215, 0, f.life); textSize(22 + sin(f.life * 0.1) * 4); textAlign(CENTER); textStyle(BOLD);
-        text("CRITICAL HIT!\n" + f.txt, 0, 0); f.y += f.vy - 0.5; f.life -= 6;
+            let critText = players.length >= 50 ? f.txt : "CRITICAL HIT!\n" + f.txt;
+            text(critText, 0, 0); f.y += f.vy - 0.5; f.life -= 6;
     } else {
         stroke(0); strokeWeight(3); fill(red(f.c), green(f.c), blue(f.c), f.life); textSize(16); textAlign(CENTER); textStyle(BOLD);
         text(f.txt, 0, 0); f.y += f.vy; f.life -= 8;
@@ -2260,6 +2303,18 @@ function updateTimers() {
               }
           }
           data.count = 0; 
+      }
+  }
+
+  // ZOMBIE COOLDOWN (Vystřelení po 20 vteřinách)
+  for (let i = deadPlayersQueue.length - 1; i >= 0; i--) {
+      if (millis() - deadPlayersQueue[i].timeOfDeath > 20000) {
+          let zName = deadPlayersQueue[i].name;
+          // Pokud hráč náhodou už nehraje (např. nedal hned !join)
+          if (!players.find(x => x.name === zName) && !spawnModules.find(x => x.name === zName)) {
+              spawnPlayer(zName, 50, false, 0, true); // true = isZombie
+          }
+          deadPlayersQueue.splice(i, 1);
       }
   }
 }
@@ -2651,6 +2706,11 @@ function connectTikfinity() {
           let msgLower = msg.toLowerCase();
           let p = players.find(x => x.name === u);
           
+          // PŘIDÁNO: Oživení pokud napíše jakýkoliv příkaz s vykřičníkem
+          if (p && p.isZombie && msgLower.startsWith("!")) {
+              reviveZombie(p);
+          }
+
           playChatSound();
 
           if (p && msgLower.startsWith("!boost") && p.boostCooldown <= 0) {
@@ -2769,7 +2829,7 @@ function speakTTS(txt) {
   // 2. OPRAVA VÝSLOVNOSTI
   cleanTxt = cleanTxt.replace(/ú ú ú/gi, "bum bum bum");
   
- // Explicitní čtení vykřičníku u herních příkazů
+  // Explicitní čtení vykřičníku u herních příkazů
   let exclamWord = currentLang === "CZ" ? "vykřičník " : "exclamation mark ";
   cleanTxt = cleanTxt.replace(/!(join|boost|shield)/gi, exclamWord + "$1");
   
@@ -2802,4 +2862,4 @@ function mousePressed() {
 }
 </script>
 </body>
-</html>l
+</html>
