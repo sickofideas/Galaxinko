@@ -1232,12 +1232,19 @@ function generateSecretCodeStr() {
         "MEGABOOST", "LEGENDARY", "GODMODE", "UNSTOPPABLE", "ARMAGEDON"
     ];
 
-    // Výběr slova podle toho, jaký kód zrovna padl
-    if (isUltraCode) {
-        secretCode = random(ultraWords);
-    } else {
-        secretCode = random(viralWords);
+    let newCode = secretCode;
+    let maxAttempts = 10;
+    
+    // Ochrana proti opakování stejného slova hned po sobě
+    while (newCode === secretCode && maxAttempts > 0) {
+        if (isUltraCode) {
+            newCode = random(ultraWords);
+        } else {
+            newCode = random(viralWords);
+        }
+        maxAttempts--;
     }
+    secretCode = newCode;
 }
 
 function handleSecretCode() {
@@ -1250,9 +1257,9 @@ function handleSecretCode() {
         codeX = random(150, W - 150);
         codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
             
-            // Startovací rychlosti pro poletování
-            codeVX = random() < 0.5 ? random(-3, -1.5) : random(1.5, 3);
-            codeVY = random() < 0.5 ? random(-3, -1.5) : random(1.5, 3);
+            // Zrychlené startovací rychlosti pro agresivnější poletování
+            codeVX = random() < 0.5 ? random(-5.5, -3) : random(3, 5.5);
+            codeVY = random() < 0.5 ? random(-5.5, -3) : random(3, 5.5);
             
             codeExpireTime = millis() + 40000; // Zmizí za 40 vteřin
             
