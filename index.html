@@ -2405,6 +2405,16 @@ function updateTimers() {
                   let dist = Math.sqrt(distSq) || 1;
                   let forceMag = 0.0003 * p.body.mass;
                   Matter.Body.applyForce(p.body, p.body.position, { x: (dx/dist)*forceMag, y: (dy/dist)*forceMag });
+
+                  // SMRTÍCÍ EFEKT PRO GIGANTY V ČERNÉ DÍŘE
+                  if (frameCount % 30 === 0 && p.hp > 3000 && distSq < 15000) { // Pokud jsou moc blízko středu
+                      let shred = Math.floor(p.hp * 0.15); // Ustřihne jim to 15 %!
+                      p.hp -= shred;
+                      addPopup("SHREDDED!", p.body.position.x, p.body.position.y, color(255, 0, 0), true);
+                      createParticles(p.body.position.x, p.body.position.y, color(150, 0, 255), 20);
+                      screenShake = 5;
+                      safePlaySound(150, 0.5, 1.0);
+                  }
               }
           }
       } else if (millis() > nextEventTime && players.length > 2) {
