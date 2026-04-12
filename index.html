@@ -1219,10 +1219,25 @@ function handleOrbs() {
   }
 }
 
-function generateSecretCodeStr(len) {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    secretCode = "";
-    for(let i=0; i<len; i++) secretCode += chars.charAt(Math.floor(random(chars.length)));
+function generateSecretCodeStr() {
+    // VIRÁLNÍ SLOVA PRO BĚŽNÉ KÓDY
+    // Tato slova učí algoritmus a psychologicky nutí lidi k akci
+    const viralWords = [
+        "FYP", "VIRAL", "SHARE", "FOLLOW", "W", "GG", 
+        "EPIC", "KING", "PRO", "BOSS", "SPACE", "UFO", "GALAXY"
+    ];
+    
+    // ULTRA SLOVA PRO ULTRA KÓDY (Větší hype v chatu)
+    const ultraWords = [
+        "MEGABOOST", "LEGENDARY", "GODMODE", "UNSTOPPABLE", "ARMAGEDON"
+    ];
+
+    // Výběr slova podle toho, jaký kód zrovna padl
+    if (isUltraCode) {
+        secretCode = random(ultraWords);
+    } else {
+        secretCode = random(viralWords);
+    }
 }
 
 function handleSecretCode() {
@@ -1231,7 +1246,7 @@ function handleSecretCode() {
         isUltraCode = random() < 0.2; // 20% šance na Ultra kód hned od začátku
         codeType = random(["HP", "BOOST", "SHIELD"]); // PŘIDÁNO: Losování odměny
         failedCodeAttempts = 0;
-        generateSecretCodeStr(isUltraCode ? 8 : 6);
+        generateSecretCodeStr();
         codeX = random(150, W - 150);
         codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
             
