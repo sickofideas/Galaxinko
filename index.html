@@ -1767,7 +1767,7 @@ function handleCameraAndPlayers() {
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 2.1 : 1.8; 
+    let tSpd = isTop10 ? 2.8 : 2.4; // ZRYCHLENO: Rychlejší pohyb = větší zábava
     let currentMaxV = maxV;
     
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
