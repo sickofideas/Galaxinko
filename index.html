@@ -715,6 +715,7 @@ function setupEvents() {
 
   // PŘIDÁNO: Kontinuální damage při dotyku v hloučku (Vortex)
   Matter.Events.on(engine, 'collisionActive', (event) => {
+    if (activeEvent === "MAGNET") return; // OCHRANA: V černé díře se kuličky nedrtí o sebe
     if (frameCount % 20 !== 0) return; // Udělí damage 3x za vteřinu, když se kuličky o sebe třou
     event.pairs.forEach(pair => {
       let p1 = players.find(p => p.body === pair.bodyA);
@@ -1056,6 +1057,12 @@ function handleCombat(p1, p2) {
 
   let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + effectiveSpeed * 0.2) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.3 : 1.0);
   let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + effectiveSpeed * 0.2) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.3 : 1.0);
+
+  // OCHRANA MALÝCH HRÁČŮ V ČERNÉ DÍŘE (90% snížení poškození při srážkách)
+  if (activeEvent === "MAGNET") {
+      baseDmgFrom1 *= 0.1;
+      baseDmgFrom2 *= 0.1;
+  }
 
   baseDmgFrom1 *= random(0.8, 1.2); baseDmgFrom2 *= random(0.8, 1.2);
 
@@ -2463,11 +2470,17 @@ function updateTimers() {
                   let dy = cy - p.body.position.y;
                   let distSq = dx*dx + dy*dy;
                   let dist = Math.sqrt(distSq) || 1;
-                  let forceMag = 0.0003 * p.body.mass;
-                  Matter.Body.applyForce(p.body, p.body.position, { x: (dx/dist)*forceMag, y: (dy/dist)*forceMag });
+                  
+                  // Vizuální vylepšení a ochrana: Černá díra hráče roztáčí do víru, ne jen natvrdo do středu
+                  let pullForce = 0.00012 * p.body.mass; // Oslabený tah přímo do středu
+                  let swirlForce = 0.00035 * p.body.mass; // Silná rotace kolem dokola tvořící vír
+                  
+                  let fx = (dx/dist)*pullForce - (dy/dist)*swirlForce;
+                  let fy = (dy/dist)*pullForce + (dx/dist)*swirlForce;
+                  Matter.Body.applyForce(p.body, p.body.position, { x: fx, y: fy });
 
                   // SMRTÍCÍ EFEKT PRO GIGANTY V ČERNÉ DÍŘE
-                  if (frameCount % 30 === 0 && p.hp > 3000 && distSq < 15000) { // Pokud jsou moc blízko středu
+                  if (frameCount % 30 === 0 && p.hp > 3000 && distSq < 35000) { // Zvětšen radius, protože vír je drží dál
                       let shred = Math.floor(p.hp * 0.15); // Ustřihne jim to 15 %!
                       p.hp -= shred;
                       addPopup("SHREDDED!", p.body.position.x, p.body.position.y, color(255, 0, 0), true);
