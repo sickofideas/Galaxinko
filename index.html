@@ -2350,12 +2350,23 @@ function updateTimers() {
   }
 
   for (let p of players) {
+      // 1. Odečet imunity
       if (p.immunityTimer > 0) {
           p.immunityTimer--;
           if (p.immunityTimer <= 0) {
               safePlaySound(300, 0.1, 0.5);
               createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 40);
               p.hasCrown = false; 
+          }
+      }
+      
+      // 2. DAŇ Z VELIKOSTI (Gravitační rozpad)
+      if (frameCount % 60 === 0 && p.hp > 2000 && !p.hasCrown && !p.isZombie) {
+          let isExtremeLoad = players.length > 60;
+          let decay = Math.floor(p.hp * 0.015); // Ztrácí 1.5 % ze své velikosti KAŽDOU VTEŘINU
+          p.hp -= decay;
+          if (!isExtremeLoad) {
+              addPopup("-" + decay + " GRAVITY", p.body.position.x, p.body.position.y, color(150, 150, 150));
           }
       }
   }
