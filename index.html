@@ -1819,12 +1819,12 @@ function handleCameraAndPlayers() {
     }
   }
 
+  // ZOOM KAMERY - Změněno, aby byla aréna nahuštěná!
   let len = players.length;
-  if (len >= 200) targetCameraScale = 0.35;
-  else if (len >= 150) targetCameraScale = 0.50;
-  else if (len >= 100) targetCameraScale = 0.70;
-  else if (len >= 60) targetCameraScale = 0.85;
-  else targetCameraScale = 1.0;
+  if (len >= 120) targetCameraScale = 0.50;      // Extrémní masa koulí
+  else if (len >= 80) targetCameraScale = 0.70;  // Už je tu hodně plno
+  else if (len >= 50) targetCameraScale = 0.85;  // Mírný odzoom pro přehlednost
+  else targetCameraScale = 1.0;                  // Až do 50 lidí pořád krásně v detailu
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.05); 
   
