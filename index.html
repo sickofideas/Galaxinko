@@ -522,7 +522,12 @@ function setup() {
       } catch(e){}
   }
   
-  engine = Matter.Engine.create({ enableSleeping: false });
+  // Zvýšená přesnost fyziky, aby aréna neexplodovala při hromadném spawnu
+  engine = Matter.Engine.create({ 
+      enableSleeping: false,
+      positionIterations: 16, // Původně je asi 6. 16 zaručí plynulé odtlačení
+      velocityIterations: 12
+  });
   world = engine.world;
   world.gravity.y = 0; 
   world.gravity.x = 0;
@@ -931,7 +936,13 @@ function handleSpawnModules() {
 function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false) {
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
-  let body = Matter.Bodies.circle(spawnX, spawnY, r, { restitution: 0.95, frictionAir: 0.0, friction: 0, density: 0.001 });
+  // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
+  let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
+      restitution: 0.1,    // 0.1 znamená, že náraz pohltí 90 % energie (předtím to bylo 0.95!)
+      frictionAir: 0.08,   // Funguje jako hustá kapalina, rychle zabrzdí kouli po nárazu
+      friction: 0, 
+      density: 0.001 
+  });
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
   
   let player = {
@@ -1756,10 +1767,9 @@ function handleCameraAndPlayers() {
     let dirX = dx / distToCenter;
     let dirY = dy / distToCenter;
     
-    // Tah do středu (gravitace)
-    let pullForce = 0.000015 * p.body.mass;
-    // Tečný pohyb (tlačí hráče do kruhu) - polovina hráčů letí doleva, polovina doprava
-    let vortexForce = 0.000035 * p.body.mass * p.baseRotDir; 
+    // UKLIDNĚNÝ VORTEX: Mnohem menší síly
+    let pullForce = 0.000008 * p.body.mass;   // Velmi jemný tah do středu arény
+    let vortexForce = 0.000012 * p.body.mass * p.baseRotDir; // Línější točení dokola
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce); // -dirY a dirX tvoří kolmici
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
@@ -2521,6 +2531,7 @@ function updateTimers() {
                   spawnPlayer(zName, 50, false, 0, true); // true = isZombie
                   activeZombiesCount++;
                   deadPlayersQueue.splice(i, 1);
+                          break; // PŘIDÁNO: Zastaví cyklus. Další mrtvý se spawne až v dalším framu!
               } else {
                   // Pokud je na ploše už dost hráčů, odložíme spawn tohoto zombíka o 5 vteřin
                   deadPlayersQueue[i].timeOfDeath += 5000;
