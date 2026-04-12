@@ -2827,8 +2827,15 @@ function draw() {
   roundThemeColorDark = color(currentHue, 80, 40, 0.5);
   
   let dynamicBg = color(currentHue, 45, 8); 
-  background(dynamicBg);
   colorMode(RGB, 255);
+  
+  // Místo tvrdého background() nakreslíme průhledný obdélník. 
+  // Číslo 90 je průhlednost. Čím menší, tím delší šmouhy za koulemi zůstanou.
+  push();
+  fill(red(dynamicBg), green(dynamicBg), blue(dynamicBg), 90); 
+  noStroke();
+  rect(0, 0, W, H);
+  pop();
   
   push();
   // Anti-ban nepostřehnutelný pohyb celé hry (zabraňuje detekci statického obrazu na TikToku)
@@ -2862,7 +2869,8 @@ function draw() {
       if (nukeEffectTimer <= 0) engine.timing.timeScale = 1.0;
   }
 
-  try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
+  // Plynulá fyzika závislá na reálném čase prohlížeče (Delta Time)
+  try { Matter.Engine.update(engine, deltaTime || (1000/60)); } catch(e) {} 
   
   processCombatQueue();
 
