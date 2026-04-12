@@ -1757,7 +1757,7 @@ function handleCameraAndPlayers() {
         }
     }
     
-    // GALAKTICKÝ VORTEX (Lehký tah do středu + kruhová rotace)
+    // GALAKTICKÝ VORTEX (Kruhová rotace všech stejným směrem - "Mlýn")
     let cx = W/2; 
     let cy = (ARENA_TOP+ARENA_BOT)/2;
     let dx = cx - p.body.position.x;
@@ -1767,12 +1767,18 @@ function handleCameraAndPlayers() {
     let dirX = dx / distToCenter;
     let dirY = dy / distToCenter;
     
-    // UKLIDNĚNÝ VORTEX: Mnohem menší síly
-    let pullForce = 0.000008 * p.body.mass;   // Velmi jemný tah do středu arény
-    let vortexForce = 0.000012 * p.body.mass * p.baseRotDir; // Línější točení dokola
+    // TAH DO STŘEDU A JEDNOTNÁ ROTACE (Odstraněn baseRotDir, aby se hráči neblokovali)
+    let pullForce = 0.000005 * p.body.mass;   // Zmenšený tah do středu, ať se nehromadí
+    let vortexForce = 0.000022 * p.body.mass; // Větší síla rotace, všichni letí jedním směrem
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce); // -dirY a dirX tvoří kolmici
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
+
+    // Přidání lehkého šumu pro rozbití jakýchkoliv "zaseknutých" hloučků
+    finalFx += (noise(p.noiseOffsetX) - 0.5) * 0.00002 * p.body.mass;
+    finalFy += (noise(p.noiseOffsetY) - 0.5) * 0.00002 * p.body.mass;
+    p.noiseOffsetX += 0.015;
+    p.noiseOffsetY += 0.015;
 
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
