@@ -2830,9 +2830,9 @@ function draw() {
   colorMode(RGB, 255);
   
   // Místo tvrdého background() nakreslíme průhledný obdélník. 
-  // Číslo 90 je průhlednost. Čím menší, tím delší šmouhy za koulemi zůstanou.
+  // Číslo 200 je průhlednost. Čím blíž k 255, tím slabší je motion blur.
   push();
-  fill(red(dynamicBg), green(dynamicBg), blue(dynamicBg), 90); 
+  fill(red(dynamicBg), green(dynamicBg), blue(dynamicBg), 200); 
   noStroke();
   rect(0, 0, W, H);
   pop();
