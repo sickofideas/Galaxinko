@@ -2068,7 +2068,13 @@ function drawLightnings() {
 function drawPlayer(p) {
   let pos = p.body.position; let safeHp = Math.max(0, p.hp);
   let isBuffed = p.likeBuffTimer > 0; if (isBuffed) p.likeBuffTimer--;
-  p.rot += isBuffed ? (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir * 4 : (0.01 + Math.min(safeHp * 0.00001, 0.3)) * p.baseRotDir;
+  
+  // Brutálnější rotace pro obry (pily od 1000 HP a více se musí pořádně točit)
+  let baseSpin = 0.02 + Math.min(safeHp * 0.000015, 0.2);
+  if (safeHp >= 1000) {
+      baseSpin = 0.08 + Math.min(safeHp * 0.00002, 0.4); // Rychlejší agresivní točení
+  }
+  p.rot += isBuffed ? baseSpin * p.baseRotDir * 3 : baseSpin * p.baseRotDir;
 
   let isHeavyLoad = players.length > 40; 
   let isExtremeLoad = players.length > 60;
