@@ -940,7 +940,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
     immunityTimer: 0, hasCrown: false, boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false,
-    isZombie: isZombie
+    isZombie: isZombie, hasUsedRepost: false
   };
   
   players.push(player); Matter.World.add(world, body);
@@ -2956,6 +2956,16 @@ function connectTikfinity() {
               addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
               safePlaySound(800, 0.1, 0.2);
               addNotification('SHIELD', u, userAvatars[u]);
+          }
+          else if (p && (msgLower.startsWith("!repost") || msgLower.startsWith("repost")) && !p.hasUsedRepost) {
+              p.hasUsedRepost = true; // Lze použít jen jednou za život/kolo
+              p.hp += 500;
+              p.likeBuffTimer = 180; // Dlouhý vizuální buff
+              addPopup("REPOST BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
+              createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), 50);
+              safePlaySound(1000, 0.2, 0.5);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} sdílel stream a získal obrovský repost bonus!` : `Player ${u} shared the stream and got a massive repost bonus!`);
+              addNotification('BOOST', u, userAvatars[u], "REPOST"); 
           }
           else if (!p && (msgLower === "!join" || msgLower === "join")) {
               let m = spawnModules.find(x => x.name === u);
