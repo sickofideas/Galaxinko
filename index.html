@@ -1323,9 +1323,12 @@ function drawSecretCodeUI() {
                 fill(red(baseCol), green(baseCol), blue(baseCol), flicker);
             }
             
+            stroke(0);
+            strokeWeight(4); // Černý obrys přidán pro lepší čitelnost létajícího kódu
             text(secretCode, cx, cy);
             
             if (random() < 0.6) {
+                noStroke();
                 fill(255, 0, 0, flicker * 0.7);
                 text(secretCode, cx - 3, cy);
                 fill(0, 255, 255, flicker * 0.7);
@@ -1339,6 +1342,15 @@ function drawSecretCodeUI() {
 
     if (codeActive || lastCodeWinner) {
         push();
+        // --- PŘIDÁNA TMAVÁ LIŠTA PRO PERFEKTNÍ ČITELNOST ---
+        rectMode(CENTER);
+        fill(0, 5, 10, 230);
+        let borderCol = codeActive ? (isUltraCode && codeType === "HP" ? color(255, 100, 100) : roundThemeColor) : color(255, 215, 0);
+        stroke(borderCol);
+        strokeWeight(2);
+        rect(W/2, ARENA_BOT + 168, W - 40, 30, 8);
+        rectMode(CORNER);
+
         if (codeActive) {
             let rewardTxt = "";
             let hintCol = roundThemeColor;
@@ -1355,30 +1367,43 @@ function drawSecretCodeUI() {
             let hint = currentLang === "CZ" ? `/// ZACHYCEN KÓD: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// SIGNAL DETECTED: FIRST IN CHAT GETS ${rewardTxt} ///`;
             if (isUltraCode && codeType === "HP") hint = currentLang === "CZ" ? `/// ULTRA KÓD AKTIVOVÁN: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ULTRA CODE ACTIVATED: FIRST IN CHAT GETS ${rewardTxt} ///`;
             
-            fill(red(hintCol), green(hintCol), blue(hintCol), 150 + sin(frameCount * 0.05) * 100);
-            textSize(10);
-            textAlign(CENTER, TOP);
-            text(hint, W/2, ARENA_BOT + 160); // Posunuto dolů pod TAP TAP box
+            // Text je solidní, nebliká a má černý obrys pro perfektní kontrast
+            fill(hintCol);
+            stroke(0);
+            strokeWeight(3);
+            textSize(11);
+            textAlign(CENTER, CENTER);
+            textStyle(BOLD);
+            text(hint, W/2, ARENA_BOT + 168);
         } else if (lastCodeWinner) {
-            fill(255, 215, 0, 200);
-            textSize(10);
-            textAlign(CENTER, TOP);
-            let wTxt = currentLang === "CZ" ? `POSLEDNÍ KÓD PROLOMIL:` : `LAST CODE CRACKED BY:`;
+            fill(255, 215, 0);
+            stroke(0);
+            strokeWeight(3);
+            textSize(11);
+            textStyle(BOLD);
+            
+            let wTxt = currentLang === "CZ" ? `POSLEDNÍ KÓD PROLOMIL: ` : `LAST CODE CRACKED BY: `;
             let tw = textWidth(wTxt);
-            text(wTxt, W/2 - 20, ARENA_BOT + 160); // Posunuto
+            
+            textAlign(RIGHT, CENTER);
+            text(wTxt, W/2 - 10, ARENA_BOT + 168);
             
             if (lastCodeWinner.img && lastCodeWinner.img !== "loaded") {
                 drawingContext.save(); drawingContext.beginPath();
-                drawingContext.arc(W/2 + tw/2, ARENA_BOT + 165, 8, 0, TWO_PI); // Posunuto
+                drawingContext.arc(W/2 + 2, ARENA_BOT + 168, 9, 0, TWO_PI);
                 drawingContext.clip();
-                image(lastCodeWinner.img, W/2 + tw/2, ARENA_BOT + 165, 16, 16); // Posunuto
+                imageMode(CENTER);
+                image(lastCodeWinner.img, W/2 + 2, ARENA_BOT + 168, 18, 18);
                 drawingContext.restore();
             } else {
-                fill(100); noStroke(); ellipse(W/2 + tw/2, ARENA_BOT + 165, 16, 16); // Posunuto
+                fill(100); noStroke(); ellipse(W/2 + 2, ARENA_BOT + 168, 18, 18);
             }
+            
             fill(255);
-            textAlign(LEFT, TOP);
-            text(lastCodeWinner.name, W/2 + tw/2 + 12, ARENA_BOT + 160); // Posunuto
+            stroke(0);
+            strokeWeight(3);
+            textAlign(LEFT, CENTER);
+            text(lastCodeWinner.name, W/2 + 16, ARENA_BOT + 168);
         }
         pop();
     }
