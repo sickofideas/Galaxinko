@@ -85,10 +85,16 @@ var T = {
   }
 };
 
-// --- 1. SEZNAM ZAKÁZANÝCH SLOV (CENZURA) ---
+// --- 1. SEZNAM ZAKÁZANÝCH SLOV (MAXIMÁLNÍ OCHRANA PŘED BANEM) ---
 const FORBIDDEN_WORDS = [
-    "pica", "pyca", "kurva", "zmrd", "jeban", "kokot", "debil", "negr", "hitler",
-    "fick", "fuck", "bitch", "asshole", "curak", "čurák", "mrd", "prdel", "hovn"
+    // Rasistické a nenávistné (Největší riziko banu - nesmí projít ani část slova)
+    "niger", "nigger", "nigga", "niga", "negr", "negro", "hitler", "nazi", "jew", "žid", "cikan", "cikán", "mord", "rape", "znasil", "kkk",
+    
+    // CZ/SK vulgarismy a odvozeniny
+    "pica", "piča", "pyca", "kurv", "kurwa", "zmrd", "jeban", "jebat", "kokot", "debil", "curak", "čurák", "mrd", "prdel", "hovn", "picus", "pičus", "picovin", "buzna", "buzerant", "teplous", "kripl", "srac", "šulín", "mrk",
+    
+    // EN vulgarismy a výzvy k násilí (TikTok na to má přísné AI)
+    "fuck", "bitch", "asshole", "shit", "cunt", "slut", "whore", "dick", "cock", "pussy", "fag", "faggot", "kys", "suicide", "retard", "pedofil", "pedo"
 ];
 
 // --- 2. ROZŠÍŘENÉ KNIHOVNY HLÁŠEK ---
@@ -3016,11 +3022,13 @@ function speakTTS(txt) {
   // Očištění od emoji
   let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
   
-  // 1. KONTROLA VULGARIT
-  let textWithoutDiacritics = removeDiacritics(cleanTxt.toLowerCase());
+  // MAXIMÁLNÍ OCHRANA: Odstraní diakritiku a SMAŽE všechny mezery, tečky a pomlčky
+  // Tím TTS chytne i jména jako "n i g e r", "n.e.g.r", "p.i.c.a"
+  let checkText = removeDiacritics(cleanTxt.toLowerCase()).replace(/[\s\.\-_]/g, "");
+  
   for (let word of FORBIDDEN_WORDS) {
-      if (textWithoutDiacritics.includes(word)) {
-          console.log("TTS zablokováno (vulgarita): " + cleanTxt);
+      if (checkText.includes(word)) {
+          console.log("TTS ZABLOKOVÁNO (Ochrana proti banu): " + cleanTxt);
           return; // Zastaví čtení
       }
   }
