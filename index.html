@@ -2023,6 +2023,7 @@ function drawPlayer(p) {
   let isEpic = safeHp >= 1000;
 
   let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1);
+  if (p.isZombie) dangerFactor = 0; // Zrušení varovného červeného pulzování pro zombíky
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
   if (!isExtremeLoad && p.trail.length > 1) {
@@ -2039,7 +2040,7 @@ function drawPlayer(p) {
   scale(isBuffed ? 1.2 : 1.0); 
   rotate(p.rot);
   
-  let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 40;
+  let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : (p.isZombie ? 10 : 40); // Zombíci nemají téměř žádnou auru
   if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 100 + sin(frameCount*0.2)*50); 
   
   fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
@@ -2098,10 +2099,26 @@ function drawPlayer(p) {
   } else {
       let outlineWeight = constrain(map(safeHp, 1, 200, 1, 14), 1, 14);
       stroke(actualColor);
-      strokeWeight(outlineWeight);
+      strokeWeight(p.isZombie ? 2 : outlineWeight);
       ellipse(0, 0, p.r * 1.75);
   }
   
+  // Jemná čárkovaná červeno-zelená čára specifiká pro zombíky
+  if (p.isZombie) {
+      push();
+      drawingContext.setLineDash([8, 8]); // Vzor čáry (8px plná, 8px mezera)
+      strokeWeight(3);
+      noFill();
+      stroke(255, 50, 50, 200); // Červená část
+      ellipse(0, 0, p.r * 2.0);
+      drawingContext.lineDashOffset = 8; // Posun do mezery
+      stroke(50, 255, 50, 200); // Zelená část
+      ellipse(0, 0, p.r * 2.0);
+      drawingContext.setLineDash([]); // Nutný reset vzoru pro zbytek hry!
+      drawingContext.lineDashOffset = 0;
+      pop();
+  }
+
   drawingContext.shadowBlur = 0;
 
   rotate(-p.rot); 
