@@ -2699,6 +2699,12 @@ function draw() {
   background(dynamicBg);
   colorMode(RGB, 255);
   
+  push();
+  // Anti-ban nepostřehnutelný pohyb celé hry (zabraňuje detekci statického obrazu na TikToku)
+  let antiBanX = (noise(frameCount * 0.05) - 0.5) * 2;
+  let antiBanY = (noise(frameCount * 0.05 + 1000) - 0.5) * 2;
+  translate(antiBanX, antiBanY);
+
   drawTopHUD();
 
   fill(10, 12, 15, 230); // Průhledný podklad arény
@@ -2794,6 +2800,8 @@ function draw() {
   
   drawingContext.restore(); 
   drawSecretCodeUI();
+  
+  pop(); // Ukončení anti-ban posunu
 }
 
 function connectTikfinity() {
