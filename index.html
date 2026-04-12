@@ -1788,6 +1788,12 @@ function handleCameraAndPlayers() {
     let pullForce = 0.000005 * p.body.mass;   // Zmenšený tah do středu, ať se nehromadí
     let vortexForce = 0.000022 * p.body.mass; // Větší síla rotace, všichni letí jedním směrem
 
+    // JEMNÁ OCHRANA ROHŮ: Čím více se kulička blíží k rohu/stěně, tím silněji je vtahována zpět do středu (tvoří kruhovou dráhu)
+    let safeRadius = 300 / cameraScale;
+    if (distToCenter > safeRadius) {
+        pullForce += (distToCenter - safeRadius) * 0.0000004 * p.body.mass;
+    }
+
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce); // -dirY a dirX tvoří kolmici
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
 
