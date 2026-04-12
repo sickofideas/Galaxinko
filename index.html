@@ -653,7 +653,7 @@ function startNewRound() {
   targetCameraScale = 1.0;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
   nextCommentTime = millis() + 1500;
-  nextCodeTime = millis() + random(30000, 60000); 
+  nextCodeTime = millis() + random(45000, 85000); 
   codeActive = false;
   lastCodeWinner = null;
   failedCodeAttempts = 0;
@@ -686,7 +686,7 @@ function setupEvents() {
           let u = random(players).name;
           codeActive = false;
           lastCodeWinner = { name: u, img: userAvatars[u] };
-          nextCodeTime = millis() + random(30000, 60000);
+          nextCodeTime = millis() + random(45000, 85000);
           let reward = isUltraCode ? 1500 : 750;
           handleAction(u, reward);
           addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
@@ -1310,7 +1310,7 @@ function handleSecretCode() {
         // Zmizení kódu, pokud ho nikdo nedal do 40 vteřin
         if (codeActive && millis() > codeExpireTime) {
             codeActive = false;
-            nextCodeTime = millis() + random(30000, 60000); // Nový za 30-60 vteřin
+            nextCodeTime = millis() + random(45000, 85000); // Nový za 45-85 vteřin
         }
 }
 
@@ -3059,7 +3059,7 @@ function connectTikfinity() {
           if (codeActive && msg.toUpperCase() === secretCode) {
               codeActive = false;
               lastCodeWinner = { name: u, img: userAvatars[u] };
-              nextCodeTime = millis() + random(30000, 60000);
+              nextCodeTime = millis() + random(45000, 85000);
 
               let p = players.find(x => x.name === u);
               if (codeType === "HP") {
