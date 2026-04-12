@@ -1476,9 +1476,9 @@ function addNotification(type, name, img, extra = "", isMegaLike = false) {
 
 function drawNotifications() {
   // Pozadí spodní lišty
-  fill(15, 15, 20); noStroke();
+  fill(15, 15, 20, 0); noStroke();
   rect(0, ARENA_BOT, W, 80); 
-  stroke(0, 255, 255, 30); strokeWeight(1);
+  stroke(0, 255, 255, 0); strokeWeight(1);
   line(0, ARENA_BOT, W, ARENA_BOT);
   line(0, ARENA_BOT + 80, W, ARENA_BOT + 80);
 
@@ -2584,7 +2584,7 @@ function drawResults() {
 }
 
 function drawTopHUD() {
-  fill(8, 10, 18); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
+  fill(8, 10, 18, 0); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
 
 
   // Titulek uprostřed
@@ -2765,7 +2765,7 @@ function draw() {
 
   drawTopHUD();
 
-  fill(10, 12, 15, 230); // Průhledný podklad arény
+  fill(10, 12, 15, 0); // Průhledný podklad arény
   noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
   drawNotifications(); 
   drawChatCommands();
