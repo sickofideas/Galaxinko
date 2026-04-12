@@ -1746,10 +1746,25 @@ function handleCameraAndPlayers() {
         }
     }
     
-    p.noiseOffsetX += 0.015; p.noiseOffsetY += 0.015;
-    let wanderX = (noise(p.noiseOffsetX) - 0.5) * 0.000075 * p.body.mass;
-    let wanderY = (noise(p.noiseOffsetY) - 0.5) * 0.000075 * p.body.mass;
-    Matter.Body.applyForce(p.body, p.body.position, { x: wanderX, y: wanderY });
+    // GALAKTICKÝ VORTEX (Lehký tah do středu + kruhová rotace)
+    let cx = W/2; 
+    let cy = (ARENA_TOP+ARENA_BOT)/2;
+    let dx = cx - p.body.position.x;
+    let dy = cy - p.body.position.y;
+    let distToCenter = Math.sqrt(dx*dx + dy*dy) || 1;
+
+    let dirX = dx / distToCenter;
+    let dirY = dy / distToCenter;
+    
+    // Tah do středu (gravitace)
+    let pullForce = 0.000015 * p.body.mass;
+    // Tečný pohyb (tlačí hráče do kruhu) - polovina hráčů letí doleva, polovina doprava
+    let vortexForce = 0.000035 * p.body.mass * p.baseRotDir; 
+
+    let finalFx = (dirX * pullForce) + (-dirY * vortexForce); // -dirY a dirX tvoří kolmici
+    let finalFy = (dirY * pullForce) + (dirX * vortexForce);
+
+    Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
     let tSpd = isTop10 ? 2.1 : 1.8; 
