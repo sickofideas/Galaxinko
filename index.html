@@ -1476,11 +1476,10 @@ function addNotification(type, name, img, extra = "", isMegaLike = false) {
 
 function drawNotifications() {
   // Pozadí spodní lišty
-  fill(15, 15, 20, 0); noStroke();
-  rect(0, ARENA_BOT, W, 80); 
-  stroke(0, 255, 255, 0); strokeWeight(1);
+  fill(15, 15, 20, 160); noStroke(); // Lehký útlum, aby vesmír prosvítal, ale text šel číst
+  rect(0, ARENA_BOT, W, H - ARENA_BOT); 
+  stroke(roundThemeColorDark); strokeWeight(1);
   line(0, ARENA_BOT, W, ARENA_BOT);
-  line(0, ARENA_BOT + 80, W, ARENA_BOT + 80);
 
   // Zvýšíme věk aktuálně zobrazeným notifikacím
   for (let n of notifications) {
@@ -2584,7 +2583,7 @@ function drawResults() {
 }
 
 function drawTopHUD() {
-  fill(8, 10, 18, 0); noStroke(); rect(0, HUD_TOP, W, ARENA_TOP - HUD_TOP);
+  fill(8, 10, 18, 160); noStroke(); rect(0, 0, W, ARENA_TOP); // Lehký útlum celého horního HUDu pro čitelnost
 
 
   // Titulek uprostřed
@@ -2763,10 +2762,11 @@ function draw() {
   let antiBanY = (noise(frameCount * 0.05 + 1000) - 0.5) * 2;
   translate(antiBanX, antiBanY);
 
+  // 1. Vykreslíme vesmír jako první vrstvu (bude vidět po celé obrazovce, i za UI)
+  drawSpaceBackground();
+
   drawTopHUD();
 
-  fill(10, 12, 15, 0); // Průhledný podklad arény
-  noStroke(); rect(0, ARENA_BOT, W, H - ARENA_BOT);
   drawNotifications(); 
   drawChatCommands();
 
@@ -2779,8 +2779,6 @@ function draw() {
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawingContext.clip();
 
-  drawSpaceBackground();
-  
   // Temné pozadí při Slow-mo Nuke efektu
   if (nukeEffectTimer > 0) {
       nukeEffectTimer--;
