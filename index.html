@@ -437,6 +437,7 @@ let nextEventTime = 0;
 let activeEvent = null;
 let eventTimer = 0;
 let bountyTarget = null;
+let megaAnnouncement = null;
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -746,12 +747,35 @@ function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 
 // ==========================================
 // TIERED GIFTS A IMUNITA EFEKTY
 // ==========================================
+function triggerMegaAnnouncement(playerName, diam, customTTS, customText) {
+    let col = color(255, 215, 0); 
+    if (diam >= 10000) col = color(255, 0, 0);
+    else if (diam >= 5000) col = color(150, 0, 255);
+
+    megaAnnouncement = { text: customText + "\n" + playerName.toUpperCase(), life: 255, scale: 0.1, color: col };
+    
+    screenShake = 40; // Masivní otřes
+    
+    for(let i=0; i<80; i++) {
+        particles.push({x: W/2, y: (ARENA_TOP+ARENA_BOT)/2, vx: random(-30, 30), vy: random(-30, 30), life: 255, c: col, size: random(8, 20)});
+    }
+    
+    speakTTS(customTTS);
+}
+
 function triggerGiftEffect(p, diam) {
+    if (diam >= 1000) {
+        let tts = currentLang === "CZ" ? `Mega dárek od ${p.name}! Rázová vlna!` : `Mega gift incoming from ${p.name}! Shockwave!`;
+        let txt = currentLang === "CZ" ? "MEGA DÁREK!" : "MEGA GIFT INCOMING!";
+        if (diam >= 10000) { tts = currentLang === "CZ" ? `BŮH VSTOUPIL DO ARÉNY! ${p.name} NIČÍ VŠE ŽIVÉ!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
+        else if (diam >= 5000) { tts = currentLang === "CZ" ? `GALAXY GIFT! ${p.name} VYSÁVÁ ARÉNU!` : `GALAXY GIFT! ${p.name} IS SUCKING THE ARENA!`; txt = "GALAXY GIFT!"; }
+        triggerMegaAnnouncement(p.name, diam, tts, txt);
+    }
+
     // TIER 5: Pán Vesmíru (Armagedon - 10000+ mincí)
     if (diam >= 10000) {
         p.immunityTimer += 50 * 60; // 50 sekund God Mode
         p.hasCrown = true;
-        screenShake = 15;
         p.auraFlash = 120;
         nukeEffectTimer = 180; // 3 vteřiny slow-mo a temnoty
         engine.timing.timeScale = 0.2;
@@ -775,7 +799,6 @@ function triggerGiftEffect(p, diam) {
         }
         
         deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 100, color: color(255, 0, 0), life: 255, isNuke: true});
-        speakTTS(currentLang === "CZ" ? `BŮH VSTOUPIL DO ARÉNY! ${p.name} NIČÍ VŠE ŽIVÉ!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`);
         addPopup("ARMAGEDON!", p.body.position.x, p.body.position.y - p.r - 30, color(255, 0, 0), true);
         safePlaySound(80, 0.8, 3.0); // Ultra hluboký drop
     }
@@ -784,14 +807,12 @@ function triggerGiftEffect(p, diam) {
     else if (diam >= 5000) {
         p.immunityTimer += 50 * 60; // 50s imunita
         p.hasCrown = true;
-        screenShake = 10;
         p.auraFlash = 60;
         
         // Efekt černé díry (přitahuje ostatní)
         activeEvent = "MAGNET";
         eventTimer = 900; // 15 vteřin magnet
         
-        speakTTS(currentLang === "CZ" ? `GALAXY GIFT! ${p.name} VYSÁVÁ ARÉNU!` : `GALAXY GIFT! ${p.name} IS SUCKING THE ARENA!`);
         addPopup("BLACK HOLE!", p.body.position.x, p.body.position.y - p.r - 20, color(150, 0, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(150, 0, 255), 100);
         safePlaySound(150, 0.6, 2.0);
@@ -802,7 +823,6 @@ function triggerGiftEffect(p, diam) {
         p.immunityTimer += 50 * 60; // 50s imunita
         nukeEffectTimer = 90; // 1.5 vteřiny slow-mo
         engine.timing.timeScale = 0.3;
-        screenShake = 8;
         p.auraFlash = 45;
         
         // Nuke knockback
@@ -816,7 +836,6 @@ function triggerGiftEffect(p, diam) {
         }
         
         deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255, 150, 0), life: 255, isNuke: true});
-        speakTTS(currentLang === "CZ" ? `Mega dárek od ${p.name}! Rázová vlna!` : `Mega gift from ${p.name}! Shockwave!`);
         addPopup("NUKE!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 150, 0), true);
         safePlaySound(100, 0.5, 1.5);
     }
@@ -3069,6 +3088,25 @@ function draw() {
   }
   
   drawingContext.restore(); 
+
+  if (megaAnnouncement && megaAnnouncement.life > 0) {
+      push();
+      translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
+      megaAnnouncement.scale = lerp(megaAnnouncement.scale, 1.2, 0.05);
+      scale(megaAnnouncement.scale);
+      textAlign(CENTER, CENTER);
+      textStyle(BOLD);
+      drawingContext.shadowBlur = 30;
+      drawingContext.shadowColor = megaAnnouncement.color;
+      stroke(0);
+      strokeWeight(6);
+      fill(red(megaAnnouncement.color), green(megaAnnouncement.color), blue(megaAnnouncement.color), megaAnnouncement.life);
+      textSize(40);
+      text(megaAnnouncement.text, 0, 0);
+      pop();
+      megaAnnouncement.life -= 2.5;
+  }
+
   drawSecretCodeUI();
   
   pop(); // Ukončení anti-ban posunu
