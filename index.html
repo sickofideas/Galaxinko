@@ -714,7 +714,7 @@ function setupEvents() {
               let p = players.find(x => x.name === u);
               let cType = typeof codeType !== 'undefined' ? codeType : "HP";
               if (cType === "HP") {
-                  let reward = isUltraCode ? 1500 : 750;
+                  let reward = isUltraCode ? 750 : 375;
                   handleAction(u, reward, false, 0, true);
               } else if (cType === "BOOST") {
                   if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hp += 250; } else handleAction(u, 250, false, 0, true);
@@ -1133,7 +1133,7 @@ function handleCombat(p1, p2) {
 
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
-      let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 50) * mult; 
+      let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 10) * mult; 
       winner.hp += heal;
       if(players.length < 50) addPopup("+" + heal + (loserData.isBounty ? " BOUNTY TAKEDOWN!" : " TAKEDOWN!"), winner.body.position.x, winner.body.position.y - winner.r - 20, color(50, 255, 100));
       winner.auraFlash = 20;
@@ -1361,7 +1361,7 @@ function handleSecretCode() {
     if (!codeActive && gameState === "PLAYING" && millis() > nextCodeTime) {
         codeActive = true;
         isUltraCode = random() < 0.2; // 20% šance na Ultra kód hned od začátku
-        codeType = random(["HP", "BOOST", "SHIELD"]); // PŘIDÁNO: Losování odměny
+        codeType = random(["BOOST", "BOOST", "HP", "SHIELD"]); // PŘIDÁNO: Losování odměny, více boost kódů
         failedCodeAttempts = 0;
         generateSecretCodeStr();
         codeX = random(150, W - 150);
@@ -1462,7 +1462,7 @@ function drawSecretCodeUI() {
             let cType = typeof codeType !== 'undefined' ? codeType : "HP";
             
             if (cType === "HP") {
-                rewardTxt = isUltraCode ? "+1500 HP" : "+750 HP";
+                rewardTxt = isUltraCode ? "+750 HP" : "+375 HP";
                 hintCol = isUltraCode ? color(255, 100, 100) : roundThemeColor; 
             } else if (cType === "BOOST") {
                 rewardTxt = "5s BOOST"; hintCol = color(255, 255, 0);
@@ -3410,7 +3410,7 @@ function connectTikfinity() {
               let p = players.find(x => x.name === u);
               let cType = typeof codeType !== 'undefined' ? codeType : "HP";
               if (cType === "HP") {
-                  let reward = isUltraCode ? 1500 : 750;
+                  let reward = isUltraCode ? 750 : 375;
                   handleAction(u, reward, false, 0, true);
               } else if (cType === "BOOST") {
                   if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hp += 250; } 
