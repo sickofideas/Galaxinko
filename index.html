@@ -443,6 +443,7 @@ let megaAnnouncement = null;
 let roundGiftStreaks = {}; // Počítá velké gifty hráčů (pro Legendary)
 let topGifter = { name: "ZATÍM NIKDO", coins: 0 };
 let arenaRedTimer = 0; // Odpočet pro červenou Armageddon arénu
+let topGifterBannerTimer = 0; // Časovač pro překrytí notifikací
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -614,6 +615,7 @@ function startNewRound() {
   roundGiftStreaks = {};
   topGifter = { name: "ZATÍM NIKDO", coins: 0 };
   arenaRedTimer = 0;
+  topGifterBannerTimer = 0;
 
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
@@ -3056,7 +3058,41 @@ function draw() {
 
   drawTopHUD();
 
-  drawNotifications(); 
+  // --- TOP GIFTER DOČASNÁ LIŠTA ---
+  if (topGifterBannerTimer > 0) {
+      topGifterBannerTimer--;
+      
+      push();
+      // Vykreslení pozadí spodní lišty (aby nezmizela grafická díra)
+      fill(15, 15, 20, 160); noStroke();
+      rect(0, ARENA_BOT, W, H - ARENA_BOT); 
+      stroke(roundThemeColorDark); strokeWeight(1);
+      line(0, ARENA_BOT, W, ARENA_BOT);
+
+      let barW = W - 40;
+      let barH = 64;
+      let barX = 20; 
+      let barY = ARENA_BOT + 10; 
+
+      // Vizuál luxusní lišty
+      fill(0, 220); 
+      stroke(255, 215, 0); // Zlatý rámeček
+      strokeWeight(4);
+      rect(barX, barY, barW, barH, 15); // Zaoblené rohy
+
+      textAlign(LEFT, CENTER); textSize(24); textStyle(BOLD);
+      
+      // Pulzující nápis
+      if (frameCount % 30 < 15) fill(255, 50, 50); else fill(255, 215, 0);
+      text("👑 TOP GIFTER:", barX + 20, barY + barH / 2);
+      
+      fill(255); textAlign(RIGHT, CENTER);
+      text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 20, barY + barH / 2);
+      pop();
+  } else {
+      drawNotifications(); 
+  }
+
   drawChatCommands();
 
   stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
@@ -3292,6 +3328,9 @@ function connectTikfinity() {
           if (diam > topGifter.coins) {
               topGifter = { name: u, coins: diam };
               safePlaySound(1000, 0.4, 0.8); // Zvuk pro změnu krále
+              topGifterBannerTimer = 600; // 10 vteřin zablokuje běžné notifikace!
+          } else if (diam >= 100) {
+              topGifterBannerTimer = 300; // 5 vteřin zablokuje běžné notifikace
           }
 
           // 2. Gift Streak Systém (Legendary Sponsor)
