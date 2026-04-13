@@ -1893,6 +1893,18 @@ function handleCameraAndPlayers() {
         currentMaxV *= 0.4;
     }
 
+    // --- ZRYCHLENÍ ZA TAPOVÁNÍ (LIKE BUFF) ---
+    // Pokud hráč aktivně posílá liky, získá dočasně o 40 % vyšší rychlost
+    if (p.likeBuffTimer > 0) {
+        tSpd *= 1.40; 
+        currentMaxV *= 1.40;
+        
+        // Vizuální zpětná vazba: Občasné jiskry za koulí při zrychleném pohybu
+        if (frameCount % 10 === 0 && !isExtremeLoad) {
+            createParticles(p.body.position.x, p.body.position.y, color(255, 100, 100), 1);
+        }
+    }
+
     if (p.isBounty) {
         tSpd *= 1.4;
         currentMaxV *= 1.4;
