@@ -1169,7 +1169,6 @@ function handleCombat(p1, p2) {
       lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: dominantColor});
       createParticles(cx, cy, dominantColor, 6); 
       safePlaySound(random(100, 200), 0.1, 0.4); // Zvuk hromu při nárazu
-      screenShake = Math.max(screenShake, 3); // Jemné zaklepání
   }
   
   if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
