@@ -381,6 +381,7 @@ let codeExpireTime = 0;
 let lastCodeWinner = null;
 let failedCodeAttempts = 0;
 let isUltraCode = false;
+let usedCodesHistory = [];
 
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
@@ -411,6 +412,7 @@ let explosionTimer = 0;
 let gameState = "PLAYING"; 
 let nukeEffectTimer = 0;
 let resultsTimer = 8;
+let maxResultsTimer = 8;
 let cameraScale = 1.0;
 let targetCameraScale = 1.0;
 let audioStarted = false;
@@ -1261,30 +1263,48 @@ function handleOrbs() {
 }
 
 function generateSecretCodeStr() {
-    // VIRÁLNÍ SLOVA PRO BĚŽNÉ KÓDY
-    // Tato slova učí algoritmus a psychologicky nutí lidi k akci
+    // VIRÁLNÍ A VESMÍRNÁ SLOVA PRO BĚŽNÉ KÓDY (104 slov)
     const viralWords = [
-        "FYP", "VIRAL", "SHARE", "FOLLOW", "W", "GG", 
-        "EPIC", "KING", "PRO", "BOSS", "SPACE", "UFO", "GALAXY"
+        "GALAXINKO", "SPACEWARS", "ALIENBATTLE", "METEOR", "BLACKHOLE", "STARCRUISER", "NEBULA", "COSMIC", "ASTEROID", "GALAXYKING", 
+        "STARDUST", "ROCKET", "MOONWALK", "MARSROVER", "VENUSFIRE", "PLUTOICE", "SATURNRING", "JUPITER", "SUNFLARE", "COMETTAIL", 
+        "NOVA", "PULSAR", "QUASAR", "VOYAGER", "APOLLO", "SPUTNIK", "GALILEO", "CASSINI", "HUBBLE", "TELESCOPE", 
+        "DARKMATTER", "ANTIMATTER", "WORMHOLE", "SINGULARITY", "LIGHTSPEED", "WARPDRIVE", "HYPERSPACE", "TELEPORT", "LASER", "PHOTON", 
+        "PLASMA", "DEFLECTOR", "STARSHIELD", "ASTROBOY", "COSMICGIRL", "STARRIDER", "ORBITAL", "ASTRONAUT", "SPACESTATION", "MOONBASE", 
+        "MARSCOLONY", "INTERSTELLAR", "ALIEN", "UFO", "FLYINGSAUCER", "MOTHERSHIP", "STARFIGHTER", "BATTLECRUISER", "DREADNOUGHT", "PIRATE", 
+        "BOUNTYHUNTER", "SMUGGLER", "SPACECOP", "GUARD", "STARCOMMAND", "FLEET", "METEORSHOWER", "IMPACT", "STARBURST", "SUPERNOVA", 
+        "HYPERNOVA", "GAMMARAY", "XRAY", "COSMICRAY", "SOLARWIND", "STELLAR", "GRAVITY", "ZEROG", "WEIGHTLESS", "FREEFALL", 
+        "ORBIT", "ATMOSPHERE", "STRATOSPHERE", "EXOSPHERE", "ECLIPSE", "BLOODMOON", "BLUEMOON", "SUPERMOON", "NEWMOON", "FULLMOON", 
+        "CRESCENT", "HALFMOON", "STARLIGHT", "MOONLIGHT", "EARTHSHINE", "SUNLIGHT", "MILKYWAY", "ANDROMEDA", "ORION", "PEGASUS", 
+        "CYGNUS", "CENTAURUS", "DRACO", "LYRA"
     ];
     
-    // ULTRA SLOVA PRO ULTRA KÓDY (Větší hype v chatu)
+    // ULTRA SLOVA PRO ULTRA KÓDY (40 slov)
     const ultraWords = [
-        "MEGABOOST", "LEGENDARY", "GODMODE", "UNSTOPPABLE", "ARMAGEDON"
+        "GALACTICEMPEROR", "SUPERNOVA999", "GODMODESUPREME", "ABSOLUTECHAMPION", "ULTRAUNSTOPPABLE", "ARMAGEDDON88", "OMNIPOTENT", "INVINCIBLE", 
+        "IMMORTALKING", "COSMICDEITY", "STARDESTROYER", "GALAXYCONQUEROR", "UNIVERSALRULER", "INFINITYPOWER", "QUANTUMMASTER", "TITANOFTHESTARS", 
+        "VOIDBRINGER", "CHAOSCREATOR", "ORDERBRINGER", "CELESTIALBEING", "ASTROGOD", "NEBULAEMPRESS", "SOLARTITAN", "LUNARLORD", 
+        "STELLARSOVEREIGN", "METEORMONARCH", "COMETCOMMANDER", "ASTEROIDASSASSIN", "PULSARPRINCE", "QUASARQUEEN", "BLACKHOLEBARON", "WORMHOLEWIZARD", 
+        "HYPERSPACELORD", "WARPMASTER", "TIMELORD", "DIMENSIONJUMPER", "REALITYWARPER", "UNIVERSECREATOR", "STARFORGER", "PLANETBUILDER"
     ];
 
-    let newCode = secretCode;
-    let maxAttempts = 10;
+    let pool = isUltraCode ? ultraWords : viralWords;
     
-    // Ochrana proti opakování stejného slova hned po sobě
-    while (newCode === secretCode && maxAttempts > 0) {
-        if (isUltraCode) {
-            newCode = random(ultraWords);
-        } else {
-            newCode = random(viralWords);
-        }
-        maxAttempts--;
+    // Vyfiltruje slova, která jsou aktuálně zapsaná v historii
+    let availableWords = pool.filter(word => !usedCodesHistory.includes(word));
+    
+    // Bezpečnostní pojistka: pokud by došla slova, použije se celé pool znovu
+    if (availableWords.length === 0) {
+        availableWords = pool;
     }
+
+    let newCode = random(availableWords);
+    
+    // Zapsat do historie a udržovat maximální délku 20 prvků
+    usedCodesHistory.push(newCode);
+    if (usedCodesHistory.length > 20) {
+        usedCodesHistory.shift();
+    }
+
     secretCode = newCode;
 }
 
@@ -1298,11 +1318,11 @@ function handleSecretCode() {
         codeX = random(150, W - 150);
         codeY = random(ARENA_TOP + 100, ARENA_BOT - 100);
             
-            // Zrychlené startovací rychlosti pro agresivnější poletování
-            codeVX = random() < 0.5 ? random(-5.5, -3) : random(3, 5.5);
-            codeVY = random() < 0.5 ? random(-5.5, -3) : random(3, 5.5);
+            // Ještě rychlejší poletování, aby se hůře četlo
+            codeVX = random() < 0.5 ? random(-8.5, -5) : random(5, 8.5);
+            codeVY = random() < 0.5 ? random(-8.5, -5) : random(5, 8.5);
             
-            codeExpireTime = millis() + 40000; // Zmizí za 40 vteřin
+            codeExpireTime = millis() + 25000; // Zmizí za 25 vteřin
             
         lastCodeWinner = null;
         safePlaySound(random(300, 500), 0.05, 0.5);
@@ -1314,7 +1334,7 @@ function handleSecretCode() {
         speakTTS(currentLang === "CZ" ? `Pozor! V aréně poletuje ${isUltraCode ? "ultra" : "tajný"} kód! Kdo ho první napíše do chatu, získá ${rewardTextCZ}!` : `Attention! A ${isUltraCode ? "ultra" : "secret"} code is flying in the arena! First to type it in chat gets ${rewardTextEN}!`);
     }
         
-        // Zmizení kódu, pokud ho nikdo nedal do 40 vteřin
+        // Zmizení kódu, pokud ho nikdo nedal do 25 vteřin
         if (codeActive && millis() > codeExpireTime) {
             codeActive = false;
             nextCodeTime = millis() + random(45000, 85000); // Nový za 45-85 vteřin
@@ -2509,7 +2529,9 @@ function updateTimers() {
       explosionTimer--; screenShake *= 0.95;
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
-          resultsTimer = 8; 
+          let donorCount = Object.keys(roundGifts).length;
+          maxResultsTimer = Math.min(16, 8 + Math.floor(donorCount / 2));
+          resultsTimer = maxResultsTimer; 
           winnerAnnounced = false;
       } 
   }
@@ -2601,7 +2623,7 @@ function drawResults() {
   }
 
   let bY = ARENA_TOP + 300; 
-  let anim = constrain(map(resultsTimer, 8, 7, 0, 1), 0, 1);
+  let anim = constrain(map(resultsTimer, maxResultsTimer, maxResultsTimer - 1, 0, 1), 0, 1);
 
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
       let p = sorted[i];
@@ -2642,53 +2664,68 @@ function drawResults() {
 
   let mvpArr = Object.entries(roundGifts).sort((a,b)=>b[1].score - a[1].score);
   if (mvpArr.length > 0 && anim > 0.8) {
-      let mvp = mvpArr[0];
       push();
-      fill(30, 10, 30, 200); stroke(255, 50, 150); strokeWeight(2);
-      rect(W/2 - 150, bY + 15, 300, 50, 10);
-      fill(255, 50, 150); noStroke(); textSize(10); textAlign(CENTER, TOP); textStyle(BOLD);
-      text(currentLang === "CZ" ? "💎 MVP GIFTER KOLA 💎" : "💎 ROUND MVP GIFTER 💎", W/2, bY + 20);
-      
-      let mX = W/2;
-      let mY = bY + 45;
-      if (mvp[1].avatar && mvp[1].avatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(mX - 60, mY, 12, 0, TWO_PI); drawingContext.clip();
-          imageMode(CENTER); image(mvp[1].avatar, mX - 60, mY, 24, 24); drawingContext.restore();
-      } else {
-          fill(mvp[1].color); ellipse(mX - 60, mY, 24, 24);
-      }
-      fill(mvp[1].color); textAlign(LEFT, CENTER); textSize(12);
-      text(mvp[0].substring(0,10), mX - 40, mY);
-      fill(255, 215, 0); textAlign(RIGHT, CENTER);
-      let giftEmoji = mvp[1].score >= 1000 ? '🚀' : '💎';
-      text(mvp[1].score + " " + giftEmoji, mX + 130, mY);
-      pop();
+      let donorY = bY + 60;
+      fill(20, 15, 30, 240); stroke(255, 215, 0); strokeWeight(3);
+      rect(20, donorY, W - 40, 130, 15);
 
-      // === SEZNAM VŠECH DÁRCŮ KOLA ===
-      push();
-      let bY_donors = bY + 80; // Posunuto pod MVP blok
-      fill(255, 215, 0);
-      textSize(11); textAlign(CENTER, TOP); textStyle(BOLD);
-      let donorTitle = currentLang === "CZ" ? "PODPOROVATELÉ TOHOTO KOLA:" : "ROUND SUPPORTERS:";
-      text(donorTitle, W/2, bY_donors);
-      
-      let donorText = "";
-      for (let i = 0; i < mvpArr.length; i++) {
-          let dIcon = mvpArr[i][1].score >= 1000 ? '🚀' : '💎';
-          donorText += mvpArr[i][0] + " " + dIcon;
-          if (i < mvpArr.length - 1) donorText += "  •  ";
+      fill(255, 215, 0); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
+      text(currentLang === "CZ" ? "💎 DÁRCI TOHOTO KOLA 💎" : "💎 ROUND GIFTERS 💎", W/2, donorY + 15);
+
+      let cardW = 180;
+      let totalW = mvpArr.length * cardW;
+      let scrollX = 0;
+      if (totalW > W - 60) {
+          let availableFrames = maxResultsTimer * 60;
+          let neededSpeed = (totalW + W) / availableFrames;
+          let speed = Math.max(1.5, neededSpeed); 
+          scrollX = (frameCount * speed) % (totalW + W);
       }
-      
-      fill(200);
-      textSize(10); textStyle(NORMAL);
-      text(donorText, W/2 - 230, bY_donors + 20, 460, 65); 
+
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(25, donorY + 40, W - 50, 80);
+      drawingContext.clip();
+
+      for (let j = 0; j < mvpArr.length; j++) {
+          let dData = mvpArr[j];
+          let dName = dData[0];
+          let dScore = dData[1].score;
+          let dColor = dData[1].color;
+          let dAv = dData[1].avatar;
+
+          let xPos = totalW > W - 60 ? W + (j * cardW) - scrollX : (W / 2) - (totalW / 2) + (j * cardW);
+
+          if (xPos > -cardW && xPos < W) {
+              fill(0, 0, 0, 150); stroke(dColor); strokeWeight(2);
+              rect(xPos, donorY + 45, cardW - 15, 65, 8);
+
+              let ax = xPos + 30;
+              let ay = donorY + 77;
+              if (dAv && dAv !== "loaded") {
+                  drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, ay, 18, 0, TWO_PI); drawingContext.clip();
+                  imageMode(CENTER); image(dAv, ax, ay, 36, 36); drawingContext.restore();
+              } else {
+                  fill(dColor); noStroke(); ellipse(ax, ay, 36, 36);
+              }
+              noFill(); stroke(dColor); strokeWeight(2); ellipse(ax, ay, 36, 36);
+
+              noStroke(); fill(dColor); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
+              text(dName.substring(0, 9), xPos + 55, ay - 10);
+              
+              fill(255, 215, 0); textSize(11);
+              let giftEmoji = dScore >= 1000 ? '🚀' : '💎';
+              text(dScore.toLocaleString() + " " + giftEmoji, xPos + 55, ay + 10);
+          }
+      }
+      drawingContext.restore();
       pop();
   }
 
   textAlign(LEFT, CENTER); 
   let showDonors = (mvpArr.length > 0 && anim > 0.8);
-  let listStartY = showDonors ? bY + 165 : bY + 80; 
-  let maxListItems = showDonors ? 10 : 15;
+  let listStartY = showDonors ? bY + 210 : bY + 80; 
+  let maxListItems = showDonors ? 8 : 15;
   let listLimit = Math.min(sorted.length, maxListItems);
   for (let i = 3; i < listLimit; i++) {
     let p = sorted[i]; let yPos = listStartY + (i-3) * 26;
@@ -2706,7 +2743,7 @@ function drawResults() {
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { resultsTimer = 8; startNewRound(); } } 
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 8; resultsTimer = 8; startNewRound(); } } 
 }
 
 function drawTopHUD() {
