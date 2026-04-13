@@ -630,7 +630,7 @@ function startNewRound() {
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
   players.forEach(p => Matter.World.remove(world, p.body));
-  let oldPlayers = players.filter(p => !p.isZombie).map(p => p.name); // Zombíci se nepřevádí
+  let oldPlayers = [...new Set(players.filter(p => !p.isZombie).map(p => p.name))]; // Zombíci se nepřevádí a zabrání se duplikaci hráčů
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; deadPlayersQueue = []; spawnModules = [];
   previousRoundGifts = Object.assign({}, roundGifts);
   roundGifts = {}; 
