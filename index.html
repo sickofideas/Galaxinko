@@ -445,6 +445,11 @@ let topGifter = { name: "ZATÍM NIKDO", coins: 0 };
 let arenaRedTimer = 0; // Odpočet pro červenou Armageddon arénu
 let topGifterBannerTimer = 0; // Časovač pro překrytí notifikací
 
+// --- FOMO & COMBO SYSTÉM ---
+let roundTotalCoins = 0; 
+const ARMAGEDDON_GOAL = 20000; // Počet mincí pro odpálení globálního eventu
+let globalArmageddonActive = false;
+
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch", "Cosmos", "Apollo"];
@@ -616,6 +621,8 @@ function startNewRound() {
   topGifter = { name: "ZATÍM NIKDO", coins: 0 };
   arenaRedTimer = 0;
   topGifterBannerTimer = 0;
+  roundTotalCoins = 0;
+  globalArmageddonActive = false;
 
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
@@ -774,7 +781,7 @@ function triggerMegaAnnouncement(playerName, diam, customTTS, customText) {
     speakTTS(customTTS);
 }
 
-function triggerGiftEffect(p, diam) {
+function triggerGiftEffect(p, diam, comboMult = 1) {
     if (diam >= 1000) {
         let tts = currentLang === "CZ" ? `Mega dárek od ${p.name}! Rázová vlna!` : `Mega gift incoming from ${p.name}! Shockwave!`;
         let txt = currentLang === "CZ" ? "MEGA DÁREK!" : "MEGA GIFT INCOMING!";
@@ -810,7 +817,8 @@ function triggerGiftEffect(p, diam) {
         }
         
         deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 100, color: color(255, 0, 0), life: 255, isNuke: true});
-        addPopup("ARMAGEDON!", p.body.position.x, p.body.position.y - p.r - 30, color(255, 0, 0), true);
+        let popText = comboMult > 1 ? `${comboMult}X COMBO GOD! 🔥` : "ARMAGEDON!";
+        addPopup(popText, p.body.position.x, p.body.position.y - p.r - 30, color(255, 0, 0), true);
         safePlaySound(80, 0.8, 3.0); // Ultra hluboký drop
     }
     
@@ -824,7 +832,8 @@ function triggerGiftEffect(p, diam) {
         activeEvent = "MAGNET";
         eventTimer = 900; // 15 vteřin magnet
         
-        addPopup("BLACK HOLE!", p.body.position.x, p.body.position.y - p.r - 20, color(150, 0, 255), true);
+        let popText = comboMult > 1 ? `${comboMult}X COMBO GALAXY! 🌌` : "BLACK HOLE!";
+        addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(150, 0, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(150, 0, 255), 100);
         safePlaySound(150, 0.6, 2.0);
     }
@@ -847,7 +856,8 @@ function triggerGiftEffect(p, diam) {
         }
         
         deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r + 50, color: color(255, 150, 0), life: 255, isNuke: true});
-        addPopup("NUKE!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 150, 0), true);
+        let popText = comboMult > 1 ? `${comboMult}X COMBO NUKE! ☢️` : "NUKE!";
+        addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(255, 150, 0), true);
         safePlaySound(100, 0.5, 1.5);
     }
     
@@ -870,7 +880,8 @@ function triggerGiftEffect(p, diam) {
         }
         
         speakTTS(currentLang === "CZ" ? `Nádherný dárek od ${p.name}! Štít aktivován!` : `Beautiful gift from ${p.name}! Shield up!`);
-        addPopup("SHIELD + PUSH!", p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
+        let popText = comboMult > 1 ? `${comboMult}X SHIELD COMBO!` : "SHIELD + PUSH!";
+        addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
         safePlaySound(300, 0.3, 1.0);
     }
@@ -897,15 +908,15 @@ function reviveZombie(p) {
     safePlaySound(800, 0.1, 0.2);
 }
 
-function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true) {
+function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true, comboMult = 1) {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
   let finalAmount = amount;
   if (isGift) {
-      if (diam >= 5000) finalAmount = diam * 2800;
-      else if (diam >= 1000) finalAmount = diam * 2200;
-      else if (diam >= 100) finalAmount = diam * 1600;
-      else finalAmount = diam * 200;
+      if (diam >= 5000) finalAmount = diam * 2800 * comboMult;
+      else if (diam >= 1000) finalAmount = diam * 2200 * comboMult;
+      else if (diam >= 100) finalAmount = diam * 1600 * comboMult;
+      else finalAmount = diam * 200 * comboMult;
   }
 
   let p = players.find(x => x.name === name);
@@ -914,16 +925,16 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true)
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
     p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-    if (isGift) triggerGiftEffect(p, diam);
+    if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
         if (allowSpawn) {
             let baseHp = getStartingHp(name);
-            spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
+            spawnPlayer(name, baseHp + finalAmount, isGift, diam, false, comboMult); 
         }
   }
 }
 
-function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false) {
+function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1) {
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -952,7 +963,7 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false) {
   spawnModules.push({
       name: name, hp: safeHp, x: wPos.x, y: wPos.y, targetX: bestX, targetY: bestY,
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
-      life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie
+      life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie, comboMult: comboMult
   });
   safePlaySound(400, 0.1, 0.1);
 }
@@ -977,13 +988,13 @@ function handleSpawnModules() {
         fill(255, 200); ellipse(5, -1, 2, 2); pop();
         
         if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
-            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie);
+            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie, m.comboMult);
             spawnModules.splice(i, 1);
         }
     }
 }
 
-function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false) {
+function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false, comboMult = 1) {
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
@@ -1009,7 +1020,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   
   if (!isZombie) { 
       if (isGift) {
-          triggerGiftEffect(player, diam);
+          triggerGiftEffect(player, diam, comboMult);
           let giftMsg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", name);
           speakTTS(giftMsg);
       } else {
@@ -3195,6 +3206,51 @@ function draw() {
   
   drawingContext.restore(); 
 
+  if (gameState === "PLAYING") {
+      // --- FOMO PROGRESS BAR (Ukazatel cíle nahoře v aréně) ---
+      push();
+      let pbW = W * 0.85; // Šířka baru (85% obrazovky)
+      let pbH = 30;
+      let pbX = W / 2 - pbW / 2;
+      let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
+
+      // Temné pozadí baru
+      fill(0, 150);
+      stroke(255, 215, 0); // Zlatý rámeček
+      strokeWeight(2);
+      rect(pbX, pbY, pbW, pbH, 15);
+
+      // Výplň baru (Krvavě červená)
+      let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
+      fill(255, 0, 0, 200);
+      noStroke();
+      rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 13);
+
+      // Animovaný text uvnitř
+      fill(255);
+      textAlign(CENTER, CENTER);
+      textSize(12);
+      textStyle(BOLD);
+      
+      let coinsLeft = ARMAGEDDON_GOAL - roundTotalCoins;
+      if (coinsLeft > 0) {
+          // Zvýraznění, když zbývá málo (pod 20%)
+          if (progress > 0.8 && frameCount % 20 < 10) {
+              fill(255, 255, 0); // Bliká žlutě!
+              textSize(14);
+          }
+          let txt = currentLang === "CZ" ? `🔥 DO ARMAGEDONU ZBÝVÁ: ${coinsLeft} COINS! 🔥` : `🔥 ARMAGEDDON IN: ${coinsLeft} COINS! 🔥`;
+          text(txt, W / 2, pbY + pbH / 2);
+      } else {
+          // Armageddon je plný
+          if (frameCount % 10 < 5) fill(255, 0, 0); // Agresivní blikání
+          textSize(15);
+          let txt2 = currentLang === "CZ" ? "🚨 ARMAGEDON AKTIVNÍ! 🚨" : "🚨 ARMAGEDDON ACTIVE! 🚨";
+          text(txt2, W / 2, pbY + pbH / 2);
+      }
+      pop();
+  }
+
   if (megaAnnouncement && megaAnnouncement.life > 0) {
       push();
       translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
@@ -3328,6 +3384,17 @@ function connectTikfinity() {
           let diam = d?.data?.diamonds || d?.data?.coins || 1;
           playDonateSound();
           
+          // --- 1. FOMO PROGRESS (Sčítání pro všechny) ---
+          roundTotalCoins += diam;
+          if (roundTotalCoins >= ARMAGEDDON_GOAL && !globalArmageddonActive) {
+              globalArmageddonActive = true;
+              arenaRedTimer = 60 * 120; // 2 minuty krve pro všechny!
+              screenShake = 50;
+              addPopup("🚨 GLOBAL ARMAGEDDON UNLOCKED! 🚨", W/2, H/2, color(255, 0, 0), true);
+              safePlaySound(150, 0.8, 1.0); 
+              speakTTS(currentLang === "CZ" ? "Komunitní cíl splněn! Globální Armagedon odemčen!" : "Community goal reached! Global Armageddon unlocked!");
+          }
+
           // 1. Zpracování TOP Giftera
           if (diam > topGifter.coins) {
               topGifter = { name: u, coins: diam };
@@ -3337,19 +3404,21 @@ function connectTikfinity() {
               topGifterBannerTimer = 300; // 5 vteřin zablokuje běžné notifikace
           }
 
-          // 2. Gift Streak Systém (Legendary Sponsor)
+          // --- 2. COMBO MULTIPLIKÁTOR (Jen pro dárky 100+ mincí) ---
+          let comboMult = 1;
           if (diam >= 100) {
               if (!roundGiftStreaks[u]) roundGiftStreaks[u] = 0;
               roundGiftStreaks[u]++;
+              comboMult = roundGiftStreaks[u];
           }
 
           // Tohle zajistí spawn i provedení fyzických efektů (Armagedon, Nuke, Black Hole...)
-          handleAction(u, 0, true, diam, true); 
+          handleAction(u, 0, true, diam, true, comboMult); 
           let p = players.find(x => x.name === u);
           
           if (p) {
-              // Pokud má 3+ velkých dárků, stává se legendou
-              if (roundGiftStreaks[u] >= 3 && !p.isLegendary) {
+              // Legenda status
+              if (comboMult >= 3 && !p.isLegendary) {
                   p.isLegendary = true;
                   addPopup("🌟 LEGENDARY SPONSOR! 🌟", p.body.position.x, p.body.position.y - 60, color(255, 215, 0), true);
               }
@@ -3360,7 +3429,7 @@ function connectTikfinity() {
                   p.godModeTimer = 60 * 60; // 60 vteřin
                   p.hasRainbowCrown = true;
                   p.hasFireTrail = true;
-                  arenaRedTimer = 60 * 60; // Aréna zčervená na minutu!
+                  arenaRedTimer = Math.max(arenaRedTimer, 60 * 60); // Aréna zčervená na minutu!
               } else if (diam >= 5000) {
                   p.hasRainbowCrown = true;
                   p.hasFireTrail = true; // Zůstane navždy
