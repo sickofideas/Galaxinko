@@ -1016,7 +1016,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
     immunityTimer: 0, hasCrown: false, boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false,
     isZombie: isZombie, hasUsedRepost: false,
-    hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0
+    hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
+    avatarAlpha: 255
   };
   
   players.push(player); Matter.World.add(world, body);
@@ -2437,7 +2438,20 @@ function drawPlayer(p) {
   // NEBO pokud je v aréně zrovna málo lidí (méně než 20, např. na začátku kola)
   let shouldDrawAvatar = isTop10 || players.length <= 20;
 
-  if (shouldDrawAvatar && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
+  // Plynulý fade-in / fade-out profilovek
+  if (p.avatarAlpha === undefined) p.avatarAlpha = shouldDrawAvatar ? 255 : 0;
+  if (shouldDrawAvatar) {
+      p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
+  } else {
+      p.avatarAlpha = Math.max(0, p.avatarAlpha - 15);
+  }
+
+  // VŽDY nakreslíme tmavý podklad (aby fotka nemizela do prázdna, ale do tmavé barvy)
+  fill(35); 
+  noStroke();
+  ellipse(0, 0, imgSize); 
+
+  if (p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save(); 
       drawingContext.beginPath();
       drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
@@ -2446,16 +2460,13 @@ function drawPlayer(p) {
       // Zombíkům dáme šedý filtr (pokud jsi už přidal zombie mód)
       if (p.isZombie) drawingContext.filter = 'grayscale(100%)'; 
       
+      tint(255, p.avatarAlpha);
       imageMode(CENTER); 
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
+      noTint(); // Nutné resetovat tint, aby nezprůhlednil zbytek hry!
       
       drawingContext.filter = 'none'; // Vypnutí filtru pro jistotu
       drawingContext.restore();
-  } else { 
-      // Ostatní hráči mimo TOP 10 dostanou jen čisté, na výkon nenáročné kolečko
-      fill(35); 
-      noStroke();
-      ellipse(0, 0, imgSize); 
   }
 
   noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
