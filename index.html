@@ -414,8 +414,8 @@ let gameState = "PLAYING";
 let nukeEffectTimer = 0;
 let resultsTimer = 8;
 let maxResultsTimer = 8;
-let cameraScale = 1.0;
-let targetCameraScale = 1.0;
+let cameraScale = 1.35;
+let targetCameraScale = 1.35;
 let audioStarted = false;
 let synth;
 
@@ -673,8 +673,8 @@ function startNewRound() {
   gameState = "PLAYING";
   nukeEffectTimer = 0;
   engine.timing.timeScale = 1.0;
-  cameraScale = 1.0;
-  targetCameraScale = 1.0;
+  cameraScale = 1.35;
+  targetCameraScale = 1.35;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
   nextCommentTime = millis() + 1500;
   nextCodeTime = millis() + random(45000, 85000); 
@@ -1937,9 +1937,10 @@ function handleCameraAndPlayers() {
 
   // KLAUSTROFOBICKÁ KAMERA: Držíme detail co nejdéle to jde!
   let len = players.length;
-  if (len >= 180) targetCameraScale = 0.60;      // Naprostý extrém
-  else if (len >= 120) targetCameraScale = 0.80; // Až při 120 hráčích mírně poodstoupíme
-  else targetCameraScale = 1.0;                  // Do 120 lidí to držíme krásně na tělo!
+  if (len >= 120) targetCameraScale = 0.60;      // Naprostý extrém
+  else if (len >= 70) targetCameraScale = 0.80;  // Mírně poodstoupíme
+  else if (len >= 30) targetCameraScale = 1.0;   // Normální velikost
+  else targetCameraScale = 1.35;                 // Úplně nablízko pro poloprázdnou arénu
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.05); 
   
