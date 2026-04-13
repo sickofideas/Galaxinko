@@ -449,6 +449,7 @@ let topGifterBannerTimer = 0; // Časovač pro překrytí notifikací
 let roundTotalCoins = 0; 
 const ARMAGEDDON_GOAL = 20000; // Počet mincí pro odpálení globálního eventu
 let globalArmageddonActive = false;
+let lastEnergyAddedTime = 0;
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -623,6 +624,7 @@ function startNewRound() {
   topGifterBannerTimer = 0;
   roundTotalCoins = 0;
   globalArmageddonActive = false;
+  lastEnergyAddedTime = millis();
 
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
@@ -2489,8 +2491,8 @@ function drawPopups() {
     drawingContext.shadowBlur = 5; drawingContext.shadowColor = 'black';
     if (f.isCrit) {
         stroke(0); strokeWeight(4); fill(255, 215, 0, f.life); textSize(22 + sin(f.life * 0.1) * 4); textAlign(CENTER); textStyle(BOLD);
-            let critText = players.length >= 50 ? f.txt : "CRITICAL HIT!\n" + f.txt;
-            text(critText, 0, 0); f.y += f.vy - 0.5; f.life -= 6;
+            let critText = "💥 " + f.txt; // Čistší a údernější než zdlouhavý text
+            text(critText, 0, 0); f.y += f.vy - 0.5; f.life -= 8;
     } else {
         stroke(0); strokeWeight(3); fill(red(f.c), green(f.c), blue(f.c), f.life); textSize(16); textAlign(CENTER); textStyle(BOLD);
         text(f.txt, 0, 0); f.y += f.vy; f.life -= 8;
@@ -3069,7 +3071,7 @@ function draw() {
   fill(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = color(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
-  text(GAME_TITLE, W/2, ARENA_TOP + 40);
+  text(GAME_TITLE, W/2, ARENA_TOP + 90); // Posunuto pod progress bar
   pop();
 
   drawTopHUD();
@@ -3215,20 +3217,26 @@ function draw() {
       let pbX = W / 2 - pbW / 2;
       let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
 
+      // Pulzování lišty, pokud se dlouho nic nestalo
+      let pbAlpha = 255;
+      if (millis() - lastEnergyAddedTime > 5000) {
+          pbAlpha = map(sin(frameCount * 0.03), -1, 1, 100, 255);
+      }
+
       // Temné pozadí baru
-      fill(0, 150);
-      stroke(255, 215, 0); // Zlatý rámeček
+      fill(0, pbAlpha * 0.6);
+      stroke(255, 215, 0, pbAlpha); // Zlatý rámeček
       strokeWeight(2);
       rect(pbX, pbY, pbW, pbH, 15);
 
       // Výplň baru (Krvavě červená)
       let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
-      fill(255, 0, 0, 200);
+      fill(255, 0, 0, pbAlpha * 0.8);
       noStroke();
       rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 13);
 
       // Animovaný text uvnitř
-      fill(255);
+      fill(255, 255, 255, pbAlpha);
       textAlign(CENTER, CENTER);
       textSize(12);
       textStyle(BOLD);
@@ -3237,14 +3245,14 @@ function draw() {
       if (coinsLeft > 0) {
           // Zvýraznění, když zbývá málo (pod 20%)
           if (progress > 0.8 && frameCount % 20 < 10) {
-              fill(255, 255, 0); // Bliká žlutě!
+              fill(255, 255, 0, pbAlpha); // Bliká žlutě!
               textSize(14);
           }
-          let txt = currentLang === "CZ" ? `🔥 DO ARMAGEDONU ZBÝVÁ: ${coinsLeft} COINS! 🔥` : `🔥 ARMAGEDDON IN: ${coinsLeft} COINS! 🔥`;
+          let txt = currentLang === "CZ" ? `🔥 DO ARMAGEDONU ZBÝVÁ: ${coinsLeft} ENERGIE! 🔥` : `🔥 ARMAGEDDON IN: ${coinsLeft} ENERGY! 🔥`;
           text(txt, W / 2, pbY + pbH / 2);
       } else {
           // Armageddon je plný
-          if (frameCount % 10 < 5) fill(255, 0, 0); // Agresivní blikání
+          if (frameCount % 10 < 5) fill(255, 0, 0, pbAlpha); // Agresivní blikání
           textSize(15);
           let txt2 = currentLang === "CZ" ? "🚨 ARMAGEDON AKTIVNÍ! 🚨" : "🚨 ARMAGEDDON ACTIVE! 🚨";
           text(txt2, W / 2, pbY + pbH / 2);
@@ -3386,6 +3394,7 @@ function connectTikfinity() {
           playDonateSound();
           
           // --- 1. FOMO PROGRESS (Sčítání pro všechny) ---
+          lastEnergyAddedTime = millis();
           roundTotalCoins += diam;
           if (roundTotalCoins >= ARMAGEDDON_GOAL && !globalArmageddonActive) {
               globalArmageddonActive = true;
