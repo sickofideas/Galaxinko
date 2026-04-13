@@ -3182,6 +3182,15 @@ function draw() {
       pop();
   }
 
+  // Ztemnění arény na konci kola (posledních 10 vteřin)
+  if (gameState === "PLAYING" && roundTimerFrames <= 600 && roundTimerFrames > 0) {
+      let darkenAlpha = map(roundTimerFrames, 600, 0, 0, 180);
+      push();
+      fill(0, 0, 5, darkenAlpha); // Temný filtr (lehce do studena)
+      rect(-W, -H, W * 3, H * 3);
+      pop();
+  }
+
   // Plynulá fyzika závislá na reálném čase prohlížeče (Delta Time)
   try { Matter.Engine.update(engine, deltaTime || (1000/60)); } catch(e) {} 
   
