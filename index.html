@@ -1718,7 +1718,7 @@ function drawChatCommands() {
     fill(255);
     drawingContext.shadowBlur = 5 + pulse * 10;
     drawingContext.shadowColor = roundThemeColor; // Záře textu v barvě arény
-    let cmds = currentLang === "CZ" ? "TAP TAP = VĚTŠÍ KOULE! | join | boost | shield" : "TAP TAP = BIGGER BALL! | join | boost | shield";
+    let cmds = currentLang === "CZ" ? "TAP TAP = VĚTŠÍ KOULE! | !join | !boost | !shield" : "TAP TAP = BIGGER BALL! | !join | !boost | !shield";
     text(cmds, W/2, cmdY + 20); // Zvednuto těsně pod notifikace a bez obdélníku
     
     drawingContext.shadowBlur = 0;
