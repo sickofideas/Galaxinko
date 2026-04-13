@@ -1165,8 +1165,9 @@ function handleCombat(p1, p2) {
   if (!isExtremeLoad) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
       let cy = (p1.body.position.y + p2.body.position.y)/2;
-      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: color(255, 255, 0)});
-      createParticles(cx, cy, color(255, 200, 50), 6); 
+      let dominantColor = finalDmgTo2 > finalDmgTo1 ? p1.color : p2.color;
+      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: dominantColor});
+      createParticles(cx, cy, dominantColor, 6); 
   }
   
   if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
