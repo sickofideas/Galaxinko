@@ -439,6 +439,11 @@ let eventTimer = 0;
 let bountyTarget = null;
 let megaAnnouncement = null;
 
+// --- MONETIZAČNÍ SYSTÉM V19.59 ---
+let roundGiftStreaks = {}; // Počítá velké gifty hráčů (pro Legendary)
+let topGifter = { name: "ZATÍM NIKDO", coins: 0 };
+let arenaRedTimer = 0; // Odpočet pro červenou Armageddon arénu
+
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch", "Cosmos", "Apollo"];
@@ -606,6 +611,10 @@ function generateSpaceBackground() {
 }
 
 function startNewRound() {
+  roundGiftStreaks = {};
+  topGifter = { name: "ZATÍM NIKDO", coins: 0 };
+  arenaRedTimer = 0;
+
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
   players.forEach(p => Matter.World.remove(world, p.body));
@@ -990,7 +999,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
     sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
     immunityTimer: 0, hasCrown: false, boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false,
-    isZombie: isZombie, hasUsedRepost: false
+    isZombie: isZombie, hasUsedRepost: false,
+    hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0
   };
   
   players.push(player); Matter.World.add(world, body);
@@ -2155,6 +2165,17 @@ function drawPlayer(p) {
   let pos = p.body.position; let safeHp = Math.max(0, p.hp);
   let isBuffed = p.likeBuffTimer > 0; if (isBuffed) p.likeBuffTimer--;
   
+  // 1. FIRE TRAIL (Ohnivá stopa)
+  if (p.hasFireTrail && frameCount % 3 === 0) {
+      createParticles(pos.x, pos.y, color(255, random(100, 200), 0), 2); // Plive oheň
+  }
+
+  // 2. GOD MODE KOUZLO (Časování)
+  if (p.isGodMode) {
+      p.godModeTimer--;
+      if (p.godModeTimer <= 0) p.isGodMode = false;
+  }
+
   // Brutálnější rotace pro obry (pily od 1000 HP a více se musí pořádně točit)
   let baseSpin = 0.02 + Math.min(safeHp * 0.000015, 0.2);
   if (safeHp >= 1000) {
@@ -2317,6 +2338,35 @@ function drawPlayer(p) {
       pop();
   }
   
+  // 2. GOD MODE AURA (Gigantická záře)
+  if (p.isGodMode) {
+      push();
+      noFill();
+      strokeWeight(5 + sin(frameCount * 0.2) * 5); // Pulzující aura
+      stroke(255, 0, 0, 150);
+      drawingContext.shadowBlur = 20;
+      drawingContext.shadowColor = color(255, 0, 0);
+      ellipse(0, 0, p.r * 2 + 20);
+      pop();
+  }
+
+  // 3. RAINBOW CROWN (Duhová koruna pro 5000+)
+  if (p.hasRainbowCrown) {
+      push();
+      translate(0, -p.r - 25);
+      colorMode(HSB, 360, 100, 100);
+      fill((frameCount * 4) % 360, 100, 100); // Mění barvy
+      stroke(255);
+      strokeWeight(2);
+      beginShape();
+      vertex(-15, 0); vertex(-25, -20); vertex(-10, -10);
+      vertex(0, -25); vertex(10, -10);  vertex(25, -20);
+      vertex(15, 0);
+      endShape(CLOSE);
+      colorMode(RGB, 255);
+      pop();
+  }
+
   let imgSize = p.r * 1.6;
   
   // Zjistíme, jestli je hráč aktuálně v TOP 10 největších
@@ -2376,6 +2426,13 @@ function drawPlayer(p) {
   textSize(Math.floor(Math.max(14, p.r * 0.4))); 
   text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? Math.round(p.r * 0.3) : 0); 
   
+  if (p.isLegendary) {
+      stroke(0); strokeWeight(Math.max(3, p.r * 0.15));
+      fill(255, 215, 0); // Zlatá barva
+      textSize(Math.floor(Math.max(10, p.r * 0.22)));
+      text("👑 LEGEND", 0, p.r > 20 ? Math.round(p.r * 0.65) : 15);
+  }
+
   drawingContext.shadowBlur = 0; noStroke(); pop();
 }
 
@@ -3020,6 +3077,15 @@ function draw() {
       if (nukeEffectTimer <= 0) engine.timing.timeScale = 1.0;
   }
 
+  // ARMAGEDDON EFEKT (Červená Aréna)
+  if (arenaRedTimer > 0) {
+      arenaRedTimer--;
+      push();
+      fill(255, 0, 0, 60); // Krvavě červený poloprůhledný filtr
+      rect(-W, -H, W * 3, H * 3); // Zvětšeno, aby pokrylo i pohled kamery
+      pop();
+  }
+
   // Plynulá fyzika závislá na reálném čase prohlížeče (Delta Time)
   try { Matter.Engine.update(engine, deltaTime || (1000/60)); } catch(e) {} 
   
@@ -3219,17 +3285,52 @@ function connectTikfinity() {
           }
       }
       else if (evt === "gift") { 
-          let diam = d?.data?.diamonds || 1;
+          let diam = d?.data?.diamonds || d?.data?.coins || 1;
           playDonateSound();
-            handleAction(u, 0, true, diam, true); 
-          let col = players.find(x=>x.name===u)?.color || color(255);
+          
+          // 1. Zpracování TOP Giftera
+          if (diam > topGifter.coins) {
+              topGifter = { name: u, coins: diam };
+              safePlaySound(1000, 0.4, 0.8); // Zvuk pro změnu krále
+          }
+
+          // 2. Gift Streak Systém (Legendary Sponsor)
+          if (diam >= 100) {
+              if (!roundGiftStreaks[u]) roundGiftStreaks[u] = 0;
+              roundGiftStreaks[u]++;
+          }
+
+          // Tohle zajistí spawn i provedení fyzických efektů (Armagedon, Nuke, Black Hole...)
+          handleAction(u, 0, true, diam, true); 
+          let p = players.find(x => x.name === u);
+          
+          if (p) {
+              // Pokud má 3+ velkých dárků, stává se legendou
+              if (roundGiftStreaks[u] >= 3 && !p.isLegendary) {
+                  p.isLegendary = true;
+                  addPopup("🌟 LEGENDARY SPONSOR! 🌟", p.body.position.x, p.body.position.y - 60, color(255, 215, 0), true);
+              }
+
+              // Aplikace nových speciálních vlastností z TIER SYSTÉMU
+              if (diam >= 10000) {
+                  p.isGodMode = true;
+                  p.godModeTimer = 60 * 60; // 60 vteřin
+                  p.hasRainbowCrown = true;
+                  p.hasFireTrail = true;
+                  arenaRedTimer = 60 * 60; // Aréna zčervená na minutu!
+              } else if (diam >= 5000) {
+                  p.hasRainbowCrown = true;
+                  p.hasFireTrail = true; // Zůstane navždy
+              }
+          }
+
+          let col = p ? p.color : color(255);
           updateGiftLB(u, diam, col);
           
           if (!roundGifts[u]) roundGifts[u] = { score: 0, color: col, avatar: userAvatars[u] || null };
           roundGifts[u].score += diam;
           if (userAvatars[u]) roundGifts[u].avatar = userAvatars[u];
 
-          // PŘIDÁNO: Odpálení VIP notifikace!
           addNotification('GIFT', u, userAvatars[u], diam);
 
           if (diam >= 1000) {
