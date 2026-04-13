@@ -2108,7 +2108,7 @@ function drawSpaceBackground() {
   handleBackgroundObjects(baseScrollSpeed);
   drawingContext.restore();
 
-  if (random() < 0.15) { 
+  if (random() < 0.04) { 
       let side = Math.floor(random(4));
       let sx, sy, svx, svy;
       
@@ -2145,18 +2145,14 @@ function drawSpaceBackground() {
               let dirX = s.vx / speedMag;
               let dirY = s.vy / speedMag;
               
-              // OPRAVA 2: Brutálně zvýšená síla (Z 0.00004 na 0.002)
-              // Musí to mít grády, aby to prorazilo ten "hustý vzduch" a odstrčilo to i giganty
-              let pushForce = 0.002 * p.body.mass; 
+              // Zvýšená síla pro výraznější odhození hráče (bez exploze)
+              let pushForce = 0.006 * p.body.mass; 
               
               Matter.Body.applyForce(p.body, p.body.position, {
                   x: dirX * pushForce,
                   y: dirY * pushForce
               });
 
-              // Vizuální výbuch (zvětšeno z 15 na 30 částic pro větší show)
-              createParticles(s.x, s.y, color(200, 255, 255), 30);
-              
               hit = true;
               break; 
           }
