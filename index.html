@@ -2728,108 +2728,118 @@ function drawTopHUD() {
 
   // ALL TIME HP
   let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 20); // Zvětšeno na 20 pro rolování
-  allTimeLbRect = {x: 10, y: HUD_TOP + 10, w: 150, h: 15}; 
+  allTimeLbRect = {x: 10, y: HUD_TOP + 5, w: 150, h: 20}; 
   
   let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
   textAlign(LEFT, TOP);
-  fill(hoverHp ? color(255, 50, 50) : roundThemeColor); textSize(11); textStyle(BOLD); // Zvětšeno
-  text(currentLang === "CZ" ? "ALL TIME HP" : "ALL TIME HP", 15, HUD_TOP + 10); // Posunuto výš k liště
+  fill(hoverHp ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
+  text(currentLang === "CZ" ? "ALL TIME HP" : "ALL TIME HP", 15, HUD_TOP + 5); 
   
-  textStyle(NORMAL); textSize(11);
-  // Vykreslení prvních 3 fixně
-  for(let i=0; i<Math.min(3, allTimeSorted.length); i++) {
-      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*18; let xBase = 15;
+  textStyle(NORMAL); textSize(14);
+  // Vykreslení prvních 2 fixně
+  for(let i=0; i<Math.min(2, allTimeSorted.length); i++) {
+      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*26; let xBase = 15;
       let currAv = userAvatars[pName] || pData.avatar;
-      if (currAv && currAv !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 6, 7, 0, TWO_PI); drawingContext.clip();
-          image(currAv, xBase - 1, y - 1, 14, 14); drawingContext.restore();
-          fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,8)}`, xBase + 18, y);
-      } else {
-          fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,10)}`, xBase, y);
-      }
-      fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 135, y); textStyle(NORMAL);
+      
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
+      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
+      else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
+      drawingContext.restore();
+      noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
+
+      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
   }
 
-  // Rolování od 4 do 20 (index 3+)
-  if (allTimeSorted.length > 3) {
-      let numExtra = allTimeSorted.length - 3; let scrollYBase = HUD_TOP + 28 + 3*18; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(10, scrollYBase - 2, 180, 2 * 18 + 4); drawingContext.clip();
-      let itemH = 18; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
+  // Rolování od 3 do 20 (index 2+)
+  if (allTimeSorted.length > 2) {
+      let numExtra = allTimeSorted.length - 2; let scrollYBase = HUD_TOP + 28 + 2*26; 
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(10, scrollYBase - 2, 200, 2 * 26 + 4); drawingContext.clip();
+      let itemH = 26; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
       
       for(let i=0; i<numExtra * 2; i++) { 
-          let idx = 3 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 15;
+          let idx = 2 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 15;
           let currAv = userAvatars[pName] || pData.avatar;
-          if (currAv && currAv !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 6, 7, 0, TWO_PI); drawingContext.clip();
-              image(currAv, xBase - 1, y - 1, 14, 14); drawingContext.restore();
-              fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,8)}`, xBase + 18, y);
-          } else { fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,10)}`, xBase, y); }
-          fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), 135, y); textStyle(NORMAL);
+          
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
+          if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
+          else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
+          drawingContext.restore();
+          noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
+
+          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
   
   // TOP GIFTERS (2 sloupce, zvětšeno, nepřekrývá arénu)
   let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 6);
-  giftLbRect = {x: 360 - 80, y: HUD_TOP + 25, w: 160, h: 20}; 
+  giftLbRect = {x: 360 - 80, y: HUD_TOP + 15, w: 160, h: 20}; 
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0));
-  textSize(14); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", 360, HUD_TOP + 25);
+  textSize(16); textStyle(BOLD); text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", 360, HUD_TOP + 15);
   
-  textStyle(NORMAL); textSize(13);
+  textStyle(NORMAL); textSize(15);
   for(let i=0; i<allGiftsSorted.length; i++) {
       let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; 
       let col = Math.floor(i / 3); let row = i % 3;
-      let xBase = 185 + col * 170; let y = HUD_TOP + 48 + row * 26; 
+      let xBase = 185 + col * 170; let y = HUD_TOP + 45 + row * 28; 
       
       let currAv = userAvatars[gName] || gData.avatar;
-      if (currAv && currAv !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 12, y + 12, 12, 0, TWO_PI); drawingContext.clip();
-          image(currAv, xBase, y, 24, 24); drawingContext.restore();
-          textAlign(LEFT, CENTER); fill(gData.color); textStyle(BOLD); text(gName.substring(0, 7), xBase + 30, y + 12);
-      } else { textAlign(LEFT, CENTER); fill(gData.color); textStyle(BOLD); text(gName.substring(0, 8), xBase + 5, y + 12); }
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 13, y + 13, 13, 0, TWO_PI); drawingContext.clip();
+      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 13, y + 13, 26, 26); } 
+      else { fill(gData.color); ellipse(xBase + 13, y + 13, 26, 26); }
+      drawingContext.restore();
+      noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 13, y + 13, 26, 26); noStroke();
+
+      textAlign(LEFT, CENTER); fill(gData.color); textStyle(BOLD); text(gName.substring(0, 6), xBase + 32, y + 13);
       
       let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      textAlign(RIGHT, CENTER); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 165, y + 12); textStyle(NORMAL);
+      textAlign(RIGHT, CENTER); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 165, y + 13); textStyle(NORMAL);
   }
 
-  // TOP ZABIJACI
+  // TOP BOJOVNICI
   let allKillsSorted = Object.entries(allTimeKills).sort((a,b) => b[1].score - a[1].score).slice(0, 30);
-  killsLbRect = {x: 520, y: HUD_TOP + 10, w: 150, h: 15}; // Posunuto o 10 px doleva pro širší text
+  killsLbRect = {x: 520, y: HUD_TOP + 5, w: 150, h: 20}; 
   
   let hoverKills = mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h;
-  textAlign(LEFT, TOP); fill(hoverKills ? color(255, 50, 50) : roundThemeColor); textSize(11); textStyle(BOLD); // Zvětšeno
-  text(currentLang === "CZ" ? "TOP ZABIJÁCI" : "TOP KILLERS", 520, HUD_TOP + 10); // Posunuto výš
+  textAlign(LEFT, TOP); fill(hoverKills ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
+  text(currentLang === "CZ" ? "TOP BOJOVNÍCI" : "TOP FIGHTERS", 515, HUD_TOP + 5); 
   
-  textStyle(NORMAL); textSize(11);
-  for(let i=0; i<Math.min(3, allKillsSorted.length); i++) {
-      let pName = allKillsSorted[i][0]; let pData = allKillsSorted[i][1]; let y = HUD_TOP + 28 + i*18; let xBase = 520;
+  textStyle(NORMAL); textSize(14);
+  for(let i=0; i<Math.min(2, allKillsSorted.length); i++) {
+      let pName = allKillsSorted[i][0]; let pData = allKillsSorted[i][1]; let y = HUD_TOP + 28 + i*26; let xBase = 515;
       let currAv = userAvatars[pName] || pData.avatar;
-      if (currAv && currAv !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 6, 7, 0, TWO_PI); drawingContext.clip();
-          image(currAv, xBase - 1, y - 1, 14, 14); drawingContext.restore();
-          fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,8)}`, xBase + 18, y);
-      } else {
-          fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,10)}`, xBase, y);
-      }
-      fill(255); textStyle(BOLD); text(pData.score + " ☠", xBase + 140, y); textStyle(NORMAL);
+
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
+      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
+      else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
+      drawingContext.restore();
+      noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
+
+      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " ☠", xBase + 185, y + 2); textStyle(NORMAL);
   }
 
-  if (allKillsSorted.length > 3) {
-      let numExtra = allKillsSorted.length - 3; let scrollYBase = HUD_TOP + 28 + 3*18; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(515, scrollYBase - 2, 200, 2 * 18 + 4); drawingContext.clip();
-      let itemH = 18; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
+  if (allKillsSorted.length > 2) {
+      let numExtra = allKillsSorted.length - 2; let scrollYBase = HUD_TOP + 28 + 2*26; 
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(510, scrollYBase - 2, 200, 2 * 26 + 4); drawingContext.clip();
+      let itemH = 26; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
       
       for(let i=0; i<numExtra * 2; i++) { 
-          let idx = 3 + (i % numExtra); let pName = allKillsSorted[idx][0]; let pData = allKillsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 520;
+          let idx = 2 + (i % numExtra); let pName = allKillsSorted[idx][0]; let pData = allKillsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 515;
           let currAv = userAvatars[pName] || pData.avatar;
-          if (currAv && currAv !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 6, y + 6, 7, 0, TWO_PI); drawingContext.clip();
-              image(currAv, xBase - 1, y - 1, 14, 14); drawingContext.restore();
-              fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,8)}`, xBase + 18, y);
-          } else { fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,10)}`, xBase, y); }
-          fill(255); textStyle(BOLD); text(pData.score + " ☠", xBase + 140, y); textStyle(NORMAL);
+          
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
+          if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
+          else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
+          drawingContext.restore();
+          noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
+
+          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " ☠", xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
