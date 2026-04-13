@@ -624,7 +624,7 @@ function startNewRound() {
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      spawnPlayer(zName, 100, false, 0, true); // true = isZombie
+      spawnPlayer(zName, 60, false, 0, true); // true = isZombie
   }
 
       // --- VÁŽENÝ ČASOVAČ KOLA (AGRESIVNÍ MONETIZACE) ---
@@ -2251,13 +2251,13 @@ function drawPlayer(p) {
   if (p.isZombie) {
       push();
       drawingContext.setLineDash([8, 8]); // Vzor čáry (8px plná, 8px mezera)
-      strokeWeight(3);
+      strokeWeight(2);
       noFill();
-      stroke(255, 50, 50, 200); // Červená část
-      ellipse(0, 0, p.r * 2.0);
+      stroke(200, 80, 80, 100); // Červená část (vybledlá)
+      ellipse(0, 0, p.r * 1.6);
       drawingContext.lineDashOffset = 8; // Posun do mezery
-      stroke(50, 255, 50, 200); // Zelená část
-      ellipse(0, 0, p.r * 2.0);
+      stroke(80, 200, 80, 100); // Zelená část (vybledlá)
+      ellipse(0, 0, p.r * 1.6);
       drawingContext.setLineDash([]); // Nutný reset vzoru pro zbytek hry!
       drawingContext.lineDashOffset = 0;
       pop();
@@ -2612,7 +2612,7 @@ function updateTimers() {
           // Pokud hráč náhodou už nehraje (např. nedal hned !join)
             if (!players.find(x => x.name === zName)) {
               if (alivePlayersCount < 25 && activeZombiesCount < 15) {
-                  spawnPlayer(zName, 50, false, 0, true); // true = isZombie
+                      spawnPlayer(zName, 30, false, 0, true); // true = isZombie
                   activeZombiesCount++;
                   deadPlayersQueue.splice(i, 1);
                           break; // PŘIDÁNO: Zastaví cyklus. Další mrtvý se spawne až v dalším framu!
