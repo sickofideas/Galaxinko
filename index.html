@@ -2886,7 +2886,11 @@ function drawTopHUD() {
   
   // TOP GIFTERS (3 fixní, od 4. roluje)
   let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 20);
-  giftLbRect = {x: 260, y: HUD_TOP + 28, w: 190, h: 104}; 
+  giftLbRect = {x: 285, y: HUD_TOP + 5, w: 150, h: 20}; 
+  
+  let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
+  textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0)); textSize(14); textStyle(BOLD);
+  text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", W/2, HUD_TOP + 5);
   
   textStyle(NORMAL); textSize(14);
   for(let i=0; i<Math.min(3, allGiftsSorted.length); i++) {
