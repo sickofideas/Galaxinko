@@ -1791,17 +1791,11 @@ function handleCameraAndPlayers() {
     let dirX = dx / distToCenter;
     let dirY = dy / distToCenter;
     
-    // TAH DO STŘEDU A JEDNOTNÁ ROTACE (Odstraněn baseRotDir, aby se hráči neblokovali)
-    let pullForce = 0.000005 * p.body.mass;   // Zmenšený tah do středu, ať se nehromadí
-    let vortexForce = 0.000022 * p.body.mass; // Větší síla rotace, všichni letí jedním směrem
+    // MLÝNEK NA MASO: Silný tah do absolutního středu, mírná rotace
+    let pullForce = 0.000018 * p.body.mass;  // Silnější gravitace
+    let vortexForce = 0.000006 * p.body.mass * p.baseRotDir; // Slabší rotace, ať se z toho nestane centrifuga
 
-    // JEMNÁ OCHRANA ROHŮ: Čím více se kulička blíží k rohu/stěně, tím silněji je vtahována zpět do středu (tvoří kruhovou dráhu)
-    let safeRadius = 300 / cameraScale;
-    if (distToCenter > safeRadius) {
-        pullForce += (distToCenter - safeRadius) * 0.0000004 * p.body.mass;
-    }
-
-    let finalFx = (dirX * pullForce) + (-dirY * vortexForce); // -dirY a dirX tvoří kolmici
+    let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
 
     // Přidání lehkého šumu pro rozbití jakýchkoliv "zaseknutých" hloučků
@@ -1810,6 +1804,7 @@ function handleCameraAndPlayers() {
     p.noiseOffsetX += 0.015;
     p.noiseOffsetY += 0.015;
 
+    // Žádná ochranná zóna - všichni se rurou do jednoho bodu!
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
@@ -1865,12 +1860,11 @@ function handleCameraAndPlayers() {
     }
   }
 
-  // ZOOM KAMERY - Změněno, aby byla aréna nahuštěná!
+  // KLAUSTROFOBICKÁ KAMERA: Držíme detail co nejdéle to jde!
   let len = players.length;
-  if (len >= 120) targetCameraScale = 0.50;      // Extrémní masa koulí
-  else if (len >= 80) targetCameraScale = 0.70;  // Už je tu hodně plno
-  else if (len >= 50) targetCameraScale = 0.85;  // Mírný odzoom pro přehlednost
-  else targetCameraScale = 1.0;                  // Až do 50 lidí pořád krásně v detailu
+  if (len >= 180) targetCameraScale = 0.60;      // Naprostý extrém
+  else if (len >= 120) targetCameraScale = 0.80; // Až při 120 hráčích mírně poodstoupíme
+  else targetCameraScale = 1.0;                  // Do 120 lidí to držíme krásně na tělo!
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.05); 
   
@@ -2768,12 +2762,12 @@ function drawTopHUD() {
       drawingContext.restore();
   }
   
-  // TOP GIFTERS (1 sloupec pro TOP 4, bez nápisu, čistý design)
-  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 4);
+  // TOP GIFTERS (3 fixní, od 4. roluje)
+  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 20);
   giftLbRect = {x: 260, y: HUD_TOP + 28, w: 190, h: 104}; 
   
   textStyle(NORMAL); textSize(14);
-  for(let i=0; i<allGiftsSorted.length; i++) {
+  for(let i=0; i<Math.min(3, allGiftsSorted.length); i++) {
       let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; 
       let xBase = 265; let y = HUD_TOP + 28 + i * 26; 
       
@@ -2784,10 +2778,33 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(gName.substring(0, 8), xBase + 26, y + 2);
+      textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
       
       let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
       textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
+  }
+
+  if (allGiftsSorted.length > 3) {
+      let numExtra = allGiftsSorted.length - 3; let scrollYBase = HUD_TOP + 28 + 3*26; 
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(260, scrollYBase - 2, 200, 28); drawingContext.clip();
+      let itemH = 26; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
+      
+      for(let i=0; i<numExtra * 2; i++) { 
+          let idx = 3 + (i % numExtra); let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 265;
+          let currAv = userAvatars[gName] || gData.avatar;
+          
+          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
+          if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
+          else { fill(gData.color); ellipse(xBase + 10, y + 10, 20, 20); }
+          drawingContext.restore();
+          noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
+
+          textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
+          
+          let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
+          textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
+      }
+      drawingContext.restore();
   }
 
   // TOP BOJOVNICI
