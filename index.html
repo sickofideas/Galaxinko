@@ -689,8 +689,16 @@ function setupEvents() {
           codeActive = false;
           lastCodeWinner = { name: u, img: userAvatars[u] };
           nextCodeTime = millis() + random(45000, 85000);
-          let reward = isUltraCode ? 1500 : 750;
-          handleAction(u, reward);
+              let p = players.find(x => x.name === u);
+              let cType = typeof codeType !== 'undefined' ? codeType : "HP";
+              if (cType === "HP") {
+                  let reward = isUltraCode ? 1500 : 750;
+                  handleAction(u, reward, false, 0, true);
+              } else if (cType === "BOOST") {
+                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hp += 250; } else handleAction(u, 250, false, 0, true);
+              } else if (cType === "SHIELD") {
+                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hp += 250; } else handleAction(u, 250, false, 0, true);
+              }
           addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
           speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
           createParticles(W/2, H/2, color(255, 215, 0), 100);
@@ -741,7 +749,7 @@ function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 
 function triggerGiftEffect(p, diam) {
     // TIER 5: Pán Vesmíru (Armagedon - 10000+ mincí)
     if (diam >= 10000) {
-        p.immunityTimer += 120 * 60; // 2 minuty God Mode
+        p.immunityTimer += 50 * 60; // 50 sekund God Mode
         p.hasCrown = true;
         screenShake = 15;
         p.auraFlash = 120;
@@ -774,7 +782,7 @@ function triggerGiftEffect(p, diam) {
     
     // TIER 4: Bůh Arény (Černá díra - 5000+ mincí)
     else if (diam >= 5000) {
-        p.immunityTimer += 15 * 60; // 15s imunita
+        p.immunityTimer += 50 * 60; // 50s imunita
         p.hasCrown = true;
         screenShake = 10;
         p.auraFlash = 60;
@@ -791,7 +799,7 @@ function triggerGiftEffect(p, diam) {
     
     // TIER 3: Absolutní dominance (Nuke / Slow-mo - 1000+ mincí)
     else if (diam >= 1000) {
-        p.immunityTimer += 10 * 60; // 10s imunita
+        p.immunityTimer += 50 * 60; // 50s imunita
         nukeEffectTimer = 90; // 1.5 vteřiny slow-mo
         engine.timing.timeScale = 0.3;
         screenShake = 8;
@@ -815,7 +823,7 @@ function triggerGiftEffect(p, diam) {
     
     // TIER 2: Šikana a obrana (Shield + Knockback - 100+ mincí)
     else if (diam >= 100) {
-        p.immunityTimer += 10 * 60; // 10s imunita
+        p.immunityTimer += 50 * 60; // 50s imunita
         screenShake = 3;
         p.auraFlash = 30;
         
@@ -878,10 +886,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true)
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam);
   } else {
-        let m = spawnModules.find(x => x.name === name);
-        if (m) {
-            m.hp += finalAmount;
-        } else if (allowSpawn) {
+        if (allowSpawn) {
             let baseHp = getStartingHp(name);
             spawnPlayer(name, baseHp + finalAmount, isGift, diam); 
         }
@@ -1352,9 +1357,10 @@ function drawSecretCodeUI() {
         
         push();
         let baseCol = color(0, 255, 255);
-        if (codeType === "HP" && isUltraCode) baseCol = color(255, 50, 50);
-        else if (codeType === "BOOST") baseCol = color(255, 255, 0);
-        else if (codeType === "SHIELD") baseCol = color(150, 50, 255);
+        let cType = typeof codeType !== 'undefined' ? codeType : "HP";
+        if (cType === "HP" && isUltraCode) baseCol = color(255, 50, 50);
+        else if (cType === "BOOST") baseCol = color(255, 255, 0);
+        else if (cType === "SHIELD") baseCol = color(150, 50, 255);
         
         drawingContext.shadowBlur = random(5, 20);
         drawingContext.shadowColor = baseCol;
@@ -1409,18 +1415,19 @@ function drawSecretCodeUI() {
         if (codeActive) {
             let rewardTxt = "";
             let hintCol = roundThemeColor;
+            let cType = typeof codeType !== 'undefined' ? codeType : "HP";
             
-            if (codeType === "HP") {
+            if (cType === "HP") {
                 rewardTxt = isUltraCode ? "+1500 HP" : "+750 HP";
                 hintCol = isUltraCode ? color(255, 100, 100) : roundThemeColor; 
-            } else if (codeType === "BOOST") {
+            } else if (cType === "BOOST") {
                 rewardTxt = "5s BOOST"; hintCol = color(255, 255, 0);
-            } else if (codeType === "SHIELD") {
+            } else if (cType === "SHIELD") {
                 rewardTxt = "5s SHIELD"; hintCol = color(150, 100, 255);
             }
             
             let hint = currentLang === "CZ" ? `/// ZACHYCEN KÓD: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// SIGNAL DETECTED: FIRST IN CHAT GETS ${rewardTxt} ///`;
-            if (isUltraCode && codeType === "HP") hint = currentLang === "CZ" ? `/// ULTRA KÓD AKTIVOVÁN: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ULTRA CODE ACTIVATED: FIRST IN CHAT GETS ${rewardTxt} ///`;
+            if (isUltraCode && cType === "HP") hint = currentLang === "CZ" ? `/// ULTRA KÓD AKTIVOVÁN: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ULTRA CODE ACTIVATED: FIRST IN CHAT GETS ${rewardTxt} ///`;
             
             // Text je solidní, nebliká a má černý obrys pro perfektní kontrast
             fill(hintCol);
@@ -2584,7 +2591,7 @@ function updateTimers() {
       if (millis() - deadPlayersQueue[i].timeOfDeath > 20000) {
           let zName = deadPlayersQueue[i].name;
           // Pokud hráč náhodou už nehraje (např. nedal hned !join)
-          if (!players.find(x => x.name === zName) && !spawnModules.find(x => x.name === zName)) {
+            if (!players.find(x => x.name === zName)) {
               if (alivePlayersCount < 25 && activeZombiesCount < 15) {
                   spawnPlayer(zName, 50, false, 0, true); // true = isZombie
                   activeZombiesCount++;
@@ -3126,13 +3133,10 @@ function connectTikfinity() {
               addNotification('BOOST', u, userAvatars[u], "REPOST"); 
           }
           else if (!p && (msgLower === "!join" || msgLower === "join")) {
-              let m = spawnModules.find(x => x.name === u);
-              if (!m) {
-                  let baseHp = getStartingHp(u);
-                  spawnPlayer(u, baseHp);
-                  addNotification('JOIN', u, userAvatars[u]);
-                  speakTTS(currentLang === "CZ" ? `Hráč ${u} se oživil a vrátil se do bitvy!` : `Player ${u} has respawned and joined the battle!`);
-              }
+              let baseHp = getStartingHp(u);
+              spawnPlayer(u, baseHp);
+              addNotification('JOIN', u, userAvatars[u]);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} se oživil a vrátil se do bitvy!` : `Player ${u} has respawned and joined the battle!`);
           }
 
           if (codeActive && msg.toUpperCase() === secretCode) {
@@ -3141,13 +3145,14 @@ function connectTikfinity() {
               nextCodeTime = millis() + random(45000, 85000);
 
               let p = players.find(x => x.name === u);
-              if (codeType === "HP") {
+              let cType = typeof codeType !== 'undefined' ? codeType : "HP";
+              if (cType === "HP") {
                   let reward = isUltraCode ? 1500 : 750;
                   handleAction(u, reward, false, 0, true);
-              } else if (codeType === "BOOST") {
+              } else if (cType === "BOOST") {
                   if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hp += 250; } 
                   else handleAction(u, 250, false, 0, true);
-              } else if (codeType === "SHIELD") {
+              } else if (cType === "SHIELD") {
                   if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hp += 250; } 
                   else handleAction(u, 250, false, 0, true);
               }
@@ -3172,9 +3177,7 @@ function connectTikfinity() {
               if (p.isZombie) reviveZombie(p); // Oživení při liku
               p.hp += likesCount * 2;
           } else {
-              if(!spawnModules.find(x => x.name === u)) {
-                  handleAction(u, likesCount * 2, false, 0, true);
-              }
+              handleAction(u, likesCount * 2, false, 0, true);
           }
       }
       else if (evt === "gift") { 
