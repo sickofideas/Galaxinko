@@ -645,7 +645,7 @@ function startNewRound() {
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      spawnPlayer(zName, 60, false, 0, true); // true = isZombie
+      spawnPlayer(zName, 130, false, 0, true); // true = isZombie
   }
 
       // --- VÁŽENÝ ČASOVAČ KOLA (AGRESIVNÍ MONETIZACE) ---
@@ -2236,6 +2236,12 @@ function drawPlayer(p) {
   if (safeHp >= 1000) {
       baseSpin = 0.08 + Math.min(safeHp * 0.00002, 0.4); // Rychlejší agresivní točení
   }
+
+  // Extrémní rotace při aktivním boostu (!boost příkaz)
+  if (p.orbSpeedTimer > 0) {
+      baseSpin = Math.max(baseSpin, 0.35); 
+  }
+  
   p.rot += isBuffed ? baseSpin * p.baseRotDir * 3 : baseSpin * p.baseRotDir;
 
   let isHeavyLoad = players.length > 40; 
@@ -2724,7 +2730,7 @@ function updateTimers() {
           // Pokud hráč náhodou už nehraje (např. nedal hned !join)
             if (!players.find(x => x.name === zName)) {
               if (alivePlayersCount < 25 && activeZombiesCount < 15) {
-                      spawnPlayer(zName, 30, false, 0, true); // true = isZombie
+                      spawnPlayer(zName, 130, false, 0, true); // true = isZombie
                   activeZombiesCount++;
                   deadPlayersQueue.splice(i, 1);
                           break; // PŘIDÁNO: Zastaví cyklus. Další mrtvý se spawne až v dalším framu!
