@@ -2067,14 +2067,37 @@ function handleCameraAndPlayers() {
       // PŘIDÁNO: Zapsání do fronty na oživení (VŽDY, aby se zombíci vraceli donekonečna)
       deadPlayersQueue.push({name: p.name, timeOfDeath: millis()});
 
-      if (!isHeavyLoad && p.body && !isNaN(p.body.position.x)) {
-          if (p.isZombie) {
-              createParticles(p.body.position.x, p.body.position.y, color(50, 255, 50), 20); // Zelený toxický oblak pro zombíky
-              safePlaySound(200, 0.05, 0.2); // Speciální zvuk zombíka
-          } else {
-              createParticles(p.body.position.x, p.body.position.y, p.color, 30);
-              deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-              safePlaySound(150, 0.1, 0.1);
+      if (p.body && !isNaN(p.body.position.x)) {
+          let px = p.body.position.x;
+          let py = p.body.position.y;
+
+          // EFEKT GRANÁTU: Odstrčení nejbližších hráčů
+          for (let other of players) {
+              if (other === p || !other.body) continue;
+              let dx = other.body.position.x - px;
+              let dy = other.body.position.y - py;
+              let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+              let effectRadius = p.r + 120; // Dosah exploze
+              
+              if (dist < effectRadius) {
+                  let forceMag = 0.03 * other.body.mass * (effectRadius / dist); 
+                  forceMag = Math.min(forceMag, 0.3 * other.body.mass); // Zastropování síly odhozu
+                  Matter.Body.applyForce(other.body, other.body.position, {
+                      x: (dx / dist) * forceMag,
+                      y: (dy / dist) * forceMag
+                  });
+              }
+          }
+
+          if (!isHeavyLoad) {
+              if (p.isZombie) {
+                  createParticles(px, py, color(50, 255, 50), 8); // Výrazně méně částic
+                  safePlaySound(200, 0.05, 0.2); // Speciální zvuk zombíka
+              } else {
+                  createParticles(px, py, p.color, 12); // Výrazně méně částic
+                  deathShockwaves.push({x: px, y: py, r: p.r, color: p.color, life: 255});
+                  safePlaySound(150, 0.1, 0.1);
+              }
           }
       }
       if (p.body) Matter.World.remove(world, p.body);
@@ -2432,10 +2455,10 @@ function drawDeathShockwaves() {
       let sw = deathShockwaves[i];
       noFill();
       stroke(red(sw.color), green(sw.color), blue(sw.color), sw.life);
-          strokeWeight(map(sw.life, 255, 0, sw.isNuke ? 50 : 15, 1));
+          strokeWeight(map(sw.life, 255, 0, sw.isNuke ? 50 : 8, 1)); // Zjednodušená tloušťka
       ellipse(sw.x, sw.y, sw.r * 2);
-          sw.r += sw.isNuke ? 25 : 4;
-          sw.life -= sw.isNuke ? 4 : 12;
+          sw.r += sw.isNuke ? 25 : 8; // Rychlejší rozpínání rázové vlny
+          sw.life -= sw.isNuke ? 4 : 25; // Mnohem rychlejší zmizení (čistší animace)
       if (sw.life <= 0) deathShockwaves.splice(i, 1);
   }
 }
