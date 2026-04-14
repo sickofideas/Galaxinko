@@ -1764,6 +1764,7 @@ function drawSpaceshipTimer() {
     let isHeavyLoad = players.length > 40;
     
     let p = 1.0 - (roundTimerFrames / (maxRoundTimer * 60)); 
+    p = constrain(p, 0, 1.0); // Ochrana proti couvnuti za start při extrémním prodloužení kola
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
     let currentDist = p * perim;
@@ -3866,6 +3867,12 @@ function connectTikfinity() {
           // --- 1. FOMO PROGRESS (Sčítání pro všechny) ---
           lastEnergyAddedTime = millis();
           roundTotalCoins += diam;
+
+          // --- PŘIDÁNO: PRODLOUŽENÍ KOLA (1 coin = 1s) ---
+          roundTimerFrames += diam * 60;
+          roundTimer = Math.ceil(roundTimerFrames / 60);
+          let wPos = screenToWorld(shipX, shipY);
+          addPopup("🌹 +" + diam + "s", wPos.x + random(-20, 20), wPos.y - random(30, 60), color(255, 50, 100), true);
 
           // Fading logic pro posledniho donatora
           if (currentLastGifter.name === "") {
