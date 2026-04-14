@@ -2528,7 +2528,7 @@ function drawPlayer(p) {
   let isExtremeLoad = players.length > 60;
   let isEpic = safeHp >= 1000;
 
-  let dangerFactor = constrain(map(safeHp, 50, 0, 0, 1), 0, 1); // Pod 50 HP
+  let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1); // Pod 100 HP začíná červenat
   if (p.isZombie) dangerFactor = 0; // Zrušení varovného červeného pulzování pro zombíky
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
@@ -2562,7 +2562,7 @@ function drawPlayer(p) {
   }
 
   if (!isHeavyLoad && dangerFactor > 0) { 
-      drawingContext.shadowBlur = 10; // Menší a méně agresivní glow pouze pro HP < 50
+      drawingContext.shadowBlur = 10; // Menší a méně agresivní glow pouze pro HP < 100
       drawingContext.shadowColor = actualColor; 
   } else {
       drawingContext.shadowBlur = 0; // Kompletní odstranění glowu u 95% hráčů
@@ -2610,10 +2610,12 @@ function drawPlayer(p) {
           else if (coreType === 3) { fill(actualColor); noStroke(); for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.2); } }
       }
   } else {
-      let outlineWeight = constrain(map(safeHp, 1, 200, 1, 14), 1, 14);
+      // Plynulé zmenšování okraje od 199 do 101 HP (1.75x -> 1.25x)
+      let outlineSizeMult = constrain(map(safeHp, 100, 200, 1.25, 1.75), 1.25, 1.75);
+      let outlineWeight = constrain(map(safeHp, 1, 200, 2, 12), 2, 12);
       stroke(actualColor);
       strokeWeight(p.isZombie ? 2 : outlineWeight);
-      ellipse(0, 0, p.r * 1.75);
+      ellipse(0, 0, p.r * outlineSizeMult);
   }
   
   // Jemná čárkovaná červeno-zelená čára specifiká pro zombíky
