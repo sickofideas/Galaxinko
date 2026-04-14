@@ -1955,12 +1955,12 @@ function handleCameraAndPlayers() {
 
   // KLAUSTROFOBICKÁ KAMERA: Držíme detail co nejdéle to jde!
   let len = players.length;
-  if (len >= 120) targetCameraScale = 0.60;      // Naprostý extrém
-  else if (len >= 70) targetCameraScale = 0.80;  // Mírně poodstoupíme
-  else if (len >= 30) targetCameraScale = 1.0;   // Normální velikost
+  if (len >= 250) targetCameraScale = 0.65;      // Naprostý extrém (když už je to fakt průser)
+  else if (len >= 150) targetCameraScale = 0.85; // Mírně poodstoupíme
+  else if (len >= 80) targetCameraScale = 1.1;   // Stále velmi blízko, ať se tam pořádně mačkají
   else targetCameraScale = 1.35;                 // Úplně nablízko pro poloprázdnou arénu
 
-  cameraScale = lerp(cameraScale, targetCameraScale, 0.05); 
+  cameraScale = lerp(cameraScale, targetCameraScale, 0.015); // Velmi pomalé a plynulé oddalování
   
   let viewW = W / cameraScale; 
   let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
