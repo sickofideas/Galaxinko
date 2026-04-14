@@ -2572,90 +2572,47 @@ function drawPlayer(p) {
 
   // Zuby pily
   if (safeHp >= 200) {
-      let teeth = isEpic ? 16 + Math.floor(safeHp / 1000) : 10 + Math.floor(safeHp / 500) + (p.sawType % 4) * 2;
-      if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); 
-      teeth = Math.min(teeth, 60); 
-      let tType = p.sawType % 3;
+      let teeth = isEpic ? 14 + Math.floor(safeHp / 1500) : 10 + (p.sawType % 3) * 2;
+      if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.5)); 
+      teeth = Math.min(teeth, 40); 
+      let tType = p.sawType % 2; // 0 = Pila, 1 = Ozubené kolo
       
       let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
-      let cR = lerp(20, red(actualColor), fillFactor * 0.85);
-      let cG = lerp(25, green(actualColor), fillFactor * 0.85);
-      let cB = lerp(30, blue(actualColor), fillFactor * 0.85);
-      fill(cR, cG, cB, 255); 
+      fill(lerp(20, red(actualColor), fillFactor * 0.85),
+           lerp(25, green(actualColor), fillFactor * 0.85),
+           lerp(30, blue(actualColor), fillFactor * 0.85), 255); 
+      
       beginShape();
+      let step = TWO_PI / teeth;
       for(let i=0; i<teeth; i++) {
-          let a1 = i * TWO_PI / teeth;
-          let a2 = (i + 1) * TWO_PI / teeth;
-          
-          // Agresivní tvary zubů
-          if (isEpic || tType === 0) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(a1 + TWO_PI/teeth * 0.85)*rOuter, sin(a1 + TWO_PI/teeth * 0.85)*rOuter);
-              vertex(cos(a1 + TWO_PI/teeth * 0.95)*rInner*0.8, sin(a1 + TWO_PI/teeth * 0.95)*rInner*0.8);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(a1 + TWO_PI/teeth * 0.25)*rOuter, sin(a1 + TWO_PI/teeth * 0.25)*rOuter);
-              vertex(cos(a1 + TWO_PI/teeth * 0.5)*rInner*1.05, sin(a1 + TWO_PI/teeth * 0.5)*rInner*1.05);
-              vertex(cos(a1 + TWO_PI/teeth * 0.75)*rOuter, sin(a1 + TWO_PI/teeth * 0.75)*rOuter);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 2) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner);
-              vertex(cos(a1 + TWO_PI/teeth * 0.15)*rOuter*1.05, sin(a1 + TWO_PI/teeth * 0.15)*rOuter*1.05);
-              vertex(cos(a1 + TWO_PI/teeth * 0.35)*rInner, sin(a1 + TWO_PI/teeth * 0.35)*rInner);
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          let a = i * step;
+          if (tType === 0) { 
+              vertex(cos(a)*rInner, sin(a)*rInner);
+              vertex(cos(a + step * 0.8)*rOuter, sin(a + step * 0.8)*rOuter);
+          } else { 
+              vertex(cos(a)*rInner, sin(a)*rInner);
+              vertex(cos(a + step * 0.2)*rOuter, sin(a + step * 0.2)*rOuter);
+              vertex(cos(a + step * 0.8)*rOuter, sin(a + step * 0.8)*rOuter);
           }
       }
       endShape(CLOSE);
 
-      // Vnitřní designy
-      let coreType = p.sawType % 5; 
+      // Zjednodušené vnitřní designy bez zbytečných nýtů a výpočtů
       fill(15, 18, 22, 255);
       stroke(outlineColor);
       strokeWeight(2);
       ellipse(0, 0, p.r * 1.5); 
 
       if (isEpic) {
-          noFill(); stroke(255, 200, 0, 255); strokeWeight(4);
+          noFill(); stroke(255, 200, 0); strokeWeight(4);
           ellipse(0, 0, p.r * 1.3);
-          stroke(255, 100, 0); strokeWeight(5); fill(40, 10, 0, 255); ellipse(0, 0, p.r*1.0);
-          noStroke(); fill(255, 255, 0);
-          for(let i=0; i<8; i++) { 
-              let a = i * TWO_PI / 8;
-              ellipse(cos(a) * p.r * 0.8, sin(a) * p.r * 0.8, 8);
-          }
+          fill(40, 10, 0); stroke(255, 100, 0); strokeWeight(3);
+          ellipse(0, 0, p.r * 0.9);
       } else {
-          if (coreType === 0) {
-              fill(actualColor); noStroke();
-              for(let i=0; i<3; i++) { arc(0, 0, p.r*1.2, p.r*1.2, i*TWO_PI/3, i*TWO_PI/3 + PI/2.5); }
-              fill(15, 18, 22, 255); ellipse(0,0, p.r*0.5); fill(actualColor); ellipse(0,0, p.r*0.25);
-          } 
-          else if (coreType === 1) {
-              stroke(actualColor); strokeWeight(p.r*0.25); noFill(); ellipse(0,0, p.r*0.9);
-              for(let i=0; i<6; i++) { line(0,0, cos(i*TWO_PI/6)*p.r*1.0, sin(i*TWO_PI/6)*p.r*1.0); }
-              fill(actualColor); noStroke(); ellipse(0,0, p.r*0.6); fill(15, 18, 22, 255); ellipse(0,0, p.r*0.3);
-          } 
-          else if (coreType === 2) {
-              fill(actualColor); noStroke();
-              beginShape();
-              for(let i=0; i<8; i++) {
-                  let a = i*TWO_PI/8; let rad = i%2===0 ? p.r*1.2 : p.r*0.35; vertex(cos(a)*rad, sin(a)*rad);
-              }
-              endShape(CLOSE);
-              fill(15, 18, 22, 255); ellipse(0,0, p.r*0.45); stroke(actualColor); strokeWeight(2); ellipse(0,0, p.r*0.25);
-          } 
-          else if (coreType === 3) {
-              fill(actualColor); stroke(255); strokeWeight(2);
-              triangle(-p.r*0.8, p.r*0.6, p.r*0.8, p.r*0.6, 0, -p.r*0.9);
-              fill(15, 18, 22, 255); noStroke(); ellipse(0, p.r*0.25, p.r*0.45); fill(actualColor); ellipse(0, p.r*0.25, p.r*0.2);
-          } 
-          else if (coreType === 4) {
-              fill(actualColor); noStroke();
-              for(let i=0; i<5; i++) {
-                  let a = i*TWO_PI/5;
-                  triangle(cos(a)*p.r*0.25, sin(a)*p.r*0.25, cos(a+0.4)*p.r*1.1, sin(a+0.4)*p.r*1.1, cos(a+0.7)*p.r*1.1, sin(a+0.7)*p.r*1.1);
-              }
-          }
+          fill(actualColor); noStroke();
+          ellipse(0, 0, p.r * 0.8);
+          fill(15, 18, 22);
+          ellipse(0, 0, p.r * 0.4);
       }
   } else {
       let outlineSizeMult = constrain(map(safeHp, 100, 200, 1.25, 1.75), 1.25, 1.75);
