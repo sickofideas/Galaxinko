@@ -2490,41 +2490,37 @@ function drawLightnings() {
 }
 
 function drawPlayer(p) {
-  let pos = p.body.position; let safeHp = Math.max(0, p.hp);
-  let isBuffed = p.likeBuffTimer > 0; if (isBuffed) p.likeBuffTimer--;
+  let pos = p.body.position; 
+  let safeHp = Math.max(0, p.hp);
+  let isBuffed = p.likeBuffTimer > 0;
+  if (isBuffed) p.likeBuffTimer--;
   
-  // 1. FIRE TRAIL (Ohnivá stopa)
+  // 1. FIRE TRAIL
   if (p.hasFireTrail && frameCount % 3 === 0) {
-      createParticles(pos.x, pos.y, color(255, random(100, 200), 0), 2); // Plive oheň
+      createParticles(pos.x, pos.y, color(255, random(100, 200), 0), 2);
   }
 
-  // 2. GOD MODE KOUZLO (Časování)
+  // 2. GOD MODE KOUZLO
   if (p.isGodMode) {
       p.godModeTimer--;
       if (p.godModeTimer <= 0) p.isGodMode = false;
   }
 
-  // Brutálnější rotace pro obry (pily od 1000 HP a více se musí pořádně točit)
+  // Rotace (Zrychleno 10x při lajkování)
   let baseSpin = 0.02 + Math.min(safeHp * 0.000015, 0.2);
-  if (safeHp >= 1000) {
-      baseSpin = 0.08 + Math.min(safeHp * 0.00002, 0.4); // Rychlejší agresivní točení
-  }
-
-  // Extrémní rotace při aktivním boostu (!boost příkaz)
-  if (p.orbSpeedTimer > 0) {
-      baseSpin = Math.max(baseSpin, 0.35); 
-  }
+  if (safeHp >= 1000) baseSpin = 0.08 + Math.min(safeHp * 0.00002, 0.4);
+  if (p.orbSpeedTimer > 0) baseSpin = Math.max(baseSpin, 0.35);
+  p.rot += isBuffed ? baseSpin * p.baseRotDir * 10 : baseSpin * p.baseRotDir;
   
-  p.rot += isBuffed ? baseSpin * p.baseRotDir * 3 : baseSpin * p.baseRotDir;
-
-  let isHeavyLoad = players.length > 40; 
+  let isHeavyLoad = players.length > 40;
   let isExtremeLoad = players.length > 60;
   let isEpic = safeHp >= 1000;
-
-  let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1); // Pod 100 HP začíná červenat
-  if (p.isZombie) dangerFactor = 0; // Zrušení varovného červeného pulzování pro zombíky
+  let dangerFactor = constrain(map(safeHp, 50, 0, 0, 1), 0, 1);
+  if (p.isZombie) dangerFactor = 0;
+  
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
+  // Vykreslení stopy (trail)
   if (!isExtremeLoad && p.trail.length > 1) {
       noFill();
       for (let i = 0; i < p.trail.length - 1; i++) {
@@ -2535,117 +2531,152 @@ function drawPlayer(p) {
   }
 
   push(); 
-  translate(pos.x, pos.y); 
-  scale(isBuffed ? 1.2 : 1.0); 
+  translate(pos.x, pos.y);
+  scale(isBuffed ? 1.05 : 1.0);
   rotate(p.rot);
-  
+
+  // Varovné pulzování pro umírající
   if (p.auraFlash > 0 || dangerFactor > 0) {
       let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 0;
-      if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 60 + sin(frameCount*0.2)*30); // Zjemněný glow
+      if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 120 + sin(frameCount*0.3)*80);
       fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
-      noStroke(); ellipse(0, 0, p.r * 1.8); // Zmenšeno z 2.4
+      noStroke();
+      ellipse(0, 0, p.r * 1.8);
   }
   if(p.auraFlash > 0) p.auraFlash--;
 
-  if (!isHeavyLoad && dangerFactor > 0) { 
-      drawingContext.shadowBlur = 10; // Menší a méně agresivní glow pouze pro HP < 100
-      drawingContext.shadowColor = actualColor; 
-  } else {
-      drawingContext.shadowBlur = 0; // Kompletní odstranění glowu u 95% hráčů
+  // Buff záře
+  if (isBuffed) { 
+      fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke();
+      ellipse(0, 0, p.r * 2.0);
+      if (frameCount % 5 === 0 && !isExtremeLoad) createParticles(pos.x, pos.y, color(255, 150, 0), 1);
   }
-  
-  // --- 1. ZÁKLADNÍ SOLIDNÍ VÝPLŇ PILY (100% neprůhlednost) ---
-  let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
-  let baseR = 20, baseG = 25, baseB = 30;
-  let cR = lerp(baseR, red(actualColor), fillFactor * 0.85);
-  let cG = lerp(baseG, green(actualColor), fillFactor * 0.85);
-  let cB = lerp(baseB, blue(actualColor), fillFactor * 0.85);
-  fill(cR, cG, cB, 255); // Plynulé projasnění podle lajkování
-  
+
   let outlineColor = actualColor;
   if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
       colorMode(HSB, 360, 100, 100);
       outlineColor = color((frameCount * 6) % 360, 100, 100);
       colorMode(RGB, 255);
   }
-  
+
+  // --- ZÁKLAD A ZUBY PILY ---
   stroke(outlineColor);
   strokeWeight(isEpic ? 3 : 2);
 
-  let rOuter = isEpic ? p.r * 1.15 : p.r * 1.1;
-  let rInner = isEpic ? p.r * 0.9 : p.r * 0.95;
+  // Mírnější rozměry pily pro kratší bodáky
+  let rOuter = isEpic ? p.r * 1.25 : p.r * 1.15;
+  let rInner = isEpic ? p.r * 0.8 : p.r * 0.9;
 
-  // Vykreslení obrysu pily
+  // Zuby pily
   if (safeHp >= 200) {
-      let teeth = isEpic ? 16 + Math.floor(safeHp / 1000) : 10 + Math.floor(safeHp / 500) + (p.sawType % 4) * 2; 
+      let teeth = isEpic ? 16 + Math.floor(safeHp / 1000) : 10 + Math.floor(safeHp / 500) + (p.sawType % 4) * 2;
       if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4)); 
       teeth = Math.min(teeth, 60); 
       let tType = p.sawType % 3;
       
+      let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
+      let cR = lerp(20, red(actualColor), fillFactor * 0.85);
+      let cG = lerp(25, green(actualColor), fillFactor * 0.85);
+      let cB = lerp(30, blue(actualColor), fillFactor * 0.85);
+      fill(cR, cG, cB, 255); 
       beginShape();
       for(let i=0; i<teeth; i++) {
-          let a1 = i * TWO_PI / teeth; let a2 = (i + 1) * TWO_PI / teeth;
+          let a1 = i * TWO_PI / teeth;
+          let a2 = (i + 1) * TWO_PI / teeth;
+          
+          // Agresivní tvary zubů
           if (isEpic || tType === 0) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos(a1 + TWO_PI/teeth * 0.85)*rOuter, sin(a1 + TWO_PI/teeth * 0.85)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(a1 + TWO_PI/teeth * 0.85)*rOuter, sin(a1 + TWO_PI/teeth * 0.85)*rOuter);
+              vertex(cos(a1 + TWO_PI/teeth * 0.95)*rInner*0.8, sin(a1 + TWO_PI/teeth * 0.95)*rInner*0.8);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
           } else if (tType === 1) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos(a1 + TWO_PI/teeth * 0.25)*rOuter, sin(a1 + TWO_PI/teeth * 0.25)*rOuter); vertex(cos(a1 + TWO_PI/teeth * 0.75)*rOuter, sin(a1 + TWO_PI/teeth * 0.75)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(a1 + TWO_PI/teeth * 0.25)*rOuter, sin(a1 + TWO_PI/teeth * 0.25)*rOuter);
+              vertex(cos(a1 + TWO_PI/teeth * 0.5)*rInner*1.05, sin(a1 + TWO_PI/teeth * 0.5)*rInner*1.05);
+              vertex(cos(a1 + TWO_PI/teeth * 0.75)*rOuter, sin(a1 + TWO_PI/teeth * 0.75)*rOuter);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
           } else if (tType === 2) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner); vertex(cos((a1 + a2) / 2)*rOuter, sin((a1 + a2) / 2)*rOuter); vertex(cos(a2)*rInner, sin(a2)*rInner);
+              vertex(cos(a1)*rInner, sin(a1)*rInner);
+              vertex(cos(a1 + TWO_PI/teeth * 0.15)*rOuter*1.05, sin(a1 + TWO_PI/teeth * 0.15)*rOuter*1.05);
+              vertex(cos(a1 + TWO_PI/teeth * 0.35)*rInner, sin(a1 + TWO_PI/teeth * 0.35)*rInner);
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
           }
       }
       endShape(CLOSE);
-      
-      let coreType = Math.floor(p.sawType / 3) % 4; 
+
+      // Vnitřní designy
+      let coreType = p.sawType % 5; 
+      fill(15, 18, 22, 255);
+      stroke(outlineColor);
+      strokeWeight(2);
+      ellipse(0, 0, p.r * 1.5); 
+
       if (isEpic) {
-          noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.3);
-          stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0); ellipse(0, 0, p.r*1.05);
-          noStroke(); fill(255, 255, 0); ellipse(-p.r*0.3, 0, 5); ellipse(p.r*0.3, 0, 5); ellipse(0, -p.r*0.3, 5); ellipse(0, p.r*0.3, 5);
+          noFill(); stroke(255, 200, 0, 255); strokeWeight(4);
+          ellipse(0, 0, p.r * 1.3);
+          stroke(255, 100, 0); strokeWeight(5); fill(40, 10, 0, 255); ellipse(0, 0, p.r*1.0);
+          noStroke(); fill(255, 255, 0);
+          for(let i=0; i<8; i++) { 
+              let a = i * TWO_PI / 8;
+              ellipse(cos(a) * p.r * 0.8, sin(a) * p.r * 0.8, 8);
+          }
       } else {
-          if (coreType === 0) { noFill(); stroke(outlineColor); strokeWeight(1); ellipse(0,0,p.r*0.7); }
-          else if (coreType === 1) { fill(actualColor); noStroke(); ellipse(0,0,p.r*0.3); }
-          else if (coreType === 2) { noFill(); stroke(outlineColor); strokeWeight(2); rectMode(CENTER); rect(0, 0, p.r*0.5, p.r*0.5, 3); rectMode(CORNER); }
-          else if (coreType === 3) { fill(actualColor); noStroke(); for(let i=0; i<3; i++) { let a = i*TWO_PI/3; ellipse(cos(a)*p.r*0.4, sin(a)*p.r*0.4, p.r*0.2); } }
+          if (coreType === 0) {
+              fill(actualColor); noStroke();
+              for(let i=0; i<3; i++) { arc(0, 0, p.r*1.2, p.r*1.2, i*TWO_PI/3, i*TWO_PI/3 + PI/2.5); }
+              fill(15, 18, 22, 255); ellipse(0,0, p.r*0.5); fill(actualColor); ellipse(0,0, p.r*0.25);
+          } 
+          else if (coreType === 1) {
+              stroke(actualColor); strokeWeight(p.r*0.25); noFill(); ellipse(0,0, p.r*0.9);
+              for(let i=0; i<6; i++) { line(0,0, cos(i*TWO_PI/6)*p.r*1.0, sin(i*TWO_PI/6)*p.r*1.0); }
+              fill(actualColor); noStroke(); ellipse(0,0, p.r*0.6); fill(15, 18, 22, 255); ellipse(0,0, p.r*0.3);
+          } 
+          else if (coreType === 2) {
+              fill(actualColor); noStroke();
+              beginShape();
+              for(let i=0; i<8; i++) {
+                  let a = i*TWO_PI/8; let rad = i%2===0 ? p.r*1.2 : p.r*0.35; vertex(cos(a)*rad, sin(a)*rad);
+              }
+              endShape(CLOSE);
+              fill(15, 18, 22, 255); ellipse(0,0, p.r*0.45); stroke(actualColor); strokeWeight(2); ellipse(0,0, p.r*0.25);
+          } 
+          else if (coreType === 3) {
+              fill(actualColor); stroke(255); strokeWeight(2);
+              triangle(-p.r*0.8, p.r*0.6, p.r*0.8, p.r*0.6, 0, -p.r*0.9);
+              fill(15, 18, 22, 255); noStroke(); ellipse(0, p.r*0.25, p.r*0.45); fill(actualColor); ellipse(0, p.r*0.25, p.r*0.2);
+          } 
+          else if (coreType === 4) {
+              fill(actualColor); noStroke();
+              for(let i=0; i<5; i++) {
+                  let a = i*TWO_PI/5;
+                  triangle(cos(a)*p.r*0.25, sin(a)*p.r*0.25, cos(a+0.4)*p.r*1.1, sin(a+0.4)*p.r*1.1, cos(a+0.7)*p.r*1.1, sin(a+0.7)*p.r*1.1);
+              }
+          }
       }
   } else {
-      // Plynulé zmenšování okraje od 199 do 101 HP (1.75x -> 1.25x)
       let outlineSizeMult = constrain(map(safeHp, 100, 200, 1.25, 1.75), 1.25, 1.75);
       let outlineWeight = constrain(map(safeHp, 1, 200, 2, 12), 2, 12);
+      
+      fill(20, 25, 30, 255); 
       stroke(outlineColor);
       strokeWeight(p.isZombie ? 2 : outlineWeight);
       ellipse(0, 0, p.r * outlineSizeMult);
       
-      let pColorDark = color(red(actualColor)*0.25, green(actualColor)*0.25, blue(actualColor)*0.25);
-      fill(pColorDark);
-      noStroke();
-      ellipse(0, 0, p.r * outlineSizeMult - outlineWeight); 
-      
-      stroke(0, 100);
-      strokeWeight(2);
-      let lineOuter = (p.r * outlineSizeMult / 2) * 0.9;
-      let lineInner = p.r * 0.7; 
-      for(let i=0; i<4; i++) {
-          let a = i * TWO_PI / 4;
-          line(cos(a) * lineInner, sin(a) * lineInner, cos(a) * lineOuter, sin(a) * lineOuter);
-      }
+      noStroke(); fill(actualColor);
+      ellipse(0, 0, p.r * 0.7);
   }
   
-  // Jemná čárkovaná červeno-zelená čára specifiká pro zombíky
   if (p.isZombie) {
       push();
-      drawingContext.setLineDash([8, 8]); // Vzor čáry (8px plná, 8px mezera)
-      strokeWeight(2);
-      noFill();
-      stroke(200, 80, 80, 100); // Červená část (vybledlá)
-      ellipse(0, 0, p.r * 1.6);
-      drawingContext.lineDashOffset = 8; // Posun do mezery
-      stroke(80, 200, 80, 100); // Zelená část (vybledlá)
-      ellipse(0, 0, p.r * 1.6);
-      drawingContext.setLineDash([]); // Nutný reset vzoru pro zbytek hry!
-      drawingContext.lineDashOffset = 0;
+      drawingContext.setLineDash([8, 8]);
+      strokeWeight(2); noFill();
+      stroke(200, 80, 80, 100); ellipse(0, 0, p.r * 1.6);
+      drawingContext.lineDashOffset = 8;
+      stroke(80, 200, 80, 100); ellipse(0, 0, p.r * 1.6);
+      drawingContext.setLineDash([]); drawingContext.lineDashOffset = 0;
       pop();
   }
-
-  drawingContext.shadowBlur = 0;
 
   rotate(-p.rot); 
   
@@ -2653,37 +2684,27 @@ function drawPlayer(p) {
       push();
       rotate(frameCount * 0.05);
       let tSize = p.r * 2.8 + sin(frameCount * 0.2) * 10;
-      drawingContext.shadowBlur = 20;
-      drawingContext.shadowColor = color(255, 0, 0);
       fill(255, 0, 0, 40); stroke(255, 50, 50, 200); strokeWeight(3);
       ellipse(0, 0, tSize);
       let cL = tSize * 0.2;
-      line(-tSize/2 - 10, 0, -tSize/2 + cL, 0);
-      line(tSize/2 + 10, 0, tSize/2 - cL, 0);
-      line(0, -tSize/2 - 10, 0, -tSize/2 + cL);
-      line(0, tSize/2 + 10, 0, tSize/2 - cL);
-      noFill(); stroke(255, 0, 0, 100); strokeWeight(1);
-      ellipse(0, 0, tSize * 0.6);
+      line(-tSize/2 - 10, 0, -tSize/2 + cL, 0); line(tSize/2 + 10, 0, tSize/2 - cL, 0);
+      line(0, -tSize/2 - 10, 0, -tSize/2 + cL); line(0, tSize/2 + 10, 0, tSize/2 - cL);
+      noFill(); stroke(255, 0, 0, 100); strokeWeight(1); ellipse(0, 0, tSize * 0.6);
       pop();
   }
 
   if (p.immunityTimer > 0) {
       push();
       let pulse = sin(frameCount * 0.1) * 10;
-      drawingContext.shadowBlur = 20;
-      drawingContext.shadowColor = color(100, 50, 255);
       fill(50, 100, 255, 60 + sin(frameCount * 0.2) * 40);
-      stroke(100, 150, 255, 200);
-      strokeWeight(3);
+      stroke(100, 150, 255, 200); strokeWeight(3);
       ellipse(0, 0, p.r * 2.8 + pulse);
       
       rotate(frameCount * 0.05);
       for(let o = 0; o < 3; o++) {
           let a = (o * TWO_PI) / 3;
-          let ox = cos(a) * (p.r * 1.4 + pulse/2);
-          let oy = sin(a) * (p.r * 1.4 + pulse/2);
-          fill(255); noStroke();
-          ellipse(ox, oy, 6 + random(-2, 2));
+          let ox = cos(a) * (p.r * 1.4 + pulse/2); let oy = sin(a) * (p.r * 1.4 + pulse/2);
+          fill(255); noStroke(); ellipse(ox, oy, 6 + random(-2, 2));
       }
       pop();
   }
@@ -2699,85 +2720,64 @@ function drawPlayer(p) {
       pop();
   }
   
-  // 2. GOD MODE AURA (Gigantická záře)
   if (p.isGodMode) {
-      push();
-      noFill();
-      strokeWeight(5 + sin(frameCount * 0.2) * 5); // Pulzující aura
-      stroke(255, 0, 0, 150);
-      drawingContext.shadowBlur = 20;
-      drawingContext.shadowColor = color(255, 0, 0);
+      push(); noFill();
+      strokeWeight(5 + sin(frameCount * 0.2) * 5); stroke(255, 0, 0, 150);
       ellipse(0, 0, p.r * 2 + 20);
       pop();
   }
 
-  // 3. RAINBOW CROWN (Duhová koruna pro 5000+)
   if (p.hasRainbowCrown) {
       push();
       translate(0, -p.r - 25);
       colorMode(HSB, 360, 100, 100);
-      fill((frameCount * 4) % 360, 100, 100); // Mění barvy
-      stroke(255);
-      strokeWeight(2);
+      fill((frameCount * 4) % 360, 100, 100);
+      stroke(255); strokeWeight(2);
       beginShape();
       vertex(-15, 0); vertex(-25, -20); vertex(-10, -10);
-      vertex(0, -25); vertex(10, -10);  vertex(25, -20);
-      vertex(15, 0);
+      vertex(0, -25); vertex(10, -10);  vertex(25, -20); vertex(15, 0);
       endShape(CLOSE);
       colorMode(RGB, 255);
       pop();
   }
 
   let imgSize = p.r * 1.6;
-  
-  // Zjistíme, jestli je hráč aktuálně v TOP 10 největších
   let isTop10 = currentTop10.includes(p.name);
-
-  // Vykreslíme profilovku JEN pokud je hráč v TOP 10,
-  // NEBO pokud je v aréně zrovna málo lidí (méně než 20, např. na začátku kola)
   let shouldDrawAvatar = isTop10 || players.length <= 20;
 
-  // Plynulý fade-in / fade-out profilovek
   if (p.avatarAlpha === undefined) p.avatarAlpha = shouldDrawAvatar ? 255 : 0;
-  if (shouldDrawAvatar) {
-      p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
-  } else {
-      p.avatarAlpha = Math.max(0, p.avatarAlpha - 15);
-  }
+  if (shouldDrawAvatar) p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
+  else p.avatarAlpha = Math.max(0, p.avatarAlpha - 15);
 
-  // VŽDY nakreslíme tmavý podklad (aby fotka nemizela do prázdna, ale do tmavé barvy)
-  fill(35); 
+  fill(10, 12, 15, 255); 
   noStroke();
   ellipse(0, 0, imgSize); 
 
   if (p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-      drawingContext.save(); 
+      drawingContext.save();
       drawingContext.beginPath();
       drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
       drawingContext.clip();
       
-      // Zombíkům dáme šedý filtr (pokud jsi už přidal zombie mód)
-      if (p.isZombie) drawingContext.filter = 'grayscale(100%)'; 
-      
+      if (p.isZombie) drawingContext.filter = 'grayscale(100%)';
       tint(255, p.avatarAlpha);
       imageMode(CENTER); 
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
-      noTint(); // Nutné resetovat tint, aby nezprůhlednil zbytek hry!
-      
-      drawingContext.filter = 'none'; // Vypnutí filtru pro jistotu
+      noTint(); 
+      drawingContext.filter = 'none';
       drawingContext.restore();
   }
 
-  noFill(); stroke(0, 150); strokeWeight(3); ellipse(0, 0, imgSize);
+  noFill(); 
+  stroke(0); strokeWeight(4); ellipse(0, 0, imgSize);
+  stroke(255, 200); strokeWeight(2); ellipse(0, 0, imgSize + 4);
 
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
-  if (!isHeavyLoad) { drawingContext.shadowBlur = 5; drawingContext.shadowColor = 'black'; }
   
   let nameCol = color(230);
   if (p.immunityTimer > 0) {
       colorMode(HSB);
-      nameCol = color((frameCount * 5) % 360, 255, 255);
-      colorMode(RGB);
+      nameCol = color((frameCount * 5) % 360, 255, 255); colorMode(RGB);
   }
 
   if (p.r > 20) {
@@ -2816,12 +2816,12 @@ function drawPlayer(p) {
   
   if (p.isLegendary) {
       stroke(0); strokeWeight(Math.max(3, p.r * 0.15));
-      fill(255, 215, 0); // Zlatá barva
+      fill(255, 215, 0);
       textSize(Math.floor(Math.max(10, p.r * 0.22)));
       text("👑 LEGEND", 0, p.r > 20 ? p.r * 0.65 : 15);
   }
 
-  drawingContext.shadowBlur = 0; noStroke(); pop();
+  noStroke(); pop();
 }
 
 function createParticles(x, y, c, count, type = 'CIRCLE') {
