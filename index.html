@@ -648,6 +648,7 @@ let globalFlowAngle = 0;
 let roundTimer = 0;
 let roundTimerFrames = 0;
 let maxRoundTimer = 0; 
+let roundTimerPause = 0;
 let bonusFrames = []; 
 let explosionTimer = 0;
 let gameState = "PLAYING"; 
@@ -898,6 +899,7 @@ function startNewRound() {
       }
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
+  roundTimerPause = 0;
   
   // Statická barva odstraněna - aréna nyní plynule a ambientně mění barvu v draw()
   roundThemeColor = color(0, 255, 255);
@@ -2997,7 +2999,11 @@ function updateTimers() {
   }
 
   if (gameState === "PLAYING" && roundTimerFrames > 0) {
-    roundTimerFrames--;
+    if (roundTimerPause > 0) {
+        roundTimerPause--; // Pokud se spamuje na startu, odpočet čeká
+    } else {
+        roundTimerFrames--;
+    }
     
     if (bonusFrames.includes(roundTimerFrames)) {
         shootBonusFromShip();
@@ -3870,6 +3876,12 @@ function connectTikfinity() {
 
           // --- PŘIDÁNO: PRODLOUŽENÍ KOLA (1 coin = 1s) ---
           roundTimerFrames += diam * 60;
+          
+          if (roundTimerFrames >= maxRoundTimer * 60) {
+              roundTimerFrames = maxRoundTimer * 60; // Zastropuje se, neprodlužuje max délku kola
+              roundTimerPause = 60; // 1 vteřina čekání po posledním donatu na startovní čáře
+          }
+          
           roundTimer = Math.ceil(roundTimerFrames / 60);
           let wPos = screenToWorld(shipX, shipY);
           addPopup("🌹 +" + diam + "s", wPos.x + random(-20, 20), wPos.y - random(30, 60), color(255, 50, 100), true);
