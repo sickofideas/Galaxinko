@@ -719,16 +719,16 @@ function playDonateSound() {
     let notes = [261.63, 329.63, 392.00, 523.25, 659.25]; 
     let base = random(notes) + random(-10, 10); // Lehká odchylka pro variabilitu
     
-    safePlaySound(base, 0.1, 0.1);
-    setTimeout(() => safePlaySound(base * 1.25, 0.1, 0.2), 80);
-    setTimeout(() => safePlaySound(base * 1.5, 0.1, 0.3), 160);
+    safePlaySound(base, 0.02, 0.1);
+    setTimeout(() => safePlaySound(base * 1.25, 0.02, 0.2), 80);
+    setTimeout(() => safePlaySound(base * 1.5, 0.02, 0.3), 160);
 }
 
 function playFollowSound() {
     if (!audioStarted || !synth) return;
     let base = random([440, 554, 659]);
-    safePlaySound(base, 0.05, 0.15);
-    setTimeout(() => safePlaySound(base * 2, 0.05, 0.2), 100);
+    safePlaySound(base, 0.01, 0.15);
+    setTimeout(() => safePlaySound(base * 2, 0.01, 0.2), 100);
 }
 
 function playChatSound() {
@@ -1213,7 +1213,7 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
       life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie, comboMult: comboMult
   });
-  safePlaySound(400, 0.1, 0.1);
+      safePlaySound(400, 0.01, 0.1);
 }
 
 function handleSpawnModules() {
@@ -1272,7 +1272,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   }
   
   createParticles(spawnX, spawnY, playerColor, 15);
-  safePlaySound(random([400, 500, 600, 700, 800]), 0.05, 0.1);
+  safePlaySound(random([400, 500, 600, 700, 800]), 0.01, 0.1);
 }
 
 function updateHpLB(name, hp, col) {
@@ -1407,7 +1407,7 @@ function handleCombat(p1, p2) {
       let dominantColor = finalDmgTo2 > finalDmgTo1 ? p1.color : p2.color;
       lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: dominantColor});
       createParticles(cx, cy, dominantColor, 6); 
-      safePlaySound(random(100, 200), 0.1, 0.4); // Zvuk hromu při nárazu
+      safePlaySound(random(100, 200), 0.01, 0.4); // Zvuk hromu při nárazu
   }
   
   if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
@@ -1418,7 +1418,7 @@ function handleCombat(p1, p2) {
   }
 
   if (isCrit1 || isCrit2) {
-      safePlaySound(random(1200, 1800), 0.05, 0.2);
+      safePlaySound(random(1200, 1800), 0.01, 0.2);
   }
 }
 
@@ -1456,7 +1456,7 @@ function shootBonusFromShip() {
       isFlying: true,
       type: isSpeedOrb ? 'SPEED' : 'HP'
   });
-  safePlaySound(random(700, 900), 0.1, 0.3);
+  safePlaySound(random(700, 900), 0.015, 0.3);
 }
 
 function handleOrbs() {
@@ -1474,7 +1474,7 @@ function handleOrbs() {
               o.isFlying = false;
               o.x = o.targetX; o.y = o.targetY;
               createParticles(o.x, o.y, color(0, 255, 255), 20);
-              safePlaySound(1000, 0.1, 0.2);
+              safePlaySound(1000, 0.02, 0.2);
           }
           
           push();
@@ -1536,11 +1536,11 @@ function handleOrbs() {
               if (o.type === 'SPEED') {
                   p.orbSpeedTimer = 10 * 60; // 10 sekund při 60 FPS
                   if (!isHeavyLoad) addPopup("5x SPEED BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 255, 0));
-                  safePlaySound(random(1400, 1600), 0.1, 0.3);
+                  safePlaySound(random(1400, 1600), 0.01, 0.3);
               } else {
                   p.hp += o.value;
                   if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
-                  safePlaySound(random(1000, 1300), 0.1, 0.2);
+                  safePlaySound(random(1000, 1300), 0.01, 0.2);
               }
               createParticles(o.x, o.y, orbColor, 15);
               collected = true; break;
@@ -2085,11 +2085,11 @@ function handleCameraAndPlayers() {
           if (!isHeavyLoad) {
               if (p.isZombie) {
                   createParticles(px, py, color(50, 255, 50), 8); // Výrazně méně částic
-                  safePlaySound(200, 0.05, 0.2); // Speciální zvuk zombíka
+                  safePlaySound(200, 0.01, 0.2); // Speciální zvuk zombíka
               } else {
                   createParticles(px, py, p.color, 12); // Výrazně méně částic
                   deathShockwaves.push({x: px, y: py, r: p.r, color: p.color, life: 255});
-                  safePlaySound(150, 0.1, 0.1);
+                  safePlaySound(150, 0.02, 0.1);
               }
           }
       }
@@ -2111,7 +2111,7 @@ function handleCameraAndPlayers() {
                 }
                 if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
                 if (!isHeavyLoad) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
-                        safePlaySound(random(100, 250), 0.05, 0.3); // Hrom pro blesk z giganta
+                        safePlaySound(random(100, 250), 0.01, 0.3); // Hrom pro blesk z giganta
                 break; 
             }
         }
@@ -2547,13 +2547,6 @@ function drawPlayer(p) {
   }
   if(p.auraFlash > 0) p.auraFlash--;
 
-  if (isBuffed) { 
-      fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke(); ellipse(0, 0, p.r * 2.0); // Zmenšeno z 2.5
-      if (frameCount % 5 === 0 && !isExtremeLoad) {
-          createParticles(pos.x, pos.y, color(255, 150, 0), 1);
-      }
-  }
-
   if (!isHeavyLoad && dangerFactor > 0) { 
       drawingContext.shadowBlur = 10; // Menší a méně agresivní glow pouze pro HP < 100
       drawingContext.shadowColor = actualColor; 
@@ -2562,7 +2555,12 @@ function drawPlayer(p) {
   }
   
   // --- 1. ZÁKLADNÍ SOLIDNÍ VÝPLŇ PILY (100% neprůhlednost) ---
-  fill(20, 25, 30, 255); // Temný, absolutně neprůhledný kovový základ
+  let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
+  let baseR = 20, baseG = 25, baseB = 30;
+  let cR = lerp(baseR, red(actualColor), fillFactor * 0.85);
+  let cG = lerp(baseG, green(actualColor), fillFactor * 0.85);
+  let cB = lerp(baseB, blue(actualColor), fillFactor * 0.85);
+  fill(cR, cG, cB, 255); // Plynulé projasnění podle lajkování
   
   let outlineColor = actualColor;
   if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
@@ -2786,8 +2784,25 @@ function drawPlayer(p) {
       stroke(0); strokeWeight(Math.max(4, p.r * 0.15));
       fill(nameCol); textStyle(NORMAL);
       textSize(Math.floor(Math.max(10, p.r * 0.28))); 
-      let dispName = isBuffed ? "🔥 " + p.name.substring(0, 8) : p.name.substring(0, 10);
+      let dispName = p.name.substring(0, 10);
       text(dispName, 0, -p.r * 0.45); 
+      
+      if (isBuffed) {
+          push();
+          let heartPulse = 1.0 + sin(frameCount * 0.3) * 0.2;
+          translate(0, -p.r * 0.08); // Umístění přesně mezi jméno a HP
+          scale(heartPulse);
+          fill(255, 50, 100);
+          stroke(0);
+          strokeWeight(Math.max(1, p.r * 0.04));
+          let hs = p.r * 0.25;
+          beginShape();
+          vertex(0, -hs/4);
+          bezierVertex(-hs/2, -hs*0.75, -hs, -hs/4, 0, hs/2);
+          bezierVertex(hs, -hs/4, hs/2, -hs*0.75, 0, -hs/4);
+          endShape(CLOSE);
+          pop();
+      }
   }
 
   let txtCol = color(255);
@@ -2809,7 +2824,7 @@ function drawPlayer(p) {
   drawingContext.shadowBlur = 0; noStroke(); pop();
 }
 
-function createParticles(x, y, c, count) {
+function createParticles(x, y, c, count, type = 'CIRCLE') {
   if (players.length > 80) return; 
   let actualCount = count;
   if (players.length > 60) {
@@ -2818,7 +2833,8 @@ function createParticles(x, y, c, count) {
       actualCount = Math.max(1, Math.floor(count / 2));
   }
   for(let i=0; i<actualCount; i++) {
-      particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: random(4, 10)});
+      let pSize = type === 'HEART' ? random(8, 16) : random(4, 10);
+      particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: pSize, type: type});
   }
 }
 
@@ -2830,7 +2846,21 @@ function drawParticles() {
     let p = particles[i];
     if(useGlow) drawingContext.shadowColor = p.c;
     fill(red(p.c), green(p.c), blue(p.c), p.life);
-    ellipse(p.x, p.y, p.size);
+        
+        if (p.type === 'HEART') {
+            push();
+            translate(p.x, p.y);
+            let s = p.size;
+            beginShape();
+            vertex(0, -s/4);
+            bezierVertex(-s/2, -s*0.75, -s, -s/4, 0, s/2);
+            bezierVertex(s, -s/4, s/2, -s*0.75, 0, -s/4);
+            endShape(CLOSE);
+            pop();
+        } else {
+            ellipse(p.x, p.y, p.size);
+        }
+        
     p.x += p.vx; p.y += p.vy; p.vx *= 0.95; p.vy *= 0.95; p.size *= 0.98; p.life -= 15; 
     if(p.life <= 0) particles.splice(i, 1);
   }
@@ -2956,7 +2986,7 @@ function updateTimers() {
                       addPopup("SHREDDED!", p.body.position.x, p.body.position.y, color(255, 0, 0), true);
                       createParticles(p.body.position.x, p.body.position.y, color(150, 0, 255), 20);
                       screenShake = 5;
-                      safePlaySound(150, 0.5, 1.0);
+                      safePlaySound(150, 0.05, 1.0);
                   }
               }
           }
@@ -3023,19 +3053,18 @@ function updateTimers() {
 
           let p = players.find(x => x.name === u);
           if (p) {
-              p.auraFlash = 20;
               p.likeBuffTimer = 90;
               if (players.length < 50) {
                   addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-                  // Méně částic = méně lagů
-                  createParticles(p.body.position.x, p.body.position.y, color(255, 50, 100), isMega ? 8 : 3);
+                  // Méně částic = méně lagů, typ HEART
+                  createParticles(p.body.position.x, p.body.position.y, color(255, 50, 100), isMega ? 8 : 3, 'HEART');
               }
               
               if (p.hp >= 200) {
                   // Zvuk pily (jemný, hlubší, mechanický rachtavý zvuk)
-                  safePlaySound(random(100, 150), 0.03, 0.1);
+                  safePlaySound(random(100, 150), 0.005, 0.1);
               } else {
-                  safePlaySound(random([400, 500, 600, 700]), 0.05, 0.1);
+                  safePlaySound(random([400, 500, 600, 700]), 0.01, 0.1);
               }
           }
 
