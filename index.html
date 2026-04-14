@@ -2697,11 +2697,26 @@ function updateTimers() {
     if (frameCount % 60 === 0) roundTimer = Math.ceil(roundTimerFrames / 60);
 
     if (roundTimerFrames <= 0) {
-        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 2; 
+        gameState = "EXPLODING"; explosionTimer = 90; screenShake = 40; 
+        codeActive = false; // Zruší probíhající hádání kódu
+        
         safePlaySound(80, 0.5, 0.8); setTimeout(() => { safePlaySound(60, 0.8, 1.0); }, 200);
-        let wPos = screenToWorld(shipX, shipY);
-        deathShockwaves.push({x: wPos.x, y: wPos.y, r: 80, color: color(0, 255, 255), life: 255});
-        createParticles(wPos.x, wPos.y, color(0, 255, 255), 80); createParticles(wPos.x, wPos.y, color(255, 100, 0), 80);
+        
+        let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
+        deathShockwaves.push({x: cx, y: cy, r: 80, color: color(0, 255, 255), life: 255, isNuke: true});
+        deathShockwaves.push({x: cx, y: cy, r: 150, color: color(255, 100, 0), life: 255, isNuke: true});
+        createParticles(cx, cy, color(0, 255, 255), 100); 
+        createParticles(cx, cy, color(255, 100, 0), 100);
+
+        // Epický zpomalený odhoz všech hráčů do stran
+        for (let p of players) {
+            if (!p.body) continue;
+            let dx = p.body.position.x - cx; let dy = p.body.position.y - cy; let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            let forceMag = 0.2 * p.body.mass; // Masivní odhazovací síla
+            Matter.Body.applyForce(p.body, p.body.position, { x: (dx/dist)*forceMag, y: (dy/dist)*forceMag });
+        }
+        
+        engine.timing.timeScale = 0.2; // Slow-mo pro epický závěr
     }
   } else if (gameState === "EXPLODING") {
       explosionTimer--; screenShake *= 0.95;
@@ -3244,11 +3259,7 @@ function draw() {
         handleSpawnModules();
     } else {
         screenShake *= 0.95; 
-        for (let p of players) {
-            if (p.body) {
-                Matter.Body.setVelocity(p.body, {x: 0, y: 0});
-            }
-        }
+          // Zamrznutí zrušeno - hráči nyní pomalu plachtí arénou po výbuchu!
     }
     
     push();
@@ -3370,7 +3381,9 @@ function draw() {
       megaAnnouncement.life -= 2.5;
   }
 
-  drawSecretCodeUI();
+  if (gameState === "PLAYING") {
+      drawSecretCodeUI();
+  }
   
   pop(); // Ukončení global push()
 }
