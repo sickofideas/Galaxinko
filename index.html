@@ -3138,14 +3138,23 @@ function draw() {
 
   // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
   push();
-  let pulseAlpha = map(sin(frameCount * 0.015), -1, 1, 15, 60); // Velmi jemné a pomalé pulzování
+  let pulseAlpha = map(sin(frameCount * 0.015), -1, 1, 15, 70); // O něco jasnější
   textAlign(CENTER, TOP);
-  textSize(50);
+  textSize(54); // Mírně větší a údernější text
   textStyle(BOLD);
-  fill(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
-  drawingContext.shadowBlur = 15;
+  
+  // Neonový zářivý efekt s dvojitým vykreslením
+  drawingContext.shadowBlur = 20;
   drawingContext.shadowColor = color(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
-  text(GAME_TITLE, W/2, ARENA_TOP + 90); // Posunuto pod progress bar
+  
+  fill(0, pulseAlpha); // Tmavší jádro
+  stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
+  strokeWeight(4); // Silný barevný obrys
+  text(GAME_TITLE, W/2, ARENA_TOP + 80); // Posunuto mírně nahoru
+  
+  noStroke();
+  fill(255, 255, 255, pulseAlpha * 0.7); // Bílý světlejší prostředek
+  text(GAME_TITLE, W/2, ARENA_TOP + 80); 
   pop();
 
   drawTopHUD();
@@ -3331,7 +3340,7 @@ function draw() {
               fill(255, 255, 0, pbAlpha); // Bliká žlutě!
               textSize(14);
           }
-          let txt = currentLang === "CZ" ? `🔥 DO ARMAGEDONU ZBÝVÁ: ${coinsLeft} ENERGIE! 🔥` : `🔥 ARMAGEDDON IN: ${coinsLeft} ENERGY! 🔥`;
+          let txt = currentLang === "CZ" ? `🌹 POŠLI ENERGII: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 SEND ENERGY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
           text(txt, W / 2, pbY + pbH / 2);
       } else {
           // Armageddon je plný
