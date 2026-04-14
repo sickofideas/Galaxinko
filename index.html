@@ -691,6 +691,9 @@ let roundTotalCoins = 0;
 const ARMAGEDDON_GOAL = 20000; // Počet mincí pro odpálení globálního eventu
 let globalArmageddonActive = false;
 let lastEnergyAddedTime = 0;
+let currentLastGifter = {name: "", coins: 0, img: null};
+let nextLastGifter = null;
+let gifterFadeAlpha = 255;
 
 const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
@@ -861,10 +864,7 @@ function generateSpaceBackground() {
 function startNewRound() {
   roundGiftStreaks = {};
   topGifter = { name: "ZATÍM NIKDO", coins: 0 };
-  arenaRedTimer = 0;
   topGifterBannerTimer = 0;
-  roundTotalCoins = 0;
-  globalArmageddonActive = false;
   lastEnergyAddedTime = millis();
 
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
@@ -3578,8 +3578,11 @@ function draw() {
   if (gameState === "PLAYING") {
       // --- FOMO PROGRESS BAR (Ukazatel cíle nahoře v aréně) ---
       push();
-      let pbW = W * 0.85; // Šířka baru (85% obrazovky)
-      let pbH = 30;
+      let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
+      let minPbW = 350;
+      let maxPbW = W * 0.85;
+      let pbW = lerp(minPbW, maxPbW, progress); // Šířka postupně roste
+      let pbH = 36; // Trochu vyšší pro profilovku
       let pbX = W / 2 - pbW / 2;
       let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
 
@@ -3591,17 +3594,66 @@ function draw() {
 
       // Temné pozadí baru
       fill(0, pbAlpha * 0.6);
-      stroke(255, 215, 0, pbAlpha); // Zlatý rámeček
+      stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pbAlpha); // Rámeček podle barvy arény
       strokeWeight(2);
-      rect(pbX, pbY, pbW, pbH, 15);
+      rect(pbX, pbY, pbW, pbH, 18);
 
-      // Výplň baru (Krvavě červená)
-      let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
-      fill(255, 0, 0, pbAlpha * 0.8);
+      // Výplň baru (Duhová barva)
+      colorMode(HSB, 360, 100, 100, 255);
+      let rainbowCol = color((frameCount * 2) % 360, 80, 100, pbAlpha * 0.8);
+      colorMode(RGB, 255);
+      fill(rainbowCol);
       noStroke();
-      rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 13);
+      rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 16);
 
-      // Animovaný text uvnitř
+      // Řízení fade efektu pro posledního donátora
+      if (nextLastGifter) {
+          gifterFadeAlpha -= 15;
+          if (gifterFadeAlpha <= 0) {
+              currentLastGifter = nextLastGifter;
+              nextLastGifter = null;
+          }
+      } else if (gifterFadeAlpha < 255) {
+          gifterFadeAlpha += 15;
+      }
+      gifterFadeAlpha = constrain(gifterFadeAlpha, 0, 255);
+
+      // Vykreslení posledního donátora (ikona a jméno)
+      if (currentLastGifter.name !== "") {
+          let avatarPulse = sin(frameCount * 0.1) * 3;
+          let avSize = 24 + avatarPulse;
+          let avX = pbX + 25;
+          let avY = pbY + pbH / 2;
+
+          push();
+          tint(255, (gifterFadeAlpha / 255) * pbAlpha);
+          if (currentLastGifter.img && currentLastGifter.img !== "loaded") {
+              drawingContext.save();
+              drawingContext.beginPath();
+              drawingContext.arc(avX, avY, avSize / 2, 0, TWO_PI);
+              drawingContext.clip();
+              imageMode(CENTER);
+              image(currentLastGifter.img, avX, avY, avSize, avSize);
+              drawingContext.restore();
+          } else {
+              fill(100, (gifterFadeAlpha / 255) * pbAlpha);
+              ellipse(avX, avY, avSize, avSize);
+          }
+          noFill();
+          stroke(255, 215, 0, (gifterFadeAlpha / 255) * pbAlpha);
+          strokeWeight(2);
+          ellipse(avX, avY, avSize, avSize);
+          
+          noStroke();
+          fill(255, 255, 255, (gifterFadeAlpha / 255) * pbAlpha);
+          textAlign(LEFT, CENTER);
+          textSize(10);
+          let shortName = currentLastGifter.name.length > 8 ? currentLastGifter.name.substring(0, 8) + "." : currentLastGifter.name;
+          text(`${shortName} +${currentLastGifter.coins}`, avX + 15 + avatarPulse/2, avY);
+          pop();
+      }
+
+      // Animovaný text uvnitř (uprostřed)
       fill(255, 255, 255, pbAlpha);
       textAlign(CENTER, CENTER);
       textSize(12);
@@ -3764,6 +3816,15 @@ function connectTikfinity() {
           // --- 1. FOMO PROGRESS (Sčítání pro všechny) ---
           lastEnergyAddedTime = millis();
           roundTotalCoins += diam;
+
+          // Fading logic pro posledniho donatora
+          if (currentLastGifter.name === "") {
+              currentLastGifter = {name: u, coins: diam, img: userAvatars[u]};
+              gifterFadeAlpha = 255;
+          } else {
+              nextLastGifter = {name: u, coins: diam, img: userAvatars[u]};
+          }
+
           if (roundTotalCoins >= ARMAGEDDON_GOAL && !globalArmageddonActive) {
               globalArmageddonActive = true;
               arenaRedTimer = 60 * 120; // 2 minuty krve pro všechny!
@@ -3885,6 +3946,18 @@ function speakTTS(txt) {
 
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
+  
+  // Reset FOMO baru manuálně po kliknutí kamkoli do prostoru lišty
+  if (mouseY > ARENA_TOP + 10 && mouseY < ARENA_TOP + 60 && mouseX > W/2 - (W*0.85)/2 && mouseX < W/2 + (W*0.85)/2) {
+      roundTotalCoins = 0;
+      globalArmageddonActive = false;
+      arenaRedTimer = 0;
+      currentLastGifter = {name: "", coins: 0, img: null};
+      nextLastGifter = null;
+      safePlaySound(200, 0.1, 0.5);
+      return;
+  }
+
   if (showLeaderboards) {
       if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { 
           allTimeHpLeaderboard = {}; 
