@@ -2521,7 +2521,7 @@ function drawPlayer(p) {
   let isExtremeLoad = players.length > 60;
   let isEpic = safeHp >= 1000;
 
-  let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1); // Pod 100 HP začíná červenat
+  let dangerFactor = constrain(map(safeHp, 50, 0, 0, 1), 0, 1); // Pod 50 HP začíná silně červenat
   if (p.isZombie) dangerFactor = 0; // Zrušení varovného červeného pulzování pro zombíky
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
@@ -2541,7 +2541,7 @@ function drawPlayer(p) {
   
   if (p.auraFlash > 0 || dangerFactor > 0) {
       let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 0;
-      if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 60 + sin(frameCount*0.2)*30); // Zjemněný glow
+      if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 120 + sin(frameCount*0.3)*80); // Výrazné červené pulzování při smrti
       fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
       noStroke(); ellipse(0, 0, p.r * 1.8); // Zmenšeno z 2.4
   }
@@ -2555,7 +2555,7 @@ function drawPlayer(p) {
   }
 
   if (!isHeavyLoad && dangerFactor > 0) { 
-      drawingContext.shadowBlur = 10; // Menší a méně agresivní glow pouze pro HP < 100
+      drawingContext.shadowBlur = 20; // Silnější glow pro umírající (HP < 50)
       drawingContext.shadowColor = actualColor; 
   } else {
       drawingContext.shadowBlur = 0; // Kompletní odstranění glowu u 95% hráčů
@@ -2603,13 +2603,14 @@ function drawPlayer(p) {
       let coreType = Math.floor(p.sawType / 3) % 4; 
       if (isEpic) {
           noFill(); stroke(255, 200, 0, 150); strokeWeight(2); ellipse(0, 0, p.r * 1.3);
-          stroke(255, 100, 0); strokeWeight(3); fill(40, 0, 0, 0); ellipse(0, 0, p.r*1.05); // Transparentní vnitřek
+          stroke(255, 100, 0); strokeWeight(3); fill(80, 20, 0, 255); ellipse(0, 0, p.r*1.05); // Pevná výplň vnitřku
           noStroke(); fill(255, 255, 0); for(let i=0; i<6; i++) { let a = i * TWO_PI / 6; ellipse(cos(a) * p.r * 0.95, sin(a) * p.r * 0.95, 6); }
       } else {
-          if (coreType === 0) { noFill(); stroke(outlineColor); strokeWeight(2); ellipse(0,0,p.r*1.0); }
-          else if (coreType === 1) { noFill(); stroke(0, 100); strokeWeight(2); ellipse(0,0,p.r*1.0); stroke(255, 100); strokeWeight(1); ellipse(0,0,p.r*1.0 + 2); }
-          else if (coreType === 2) { noStroke(); fill(0, 150); for(let i=0; i<8; i++) { let a = i * TWO_PI / 8; ellipse(cos(a) * p.r * 0.95, sin(a) * p.r * 0.95, 4); } }
-          else if (coreType === 3) { noFill(); stroke(actualColor); strokeWeight(2); for(let i=0; i<4; i++) { let a = i * TWO_PI / 4; line(cos(a) * p.r * 0.8, sin(a) * p.r * 0.8, cos(a) * p.r * 1.1, sin(a) * p.r * 1.1); } }
+          fill(red(actualColor)*0.25, green(actualColor)*0.25, blue(actualColor)*0.25, 255); // Tmavší metalický vnitřek
+          if (coreType === 0) { stroke(outlineColor); strokeWeight(2); ellipse(0,0,p.r*1.0); }
+          else if (coreType === 1) { stroke(0, 100); strokeWeight(2); ellipse(0,0,p.r*1.0); stroke(255, 100); strokeWeight(1); ellipse(0,0,p.r*1.0 + 2); }
+          else if (coreType === 2) { stroke(outlineColor); strokeWeight(2); ellipse(0,0,p.r*1.0); noStroke(); fill(0, 180); for(let i=0; i<8; i++) { let a = i * TWO_PI / 8; ellipse(cos(a) * p.r * 0.95, sin(a) * p.r * 0.95, 4); } }
+          else if (coreType === 3) { stroke(outlineColor); strokeWeight(2); ellipse(0,0,p.r*1.0); stroke(actualColor); strokeWeight(2); for(let i=0; i<4; i++) { let a = i * TWO_PI / 4; line(cos(a) * p.r * 0.8, sin(a) * p.r * 0.8, cos(a) * p.r * 1.1, sin(a) * p.r * 1.1); } }
       }
   } else {
       // Plynulé zmenšování okraje od 199 do 101 HP (1.75x -> 1.25x)
