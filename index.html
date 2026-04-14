@@ -1834,7 +1834,6 @@ function handleCameraAndPlayers() {
           } else {
               createParticles(p.body.position.x, p.body.position.y, p.color, 30);
               deathShockwaves.push({x: p.body.position.x, y: p.body.position.y, r: p.r, color: p.color, life: 255});
-              screenShake = Math.max(screenShake, 2); 
               safePlaySound(150, 0.1, 0.1);
           }
       }
@@ -2280,7 +2279,7 @@ function drawPlayer(p) {
   }
 
   push(); 
-  translate(Math.round(pos.x), Math.round(pos.y)); 
+  translate(pos.x, pos.y); 
   scale(isBuffed ? 1.2 : 1.0); 
   rotate(p.rot);
   
@@ -2510,7 +2509,7 @@ function drawPlayer(p) {
       fill(nameCol); textStyle(NORMAL);
       textSize(Math.floor(Math.max(10, p.r * 0.28))); 
       let dispName = isBuffed ? "🔥 " + p.name.substring(0, 8) : p.name.substring(0, 10);
-      text(dispName, 0, Math.round(-p.r * 0.45)); 
+      text(dispName, 0, -p.r * 0.45); 
   }
 
   let txtCol = color(255);
@@ -2520,13 +2519,13 @@ function drawPlayer(p) {
   stroke(0); strokeWeight(Math.max(5, p.r * 0.2)); 
   fill(txtCol); textStyle(BOLD);
   textSize(Math.floor(Math.max(14, p.r * 0.4))); 
-  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? Math.round(p.r * 0.3) : 0); 
+  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.3 : 0); 
   
   if (p.isLegendary) {
       stroke(0); strokeWeight(Math.max(3, p.r * 0.15));
       fill(255, 215, 0); // Zlatá barva
       textSize(Math.floor(Math.max(10, p.r * 0.22)));
-      text("👑 LEGEND", 0, p.r > 20 ? Math.round(p.r * 0.65) : 15);
+      text("👑 LEGEND", 0, p.r > 20 ? p.r * 0.65 : 15);
   }
 
   drawingContext.shadowBlur = 0; noStroke(); pop();
@@ -3134,11 +3133,6 @@ function draw() {
   pop();
   
   push();
-  // Anti-ban nepostřehnutelný pohyb celé hry (zabraňuje detekci statického obrazu na TikToku)
-  let antiBanX = (noise(frameCount * 0.05) - 0.5) * 2;
-  let antiBanY = (noise(frameCount * 0.05 + 1000) - 0.5) * 2;
-  translate(antiBanX, antiBanY);
-
   // 1. Vykreslíme vesmír jako první vrstvu (bude vidět po celé obrazovce, i za UI)
   drawSpaceBackground();
 
@@ -3229,8 +3223,8 @@ function draw() {
       pop();
   }
 
-  // Plynulá fyzika závislá na reálném čase prohlížeče (Delta Time)
-  try { Matter.Engine.update(engine, deltaTime || (1000/60)); } catch(e) {} 
+  // Plynulá fyzika pevným krokem (odstraňuje vibrace a lagy fyziky)
+  try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
   
   processCombatQueue();
 
@@ -3369,7 +3363,7 @@ function draw() {
 
   drawSecretCodeUI();
   
-  pop(); // Ukončení anti-ban posunu
+  pop(); // Ukončení global push()
 }
 
 function connectTikfinity() {
