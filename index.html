@@ -2515,7 +2515,7 @@ function drawPlayer(p) {
       baseSpin = Math.max(baseSpin, 0.35); 
   }
   
-  p.rot += isBuffed ? baseSpin * p.baseRotDir * 3 : baseSpin * p.baseRotDir;
+  p.rot += isBuffed ? baseSpin * p.baseRotDir * 5 : baseSpin * p.baseRotDir; // Během lajkování se kotouč extrémně rychle roztočí
 
   let isHeavyLoad = players.length > 40; 
   let isExtremeLoad = players.length > 60;
@@ -2536,7 +2536,7 @@ function drawPlayer(p) {
 
   push(); 
   translate(pos.x, pos.y); 
-  scale(isBuffed ? 1.2 : 1.0); 
+  scale(isBuffed ? 1.05 : 1.0); // Během lajkování se zvětší pouze nepatrně
   rotate(p.rot);
   
   if (p.auraFlash > 0 || dangerFactor > 0) {
