@@ -904,7 +904,9 @@ function reviveZombie(p) {
     if (!p.isZombie) return;
     p.isZombie = false;
     p.hp = 150;
-    p.color = color(random(100, 255), random(100, 255), random(100, 255));
+    colorMode(HSB, 360, 100, 100);
+    p.color = color(random(360), random(80, 100), random(90, 100));
+    colorMode(RGB, 255);
     p.auraFlash = 30;
     addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 30);
@@ -961,7 +963,10 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
   let wPos = screenToWorld(sx, sy);
   let dx = bestX - wPos.x; let dy = bestY - wPos.y;
   let distToTarget = Math.sqrt(dx*dx + dy*dy); let spd = distToTarget / 45; 
-  let pColor = isZombie ? color(100, 100, 100) : color(random(100,255), random(100,255), random(100,255));
+  
+  colorMode(HSB, 360, 100, 100);
+  let pColor = isZombie ? color(0, 0, 40) : color(random(360), random(80, 100), random(90, 100));
+  colorMode(RGB, 255);
   
   spawnModules.push({
       name: name, hp: safeHp, x: wPos.x, y: wPos.y, targetX: bestX, targetY: bestY,
@@ -2261,7 +2266,7 @@ function drawPlayer(p) {
   let isExtremeLoad = players.length > 60;
   let isEpic = safeHp >= 1000;
 
-  let dangerFactor = constrain(map(safeHp, 100, 0, 0, 1), 0, 1);
+  let dangerFactor = constrain(map(safeHp, 50, 0, 0, 1), 0, 1); // Pod 50 HP
   if (p.isZombie) dangerFactor = 0; // Zrušení varovného červeného pulzování pro zombíky
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
@@ -2279,27 +2284,34 @@ function drawPlayer(p) {
   scale(isBuffed ? 1.2 : 1.0); 
   rotate(p.rot);
   
-  let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : (p.isZombie ? 10 : 40); // Zombíci nemají téměř žádnou auru
-  if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 100 + sin(frameCount*0.2)*50); 
-  
-  fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
-  noStroke(); ellipse(0, 0, p.r * 2.4);
+  if (p.auraFlash > 0 || dangerFactor > 0) {
+      let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 0;
+      if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 60 + sin(frameCount*0.2)*30); // Zjemněný glow
+      fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
+      noStroke(); ellipse(0, 0, p.r * 1.8); // Zmenšeno z 2.4
+  }
   if(p.auraFlash > 0) p.auraFlash--;
 
   if (isBuffed) { 
-      fill(255, 255, 255, 100 + sin(frameCount * 0.5) * 100); noStroke(); ellipse(0, 0, p.r * 2.5); 
+      fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke(); ellipse(0, 0, p.r * 2.0); // Zmenšeno z 2.5
       if (frameCount % 5 === 0 && !isExtremeLoad) {
           createParticles(pos.x, pos.y, color(255, 150, 0), 1);
       }
   }
 
-  if (!isHeavyLoad) { drawingContext.shadowBlur = isEpic ? 25 : 15; drawingContext.shadowColor = actualColor; }
+  if (!isHeavyLoad && dangerFactor > 0) { 
+      drawingContext.shadowBlur = 10; // Menší a méně agresivní glow pouze pro HP < 50
+      drawingContext.shadowColor = actualColor; 
+  } else {
+      drawingContext.shadowBlur = 0; // Kompletní odstranění glowu u 95% hráčů
+  }
   
   if (!isHeavyLoad) {
       let grad = drawingContext.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, p.r));
-      grad.addColorStop(0, "rgba(10, 15, 20, 1)"); grad.addColorStop(1, isBuffed ? `rgba(${red(actualColor)},${green(actualColor)},${blue(actualColor)}, 0.8)` : "rgba(30, 35, 45, 0.9)");
+      grad.addColorStop(0, `rgba(${red(actualColor)*0.2},${green(actualColor)*0.2},${blue(actualColor)*0.2}, 1)`); // Uvnitř má hráč svou barvu místo šedé
+      grad.addColorStop(1, `rgba(${red(actualColor)*0.8},${green(actualColor)*0.8},${blue(actualColor)*0.8}, 0.9)`);
       drawingContext.fillStyle = grad;
-  } else { fill(red(actualColor)*0.5, green(actualColor)*0.5, blue(actualColor)*0.5); }
+  } else { fill(red(actualColor)*0.7, green(actualColor)*0.7, blue(actualColor)*0.7); }
   
   stroke(actualColor); strokeWeight(isEpic ? 3 : 2);
 
