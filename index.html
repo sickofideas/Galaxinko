@@ -782,11 +782,11 @@ function setup() {
       } catch(e){}
   }
   
-  // Zvýšená přesnost fyziky, aby aréna neexplodovala při hromadném spawnu
+  // Optimalizovaná fyzika pro maximální FPS
   engine = Matter.Engine.create({ 
       enableSleeping: false,
-      positionIterations: 16, // Původně je asi 6. 16 zaručí plynulé odtlačení
-      velocityIterations: 12
+      positionIterations: 6,  // Zpět na rychlý standard
+      velocityIterations: 4   // Zpět na rychlý standard
   });
   world = engine.world;
   world.gravity.y = 0; 
@@ -2800,11 +2800,12 @@ function createParticles(x, y, c, count, type = 'CIRCLE') {
 
 function drawParticles() {
   noStroke();
-  let useGlow = players.length < 40;
-  if(useGlow) drawingContext.shadowBlur = 10; 
+  // ZRUŠENO: drawingContext.shadowBlur pro částice (Největší žrout výkonu)
+  
   for(let i=particles.length-1; i>=0; i--) {
     let p = particles[i];
-    if(useGlow) drawingContext.shadowColor = p.c;
+    
+    // Částice se už nekreslí s drahým neonovým stínem, ale s čistou barvou
     fill(red(p.c), green(p.c), blue(p.c), p.life);
         
         if (p.type === 'HEART') {
@@ -2821,10 +2822,13 @@ function drawParticles() {
             ellipse(p.x, p.y, p.size);
         }
         
-    p.x += p.vx; p.y += p.vy; p.vx *= 0.95; p.vy *= 0.95; p.size *= 0.98; p.life -= 15; 
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.95; p.vy *= 0.95; 
+    p.size *= 0.98; 
+    p.life -= 15; 
+    
     if(p.life <= 0) particles.splice(i, 1);
   }
-  if(useGlow) drawingContext.shadowBlur = 0; 
 }
 
 function addPopup(txt, x, y, c, isCrit = false) {
