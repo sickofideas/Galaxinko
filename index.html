@@ -52,6 +52,7 @@
       <button id="tFollow">TEST FOLLOW</button>
       <button id="toggleLBBtn">ZOBRAZIT ŽEBŘÍČKY</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
+      <button id="toggleFomoBtn">ZOBRAZIT FOMO</button>
     </div>
   </div>
 
@@ -668,6 +669,7 @@ let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
 let showLeaderboards = true; // defaultně zapnuto
+let showFomoBar = false; // defaultně skryto
 
 let lastGlobalSound = 0;
 
@@ -886,7 +888,7 @@ function startNewRound() {
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      spawnPlayer(zName, 130, false, 0, true); // true = isZombie
+      spawnPlayer(zName, 50, false, 0, true); // true = isZombie, menší HP = menší koule
   }
 
       // --- VÁŽENÝ ČASOVAČ KOLA (AGRESIVNÍ MONETIZACE) ---
@@ -977,6 +979,11 @@ function setupEvents() {
   };
   document.getElementById('resetBtn').onclick = () => startNewRound();
 
+  document.getElementById('toggleFomoBtn').onclick = (e) => {
+      showFomoBar = !showFomoBar;
+      e.target.innerText = showFomoBar ? 'SKRÝT FOMO' : 'ZOBRAZIT FOMO';
+  };
+
   Matter.Events.on(engine, 'collisionStart', (event) => {
     event.pairs.forEach(pair => {
       let p1 = players.find(p => p.body === pair.bodyA);
@@ -990,7 +997,8 @@ function setupEvents() {
   // PŘIDÁNO: Kontinuální damage při dotyku v hloučku (Vortex)
   Matter.Events.on(engine, 'collisionActive', (event) => {
     if (activeEvent === "MAGNET") return; // OCHRANA: V černé díře se kuličky nedrtí o sebe
-    if (frameCount % 20 !== 0) return; // Udělí damage 3x za vteřinu, když se kuličky o sebe třou
+    // OPRAVA: Změněno z 20 na 60! Kuličky, co se o sebe jen třou, dají damage jen 1x za vteřinu (místo 3x)
+    if (frameCount % 60 !== 0) return; 
     event.pairs.forEach(pair => {
       let p1 = players.find(p => p.body === pair.bodyA);
       let p2 = players.find(p => p.body === pair.bodyB);
@@ -1344,12 +1352,13 @@ function handleCombat(p1, p2) {
   let safeHp1 = Math.max(1, p1.hp); let safeHp2 = Math.max(1, p2.hp);
   let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
   let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
-
-  // Pokud je rychlost moc malá (vortex), nastavíme ji alespoň na 2.0, aby vždy padl nějaký damage
-  let effectiveSpeed = Math.max(speed, 2.0);
-
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.35 + effectiveSpeed * 0.2) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.3 : 1.0);
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.35 + effectiveSpeed * 0.2) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.3 : 1.0);
+  
+  // OCHRANA: Snížena minimální rychlost pro výpočet damage z 2.0 na 1.0
+  let effectiveSpeed = Math.max(speed, 1.0);
+  
+  // OPRAVA: Výrazně snížené násobiče damage (aby hráči neumírali tak rychle)
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.15 + effectiveSpeed * 0.05) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.3 : 1.0);
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.15 + effectiveSpeed * 0.05) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.3 : 1.0);
 
   // OCHRANA MALÝCH HRÁČŮ V ČERNÉ DÍŘE (90% snížení poškození při srážkách)
   if (activeEvent === "MAGNET") {
@@ -2061,8 +2070,8 @@ function handleCameraAndPlayers() {
     
     if (p.hp <= 0) {
       // PŘIDÁNO: Zapsání do fronty na oživení (VŽDY, aby se zombíci vraceli donekonečna)
-      deadPlayersQueue.push({name: p.name, timeOfDeath: millis()});
-
+      deadPlayersQueue.push({name: p.name, timeOfDeath: millis(), respawnDelay: 20000 + random(500, 20000)}); // 20s cooldown + náhodný čas (0.5s - 20s)
+      
       if (p.body && !isNaN(p.body.position.x)) {
           let px = p.body.position.x;
           let py = p.body.position.y;
@@ -2631,9 +2640,10 @@ function drawPlayer(p) {
       push();
       drawingContext.setLineDash([8, 8]);
       strokeWeight(2); noFill();
-      stroke(200, 80, 80, 100); ellipse(0, 0, p.r * 1.6);
+      stroke(80, 200, 80, 100); // Původně červená, nyní zelená
+      ellipse(0, 0, p.r * 1.6);
       drawingContext.lineDashOffset = 8;
-      stroke(80, 200, 80, 100); ellipse(0, 0, p.r * 1.6);
+      stroke(100, 255, 100, 100); // Světlejší zelená pro druhý pruh
       drawingContext.setLineDash([]); drawingContext.lineDashOffset = 0;
       pop();
   }
@@ -3055,12 +3065,12 @@ function updateTimers() {
   let activeZombiesCount = players.filter(p => p.isZombie).length;
 
   for (let i = deadPlayersQueue.length - 1; i >= 0; i--) {
-      if (millis() - deadPlayersQueue[i].timeOfDeath > 20000) {
+      if (millis() - deadPlayersQueue[i].timeOfDeath > deadPlayersQueue[i].respawnDelay) {
           let zName = deadPlayersQueue[i].name;
           // Pokud hráč náhodou už nehraje (např. nedal hned !join)
             if (!players.find(x => x.name === zName)) {
               if (alivePlayersCount < 25 && activeZombiesCount < 15) {
-                      spawnPlayer(zName, 130, false, 0, true); // true = isZombie
+                      spawnPlayer(zName, 50, false, 0, true); // true = isZombie, menší HP
                   activeZombiesCount++;
                   deadPlayersQueue.splice(i, 1);
                           break; // PŘIDÁNO: Zastaví cyklus. Další mrtvý se spawne až v dalším framu!
@@ -3594,106 +3604,108 @@ function draw() {
   drawingContext.restore(); 
 
   if (gameState === "PLAYING") {
-      // --- FOMO PROGRESS BAR (Ukazatel cíle nahoře v aréně) ---
-      push();
-      let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
-      let minPbW = 350;
-      let maxPbW = W * 0.85;
-      let pbW = lerp(minPbW, maxPbW, progress); // Šířka postupně roste
-      let pbH = 36; // Trochu vyšší pro profilovku
-      let pbX = W / 2 - pbW / 2;
-      let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
+      if (showFomoBar) {
+        // --- FOMO PROGRESS BAR (Ukazatel cíle nahoře v aréně) ---
+        push();
+        let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
+        let minPbW = 350;
+        let maxPbW = W * 0.85;
+        let pbW = lerp(minPbW, maxPbW, progress); // Šířka postupně roste
+        let pbH = 36; // Trochu vyšší pro profilovku
+        let pbX = W / 2 - pbW / 2;
+        let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
 
-      // Pulzování lišty, pokud se dlouho nic nestalo
-      let pbAlpha = 255;
-      if (millis() - lastEnergyAddedTime > 5000) {
-          pbAlpha = map(sin(frameCount * 0.03), -1, 1, 100, 255);
+        // Pulzování lišty, pokud se dlouho nic nestalo
+        let pbAlpha = 255;
+        if (millis() - lastEnergyAddedTime > 5000) {
+            pbAlpha = map(sin(frameCount * 0.03), -1, 1, 100, 255);
+        }
+
+        // Temné pozadí baru
+        fill(0, pbAlpha * 0.6);
+        stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pbAlpha); // Rámeček podle barvy arény
+        strokeWeight(2);
+        rect(pbX, pbY, pbW, pbH, 18);
+
+        // Výplň baru (Duhová barva)
+        colorMode(HSB, 360, 100, 100, 255);
+        let rainbowCol = color((frameCount * 2) % 360, 80, 100, pbAlpha * 0.8);
+        colorMode(RGB, 255);
+        fill(rainbowCol);
+        noStroke();
+        rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 16);
+
+        // Řízení fade efektu pro posledního donátora
+        if (nextLastGifter) {
+            gifterFadeAlpha -= 15;
+            if (gifterFadeAlpha <= 0) {
+                currentLastGifter = nextLastGifter;
+                nextLastGifter = null;
+            }
+        } else if (gifterFadeAlpha < 255) {
+            gifterFadeAlpha += 15;
+        }
+        gifterFadeAlpha = constrain(gifterFadeAlpha, 0, 255);
+
+        // Vykreslení posledního donátora (ikona a jméno)
+        if (currentLastGifter.name !== "") {
+            let avatarPulse = sin(frameCount * 0.1) * 3;
+            let avSize = 24 + avatarPulse;
+            let avX = pbX + 25;
+            let avY = pbY + pbH / 2;
+
+            push();
+            tint(255, (gifterFadeAlpha / 255) * pbAlpha);
+            if (currentLastGifter.img && currentLastGifter.img !== "loaded") {
+                drawingContext.save();
+                drawingContext.beginPath();
+                drawingContext.arc(avX, avY, avSize / 2, 0, TWO_PI);
+                drawingContext.clip();
+                imageMode(CENTER);
+                image(currentLastGifter.img, avX, avY, avSize, avSize);
+                drawingContext.restore();
+            } else {
+                fill(100, (gifterFadeAlpha / 255) * pbAlpha);
+                ellipse(avX, avY, avSize, avSize);
+            }
+            noFill();
+            stroke(255, 215, 0, (gifterFadeAlpha / 255) * pbAlpha);
+            strokeWeight(2);
+            ellipse(avX, avY, avSize, avSize);
+            
+            noStroke();
+            fill(255, 255, 255, (gifterFadeAlpha / 255) * pbAlpha);
+            textAlign(LEFT, CENTER);
+            textSize(10);
+            let shortName = currentLastGifter.name.length > 8 ? currentLastGifter.name.substring(0, 8) + "." : currentLastGifter.name;
+            text(`${shortName} +${currentLastGifter.coins}`, avX + 15 + avatarPulse/2, avY);
+            pop();
+        }
+
+        // Animovaný text uvnitř (uprostřed)
+        fill(255, 255, 255, pbAlpha);
+        textAlign(CENTER, CENTER);
+        textSize(12);
+        textStyle(BOLD);
+        
+        let coinsLeft = ARMAGEDDON_GOAL - roundTotalCoins;
+        if (coinsLeft > 0) {
+            // Zvýraznění, když zbývá málo (pod 20%)
+            if (progress > 0.8 && frameCount % 20 < 10) {
+                fill(255, 255, 0, pbAlpha); // Bliká žlutě!
+                textSize(14);
+            }
+            let txt = currentLang === "CZ" ? `🌹 POŠLI ENERGII: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 SEND ENERGY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
+            text(txt, W / 2, pbY + pbH / 2);
+        } else {
+            // Armageddon je plný
+            if (frameCount % 10 < 5) fill(255, 0, 0, pbAlpha); // Agresivní blikání
+            textSize(15);
+            let txt2 = currentLang === "CZ" ? "🚨 ARMAGEDON AKTIVNÍ! 🚨" : "🚨 ARMAGEDDON ACTIVE! 🚨";
+            text(txt2, W / 2, pbY + pbH / 2);
+        }
+        pop();
       }
-
-      // Temné pozadí baru
-      fill(0, pbAlpha * 0.6);
-      stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pbAlpha); // Rámeček podle barvy arény
-      strokeWeight(2);
-      rect(pbX, pbY, pbW, pbH, 18);
-
-      // Výplň baru (Duhová barva)
-      colorMode(HSB, 360, 100, 100, 255);
-      let rainbowCol = color((frameCount * 2) % 360, 80, 100, pbAlpha * 0.8);
-      colorMode(RGB, 255);
-      fill(rainbowCol);
-      noStroke();
-      rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 16);
-
-      // Řízení fade efektu pro posledního donátora
-      if (nextLastGifter) {
-          gifterFadeAlpha -= 15;
-          if (gifterFadeAlpha <= 0) {
-              currentLastGifter = nextLastGifter;
-              nextLastGifter = null;
-          }
-      } else if (gifterFadeAlpha < 255) {
-          gifterFadeAlpha += 15;
-      }
-      gifterFadeAlpha = constrain(gifterFadeAlpha, 0, 255);
-
-      // Vykreslení posledního donátora (ikona a jméno)
-      if (currentLastGifter.name !== "") {
-          let avatarPulse = sin(frameCount * 0.1) * 3;
-          let avSize = 24 + avatarPulse;
-          let avX = pbX + 25;
-          let avY = pbY + pbH / 2;
-
-          push();
-          tint(255, (gifterFadeAlpha / 255) * pbAlpha);
-          if (currentLastGifter.img && currentLastGifter.img !== "loaded") {
-              drawingContext.save();
-              drawingContext.beginPath();
-              drawingContext.arc(avX, avY, avSize / 2, 0, TWO_PI);
-              drawingContext.clip();
-              imageMode(CENTER);
-              image(currentLastGifter.img, avX, avY, avSize, avSize);
-              drawingContext.restore();
-          } else {
-              fill(100, (gifterFadeAlpha / 255) * pbAlpha);
-              ellipse(avX, avY, avSize, avSize);
-          }
-          noFill();
-          stroke(255, 215, 0, (gifterFadeAlpha / 255) * pbAlpha);
-          strokeWeight(2);
-          ellipse(avX, avY, avSize, avSize);
-          
-          noStroke();
-          fill(255, 255, 255, (gifterFadeAlpha / 255) * pbAlpha);
-          textAlign(LEFT, CENTER);
-          textSize(10);
-          let shortName = currentLastGifter.name.length > 8 ? currentLastGifter.name.substring(0, 8) + "." : currentLastGifter.name;
-          text(`${shortName} +${currentLastGifter.coins}`, avX + 15 + avatarPulse/2, avY);
-          pop();
-      }
-
-      // Animovaný text uvnitř (uprostřed)
-      fill(255, 255, 255, pbAlpha);
-      textAlign(CENTER, CENTER);
-      textSize(12);
-      textStyle(BOLD);
-      
-      let coinsLeft = ARMAGEDDON_GOAL - roundTotalCoins;
-      if (coinsLeft > 0) {
-          // Zvýraznění, když zbývá málo (pod 20%)
-          if (progress > 0.8 && frameCount % 20 < 10) {
-              fill(255, 255, 0, pbAlpha); // Bliká žlutě!
-              textSize(14);
-          }
-          let txt = currentLang === "CZ" ? `🌹 POŠLI ENERGII: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 SEND ENERGY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
-          text(txt, W / 2, pbY + pbH / 2);
-      } else {
-          // Armageddon je plný
-          if (frameCount % 10 < 5) fill(255, 0, 0, pbAlpha); // Agresivní blikání
-          textSize(15);
-          let txt2 = currentLang === "CZ" ? "🚨 ARMAGEDON AKTIVNÍ! 🚨" : "🚨 ARMAGEDDON ACTIVE! 🚨";
-          text(txt2, W / 2, pbY + pbH / 2);
-      }
-      pop();
   }
 
   if (megaAnnouncement && megaAnnouncement.life > 0) {
