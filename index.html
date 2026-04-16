@@ -939,8 +939,15 @@ function setupEvents() {
   document.getElementById('tLike').onclick = () => { if(players.length > 0) handleAction(random(players).name, floor(random(50, 150))); else document.getElementById('tJoin').click(); };
   document.getElementById('tGift').onclick = () => { 
       if(players.length > 0) { 
-          let u = random(players).name; 
-          let testDiam = random([10, 150, 1200, 6000]); 
+          let u = random(players).name;
+          
+          let testDiam;
+          if (random() < 0.1) { // 10% šance na velký dar
+              testDiam = 5000;
+          } else { // 90% šance na malý dar (1-10 růží)
+              testDiam = floor(random(1, 11));
+          }
+
           handleAction(u, 0, true, testDiam); 
           let c = players.find(x=>x.name===u)?.color || color(255);
           updateGiftLB(u, testDiam, c); 
