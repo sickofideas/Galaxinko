@@ -2471,8 +2471,8 @@ function handleBossPlanet() {
                 createParticles(bp.x + dx/2, bp.y + dy/2, bp.target.color, 50);
                 deathShockwaves.push({x: bp.x + dx/2, y: bp.y + dy/2, r: 80, color: color(255,255,255), life: 255, isNuke: true});
                 
-                // OPRAVA OTŘESŮ: Téměř nulové vibrace, už to neroztřese celou hru (pouze 3 místo 35)
-                screenShake = 3; 
+                // KRÁTKÝ A ÚDERNÝ NÁRAZ: (Díky opravě nahoře tyto vibrace zmizí za 0.5 sekundy)
+                screenShake = 15; 
 
                 safePlaySound(100, 0.6, 1.5);
                 addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(255, 50, 50), true);
@@ -3752,10 +3752,10 @@ function draw() {
         handleSecretCode();
         handleCameraAndPlayers(); 
         handleSpawnModules();
-    } else {
-        screenShake *= 0.95; 
-          // Zamrznutí zrušeno - hráči nyní pomalu plachtí arénou po výbuchu!
     }
+    
+    // OPRAVA VIBRACÍ: Tohle zajistí, že otřesy kamery okamžitě a plynule odezní každý frame! 
+    screenShake *= 0.85;
     
     push();
     translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
