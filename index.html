@@ -1340,6 +1340,13 @@ function processCombatQueue() {
 function handleCombat(p1, p2) {
   if (!p1.body || !p2.body) return;
 
+  // --- I-FRAMES (Ochrana proti spamu damage v chumlu) ---
+  // Hráč může bojovat maximálně 1x za 0.2 sekundy (12 framů).
+  if (p1.attackCooldown > 0 || p2.attackCooldown > 0) return;
+  
+  p1.attackCooldown = 12;
+  p2.attackCooldown = 12;
+
   let distVec = Matter.Vector.sub(p2.body.position, p1.body.position);
   if (distVec.x === 0 && distVec.y === 0) distVec.x = 1;
   let distVal = Matter.Vector.magnitude(distVec);
