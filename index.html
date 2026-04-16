@@ -2377,139 +2377,164 @@ function handleBackgroundObjects(baseSpeed) {
 function handleBossPlanet() {
     if (!showBossPlanet || players.length === 0) return;
 
-    // Najdeme aktuálního krále kola (musí mít alespoň 500 HP!)
-    let topPlayer = [...players].filter(p => !p.isZombie && p.hp >= 500).sort((a, b) => b.hp - a.hp)[0];
+    // Vytvoření globálního zámku (pokud ještě neexistuje)
+    if (typeof window.bossLockTimer === 'undefined') window.bossLockTimer = 0;
 
-    // Pokud někdo takový existuje, uložíme si ho jako aktuálního vládce vesmíru
-    if (topPlayer) {
-        lastValidBossName = topPlayer.name;
-        lastValidBossColor = topPlayer.color;
+    // 1. Zjistíme, kdo má aktuálně nárok na trůn (musí mít 500+ HP)
+    let potentialKing = [...players].filter(p => !p.isZombie && p.hp >= 500).sort((a, b) => b.hp - a.hp)[0];
+
+    // 2. ZÁMEK NA 3 VTEŘINY (Ochrana proti okamžitému přepisování)
+    if (potentialKing) {
+        if (!lastValidBossName) {
+            // Úplně první král hry
+            lastValidBossName = potentialKing.name;
+            window.bossLockTimer = millis() + 3000;
+        } else if (potentialKing.name !== lastValidBossName && millis() > window.bossLockTimer) {
+            // Nový král (uběhly minimálně 3 vteřiny od posledního)
+            lastValidBossName = potentialKing.name;
+            window.bossLockTimer = millis() + 3000;
+        }
     }
 
-    // Pokud zatím NIKDO za celou hru neměl 500 HP, planeta se vůbec neukáže
     if (!lastValidBossName) return;
-
     let activeBossName = lastValidBossName;
-    let activeBossColor = lastValidBossColor;
 
-    // Najdeme aktuální hlavní planetu
-    let mainPlanet = bossPlanets.find(p => p.state === "DRIFTING" || p.state === "INCOMING");
+    let cx = W/2;
+    let cy = (ARENA_TOP+ARENA_BOT)/2;
 
-    // Pokud se král změnil (nebo ještě není žádná planeta)
-    if (!mainPlanet || mainPlanet.name !== activeBossName) {
+    // 3. Hledáme planetu, která patří aktuálnímu králi a ještě není zničená
+    let mainPlanet = bossPlanets.find(p => !p.isKnockedOut && p.name === activeBossName);
+
+    if (!mainPlanet) {
+        // Najdeme tu nejnovější existující planetu v aréně, kterou půjdeme nekompromisně sestřelit
+        let previousPlanet = [...bossPlanets].reverse().find(p => !p.isKnockedOut);
+
         let newPlanet = {
             name: activeBossName,
-            color: activeBossColor,
             x: 0, y: 0, vx: 0, vy: 0, 
             rot: 0, rotSpeed: random(-0.005, 0.005),
-            state: mainPlanet ? "INCOMING" : "DRIFTING",
-            target: mainPlanet
+            isKnockedOut: false,
+            hasSmashed: false,
+            targetPlanet: previousPlanet, // Tu budeme lovit (může jich být takhle i víc za sebou jako vláček)
+            targetPoint: previousPlanet ? null : { x: cx + random(-50, 50), y: cy + random(-50, 50) } // Pokud jsme úplně první, letíme do středu
         };
 
-        let cx = W/2;
-        let cy = (ARENA_TOP+ARENA_BOT)/2;
-
-        // Pokud letí sestřelit starou planetu, spawne se těsně za okrajem
+        // Spawnování hluboko mimo obrazovku
         let side = floor(random(4));
-        let offX = W * 0.7; 
-        let offY = H * 0.6;
-
+        let offX = W * 0.7; let offY = H * 0.6;
         if (side === 0) { newPlanet.x = cx + random(-200, 200); newPlanet.y = cy - offY; }
         else if (side === 1) { newPlanet.x = cx + offX; newPlanet.y = cy + random(-200, 200); }
         else if (side === 2) { newPlanet.x = cx + random(-200, 200); newPlanet.y = cy + offY; }
         else { newPlanet.x = cx - offX; newPlanet.y = cy + random(-200, 200); }
 
-        // Pokud se spawnuje úplně první planeta, dáme ji rovnou přímo do středu
-        if (newPlanet.state === "DRIFTING") {
-            newPlanet.x = cx + random(-100, 100);
-            newPlanet.y = cy + random(-100, 100);
-            newPlanet.vx = random(-0.6, 0.6);
-            newPlanet.vy = random(-0.6, 0.6);
-        }
-
-        if (mainPlanet && mainPlanet.name !== activeBossName) {
-             mainPlanet.state = "TARGETED"; 
-        }
-
         bossPlanets.push(newPlanet);
     }
 
-    let pSize = W * 0.40; // Velikost planety (40% arény)
-    let cx = W/2;
-    let cy = (ARENA_TOP+ARENA_BOT)/2;
+    let pSize = W * 0.40; 
     
-    // NEVIDITELNÉ MANTINELY PRO PLANETU: Zaručí, že bude ze 70% pořád krásně na očích
-    let boundLeft = cx - W * 0.30;
-    let boundRight = cx + W * 0.30;
-    let boundTop = cy - (ARENA_BOT - ARENA_TOP) * 0.35;
-    let boundBot = cy + (ARENA_BOT - ARENA_TOP) * 0.35;
+    let boundLeft = cx - W * 0.30; let boundRight = cx + W * 0.30;
+    let boundTop = cy - (ARENA_BOT - ARENA_TOP) * 0.35; let boundBot = cy + (ARENA_BOT - ARENA_TOP) * 0.35;
 
     for (let i = bossPlanets.length - 1; i >= 0; i--) {
         let bp = bossPlanets[i];
 
-        // --- 1. LOGIKA NÁRAZU ---
-        if (bp.state === "INCOMING" && bp.target) {
-            let dx = bp.target.x - bp.x;
-            let dy = bp.target.y - bp.y;
-            let distToTarget = Math.sqrt(dx*dx + dy*dy) || 1;
+        // --- POHYBOVÁ LOGIKA ---
+        if (bp.isKnockedOut) {
+            // Letí pryč po prohře
+        } else if (!bp.hasSmashed) {
+            // A) MÁME CÍL -> LETÍME ZNIČIT STAROU PLANETU
+            if (bp.targetPlanet) {
+                let dx = bp.targetPlanet.x - bp.x;
+                let dy = bp.targetPlanet.y - bp.y;
+                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
 
-            let speed = 12; // Mírně pomalejší let, aby diváci stihli zaregistrovat blížící se pohromu
-            bp.vx = (dx / distToTarget) * speed;
-            bp.vy = (dy / distToTarget) * speed;
+                let speed = 16; // Agresivní let a pronásledování
+                bp.vx = (dx / dist) * speed;
+                bp.vy = (dy / dist) * speed;
 
-            if (distToTarget < pSize * 0.7) {
-                bp.state = "DRIFTING";
-                bp.vx = random(-0.6, 0.6); 
-                bp.vy = random(-0.6, 0.6);
+                // NÁRAZ!
+                if (dist < pSize * 0.7) {
+                    bp.hasSmashed = true;
+                    bp.vx = random(-0.5, 0.5); bp.vy = random(-0.5, 0.5);
 
-                bp.target.state = "KNOCKED_OUT";
-                bp.target.vx = (dx / distToTarget) * 20 + random(-2, 2);
-                bp.target.vy = (dy / distToTarget) * 20 + random(-2, 2);
-                bp.target.rotSpeed = random(-0.1, 0.1);
+                    bp.targetPlanet.isKnockedOut = true;
+                    bp.targetPlanet.vx = (dx / dist) * 20 + random(-2, 2);
+                    bp.targetPlanet.vy = (dy / dist) * 20 + random(-2, 2);
+                    bp.targetPlanet.rotSpeed = random(-0.1, 0.1);
 
-                createParticles(bp.x + dx/2, bp.y + dy/2, bp.color, 50);
-                createParticles(bp.x + dx/2, bp.y + dy/2, bp.target.color, 50);
-                deathShockwaves.push({x: bp.x + dx/2, y: bp.y + dy/2, r: 80, color: color(255,255,255), life: 255, isNuke: true});
+                    let liveAttacker = players.find(p => p.name === bp.name);
+                    let attackerColor = liveAttacker ? liveAttacker.color : color(255);
+
+                    createParticles(bp.x + dx/2, bp.y + dy/2, attackerColor, 50);
+                    deathShockwaves.push({x: bp.x + dx/2, y: bp.y + dy/2, r: 80, color: color(255), life: 255, isNuke: true});
+                    
+                    screenShake = 15; 
+                    safePlaySound(100, 0.6, 1.5);
+                    addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(255, 50, 50), true);
+                }
+            } 
+            // B) ÚPLNĚ PRVNÍ PLANETA -> MAJESTÁTNĚ PŘILÉTÁ DO STŘEDU
+            else if (bp.targetPoint) {
+                let dx = bp.targetPoint.x - bp.x;
+                let dy = bp.targetPoint.y - bp.y;
+                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
                 
-                // KRÁTKÝ A ÚDERNÝ NÁRAZ: (Díky opravě nahoře tyto vibrace zmizí za 0.5 sekundy)
-                screenShake = 15; 
+                let speed = 6; // Pomalý přílet
+                bp.vx = (dx / dist) * speed;
+                bp.vy = (dy / dist) * speed;
 
-                safePlaySound(100, 0.6, 1.5);
-                addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(255, 50, 50), true);
+                if (dist < 15) {
+                    bp.hasSmashed = true; // Dorazila na své místo doprostřed arény
+                    bp.vx = random(-0.5, 0.5); bp.vy = random(-0.5, 0.5);
+                }
             }
-        }
-
-        // --- 2. APLIKACE POHYBU A MANTINELY ---
-        bp.x += bp.vx;
-        bp.y += bp.vy;
-        bp.rot += bp.rotSpeed;
-
-        // Pokud planeta vládne, jemně se odráží od mantinelů ve středu obrazovky
-        if (bp.state === "DRIFTING") {
+        } else {
+            // C) PLANETA VLÁDNE -> ODRÁŽÍ SE OD MANTINELŮ V ARÉNĚ
             if (bp.x < boundLeft) { bp.x = boundLeft; bp.vx *= -1; }
             if (bp.x > boundRight) { bp.x = boundRight; bp.vx *= -1; }
             if (bp.y < boundTop) { bp.y = boundTop; bp.vy *= -1; }
             if (bp.y > boundBot) { bp.y = boundBot; bp.vy *= -1; }
         }
 
-        // Mazání zničených planet, jakmile vyletí úplně pryč
-        if (bp.state === "KNOCKED_OUT" && (bp.x < -W || bp.x > W*2 || bp.y < -H || bp.y > H*2)) {
+        // Aplikace pohybu
+        bp.x += bp.vx;
+        bp.y += bp.vy;
+        bp.rot += bp.rotSpeed;
+
+        // Smazání planety ze hry, pokud vyletí po prohře úplně pryč
+        if (bp.isKnockedOut && (bp.x < -W || bp.x > W*2 || bp.y < -H || bp.y > H*2)) {
             bossPlanets.splice(i, 1);
             continue;
         }
 
-        // --- 3. VYKRESLENÍ PLANETY ---
+        // --- VYKRESLENÍ A BARVY ---
         push();
         translate(bp.x, bp.y);
         
-        if (bp.state !== "KNOCKED_OUT") {
-            drawingContext.shadowBlur = 30 + sin(frameCount * 0.05) * 15; // Zmírněna obří záře
-            drawingContext.shadowColor = bp.color;
+        // 4. SYNCHRONIZACE BARVY S REÁLNOU PILOU HRÁČE V ARÉNĚ
+        let livePlayer = players.find(p => p.name === bp.name);
+        let outlineColor = color(200); 
+        
+        if (livePlayer) {
+            let danger = constrain(map(Math.max(0, livePlayer.hp), 50, 0, 0, 1), 0, 1);
+            outlineColor = lerpColor(livePlayer.color, color(255, 0, 0), danger); // Červená při umírání
+
+            // Duhový efekt pro God Mode / Štít / Combo
+            if (livePlayer.giftSpeedTimer > 0 || livePlayer.immunityTimer > 0 || livePlayer.isGodMode || livePlayer.hasRainbowCrown) {
+                colorMode(HSB, 360, 100, 100);
+                outlineColor = color((frameCount * 6) % 360, 100, 100);
+                colorMode(RGB, 255);
+            }
+        }
+
+        if (!bp.isKnockedOut) {
+            drawingContext.shadowBlur = 30 + sin(frameCount * 0.05) * 15;
+            drawingContext.shadowColor = outlineColor;
         }
 
         fill(5, 5, 10, 180);
-        stroke(bp.color);
-        strokeWeight(bp.state === "KNOCKED_OUT" ? 2 : 5);
+        stroke(outlineColor);
+        strokeWeight(bp.isKnockedOut ? 2 : 5);
         ellipse(0, 0, pSize);
         drawingContext.shadowBlur = 0; 
 
@@ -2522,9 +2547,7 @@ function handleBossPlanet() {
             drawingContext.arc(0, 0, pSize / 2, 0, TWO_PI);
             drawingContext.clip();
             imageMode(CENTER);
-            
-            // Mírně jsme zvýšili průhlednost vítězné planety, aby byla profilovka ostřejší
-            tint(255, bp.state === "KNOCKED_OUT" ? 40 : 180); 
+            tint(255, bp.isKnockedOut ? 40 : 180); 
             image(img, 0, 0, pSize, pSize);
             noTint();
             
@@ -2533,11 +2556,10 @@ function handleBossPlanet() {
             gradient.addColorStop(1, "rgba(0,0,0,0.8)");
             drawingContext.fillStyle = gradient;
             drawingContext.fillRect(-pSize/2, -pSize/2, pSize, pSize);
-            
             drawingContext.restore();
         } else {
-            fill(bp.color); noStroke(); ellipse(0, 0, pSize * 0.8);
-            fill(255, bp.state === "KNOCKED_OUT" ? 30 : 150); 
+            fill(outlineColor); noStroke(); ellipse(0, 0, pSize * 0.8);
+            fill(255, bp.isKnockedOut ? 30 : 150); 
             textAlign(CENTER, CENTER); textSize(80); text("👑", 0, 0);
         }
         pop();
