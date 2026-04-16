@@ -2022,8 +2022,8 @@ function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
-  let isHeavyLoad = players.length > 40;
-  let isExtremeLoad = players.length > 60;
+  let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
+  let isExtremeLoad = players.length > 30;  // Dřívější úleva pro grafiku
   let maxV = 15; 
   
   for (let i = players.length - 1; i >= 0; i--) {
@@ -2515,8 +2515,8 @@ function drawPlayer(p) {
   if (p.orbSpeedTimer > 0) baseSpin = Math.max(baseSpin, 0.35);
   p.rot += isBuffed ? baseSpin * p.baseRotDir * 10 : baseSpin * p.baseRotDir;
   
-  let isHeavyLoad = players.length > 40;
-  let isExtremeLoad = players.length > 60;
+  let isHeavyLoad = players.length > 15;
+  let isExtremeLoad = players.length > 30;
   let isEpic = safeHp >= 1000;
   let dangerFactor = constrain(map(safeHp, 50, 0, 0, 1), 0, 1);
   if (p.isZombie) dangerFactor = 0;
