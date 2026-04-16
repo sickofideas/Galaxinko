@@ -51,6 +51,7 @@
       <button id="tChat">TTS CHAT</button>
       <button id="tFollow">TEST FOLLOW</button>
       <button id="toggleLBBtn">ZOBRAZIT ŽEBŘÍČKY</button>
+      <button id="toggleBossBtn" style="background: #9c27b0;">PLANETA: ZAP</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
       <button id="toggleFomoBtn">ZOBRAZIT FOMO</button>
     </div>
@@ -646,6 +647,10 @@ let milkyWay = [];
 let flowTime = 0;
 let globalFlowAngle = 0;
 
+// --- EGO PLANETA PRO TOP HRÁČE ---
+let showBossPlanet = true;
+let bossPlanet = { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotSpeed: 0 };
+
 let roundTimer = 0;
 let roundTimerFrames = 0;
 let maxRoundTimer = 0; 
@@ -989,6 +994,13 @@ function setupEvents() {
   document.getElementById('toggleFomoBtn').onclick = (e) => {
       showFomoBar = !showFomoBar;
       e.target.innerText = showFomoBar ? 'SKRÝT FOMO' : 'ZOBRAZIT FOMO';
+  };
+
+  // PŘIDÁNA LOGIKA TLAČÍTKA PRO PLANETU
+  document.getElementById('toggleBossBtn').onclick = (e) => { 
+      showBossPlanet = !showBossPlanet; 
+      e.target.innerText = showBossPlanet ? "PLANETA: ZAP" : "PLANETA: VYP"; 
+      e.target.style.background = showBossPlanet ? "#9c27b0" : "#555";
   };
 
   Matter.Events.on(engine, 'collisionStart', (event) => {
