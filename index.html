@@ -2117,21 +2117,26 @@ function handleCameraAndPlayers() {
       continue;
     }
 
-    if (p.hp >= 1000 && !p.isZombie && currentTop10.includes(p.name) && frameCount % 30 === (i % 30)) {
+    // --- BLESKY OD GIGANTŮ (Optimalizováno a výrazně oslabeno) ---
+    // frameCount % 120 znamená, že to střelí maximálně 1x za 2 sekundy
+    if (p.hp >= 1000 && !p.isZombie && currentTop10.includes(p.name) && frameCount % 120 === (i % 120)) {
         let range = p.r + 150;
         for (let other of players) {
-            if (other === p || other.hp <= 0) continue;
+            // Ochrana: Blesk nesmí zasáhnout hráče s aktivním štítem (imunitou)
+            if (other === p || other.hp <= 0 || other.immunityTimer > 0) continue;
+            
             let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
             if (d < range) {
-                let dmg = floor(random(1, 4)); 
+                let dmg = floor(random(1, 3)); // Sníženo damage na pouhé 1 až 2
                 other.hp -= dmg;
+                
                 if (!isExtremeLoad) {
                     lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
                 }
                 if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
                 if (!isHeavyLoad) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
-                        safePlaySound(random(100, 250), 0.01, 0.3); // Hrom pro blesk z giganta
-                break; 
+                safePlaySound(random(100, 250), 0.01, 0.3);
+                break; // Udeří stále jen jednoho nejbližšího hráče
             }
         }
     }
