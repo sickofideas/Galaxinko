@@ -2039,20 +2039,8 @@ function drawNotifications() {
 }
 
 function drawChatCommands() {
-    let cmdY = ARENA_BOT + 80; // Posunuto těsně pod zvětšené notifikace
-    let pulse = (sin(frameCount * 0.05) + 1) / 2;
-    
-    textAlign(CENTER, CENTER);
-    textSize(16); textStyle(BOLD);
-    
-    fill(255);
-    drawingContext.shadowBlur = 5 + pulse * 10;
-    drawingContext.shadowColor = roundThemeColor; // Záře textu v barvě arény
-    let cmds = currentLang === "CZ" ? "TAP TAP = VĚTŠÍ KOULE! | !join | !boost | !shield" : "TAP TAP = BIGGER BALL! | !join | !boost | !shield";
-    text(cmds, W/2, cmdY + 20); // Zvednuto těsně pod notifikace a bez obdélníku
-    
-    drawingContext.shadowBlur = 0;
-    textStyle(NORMAL);
+    // Funkci necháme prázdnou.
+    // Texty "TAP TAP" a "!join" jsme smazali, aby TikTok AI nemohla dát ban za "Engagement Bait".
 }
 
 function handleCameraAndPlayers() {
