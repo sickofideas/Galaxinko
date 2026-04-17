@@ -2713,6 +2713,8 @@ function drawPlayer(p) {
   let isBuffed = p.likeBuffTimer > 0;
   if (isBuffed) p.likeBuffTimer--;
   
+  let isLeader = (currentTop10[0] === p.name && !p.isZombie);
+  
   // 1. FIRE TRAIL
   if (p.hasFireTrail && frameCount % 3 === 0) {
       createParticles(pos.x, pos.y, color(255, random(100, 200), 0), 2);
@@ -2762,6 +2764,13 @@ function drawPlayer(p) {
       ellipse(0, 0, p.r * 1.8);
   }
   if(p.auraFlash > 0) p.auraFlash--;
+
+  // Speciální zlatá pulzující aura pro vedoucího hráče
+  if (isLeader) {
+      fill(255, 215, 0, 50 + sin(frameCount * 0.15) * 30);
+      noStroke();
+      ellipse(0, 0, p.r * 2.4 + sin(frameCount * 0.2) * 15);
+  }
 
   // Buff záře
   if (isBuffed) { 
@@ -2963,7 +2972,7 @@ function drawPlayer(p) {
 
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
   
-  let nameCol = color(230);
+  let nameCol = isLeader ? color(255, 215, 0) : color(230); // Zlaté jméno pro lídra
   if (p.immunityTimer > 0) {
       colorMode(HSB);
       nameCol = color((frameCount * 5) % 360, 255, 255); colorMode(RGB);
@@ -2977,11 +2986,12 @@ function drawPlayer(p) {
       text(dispName, 0, -p.r * 0.45);
       
       // Korunka pro aktuálního krále arény (nejvíce HP)
-      if (currentTop10[0] === p.name && !p.isZombie) {
+      if (isLeader) {
           push();
-          fill(255, 215, 0); stroke(0); strokeWeight(2);
-          textSize(Math.floor(Math.max(12, p.r * 0.25)));
-          text("👑", 0, -p.r * 0.45 - 15);
+          fill(255, 215, 0); stroke(0); strokeWeight(3);
+          let bounce = sin(frameCount * 0.1) * 5; // Levitace korunky
+          textSize(Math.floor(Math.max(18, p.r * 0.35))); // Větší korunka
+          text("👑", 0, -p.r * 0.45 - 20 - bounce);
           pop();
       }
       
