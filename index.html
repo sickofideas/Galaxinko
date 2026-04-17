@@ -1885,11 +1885,18 @@ function addNotification(type, name, img, extra = "", isMegaLike = false) {
 }
 
 function drawNotifications() {
-  // Pozadí spodní lišty
-  fill(15, 15, 20, 160); noStroke(); // Lehký útlum, aby vesmír prosvítal, ale text šel číst
-  rect(0, ARENA_BOT, W, H - ARENA_BOT); 
-  stroke(roundThemeColorDark); strokeWeight(1);
+  // Téměř neviditelné pozadí, aby to nevypadalo jako překryv (TikTok safe)
+  let grad = drawingContext.createLinearGradient(0, ARENA_BOT, 0, ARENA_BOT + 120);
+  grad.addColorStop(0, "rgba(0,0,0,0.8)");
+  grad.addColorStop(1, "rgba(0,0,0,0.0)");
+  drawingContext.fillStyle = grad;
+  noStroke();
+  rect(0, ARENA_BOT, W, H - ARENA_BOT);
+
+  stroke(roundThemeColorDark); strokeWeight(2);
+  drawingContext.setLineDash([15, 15]);
   line(0, ARENA_BOT, W, ARENA_BOT);
+  drawingContext.setLineDash([]);
 
   // Zvýšíme věk aktuálně zobrazeným notifikacím
   for (let n of notifications) {
@@ -1904,13 +1911,13 @@ function drawNotifications() {
       // 1. VIP PŘEDNOST: Dárky přeskakují frontu na první místo
       waiting.sort((a, b) => (a.type === 'GIFT' ? -1 : (b.type === 'GIFT' ? 1 : 0)));
 
-      if (displayed.length >= 3) {
-          // 2. ČASOVÁNÍ: Dárky drží 6s (360 framů), normální 3s (180 framů)
-          let requiredAge = displayed[0].type === 'GIFT' ? 360 : 180;
+      if (displayed.length >= 4) { // PŘIDÁNO: Místo pro 4 menší notifikace
+          // 2. ČASOVÁNÍ: Dárky drží déle, ostatní rychleji mizí
+          let requiredAge = displayed[0].type === 'GIFT' ? 300 : 120;
           
-          // 3. VYHAZOVÁK: Pokud čeká Dárek a zavazí tam obyčejná věc déle než 1 vteřinu, vykopni ji!
-          if (waiting[0].type === 'GIFT' && displayed[0].type !== 'GIFT' && displayed[0].age >= 60) {
-              requiredAge = 60; 
+          // 3. VYHAZOVÁK: Pokud čeká Dárek a zavazí tam obyčejná věc
+          if (waiting[0].type === 'GIFT' && displayed[0].type !== 'GIFT' && displayed[0].age >= 40) {
+              requiredAge = 40; 
           }
 
           if (displayed[0].age >= requiredAge) {
@@ -1918,10 +1925,10 @@ function drawNotifications() {
               displayed.shift(); 
           }
       }
-      if (displayed.length < 3) {
+      if (displayed.length < 4) {
           let next = waiting[0];
           next.state = 'DISPLAY';
-          next.x = W + 400; // Start zprava
+          next.x = W + 300; // Start zprava
           displayed.push(next);
       }
   }
@@ -1929,100 +1936,100 @@ function drawNotifications() {
   // Určíme pozice pro aktuálně zobrazené (nejnovější napravo)
   displayed.reverse();
   for (let i = 0; i < displayed.length; i++) {
-      displayed[i].targetX = W - 235 - (i * 240);
+      displayed[i].targetX = W - 175 - (i * 180); // Užší mezery
   }
 
   for (let n of notifications) {
       if (n.state === 'WAITING') continue;
       
-      if (n.state === 'LEAVING') n.targetX = -400;
+      if (n.state === 'LEAVING') n.targetX = -300;
       
       n.x = lerp(n.x, n.targetX, 0.15);
       
       push();
-      translate(n.x, ARENA_BOT + 8);
+      translate(n.x, ARENA_BOT + 12);
       
       let actionText, icon;
       colorMode(HSB);
       let hueShift = sin(frameCount * 0.05 + n.age * 0.1) * 25;
       let borderColor;
-      if (n.type === 'JOIN') { borderColor = color((120 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Vstoupil do arény!" : "Joined the arena!"; icon = "⚔️"; }
-      else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Sleduje hru!" : "Followed!"; icon = "🎉"; }
+      
+      // ZMĚNA TEXTŮ: Skrytí "Follow", "Like", "Join" za herní lore (TikTok AI friendly)
+      if (n.type === 'JOIN') { borderColor = color((120 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Výsadek" : "Deployed"; icon = "🚀"; }
+      else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Radar lock" : "Radar lock"; icon = "📡"; }
       else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? `Energie +${n.extra}` : `Energy +${n.extra}`; icon = "⚡"; }
-      else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
-      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
-      else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
+      else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Pohon!" : "Thrusters!"; icon = "☄️"; }
+      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Štíty!" : "Shields!"; icon = "🛡️"; }
+      else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Hack" : "Hack"; icon = "💻"; }
       else if (n.type === 'GIFT') { 
           colorMode(HSB);
-          borderColor = color((frameCount * 5) % 360, 100, 100); // Rychlá duhová barva
+          borderColor = color((frameCount * 5) % 360, 100, 100); 
           colorMode(RGB);
-          actionText = currentLang === "CZ" ? `POSLAL DÁREK! (${n.extra}💎)` : `SENT A GIFT! (${n.extra}💎)`; 
-          icon = n.extra >= 1000 ? "🚀" : (n.extra >= 100 ? "💣" : "🎁"); 
+          actionText = currentLang === "CZ" ? `DROP (${n.extra})` : `DROP (${n.extra})`; 
+          icon = n.extra >= 1000 ? "🛸" : (n.extra >= 100 ? "📦" : "🛰️"); 
       }
       else { borderColor = color(0, 0, 100); actionText = "Akce"; icon = "✨"; }
       colorMode(RGB);
       
-      // VIP Zářivý rámeček pro dárky
+      // Užší Sci-Fi design místo tlusté krabice
       if (n.type === 'GIFT' && n.extra >= 100) {
-          fill(30, 0, 40, 255); // Tmavě fialové VIP pozadí
+          fill(20, 0, 30, 200); 
           stroke(borderColor); 
-          strokeWeight(3 + sin(frameCount * 0.2) * 2); // Pulzující tloušťka okraje
-          drawingContext.shadowBlur = 15; // Zářivý stín
+          strokeWeight(2 + sin(frameCount * 0.2)); 
+          drawingContext.shadowBlur = 10; 
           drawingContext.shadowColor = borderColor;
       } else {
-          fill(10, 12, 18, 255);
+          fill(5, 8, 12, 180);
           stroke(borderColor); 
-          strokeWeight(2);
+          strokeWeight(1.5);
           drawingContext.shadowBlur = 0;
       }
-      rect(0, 0, 230, 64, 15);
-      drawingContext.shadowBlur = 0; // Vypnout stín pro další prvky
+      
+      // Vykreslení zkoseného rámečku (Sci-fi panel)
+      beginShape();
+      vertex(8, 0);
+      vertex(170, 0);
+      vertex(170, 36);
+      vertex(162, 44);
+      vertex(0, 44);
+      vertex(0, 8);
+      endShape(CLOSE);
+      drawingContext.shadowBlur = 0; 
       
       let currentAvatar = userAvatars[n.name] || n.img;
+      let avSize = 28;
       if (currentAvatar && currentAvatar !== "loaded") {
           drawingContext.save(); drawingContext.beginPath();
-          drawingContext.arc(32, 32, 22, 0, TWO_PI);
+          drawingContext.arc(22, 22, avSize/2, 0, TWO_PI);
           drawingContext.clip();
-          image(currentAvatar, 10, 10, 44, 44);
+          image(currentAvatar, 22 - avSize/2, 22 - avSize/2, avSize, avSize);
           drawingContext.restore();
       } else {
-          fill(80); noStroke(); ellipse(32, 32, 44, 44);
+          fill(80); noStroke(); ellipse(22, 22, avSize, avSize);
       }
       
       textAlign(LEFT, CENTER);
-      fill(255); textSize(18); textStyle(BOLD); noStroke();
-      text((n.name || "").substring(0, 11), 64, 20);
+      fill(255); textSize(11); textStyle(BOLD); noStroke();
+      text((n.name || "").substring(0, 11), 42, 14);
       
       let actionTextColor = borderColor;
       if (n.type === 'LIKE' && n.extra >= 100) {
-          colorMode(HSB);
-          actionTextColor = color((frameCount * 8) % 360, 80, 100); // Duhová barva pro epic Tapery (100+)
-          colorMode(RGB);
-          textStyle(BOLD);
-          textSize(17);
+          colorMode(HSB); actionTextColor = color((frameCount * 8) % 360, 80, 100); colorMode(RGB);
       } else if (n.type === 'LIKE' && n.isMegaLike) {
-          actionTextColor = color(255, 215, 0); // Zlatá barva pro mega like
-          textStyle(BOLD);
-          textSize(17);
+          actionTextColor = color(255, 215, 0); 
       } else if (n.type === 'GIFT') {
-          colorMode(HSB);
-          actionTextColor = color((frameCount * 5 + 180) % 360, 80, 100); // Text má opačnou duhovou barvu než rámeček
-          colorMode(RGB);
-          textStyle(BOLD);
-          textSize(16);
-      } else {
-          textStyle(NORMAL);
-          textSize(16);
+          colorMode(HSB); actionTextColor = color((frameCount * 5 + 180) % 360, 80, 100); colorMode(RGB);
       }
       
       fill(actionTextColor); noStroke();
-      text(`${icon} ${actionText}`, 64, 44);
+      textSize(10);
+      text(`${icon} ${actionText}`, 42, 30);
       textStyle(NORMAL); // Reset
       
       pop();
   }
   
-  notifications = notifications.filter(n => !(n.state === 'LEAVING' && n.x < -390));
+  notifications = notifications.filter(n => !(n.state === 'LEAVING' && n.x < -200));
 }
 
 function drawChatCommands() {
@@ -3728,31 +3735,44 @@ function draw() {
       topGifterBannerTimer--;
       
       push();
-      // Vykreslení pozadí spodní lišty (aby nezmizela grafická díra)
-      fill(15, 15, 20, 160); noStroke();
+      // Vykreslení pozadí spodní lišty (stejně jako u notifikací pro plynulý vzhled)
+      let grad = drawingContext.createLinearGradient(0, ARENA_BOT, 0, ARENA_BOT + 120);
+      grad.addColorStop(0, "rgba(0,0,0,0.8)");
+      grad.addColorStop(1, "rgba(0,0,0,0.0)");
+      drawingContext.fillStyle = grad;
+      noStroke();
       rect(0, ARENA_BOT, W, H - ARENA_BOT); 
-      stroke(roundThemeColorDark); strokeWeight(1);
+      
+      stroke(roundThemeColorDark); strokeWeight(2);
+      drawingContext.setLineDash([15, 15]);
       line(0, ARENA_BOT, W, ARENA_BOT);
+      drawingContext.setLineDash([]);
 
-      let barW = W - 40;
-      let barH = 64;
-      let barX = 20; 
-      let barY = ARENA_BOT + 10; 
+      let barW = W - 80;
+      let barH = 44;
+      let barX = 40; 
+      let barY = ARENA_BOT + 12; 
 
-      // Vizuál luxusní lišty
-      fill(0, 220); 
-      stroke(255, 215, 0); // Zlatý rámeček
-      strokeWeight(4);
-      rect(barX, barY, barW, barH, 15); // Zaoblené rohy
+      // Vizuál luxusní lišty (nenápadnější, cyberpunk styl)
+      fill(15, 10, 5, 200); 
+      stroke(255, 215, 0, 180); 
+      strokeWeight(2);
+      
+      beginShape();
+      vertex(barX + 15, barY);
+      vertex(barX + barW, barY);
+      vertex(barX + barW - 15, barY + barH);
+      vertex(barX, barY + barH);
+      endShape(CLOSE);
 
-      textAlign(LEFT, CENTER); textSize(24); textStyle(BOLD);
+      textAlign(LEFT, CENTER); textSize(16); textStyle(BOLD);
       
       // Pulzující nápis
-      if (frameCount % 30 < 15) fill(255, 50, 50); else fill(255, 215, 0);
-      text("👑 TOP GIFTER:", barX + 20, barY + barH / 2);
+      if (frameCount % 30 < 15) fill(255, 100, 100); else fill(255, 215, 0);
+      text("👑 TOP SPONSOR:", barX + 30, barY + barH / 2);
       
       fill(255); textAlign(RIGHT, CENTER);
-      text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 20, barY + barH / 2);
+      text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 30, barY + barH / 2);
       pop();
   } else {
       drawNotifications(); 
