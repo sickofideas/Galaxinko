@@ -3553,7 +3553,7 @@ function drawTopHUD() {
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0)); textSize(14); textStyle(BOLD);
-  text(currentLang === "CZ" ? "TOP DÁRCI" : "TOP GIFTERS", W/2, HUD_TOP + 5);
+  text(currentLang === "CZ" ? "TOP SPONZOŘI" : "TOP SPONSORS", W/2, HUD_TOP + 5);
   
   textStyle(NORMAL); textSize(14);
   for(let i=0; i<Math.min(3, allGiftsSorted.length); i++) {
@@ -3602,7 +3602,7 @@ function drawTopHUD() {
   
   let hoverKills = mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h;
   textAlign(LEFT, TOP); fill(hoverKills ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
-  text(currentLang === "CZ" ? "TOP BOJOVNÍCI" : "TOP FIGHTERS", 515, HUD_TOP + 5); 
+  text(currentLang === "CZ" ? "ELITNÍ STÍHAČI" : "ELITE PILOTS", 515, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
   for(let i=0; i<Math.min(2, allKillsSorted.length); i++) {
@@ -3616,7 +3616,7 @@ function drawTopHUD() {
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
       textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " ☠", xBase + 185, y + 2); textStyle(NORMAL);
+      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
   }
 
   if (allKillsSorted.length > 2) {
@@ -3635,7 +3635,7 @@ function drawTopHUD() {
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
           textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " ☠", xBase + 185, y + 2); textStyle(NORMAL);
+          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
