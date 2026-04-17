@@ -2510,10 +2510,11 @@ function handleBossPlanet() {
         ellipse(0, 0, pSize);
         drawingContext.shadowBlur = 0;
 
-        // Zobrazení HP lídra pod planetou
+        // Zobrazení jména a HP lídra
         if (livePlayer) {
             fill(255); stroke(0); strokeWeight(4);
             textSize(22); textAlign(CENTER, CENTER); textStyle(BOLD);
+            text(livePlayer.name, 0, -pSize/2 - 25);
             text(Math.floor(livePlayer.hp).toLocaleString() + " HP", 0, pSize/2 + 25);
         }
 
@@ -2976,17 +2977,20 @@ function drawPlayer(p) {
       
       if (isBuffed) {
           push();
-          let heartPulse = 1.0 + sin(frameCount * 0.3) * 0.2;
+          let energyPulse = 1.0 + sin(frameCount * 0.3) * 0.2;
           translate(0, -p.r * 0.08); // Umístění přesně mezi jméno a HP
-          scale(heartPulse);
-          fill(255, 50, 100);
+          scale(energyPulse);
+          fill(255, 215, 0); // Zlatá barva pro energii
           stroke(0);
           strokeWeight(Math.max(1, p.r * 0.04));
-          let hs = p.r * 0.25;
+          let hs = p.r * 0.35; // Mírně zvětšeno pro lepší viditelnost
           beginShape();
-          vertex(0, -hs/4);
-          bezierVertex(-hs/2, -hs*0.75, -hs, -hs/4, 0, hs/2);
-          bezierVertex(hs, -hs/4, hs/2, -hs*0.75, 0, -hs/4);
+          vertex(hs * 0.2, -hs * 0.6);
+          vertex(-hs * 0.4, hs * 0.1);
+          vertex(-hs * 0.1, hs * 0.1);
+          vertex(-hs * 0.3, hs * 0.6);
+          vertex(hs * 0.4, -hs * 0.1);
+          vertex(hs * 0.1, -hs * 0.1);
           endShape(CLOSE);
           pop();
       }
@@ -3020,7 +3024,7 @@ function createParticles(x, y, c, count, type = 'CIRCLE') {
       actualCount = Math.max(1, Math.floor(count / 2));
   }
   for(let i=0; i<actualCount; i++) {
-      let pSize = type === 'HEART' ? random(8, 16) : random(4, 10);
+      let pSize = (type === 'HEART' || type === 'ENERGY') ? random(8, 16) : random(4, 10);
       particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: pSize, type: type});
   }
 }
@@ -3043,6 +3047,19 @@ function drawParticles() {
             vertex(0, -s/4);
             bezierVertex(-s/2, -s*0.75, -s, -s/4, 0, s/2);
             bezierVertex(s, -s/4, s/2, -s*0.75, 0, -s/4);
+            endShape(CLOSE);
+            pop();
+        } else if (p.type === 'ENERGY') {
+            push();
+            translate(p.x, p.y);
+            let s = p.size;
+            beginShape();
+            vertex(s * 0.2, -s * 0.6);
+            vertex(-s * 0.4, s * 0.1);
+            vertex(-s * 0.1, s * 0.1);
+            vertex(-s * 0.3, s * 0.6);
+            vertex(s * 0.4, -s * 0.1);
+            vertex(s * 0.1, -s * 0.1);
             endShape(CLOSE);
             pop();
         } else {
@@ -3251,8 +3268,8 @@ function updateTimers() {
               p.likeBuffTimer = 90;
               if (players.length < 50) {
                   addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-                  // Méně částic = méně lagů, typ HEART
-                  createParticles(p.body.position.x, p.body.position.y, color(255, 50, 100), isMega ? 8 : 3, 'HEART');
+                  // Méně částic = méně lagů, typ ENERGY
+                  createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), isMega ? 8 : 3, 'ENERGY');
               }
               
               if (p.hp >= 200) {
