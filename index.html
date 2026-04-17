@@ -102,22 +102,18 @@ const FORBIDDEN_WORDS = [
 // --- 2. ROZŠÍŘENÉ KNIHOVNY HLÁŠEK ---
 var COMMENTARY_TAP = {
   CZ: [
-    "Chcete v aréně přežít? Ťukejte na obrazovku! Tap tap vám zvětšuje kouli a přidává sílu!",
-    "Kdo neťuká, ten prohraje! Rychlé prsty znamenají víc HP a větší damage!",
-    "Vidíte ty obry? Ti ťukají jako o život! Dělejte to taky!",
-    "Bez ťukání jste jen potrava pro ostatní. Tapujte, ať vyrostete!",
-    "Bum bum bum! Přidejte plyn, nebo vás ten obrovský kruh vyřadí!",
-    "Jedeme, jedeme! Každý tap se počítá! Ukažte, kdo má nejrychlejší prsty!",
-    "Aréna se zmenšuje! Pouze ti, co nejvíc ťukají, mají šanci na vítězství!"
+    "Senzory hlásí zvýšenou aktivitu v sektoru!",
+    "Aréna se otřásá v základech, souboje nabírají na obrátkách!",
+    "Pozor, detekován masivní nárůst energie u některých bojovníků!",
+    "Přetížení štítů! Tady se dějí věci!",
+    "Rychlost lodí stoupá, tohle je naprostý chaos!"
   ],
   EN: [
-    "Want to survive? Tap the screen! Tap tap makes your circle grow and adds power!",
-    "Those who don't tap, lose! Fast fingers mean more HP and bigger damage!",
-    "See those giants? They are tapping for their lives! Do it too!",
-    "Without tapping, you are just food for others. Tap to grow!",
-    "Bang bang bang! Step on the gas or the giant circle will eliminate you!",
-    "Let's go, let's go! Every tap counts! Show them who has the fastest fingers!",
-    "The arena is shrinking! Only the hardest tappers stand a chance!"
+    "Sensors report increased activity in the sector!",
+    "The arena is shaking, the battles are intensifying!",
+    "Warning, massive energy surge detected!",
+    "Shields overloading! Things are getting crazy!",
+    "Ship speeds are increasing, this is absolute chaos!"
   ]
 };
 
@@ -177,7 +173,7 @@ var COMMENTARY_GIFT = {
 var COMMENTARY_NEW_PLAYER = {
   CZ: [
     "Nový bojovník vstoupil do arény: {p}!",
-    "Vítejte, {p}! Rychle ťukej, ať vyrosteš!",
+    "Vítejte, {p}! Aréna tě očekává!",
     "Vesmírný průzkumník {p} se připojuje k masakru!",
     "Aréna se rozrůstá! Přichází {p}!",
     "Uvidíme, co {p} předvede!",
@@ -204,7 +200,7 @@ var COMMENTARY_NEW_PLAYER = {
   ],
   EN: [
     "A new warrior has entered the arena: {p}!",
-    "Welcome, {p}! Tap fast to grow big!",
+    "Welcome, {p}! The arena awaits you!",
     "Space explorer {p} joins the mayhem!",
     "The arena expands! {p} has arrived!",
     "Let's see what {p} brings to the fight!",
@@ -233,9 +229,6 @@ var COMMENTARY_NEW_PLAYER = {
 
 var COMMENTARY_GENERAL = {
   CZ: [
-    "Chcete v aréně přežít? Ťukejte na obrazovku! Tap tap vám zvětšuje kouli a přidává sílu!",
-    "Kdo neťuká, ten umře! Tap tap tap se rovná víc HP a větší damage!",
-    "Vidíte ty největší hráče? Ti klikají jako o život! Dělejte to taky!",
     "Víte, že ve vesmíru není slyšet váš křik? Tady ale naštěstí ano!",
     "Nejrychlejší věc ve vesmíru je světlo. A hned po něm tahle aréna!",
     "Vesmír se rozpíná, ale šance na přežití některých hráčů se naopak zmenšují!",
@@ -268,10 +261,6 @@ var COMMENTARY_GENERAL = {
     "Jádro Slunce dosahuje teploty patnáct milionů stupňů Celsia.",
     "Nejchladnější známé místo ve vesmíru má teplotu jen zlomek stupně nad absolutní nulou.",
     "Lidské tělo se ve stavu beztíže natáhne až o několik centimetrů. V aréně se ale spíš splácne.",
-    "Zemřeli jste? Nezoufejte! Napište do chatu příkaz !join a vraťte se okamžitě do bitvy!",
-    "Potřebujete rychlost? Napište do chatu příkaz !boost a uleťte nepřátelům!",
-    "Když jde do tuhého, napište příkaz !shield a získejte na chvíli nezranitelnost!",
-    "Vidíte ten tajný kód, co poletuje arénou? Kdo ho napíše do chatu jako první, získá obrovský bonus!",
     "Věděli jste, že teleskop Jamese Webba dokáže dohlédnout až k úplně prvním galaxiím, které vznikly po Velkém třesku?",
     "Program Artemis plánuje návrat lidí na Měsíc. Tentokrát tam chceme zůstat a vybudovat stálou základnu!",
     "Vesmírná stanice ISS oběhne Zemi každých devadesát minut. Astronauti tak zažijí šestnáct východů slunce za den!",
@@ -415,9 +404,6 @@ var COMMENTARY_GENERAL = {
     "A konečně, Země není placka zkrátka proto, že kočky by z okraje dávno shodily úplně všechno."
   ],
   EN: [
-    "Want to survive? Tap the screen! Tap tap makes your circle grow and adds power!",
-    "Those who don't tap, lose! Fast fingers mean more HP and bigger damage!",
-    "See those giants? They are tapping for their lives! Do it too!",
     "Did you know you can't cry in space? Without gravity, tears don't fall!",
     "A day on Venus is longer than its entire year! Time works differently here.",
     "If you fell into a black hole, an outside observer would see you freeze in time.",
@@ -447,10 +433,6 @@ var COMMENTARY_GENERAL = {
     "The core of the Sun reaches a temperature of fifteen million degrees Celsius.",
     "The coldest known place in the universe is just a fraction of a degree above absolute zero.",
     "The human body stretches by a few centimeters in zero gravity. In the arena, you just get squashed.",
-    "Did you die? Don't worry! Type command !join in the chat to return to the battle immediately!",
-    "Need speed? Type command !boost in the chat and fly away from your enemies!",
-    "When things get tough, type command !shield and gain temporary invulnerability!",
-    "See that secret code flying around the arena? The first one to type it in the chat gets a massive bonus!",
     "Did you know the James Webb Space Telescope can look back in time to see the first galaxies formed after the Big Bang?",
     "The Artemis program plans to return humans to the Moon. This time, we want to stay and build a permanent base!",
     "The ISS orbits Earth every ninety minutes. Astronauts experience sixteen sunrises every single day!",
@@ -1658,7 +1640,7 @@ function handleSecretCode() {
         
         let rewardTextCZ = codeType === "HP" ? "obrovské HP" : (codeType === "BOOST" ? "super zrychlení" : "ochranný štít");
         let rewardTextEN = codeType === "HP" ? "massive HP" : (codeType === "BOOST" ? "super speed" : "a protective shield");
-        speakTTS(currentLang === "CZ" ? `Pozor! V aréně poletuje ${isUltraCode ? "ultra" : "tajný"} kód! Kdo ho první napíše do chatu, získá ${rewardTextCZ}!` : `Attention! A ${isUltraCode ? "ultra" : "secret"} code is flying in the arena! First to type it in chat gets ${rewardTextEN}!`);
+        speakTTS(currentLang === "CZ" ? `Pozor! V aréně se objevil ${isUltraCode ? "kritický" : "neznámý"} signál! Dekódujte ho a získejte ${rewardTextCZ}!` : `Attention! A ${isUltraCode ? "critical" : "unknown"} signal appeared! Decode it for ${rewardTextEN}!`);
     }
         
         // Zmizení kódu, pokud ho nikdo nedal do 25 vteřin
@@ -1748,8 +1730,8 @@ function drawSecretCodeUI() {
                 rewardTxt = "5s SHIELD"; hintCol = color(150, 100, 255);
             }
             
-            let hint = currentLang === "CZ" ? `/// ZACHYCEN KÓD: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// SIGNAL DETECTED: FIRST IN CHAT GETS ${rewardTxt} ///`;
-            if (isUltraCode && cType === "HP") hint = currentLang === "CZ" ? `/// ULTRA KÓD AKTIVOVÁN: PRVNÍ V CHATU BERE ${rewardTxt} ///` : `/// ULTRA CODE ACTIVATED: FIRST IN CHAT GETS ${rewardTxt} ///`;
+            let hint = currentLang === "CZ" ? `/// ZACHYCEN SIGNÁL: ${rewardTxt} ///` : `/// ANOMALY DETECTED: ${rewardTxt} ///`;
+            if (isUltraCode && cType === "HP") hint = currentLang === "CZ" ? `/// KRITICKÁ ANOMÁLIE: ${rewardTxt} ///` : `/// CRITICAL ANOMALY: ${rewardTxt} ///`;
             
             // Text je solidní, nebliká a má černý obrys pro perfektní kontrast
             fill(hintCol);
@@ -1961,7 +1943,7 @@ function drawNotifications() {
       let borderColor;
       if (n.type === 'JOIN') { borderColor = color((120 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Vstoupil do arény!" : "Joined the arena!"; icon = "⚔️"; }
       else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Sleduje hru!" : "Followed!"; icon = "🎉"; }
-      else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = `Tap Tap ${n.extra}x`; icon = "❤️"; }
+      else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? `Energie +${n.extra}` : `Energy +${n.extra}`; icon = "⚡"; }
       else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval BOOST!" : "Activated BOOST!"; icon = "🚀"; }
       else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Aktivoval ŠTÍT!" : "Activated SHIELD!"; icon = "🛡️"; }
       else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Prolomil kód!" : "Cracked the code!"; icon = "🔐"; }
@@ -3909,7 +3891,7 @@ function draw() {
                 fill(255, 255, 0, pbAlpha); // Bliká žlutě!
                 textSize(14);
             }
-            let txt = currentLang === "CZ" ? `🌹 POŠLI ENERGII: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 SEND ENERGY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
+        let txt = currentLang === "CZ" ? `🌹 KAPACITA JÁDRA: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 CORE CAPACITY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
             text(txt, W / 2, pbY + pbH / 2);
         } else {
             // Armageddon je plný
@@ -4002,7 +3984,7 @@ function connectTikfinity() {
               addPopup("REPOST BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
               createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), 50);
               safePlaySound(1000, 0.2, 0.5);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} sdílel stream a získal obrovský repost bonus!` : `Player ${u} shared the stream and got a massive repost bonus!`);
+          speakTTS(currentLang === "CZ" ? `Hráč ${u} objevil skrytý bonus!` : `Player ${u} found a hidden bonus!`);
               addNotification('BOOST', u, userAvatars[u], "REPOST"); 
           }
           else if (!p && (msgLower === "!join" || msgLower === "join")) {
