@@ -864,6 +864,8 @@ function startNewRound() {
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = [...new Set(players.filter(p => !p.isZombie).map(p => p.name))]; // Zombíci se nepřevádí a zabrání se duplikaci hráčů
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; deadPlayersQueue = []; spawnModules = [];
+  bossPlanets = []; 
+  lastValidBossName = null;
   previousRoundGifts = Object.assign({}, roundGifts);
   roundGifts = {}; 
   
@@ -2945,7 +2947,8 @@ function drawPlayer(p) {
 
   noFill(); 
   stroke(0); strokeWeight(4); ellipse(0, 0, imgSize);
-  stroke(255, 200); strokeWeight(2); ellipse(0, 0, imgSize + 4);
+  stroke(p.isZombie ? color(50, 255, 50) : color(255, 200));
+  strokeWeight(2); ellipse(0, 0, imgSize + 4);
 
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
   
