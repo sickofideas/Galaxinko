@@ -3495,8 +3495,18 @@ function drawResults() {
 }
 
 function drawTopHUD() {
-  fill(8, 10, 18, 160); noStroke(); rect(0, 0, W, ARENA_TOP); // Lehký útlum celého horního HUDu pro čitelnost
-
+  // Plynulý ztracený gradient místo tvrdého překryvu (bezpečnější a hezčí)
+  let topGrad = drawingContext.createLinearGradient(0, 0, 0, ARENA_TOP + 20);
+  topGrad.addColorStop(0, "rgba(0,0,0,0.9)");
+  topGrad.addColorStop(1, "rgba(0,0,0,0.0)");
+  drawingContext.fillStyle = topGrad;
+  noStroke(); 
+  rect(0, 0, W, ARENA_TOP + 20);
+  
+  stroke(roundThemeColorDark); strokeWeight(2);
+  drawingContext.setLineDash([15, 15]);
+  line(0, ARENA_TOP, W, ARENA_TOP);
+  drawingContext.setLineDash([]);
 
   if (!showLeaderboards) return;
 
@@ -3507,7 +3517,7 @@ function drawTopHUD() {
   let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
   textAlign(LEFT, TOP);
   fill(hoverHp ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
-  text(currentLang === "CZ" ? "ALL TIME HP" : "ALL TIME HP", 15, HUD_TOP + 5); 
+  text(currentLang === "CZ" ? "SÍŇ SLÁVY" : "HALL OF FAME", 15, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
   // Vykreslení prvních 2 fixně
