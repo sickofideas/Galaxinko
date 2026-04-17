@@ -661,6 +661,7 @@ let showLeaderboards = true; // defaultně zapnuto
 let showFomoBar = false; // defaultně skryto
 
 let lastGlobalSound = 0;
+let lastSpeakTime = 0; // PŘIDÁNO: Globální časovač pro TTS omezovač
 
 let previousTop10 = [];
 let currentTop10 = [];
@@ -964,10 +965,10 @@ function setupEvents() {
                   if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hp += 250; } else handleAction(u, 250, false, 0, true);
               }
           addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`);
+          speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`, true);
           createParticles(W/2, H/2, color(255, 215, 0), 100);
       } else {
-          speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!"); 
+          speakTTS(currentLang === "CZ" ? "Sputnik: Zpráva přijata!" : "Sputnik: Message received!", true); 
       }
   };
   document.getElementById('tFollow').onclick = () => { let dummyUser = "User" + floor(random(100)); addNotification('FOLLOW', dummyUser, null); };
@@ -1036,7 +1037,7 @@ function triggerMegaAnnouncement(playerName, diam, customTTS, customText) {
         particles.push({x: W/2, y: (ARENA_TOP+ARENA_BOT)/2, vx: random(-30, 30), vy: random(-30, 30), life: 255, c: col, size: random(8, 20)});
     }
     
-    speakTTS(customTTS);
+    speakTTS(customTTS, true);
 }
 
 function triggerGiftEffect(p, diam, comboMult = 1) {
@@ -1279,10 +1280,12 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
       if (isGift) {
           triggerGiftEffect(player, diam, comboMult);
           let giftMsg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", name);
-          speakTTS(giftMsg);
+          speakTTS(giftMsg, true);
       } else {
-          let newPlayerMsg = random(COMMENTARY_NEW_PLAYER[currentLang]).replace("{p}", name);
-          speakTTS(newPlayerMsg);
+          if (random() < 0.4) { // PŘIDÁNO: Jen 40% šance na přivítání (zmenšení spamu)
+              let newPlayerMsg = random(COMMENTARY_NEW_PLAYER[currentLang]).replace("{p}", name);
+              speakTTS(newPlayerMsg); // Běžná priorita
+          }
       }
   }
   
@@ -1404,7 +1407,7 @@ function handleCombat(p1, p2) {
           activeEvent = null;
           bountyTarget = null;
           nextEventTime = millis() + random(60000, 150000);
-          speakTTS(currentLang === "CZ" ? `Odměna vybrána! ${winner.name} zničil cíl!` : `Bounty claimed! ${winner.name} destroyed the target!`);
+          speakTTS(currentLang === "CZ" ? `Odměna vybrána! ${winner.name} zničil cíl!` : `Bounty claimed! ${winner.name} destroyed the target!`, true);
           safePlaySound(1000, 0.2, 0.5); 
       }
   };
@@ -1642,7 +1645,7 @@ function handleSecretCode() {
         
         let rewardTextCZ = codeType === "HP" ? "obrovské HP" : (codeType === "BOOST" ? "super zrychlení" : "ochranný štít");
         let rewardTextEN = codeType === "HP" ? "massive HP" : (codeType === "BOOST" ? "super speed" : "a protective shield");
-        speakTTS(currentLang === "CZ" ? `Pozor! V aréně se objevil ${isUltraCode ? "kritický" : "neznámý"} signál! Dekódujte ho a získejte ${rewardTextCZ}!` : `Attention! A ${isUltraCode ? "critical" : "unknown"} signal appeared! Decode it for ${rewardTextEN}!`);
+        speakTTS(currentLang === "CZ" ? `Pozor! V aréně se objevil ${isUltraCode ? "kritický" : "neznámý"} signál! Dekódujte ho a získejte ${rewardTextCZ}!` : `Attention! A ${isUltraCode ? "critical" : "unknown"} signal appeared! Decode it for ${rewardTextEN}!`, true);
     }
         
         // Zmizení kódu, pokud ho nikdo nedal do 25 vteřin
@@ -3126,14 +3129,14 @@ function triggerRandomEvent() {
       p.isBounty = true;
       eventTimer = 1800; // 30 sec (při 60 FPS)
       let msg = currentLang === "CZ" ? `Vypsána odměna na hráče ${bountyTarget}! Zničte ho!` : `Bounty placed on ${bountyTarget}! Destroy them!`;
-      speakTTS(msg);
+      speakTTS(msg, true);
       addPopup("BOUNTY TARGET!", p.body.position.x, p.body.position.y - p.r - 20, color(255, 50, 50), true);
       safePlaySound(600, 0.2, 1.0);
   } else {
       activeEvent = "MAGNET";
       eventTimer = 900; // 15 sec (při 60 FPS)
       let msg = currentLang === "CZ" ? `Aktivován gravitační magnet!` : `Gravity magnet activated!`;
-      speakTTS(msg);
+      speakTTS(msg, true);
       addPopup("MAGNET ACTIVATED!", W/2, (ARENA_TOP+ARENA_BOT)/2, color(150, 50, 255), true);
       safePlaySound(300, 0.3, 2.0);
   }
@@ -3357,7 +3360,7 @@ function drawResults() {
       let wMsg = currentLang === "CZ" ? 
           `Skvělá práce! Hráč ${winner.name} naprosto ovládl arénu a vyhrává toto kolo!` : 
           `Great job! Player ${winner.name} absolutely dominated the arena and wins this round!`;
-      speakTTS(wMsg);
+      speakTTS(wMsg, true);
   }
 
   let bY = ARENA_TOP + 300; 
@@ -3634,9 +3637,9 @@ function drawTopHUD() {
 function handleTTSCommentary() {
   let now = millis();
 
-  // NÁHODNÁ LIDSKÁ PAUZA (Každých cca 7-10 minut nastane ticho na 45-90 vteřin)
-  if (now > humanPauseEnd && random() < 0.0005) {
-      humanPauseEnd = now + random(45000, 90000);
+  // NÁHODNÁ LIDSKÁ PAUZA (Každých cca 5-8 minut nastane ticho na 60-120 vteřin)
+  if (now > humanPauseEnd && random() < 0.001) {
+      humanPauseEnd = now + random(60000, 120000);
       nextCommentTime = humanPauseEnd; 
   }
   if (now < humanPauseEnd) return; // Běží lidská pauza, mlčíme
@@ -3665,8 +3668,8 @@ function handleTTSCommentary() {
           spokenHistory[txt] = now;
           lastCommentString = txt; 
           speakTTS(txt);
-              // ZPOMALENÍ TTS: Nová hláška přijde za 20 až 40 vteřin (místo 8-15)
-              nextCommentTime = now + random(20000, 40000); 
+              // ZPOMALENÍ TTS: Nová hláška přijde za 30 až 60 vteřin (méně často)
+              nextCommentTime = now + random(30000, 60000); 
       } else {
               nextCommentTime = now + 5000;
       }
@@ -4072,7 +4075,7 @@ function connectTikfinity() {
               }
               
               addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód!` : `Player ${u} cracked the code!`);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód!` : `Player ${u} cracked the code!`, true);
               createParticles(W/2, H/2, color(255, 215, 0), 100);
           }
             handleAction(u, 10, false, 0, false); 
@@ -4128,7 +4131,7 @@ function connectTikfinity() {
               screenShake = 50;
               addPopup("🚨 GLOBAL ARMAGEDDON UNLOCKED! 🚨", W/2, H/2, color(255, 0, 0), true);
               safePlaySound(150, 0.8, 1.0); 
-              speakTTS(currentLang === "CZ" ? "Komunitní cíl splněn! Globální Armagedon odemčen!" : "Community goal reached! Global Armageddon unlocked!");
+              speakTTS(currentLang === "CZ" ? "Komunitní cíl splněn! Globální Armagedon odemčen!" : "Community goal reached! Global Armageddon unlocked!", true);
           }
 
           // 1. Zpracování TOP Giftera
@@ -4183,7 +4186,7 @@ function connectTikfinity() {
 
           if (diam >= 1000) {
               let msg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", u);
-              speakTTS(msg);
+              speakTTS(msg, true);
           } else {
               let giftMsgsCZ = [
                   "Obrovské díky, " + u + "! Tvá energie je naprosto úžasná!",
@@ -4197,7 +4200,7 @@ function connectTikfinity() {
                   "The universe rejoices! Thank you, " + u + ", for your generosity!",
                   "Incredible! " + u + " is a true star of the arena. Thank you very much!"
               ];
-              speakTTS(currentLang === "CZ" ? random(giftMsgsCZ) : random(giftMsgsEN)); 
+              speakTTS(currentLang === "CZ" ? random(giftMsgsCZ) : random(giftMsgsEN), true); 
           }
       }
     } catch (err) {}
@@ -4209,9 +4212,12 @@ function removeDiacritics(text) {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-function speakTTS(txt) {
+function speakTTS(txt, force = false) {
   if (!('speechSynthesis' in window)) return;
   if (window.speechSynthesis.speaking) return; 
+  
+  // Omezovač proti spamu (Pokud to není vynucené, čeká aspoň 12 vteřin mezi běžnými promluvami)
+  if (!force && millis() - lastSpeakTime < 12000) return;
   
   // Očištění od emoji
   let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
@@ -4236,9 +4242,13 @@ function speakTTS(txt) {
   
   var msg = new SpeechSynthesisUtterance(cleanTxt); 
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
-  msg.rate = 1.15; 
-  msg.pitch = 1.2; 
+  
+  // HUMANIZE: Náhodné odchylky v rychlosti a výšce hlasu pro každý proslov
+  msg.rate = random(1.05, 1.25); 
+  msg.pitch = random(0.9, 1.2); 
+  
   window.speechSynthesis.speak(msg);
+  lastSpeakTime = millis();
 }
 
 function mousePressed() {
