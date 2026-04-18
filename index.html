@@ -66,8 +66,8 @@ var GAME_VERSION = "v19.58.0"; // Okamžité TTS při startu a nové vesmírné 
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 0; 
-var ARENA_BOT = 1280; 
+var ARENA_TOP = 50; 
+var ARENA_BOT = 1330; 
 
 // Theme variables
 var roundThemeColor;
@@ -1794,16 +1794,12 @@ function screenToWorld(sx, sy) {
 
 function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
-    let isHeavyLoad = players.length > 40;
     
     let p = 1.0 - (roundTimerFrames / (maxRoundTimer * 60)); 
-    p = constrain(p, 0, 1.0); // Ochrana proti couvnuti za start při extrémním prodloužení kola
+    p = constrain(p, 0, 1.0); 
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
     let currentDist = p * perim;
-    
-    stroke(roundThemeColor); strokeWeight(3);
-    if(!isHeavyLoad) { drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor; }
     
     let points = [ 
         {x: W/2, y: ARENA_TOP}, 
@@ -1814,50 +1810,20 @@ function drawSpaceshipTimer() {
         {x: W/2, y: ARENA_TOP} 
     ];
     
-    let d = 0; let shipAngle = 0; shipX = points[0].x; shipY = points[0].y;
+    let d = 0; shipX = points[0].x; shipY = points[0].y;
 
     for (let i = 0; i < points.length - 1; i++) {
         let p1 = points[i]; let p2 = points[i+1]; let segLen = dist(p1.x, p1.y, p2.x, p2.y);
         if (currentDist > d + segLen) {
-            line(p1.x, p1.y, p2.x, p2.y); d += segLen;
+            d += segLen;
         } else {
             let t = (currentDist - d) / segLen;
             shipX = lerp(p1.x, p2.x, t); shipY = lerp(p1.y, p2.y, t);
-            line(p1.x, p1.y, shipX, shipY);
-            shipAngle = atan2(p2.y - p1.y, p2.x - p1.x);
             break;
         }
     }
-    if(!isHeavyLoad) drawingContext.shadowBlur = 0;
 
-    push(); translate(shipX, shipY); rotate(shipAngle);
-    
-    fill(255, 100, 0, 150 + sin(frameCount * 0.5) * 100);
-    noStroke();
-    triangle(-20, -6, -20, 6, -35 - random(10), 0);
-    fill(255, 200, 0);
-    triangle(-20, -3, -20, 3, -28 - random(5), 0);
-    
-    fill(100, 150, 255); stroke(0, 255, 255); strokeWeight(1);
-    triangle(-10, 10, -20, 20, 5, 10);
-    triangle(-10, -10, -20, -20, 5, -10);
-    
-    fill(220, 220, 255); stroke(0, 255, 255); strokeWeight(2);
-    beginShape();
-    vertex(20, 0); vertex(5, 10); vertex(-20, 8); vertex(-20, -8); vertex(5, -10);
-    endShape(CLOSE);
-    
-    fill(0, 200, 255); noStroke(); ellipse(5, 0, 10, 6);
-    fill(255); ellipse(7, -1, 3, 2);
-    
-    pop();
-
-    if (frameCount % 4 === 0 && roundTimerFrames > 0 && !isHeavyLoad) {
-        let wPos = screenToWorld(shipX, shipY);
-        particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: roundThemeColor, size: random(4, 8)});
-    }
-    
-    // Časomíra vedle raketky
+    // Letající časomíra podél neviditelného okraje
     let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
     push();
     translate(shipX, shipY);
@@ -1865,15 +1831,18 @@ function drawSpaceshipTimer() {
     let dirY = ((ARENA_TOP+ARENA_BOT)/2) - shipY;
     let len = dist(0, 0, dirX, dirY);
     if (len > 0) {
-        dirX = (dirX / len) * 35;
-        dirY = (dirY / len) * 35;
+        dirX = (dirX / len) * 50; // Odsazení od kraje dovnitř
+        dirY = (dirY / len) * 50;
     }
     
     fill(0, 255, 255);
     if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-    textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
+    textSize(24); textStyle(BOLD); textAlign(CENTER, CENTER);
     stroke(0); strokeWeight(3);
     text(timeStr, dirX, dirY);
+    
+    textSize(10); fill(255);
+    text(currentLang === "CZ" ? "ČAS KOLA" : "ROUND TIME", dirX, dirY - 20);
     pop();
 }
 
@@ -3769,10 +3738,7 @@ function draw() {
 
   // drawChatCommands(); // ZAKÁZÁNO
 
-  // ZAKÁZÁNO: Červený/tematický rámeček
-  // stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
-
-  // if (gameState === "PLAYING") drawSpaceshipTimer(); // ZAKÁZÁNO
+  if (gameState === "PLAYING") drawSpaceshipTimer();
 
   drawingContext.save();
   drawingContext.beginPath();
