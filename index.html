@@ -3326,15 +3326,15 @@ function drawResults() {
   let cx = W / 2;
   let cy = (ARENA_TOP + ARENA_BOT) / 2;
 
-  // Ztmavení arény (průhledná černá funguje v OBS perfektně jako stmívač)
-  fill(0, 0, 0, 180);
-  noStroke();
-  rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
+  // ZAKÁZÁNO PRO CHROMA KEY: Ztmavení arény vytvářelo nevyklíčovatelný tmavě zelený flek
+  // fill(0, 0, 0, 180);
+  // noStroke();
+  // rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
 
   translate(cx, cy);
   
   // Panel
-  fill(10, 15, 20, 240);
+  fill(10, 15, 20, 255); // 100% neprůhlednost, aby zelená neprosvítala skrz panel
   stroke(255, 215, 0);
   strokeWeight(4);
   rectMode(CENTER);
