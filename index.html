@@ -645,8 +645,8 @@ let gameState = "PLAYING";
 let nukeEffectTimer = 0;
 let resultsTimer = 8;
 let maxResultsTimer = 8;
-let cameraScale = 1.6;
-let targetCameraScale = 1.6;
+let cameraScale = 2.0;
+let targetCameraScale = 2.0;
 let audioStarted = false;
 let synth;
 
@@ -909,8 +909,8 @@ function startNewRound() {
   gameState = "PLAYING";
   nukeEffectTimer = 0;
   engine.timing.timeScale = 1.0;
-  cameraScale = 1.6;
-  targetCameraScale = 1.6;
+  cameraScale = 2.0;
+  targetCameraScale = 2.0;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
   nextCommentTime = millis() + 1500;
   nextCodeTime = millis() + random(45000, 85000); 
@@ -2012,7 +2012,7 @@ function drawChatCommands() {
 }
 
 function handleCameraAndPlayers() {
-  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
+  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.25, 0.05); return; }
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
@@ -2211,10 +2211,10 @@ function handleCameraAndPlayers() {
 
   // KLAUSTROFOBICKÁ KAMERA: Držíme detail co nejdéle to jde!
   let len = players.length;
-  if (len >= 250) targetCameraScale = 0.7;       // Naprostý extrém (když už je to fakt průser)
-  else if (len >= 150) targetCameraScale = 0.9;  // Mírně poodstoupíme
-  else if (len >= 80) targetCameraScale = 1.2;   // Stále velmi blízko, ať se tam pořádně mačkají
-  else targetCameraScale = 1.6;                  // Úplně nablízko pro poloprázdnou arénu
+  if (len >= 250) targetCameraScale = 0.85;      // Naprostý extrém
+  else if (len >= 150) targetCameraScale = 1.15; // Mírně poodstoupíme
+  else if (len >= 80) targetCameraScale = 1.5;   // Stále velmi blízko
+  else targetCameraScale = 2.0;                  // Zvětšeno o 25% pro poloprázdnou arénu
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.015); // Velmi pomalé a plynulé oddalování
   
@@ -2489,7 +2489,7 @@ function handleBossPlanet() {
             drawingContext.shadowColor = outlineColor;
         }
 
-        fill(5, 5, 10, 180);
+        fill(5, 5, 10, 255); // 100% neprůhlednost, minimalizuje poškození od OBS chroma key na zelené fotce
         stroke(outlineColor);
         strokeWeight(bp.isKnockedOut ? 2 : 5);
         ellipse(0, 0, pSize);
