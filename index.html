@@ -1872,7 +1872,7 @@ function drawSpaceshipTimer() {
     fill(0, 255, 255);
     if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
     textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
-    drawingContext.shadowBlur = 5; drawingContext.shadowColor = color(0);
+    stroke(0); strokeWeight(3);
     text(timeStr, dirX, dirY);
     pop();
 }
@@ -2016,7 +2016,7 @@ function drawNotifications() {
       }
       
       textAlign(LEFT, CENTER);
-      fill(255); textSize(11); textStyle(BOLD); noStroke();
+      fill(255); textSize(11); textStyle(BOLD); stroke(0); strokeWeight(3);
       text((n.name || "").substring(0, 11), 42, 14);
       
       let actionTextColor = borderColor;
@@ -2028,7 +2028,7 @@ function drawNotifications() {
           colorMode(HSB); actionTextColor = color((frameCount * 5 + 180) % 360, 80, 100); colorMode(RGB);
       }
       
-      fill(actionTextColor); noStroke();
+      fill(actionTextColor); stroke(0); strokeWeight(3);
       textSize(10);
       text(`${icon} ${actionText}`, 42, 30);
       textStyle(NORMAL); // Reset
@@ -3510,6 +3510,13 @@ function drawTopHUD() {
   noStroke(); 
   rect(0, 0, W, ARENA_TOP + 20);
   
+  // PŘIDÁNO: Poloprůhledné černé podkresy pod tabulky pro lepší čitelnost proti hernímu pozadí
+  fill(0, 0, 0, 180);
+  noStroke();
+  rect(5, HUD_TOP, 240, 150, 10);         // SÍŇ SLÁVY
+  rect(W/2 - 110, HUD_TOP, 220, 150, 10); // TOP SPONZOŘI
+  rect(W - 245, HUD_TOP, 240, 150, 10);   // ELITNÍ STÍHAČI
+  
   stroke(roundThemeColorDark); strokeWeight(2);
   drawingContext.setLineDash([15, 15]);
   line(0, ARENA_TOP, W, ARENA_TOP);
@@ -3524,6 +3531,7 @@ function drawTopHUD() {
   let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
   textAlign(LEFT, TOP);
   fill(hoverHp ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
+  stroke(0); strokeWeight(3);
   text(currentLang === "CZ" ? "SÍŇ SLÁVY" : "HALL OF FAME", 15, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
@@ -3538,8 +3546,8 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
+      textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+      textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
   }
 
   // Rolování od 3 do 20 (index 2+)
@@ -3558,8 +3566,8 @@ function drawTopHUD() {
           drawingContext.restore();
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
+          textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+          textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -3570,6 +3578,7 @@ function drawTopHUD() {
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0)); textSize(14); textStyle(BOLD);
+  stroke(0); strokeWeight(3);
   text(currentLang === "CZ" ? "TOP SPONZOŘI" : "TOP SPONSORS", W/2, HUD_TOP + 5);
   
   textStyle(NORMAL); textSize(14);
@@ -3584,10 +3593,10 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
+      textAlign(LEFT, TOP); fill(gData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
       
       let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
+      textAlign(RIGHT, TOP); fill(255, 215, 0); stroke(0); strokeWeight(3); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
   }
 
   if (allGiftsSorted.length > 3) {
@@ -3605,10 +3614,10 @@ function drawTopHUD() {
           drawingContext.restore();
           noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-          textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
+          textAlign(LEFT, TOP); fill(gData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
           
           let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-          textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
+          textAlign(RIGHT, TOP); fill(255, 215, 0); stroke(0); strokeWeight(3); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -3619,6 +3628,7 @@ function drawTopHUD() {
   
   let hoverKills = mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h;
   textAlign(LEFT, TOP); fill(hoverKills ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
+  stroke(0); strokeWeight(3);
   text(currentLang === "CZ" ? "ELITNÍ STÍHAČI" : "ELITE PILOTS", 515, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
@@ -3632,8 +3642,8 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
+      textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+      textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
   }
 
   if (allKillsSorted.length > 2) {
@@ -3651,8 +3661,8 @@ function drawTopHUD() {
           drawingContext.restore();
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
+          textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+          textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -3742,12 +3752,13 @@ function draw() {
       endShape(CLOSE);
 
       textAlign(LEFT, CENTER); textSize(16); textStyle(BOLD);
+      stroke(0); strokeWeight(3);
       
       // Pulzující nápis
       if (frameCount % 30 < 15) fill(255, 100, 100); else fill(255, 215, 0);
       text("👑 TOP SPONSOR:", barX + 30, barY + barH / 2);
       
-      fill(255); textAlign(RIGHT, CENTER);
+      fill(255); textAlign(RIGHT, CENTER); stroke(0); strokeWeight(3);
       text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 30, barY + barH / 2);
       pop();
   } else {
@@ -3930,6 +3941,7 @@ function draw() {
             
             noStroke();
             fill(255, 255, 255, (gifterFadeAlpha / 255) * pbAlpha);
+            stroke(0, (gifterFadeAlpha / 255) * pbAlpha); strokeWeight(3);
             textAlign(LEFT, CENTER);
             textSize(10);
             let shortName = currentLastGifter.name.length > 8 ? currentLastGifter.name.substring(0, 8) + "." : currentLastGifter.name;
@@ -3942,6 +3954,7 @@ function draw() {
         textAlign(CENTER, CENTER);
         textSize(12);
         textStyle(BOLD);
+        stroke(0); strokeWeight(3);
         
         let coinsLeft = ARMAGEDDON_GOAL - roundTotalCoins;
         if (coinsLeft > 0) {
