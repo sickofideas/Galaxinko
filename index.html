@@ -3833,7 +3833,15 @@ function draw() {
   } 
   
   if (gameState === "RESULTS") {
-    // drawResults(); // ZAKÁZÁNO: Skrytí výsledkové obrazovky
+    // Skrytá výsledková obrazovka: Musíme zachovat skrytý odpočet a spuštění nového kola!
+    if (frameCount % 60 === 0) { 
+        resultsTimer--; 
+        if (resultsTimer <= 0) { 
+            maxResultsTimer = 8; 
+            resultsTimer = 8; 
+            startNewRound(); 
+        } 
+    }
   }
   
   drawingContext.restore(); 
