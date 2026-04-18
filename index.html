@@ -2457,7 +2457,6 @@ function handleBossPlanet() {
 
                     // ZAKÁZÁNO: screenShake, particles, flash
                     safePlaySound(150, 0.1, 1.0); // Pouze tichý basový zvuk
-                    addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(0, 255, 255), true);
                 }
             } 
             // B) ÚPLNĚ PRVNÍ PLANETA -> MAJESTÁTNĚ PŘILÉTÁ DO STŘEDU
@@ -2534,7 +2533,6 @@ function handleBossPlanet() {
             fill(255); stroke(0); strokeWeight(4);
             textSize(22); textAlign(CENTER, CENTER); textStyle(BOLD);
             text(livePlayer.name, 0, -pSize/2 - 25);
-            text(Math.floor(livePlayer.hp).toLocaleString() + " HP", 0, pSize/2 + 25);
         }
 
  
