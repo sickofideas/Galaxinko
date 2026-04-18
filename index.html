@@ -3244,9 +3244,8 @@ function updateTimers() {
       explosionTimer--; screenShake *= 0.95;
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
-          let donorCount = Object.keys(roundGifts).length;
-          maxResultsTimer = Math.min(16, 8 + Math.floor(donorCount / 2));
-          resultsTimer = maxResultsTimer; 
+              maxResultsTimer = 6; // Pevně zkráceno na 6 vteřin pro rychlý přechod
+              resultsTimer = 6; 
           winnerAnnounced = false;
       } 
   }
@@ -3324,146 +3323,65 @@ function updateTimers() {
 
 function drawResults() {
   push();
-  fill(0, 220); 
-  noStroke(); 
-  rect(0, 0, W, H);
-  pop();
+  let cx = W / 2;
+  let cy = (ARENA_TOP + ARENA_BOT) / 2;
+
+  // Ztmavení arény (průhledná černá funguje v OBS perfektně jako stmívač)
+  fill(0, 0, 0, 180);
+  noStroke();
+  rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
+
+  translate(cx, cy);
   
-  textAlign(CENTER, CENTER);
-  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
-  
+  // Panel
+  fill(10, 15, 20, 240);
+  stroke(255, 215, 0);
+  strokeWeight(4);
+  rectMode(CENTER);
+  rect(0, -30, W - 150, 320, 20);
+
+  // Získání vítěze
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
   
-  if(winner && !winnerAnnounced) {
-      winnerAnnounced = true;
-      let wMsg = currentLang === "CZ" ? 
-          `Skvělá práce! Hráč ${winner.name} naprosto ovládl arénu a vyhrává toto kolo!` : 
-          `Great job! Player ${winner.name} absolutely dominated the arena and wins this round!`;
-      speakTTS(wMsg, true);
-  }
-
-  let bY = ARENA_TOP + 300; 
-  let anim = constrain(map(resultsTimer, maxResultsTimer, maxResultsTimer - 1, 0, 1), 0, 1);
-
-  for (let i = 0; i < Math.min(3, sorted.length); i++) {
-      let p = sorted[i];
-      let px, ph, pcol;
-      if (i === 0) { px = W/2; ph = 100; pcol = color(255, 215, 0); }
-      else if (i === 1) { px = W/2 - 120; ph = 70; pcol = color(192, 192, 192); }
-      else { px = W/2 + 120; ph = 50; pcol = color(205, 127, 50); }
-
-      let curH = ph * anim;
-      
-      push();
-      fill(10, 15, 30, 200); stroke(pcol); strokeWeight(3);
-      rect(px - 45, bY - curH, 90, curH, 10, 10, 0, 0);
-      
-      fill(pcol); noStroke(); textSize(24); textAlign(CENTER, CENTER); textStyle(BOLD);
-      text(i+1, px, bY - curH/2);
-      pop();
-
-      if (anim > 0.8) {
-          push();
-          let imgSize = i === 0 ? 60 : 45;
-          let imgY = bY - curH - imgSize/2 - 10;
-          if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(px, imgY, imgSize/2, 0, TWO_PI); drawingContext.clip();
-              imageMode(CENTER); image(userAvatars[p.name], px, imgY, imgSize, imgSize); drawingContext.restore();
-          } else {
-              fill(p.color); noStroke(); ellipse(px, imgY, imgSize);
-          }
-          noFill(); stroke(pcol); strokeWeight(3); ellipse(px, imgY, imgSize);
-
-          fill(p.color); noStroke(); textSize(i===0 ? 14 : 11); textStyle(BOLD); textAlign(CENTER, BOTTOM);
-          text(p.name.substring(0,10), px, imgY - imgSize/2 - 5);
-          fill(255); textSize(i===0 ? 12 : 10);
-          text(formatK(p.hp) + " HP", px, bY - curH - imgSize - 25);
-          pop();
-      }
-  }
-
-  let mvpArr = Object.entries(roundGifts).sort((a,b)=>b[1].score - a[1].score);
-  if (mvpArr.length > 0 && anim > 0.8) {
-      push();
-      let donorY = bY + 60;
-      fill(20, 15, 30, 240); stroke(255, 215, 0); strokeWeight(3);
-      rect(20, donorY, W - 40, 130, 15);
-
-      fill(255, 215, 0); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
-      text(currentLang === "CZ" ? "💎 DÁRCI TOHOTO KOLA 💎" : "💎 ROUND GIFTERS 💎", W/2, donorY + 15);
-
-      let cardW = 180;
-      let totalW = mvpArr.length * cardW;
-      let scrollX = 0;
-      if (totalW > W - 60) {
-          let availableFrames = maxResultsTimer * 60;
-          let neededSpeed = (totalW + W) / availableFrames;
-          let speed = Math.max(1.5, neededSpeed); 
-          scrollX = (frameCount * speed) % (totalW + W);
+  if (winner) {
+      if (!winnerAnnounced) {
+          winnerAnnounced = true;
+          // Žádný hlasový komentář, pouze zvuk výhry
+          safePlaySound(1000, 0.2, 1.0); 
       }
 
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.rect(25, donorY + 40, W - 50, 80);
-      drawingContext.clip();
+      fill(255, 215, 0); stroke(0); strokeWeight(4);
+      textSize(32); textAlign(CENTER, CENTER); textStyle(BOLD);
+      text(currentLang === "CZ" ? "🏆 VÍTĚZ KOLA 🏆" : "🏆 ROUND WINNER 🏆", 0, -140);
 
-      for (let j = 0; j < mvpArr.length; j++) {
-          let dData = mvpArr[j];
-          let dName = dData[0];
-          let dScore = dData[1].score;
-          let dColor = dData[1].color;
-          let dAv = dData[1].avatar;
-
-          let xPos = totalW > W - 60 ? W + (j * cardW) - scrollX : (W / 2) - (totalW / 2) + (j * cardW);
-
-          if (xPos > -cardW && xPos < W) {
-              fill(0, 0, 0, 150); stroke(dColor); strokeWeight(2);
-              rect(xPos, donorY + 45, cardW - 15, 65, 8);
-
-              let ax = xPos + 30;
-              let ay = donorY + 77;
-              if (dAv && dAv !== "loaded") {
-                  drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, ay, 18, 0, TWO_PI); drawingContext.clip();
-                  imageMode(CENTER); image(dAv, ax, ay, 36, 36); drawingContext.restore();
-              } else {
-                  fill(dColor); noStroke(); ellipse(ax, ay, 36, 36);
-              }
-              noFill(); stroke(dColor); strokeWeight(2); ellipse(ax, ay, 36, 36);
-
-              noStroke(); fill(dColor); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
-              text(dName.substring(0, 9), xPos + 55, ay - 10);
-              
-              fill(255, 215, 0); textSize(11);
-              let giftEmoji = dScore >= 1000 ? '🚀' : '💎';
-              text(dScore.toLocaleString() + " " + giftEmoji, xPos + 55, ay + 10);
-          }
+      let imgSize = 100;
+      let currAv = userAvatars[winner.name];
+      if (currAv && currAv !== "loaded") {
+          drawingContext.save(); drawingContext.beginPath();
+          drawingContext.arc(0, -40, imgSize/2, 0, TWO_PI);
+          drawingContext.clip();
+          imageMode(CENTER); image(currAv, 0, -40, imgSize, imgSize);
+          drawingContext.restore();
+      } else {
+          fill(winner.color); noStroke(); ellipse(0, -40, imgSize);
       }
-      drawingContext.restore();
-      pop();
+      noFill(); stroke(255, 215, 0); strokeWeight(4); ellipse(0, -40, imgSize);
+
+      fill(winner.color); stroke(0); strokeWeight(4); textSize(28);
+      text(winner.name, 0, 40);
+
+      fill(255); stroke(0); strokeWeight(3); textSize(20);
+      text(formatK(winner.hp) + " HP", 0, 80);
+  } else {
+      fill(255); stroke(0); strokeWeight(4); textSize(28); textAlign(CENTER, CENTER); textStyle(BOLD);
+      text(currentLang === "CZ" ? "ŽÁDNÝ VÍTĚZ" : "NO WINNER", 0, 0);
   }
 
-  textAlign(LEFT, CENTER); 
-  let showDonors = (mvpArr.length > 0 && anim > 0.8);
-  let listStartY = showDonors ? bY + 210 : bY + 80; 
-  let maxListItems = showDonors ? 8 : 15;
-  let listLimit = Math.min(sorted.length, maxListItems);
-  for (let i = 3; i < listLimit; i++) {
-    let p = sorted[i]; let yPos = listStartY + (i-3) * 26;
-    fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5)); noStroke(); rect(W/2 - 200, yPos - 12, 400, 24, 5);
-    fill(p.color); textSize(11); textStyle(BOLD); text((i + 1) + ".", W/2 - 180, yPos);
-    if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-        drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 140, yPos, 9, 0, TWO_PI); drawingContext.clip();
-        image(userAvatars[p.name], W/2 - 140, yPos, 18, 18); drawingContext.restore();
-    }
-    fill(220); textStyle(NORMAL); textSize(11); text(p.name.substring(0, 12), W/2 - 120, yPos);
-    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); text(Math.floor(Math.max(0, p.hp)).toLocaleString(), W/2 + 180, yPos); textAlign(LEFT, CENTER); 
-  }
-  
-  let timerY = ARENA_BOT - 40; 
-  fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
-  noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
-  
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 8; resultsTimer = 8; startNewRound(); } } 
+  // Časovač do dalšího kola
+  fill(255, 100, 100); stroke(0); strokeWeight(3); textSize(20);
+  text((currentLang === "CZ" ? "DALŠÍ KOLO ZA: " : "NEXT ROUND IN: ") + resultsTimer + "s", 0, 170);
+
+  pop();
 }
 
 function drawTopHUD() {
@@ -3833,12 +3751,12 @@ function draw() {
   } 
   
   if (gameState === "RESULTS") {
-    // Skrytá výsledková obrazovka: Musíme zachovat skrytý odpočet a spuštění nového kola!
+    drawResults(); // Vykreslí rychlou výsledkovou tabulku
     if (frameCount % 60 === 0) { 
         resultsTimer--; 
         if (resultsTimer <= 0) { 
-            maxResultsTimer = 8; 
-            resultsTimer = 8; 
+            maxResultsTimer = 6; 
+            resultsTimer = 6; 
             startNewRound(); 
         } 
     }
