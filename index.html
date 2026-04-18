@@ -4266,6 +4266,16 @@ function mousePressed() {
           localStorage.removeItem('galaxinko_alltime_hp');
           safePlaySound(200, 0.1, 0.5); 
       }
+          if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
+              allTimeGifts = {}; 
+              localStorage.removeItem('galaxinko_alltime_gifts');
+              safePlaySound(200, 0.1, 0.5); 
+          }
+          if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
+              allTimeKills = {}; 
+              localStorage.removeItem('galaxinko_alltime_kills');
+              safePlaySound(200, 0.1, 0.5); 
+          }
   }
 }
 </script>
