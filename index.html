@@ -3671,17 +3671,12 @@ function draw() {
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
   
-  // Místo tvrdého background() nakreslíme průhledný obdélník. 
-  // Číslo 200 je průhlednost. Čím blíž k 255, tím slabší je motion blur.
-  push();
-  fill(red(dynamicBg), green(dynamicBg), blue(dynamicBg), 200); 
-  noStroke();
-  rect(0, 0, W, H);
-  pop();
+  // ČISTÉ CHROMA KEY ZELENÉ POZADÍ
+  background(0, 255, 0);
   
   push();
-  // 1. Vykreslíme vesmír jako první vrstvu (bude vidět po celé obrazovce, i za UI)
-  drawSpaceBackground();
+  // ZAKÁZÁNO PRO CHROMA KEY: Vykreslení vesmíru a hvězd jako první vrstvu
+  // drawSpaceBackground();
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
 
   // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
@@ -3770,27 +3765,30 @@ function draw() {
   if (nukeEffectTimer > 0) {
       nukeEffectTimer--;
       let alpha = constrain(map(nukeEffectTimer, 120, 0, 220, 0), 0, 220);
-      fill(0, 0, 0, alpha);
-      rect(-W, -H, W * 3, H * 3);
+      // ZAKÁZÁNO PRO CHROMA KEY (aby se zelená nezabarvila do černa)
+      // fill(0, 0, 0, alpha);
+      // rect(-W, -H, W * 3, H * 3);
       if (nukeEffectTimer <= 0) engine.timing.timeScale = 1.0;
   }
 
   // ARMAGEDDON EFEKT (Červená Aréna)
   if (arenaRedTimer > 0) {
       arenaRedTimer--;
-      push();
-      fill(255, 0, 0, 60); // Krvavě červený poloprůhledný filtr
-      rect(-W, -H, W * 3, H * 3); // Zvětšeno, aby pokrylo i pohled kamery
-      pop();
+      // ZAKÁZÁNO PRO CHROMA KEY (aby se zelená nezabarvila do červena)
+      // push();
+      // fill(255, 0, 0, 60); 
+      // rect(-W, -H, W * 3, H * 3); 
+      // pop();
   }
 
   // Ztemnění arény na konci kola (posledních 10 vteřin)
   if (gameState === "PLAYING" && roundTimerFrames <= 600 && roundTimerFrames > 0) {
       let darkenAlpha = map(roundTimerFrames, 600, 0, 0, 180);
-      push();
-      fill(0, 0, 5, darkenAlpha); // Temný filtr (lehce do studena)
-      rect(-W, -H, W * 3, H * 3);
-      pop();
+      // ZAKÁZÁNO PRO CHROMA KEY (aby se zelená nezatemnila)
+      // push();
+      // fill(0, 0, 5, darkenAlpha); 
+      // rect(-W, -H, W * 3, H * 3);
+      // pop();
   }
 
   // Plynulá fyzika pevným krokem (odstraňuje vibrace a lagy fyziky)
