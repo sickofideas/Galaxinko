@@ -16,10 +16,10 @@
       height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive;
     }
     #game-container {
-      position: relative; width: 720px; height: 1280px;
+      position: relative; width: 720px; height: 1330px;
       box-shadow: 0 0 100px rgba(0, 255, 255, 0.2);
       transform-origin: top left;
-      transform: scale(min(window.innerHeight / 1280, window.innerWidth / 720));
+      transform: scale(min(window.innerHeight / 1330, window.innerWidth / 720));
       background: #030306;
     }
     canvas { display: block; }
@@ -64,7 +64,7 @@
 var GAME_TITLE = "GALAXINKO WARS";
 var GAME_VERSION = "v19.58.0"; // Okamžité TTS při startu a nové vesmírné zajímavosti
 var W = 720;
-var H = 1280;
+var H = 1330;
 var HUD_TOP = 50;  
 var ARENA_TOP = 50; 
 var ARENA_BOT = 1330; 
@@ -1835,8 +1835,8 @@ function drawSpaceshipTimer() {
         dirY = (dirY / len) * 50;
     }
     
-    fill(0, 255, 255);
-    if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
+    fill(255, 60, 60); // Výraznější červená by default
+    if (roundTimer <= 20 && roundTimer % 2 === 0) fill(255, 255, 255); // Bliká bíle posledních 20 sekund
     textSize(24); textStyle(BOLD); textAlign(CENTER, CENTER);
     stroke(0); strokeWeight(3);
     text(timeStr, dirX, dirY);
