@@ -1623,6 +1623,9 @@ function generateSecretCodeStr() {
 }
 
 function handleSecretCode() {
+    // ZAKÁZÁNO: Hádání kódu náhodně spouštěné hrou bez akce diváka
+    return;
+
     if (!codeActive && gameState === "PLAYING" && millis() > nextCodeTime) {
         codeActive = true;
         isUltraCode = random() < 0.2; // 20% šance na Ultra kód hned od začátku
@@ -2438,6 +2441,7 @@ function handleBossPlanet() {
                 if (dist < pSize * 0.7) {
                     bp.hasSmashed = true;
                     bp.vx = random(-0.5, 0.5); bp.vy = random(-0.5, 0.5);
+                    bp.smashGreenFlash = 90; // Nastaví plynulý zelený přechod na 1.5 vteřiny
 
                     bp.targetPlanet.isKnockedOut = true;
                     bp.targetPlanet.vx = (dx / dist) * 20 + random(-2, 2);
@@ -2447,12 +2451,9 @@ function handleBossPlanet() {
                     let liveAttacker = players.find(p => p.name === bp.name);
                     let attackerColor = liveAttacker ? liveAttacker.color : color(255);
 
-                    createParticles(bp.x + dx/2, bp.y + dy/2, attackerColor, 50);
-                    deathShockwaves.push({x: bp.x + dx/2, y: bp.y + dy/2, r: 80, color: color(255), life: 255, isNuke: true});
-                    
-                    screenShake = 15; 
-                    safePlaySound(100, 0.6, 1.5);
-                    addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(255, 50, 50), true);
+                    // ZAKÁZÁNO: screenShake, particles, flash
+                    safePlaySound(150, 0.1, 1.0); // Pouze tichý basový zvuk
+                    addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(50, 255, 50), true);
                 }
             } 
             // B) ÚPLNĚ PRVNÍ PLANETA -> MAJESTÁTNĚ PŘILÉTÁ DO STŘEDU
@@ -2501,12 +2502,16 @@ function handleBossPlanet() {
             let danger = constrain(map(Math.max(0, livePlayer.hp), 50, 0, 0, 1), 0, 1);
             outlineColor = lerpColor(livePlayer.color, color(255, 0, 0), danger); // Červená při umírání
 
-            // Duhový efekt pro God Mode / Štít / Combo
+            // ZAKÁZÁNO: Duhový efekt pro God Mode / Štít / Combo -> Statická zlatá barva
             if (livePlayer.giftSpeedTimer > 0 || livePlayer.immunityTimer > 0 || livePlayer.isGodMode || livePlayer.hasRainbowCrown) {
-                colorMode(HSB, 360, 100, 100);
-                outlineColor = color((frameCount * 6) % 360, 100, 100);
-                colorMode(RGB, 255);
+                outlineColor = color(255, 215, 0);
             }
+        }
+
+        // Plynulé zezelenání okraje planety po převzetí
+        if (bp.smashGreenFlash > 0) {
+            outlineColor = lerpColor(outlineColor, color(50, 255, 50), bp.smashGreenFlash / 90.0);
+            bp.smashGreenFlash--;
         }
 
         if (!bp.isKnockedOut) {
@@ -2791,9 +2796,8 @@ function drawPlayer(p) {
 
   let outlineColor = actualColor;
   if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
-      colorMode(HSB, 360, 100, 100);
-      outlineColor = color((frameCount * 6) % 360, 100, 100);
-      colorMode(RGB, 255);
+      // ZAKÁZÁNO: Duhové blikání -> Statická zlatá barva
+      outlineColor = color(255, 215, 0); 
   }
   if (p.isZombie) outlineColor = color(50, 255, 50);
 
@@ -2937,14 +2941,13 @@ function drawPlayer(p) {
   if (p.hasRainbowCrown) {
       push();
       translate(0, -p.r - 25);
-      colorMode(HSB, 360, 100, 100);
-      fill((frameCount * 4) % 360, 100, 100);
+      // ZAKÁZÁNO: Duhová koruna -> Statická zlatá barva
+      fill(255, 215, 0);
       stroke(255); strokeWeight(2);
       beginShape();
       vertex(-15, 0); vertex(-25, -20); vertex(-10, -10);
       vertex(0, -25); vertex(10, -10);  vertex(25, -20); vertex(15, 0);
       endShape(CLOSE);
-      colorMode(RGB, 255);
       pop();
   }
 
@@ -2984,8 +2987,8 @@ function drawPlayer(p) {
   
   let nameCol = isLeader ? color(255, 215, 0) : color(230); // Zlaté jméno pro lídra
   if (p.immunityTimer > 0) {
-      colorMode(HSB);
-      nameCol = color((frameCount * 5) % 360, 255, 255); colorMode(RGB);
+      // ZAKÁZÁNO: Duhové jméno -> Statická zlatá barva
+      nameCol = color(255, 215, 0);
   }
 
   if (p.r > 20) {
@@ -3228,8 +3231,9 @@ function updateTimers() {
                   }
               }
           }
-      } else if (millis() > nextEventTime && players.length > 2) {
-          triggerRandomEvent();
+      // ZAKÁZÁNO: Náhodné události bez interakce
+      // } else if (millis() > nextEventTime && players.length > 2) {
+      //     triggerRandomEvent();
       }
   }
 
@@ -3240,9 +3244,8 @@ function updateTimers() {
         roundTimerFrames--;
     }
     
-    if (bonusFrames.includes(roundTimerFrames)) {
-        shootBonusFromShip();
-    }
+    // ZAKÁZÁNO: Náhodné spawnování bonusových orbů
+    // if (bonusFrames.includes(roundTimerFrames)) { shootBonusFromShip(); }
     
     if (frameCount % 60 === 0) roundTimer = Math.ceil(roundTimerFrames / 60);
 
@@ -3652,45 +3655,9 @@ function drawTopHUD() {
 }
 
 function handleTTSCommentary() {
-  let now = millis();
-
-  // NÁHODNÁ LIDSKÁ PAUZA (Každých cca 5-8 minut nastane ticho na 60-120 vteřin)
-  if (now > humanPauseEnd && random() < 0.001) {
-      humanPauseEnd = now + random(60000, 120000);
-      nextCommentTime = humanPauseEnd; 
-  }
-  if (now < humanPauseEnd) return; // Běží lidská pauza, mlčíme
-
-  if (now > nextCommentTime && (!('speechSynthesis' in window) || !window.speechSynthesis.speaking)) {
-      let txt = "", arr = [];
-      if (players.length === 0) arr = currentLang === "CZ" ? COMMENTARY_EMPTY.CZ : COMMENTARY_EMPTY.EN;
-      else if (players.length === 1) arr = currentLang === "CZ" ? COMMENTARY_SOLO.CZ : COMMENTARY_SOLO.EN;
-      else {
-          if (random() < 0.25) {
-              let top = [...players].sort((a,b) => b.hp - a.hp)[0];
-              if (top) txt = currentLang === "CZ" ? `${top.name} dominuje aréně s ${Math.floor(Math.max(0, top.hp))} body! Jděte po něm!` : `${top.name} dominates the arena with ${Math.floor(Math.max(0, top.hp))} points! Go after them!`;
-          } else { arr = currentLang === "CZ" ? COMMENTARY_GENERAL.CZ : COMMENTARY_GENERAL.EN; }
-      }
-              
-      if (txt === "" && arr && arr.length > 0) {
-          // Filtrace hlášek (nesmí se opakovat dříve jak za 3 minuty = 180000 ms)
-          let available = arr.filter(s => !spokenHistory[s] || (now - spokenHistory[s] > 180000));
-          if (available.length === 0) available = arr; // Fallback, kdyby všechny byly v cooldownu
-          
-          txt = random(available);
-          if (players.length === 1 && txt) txt = txt.replace("{p}", players[0].name);
-      }
-              
-      if (txt) {
-          spokenHistory[txt] = now;
-          lastCommentString = txt; 
-          speakTTS(txt);
-              // ZPOMALENÍ TTS: Nová hláška přijde za 30 až 60 vteřin (méně často)
-              nextCommentTime = now + random(30000, 60000); 
-      } else {
-              nextCommentTime = now + 5000;
-      }
-  }
+  // ZAKÁZÁNO: Hra smí mluvit POUZE jako přímou reakci na akci diváka.
+  // Náhodné TTS hlášky v idle stavu jsou vypnuté.
+  return;
 }
 
 function draw() {
@@ -3838,13 +3805,13 @@ function draw() {
         handleSpawnModules();
     }
     
-    // OPRAVA VIBRACÍ: Tohle zajistí, že otřesy kamery okamžitě a plynule odezní každý frame! 
-    screenShake *= 0.85;
+    // ZAKÁZÁNO: Třesení obrazovky úplně vypnuto pro všechny eventy!
+    screenShake = 0; 
     
     push();
     translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
     scale(cameraScale);
-    if (screenShake > 0.5) translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
+    // if (screenShake > 0.5) translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
     if(players.length < 50) { drawDeathShockwaves(); }
@@ -3915,11 +3882,9 @@ function draw() {
         strokeWeight(2);
         rect(pbX, pbY, pbW, pbH, 18);
 
-        // Výplň baru (Duhová barva)
-        colorMode(HSB, 360, 100, 100, 255);
-        let rainbowCol = color((frameCount * 2) % 360, 80, 100, pbAlpha * 0.8);
-        colorMode(RGB, 255);
-        fill(rainbowCol);
+        // Výplň baru (Zlatá barva místo blikající duhové)
+        let goldCol = color(255, 215, 0, pbAlpha * 0.8);
+        fill(goldCol);
         noStroke();
         rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 16);
 
@@ -4299,16 +4264,6 @@ function mousePressed() {
       if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { 
           allTimeHpLeaderboard = {}; 
           localStorage.removeItem('galaxinko_alltime_hp');
-          safePlaySound(200, 0.1, 0.5); 
-      }
-      if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
-          allTimeGifts = {}; 
-          localStorage.removeItem('galaxinko_alltime_gifts');
-          safePlaySound(200, 0.1, 0.5); 
-      }
-      if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
-          allTimeKills = {}; 
-          localStorage.removeItem('galaxinko_alltime_kills');
           safePlaySound(200, 0.1, 0.5); 
       }
   }
