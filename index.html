@@ -66,8 +66,8 @@ var GAME_VERSION = "v19.58.0"; // Okamžité TTS při startu a nové vesmírné 
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 180; 
-var ARENA_BOT = 900; 
+var ARENA_TOP = 0; 
+var ARENA_BOT = 1280; 
 
 // Theme variables
 var roundThemeColor;
@@ -3694,6 +3694,7 @@ function draw() {
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
 
   // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
+  /* ZAKÁZÁNO PRO CLEAN SCREEN
   push();
   let pulseAlpha = map(sin(frameCount * 0.015), -1, 1, 15, 70); // O něco jasnější
   textAlign(CENTER, TOP);
@@ -3713,12 +3714,14 @@ function draw() {
   fill(255, 255, 255, pulseAlpha * 0.7); // Bílý světlejší prostředek
   text(GAME_TITLE, W/2, ARENA_TOP + 80); 
   pop();
+  */
 
-  drawTopHUD();
+  // drawTopHUD(); // ZAKÁZÁNO: Skrytí všech tabulek a UI
 
   // --- TOP GIFTER DOČASNÁ LIŠTA ---
   if (topGifterBannerTimer > 0) {
       topGifterBannerTimer--;
+      /* ZAKÁZÁNO PRO CLEAN SCREEN
       
       push();
       // Vykreslení pozadí spodní lišty (stejně jako u notifikací pro plynulý vzhled)
@@ -3761,15 +3764,17 @@ function draw() {
       fill(255); textAlign(RIGHT, CENTER); stroke(0); strokeWeight(3);
       text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 30, barY + barH / 2);
       pop();
+      */
   } else {
-      drawNotifications(); 
+      // drawNotifications(); // ZAKÁZÁNO
   }
 
-  drawChatCommands();
+  // drawChatCommands(); // ZAKÁZÁNO
 
-  stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
+  // ZAKÁZÁNO: Červený/tematický rámeček
+  // stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
-  if (gameState === "PLAYING") drawSpaceshipTimer();
+  // if (gameState === "PLAYING") drawSpaceshipTimer(); // ZAKÁZÁNO
 
   drawingContext.save();
   drawingContext.beginPath();
@@ -3866,117 +3871,18 @@ function draw() {
   } 
   
   if (gameState === "RESULTS") {
-    drawResults();
+    // drawResults(); // ZAKÁZÁNO: Skrytí výsledkové obrazovky
   }
   
   drawingContext.restore(); 
 
   if (gameState === "PLAYING") {
-      if (showFomoBar) {
-        // --- FOMO PROGRESS BAR (Ukazatel cíle nahoře v aréně) ---
-        push();
-        let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
-        let minPbW = 350;
-        let maxPbW = W * 0.85;
-        let pbW = lerp(minPbW, maxPbW, progress); // Šířka postupně roste
-        let pbH = 36; // Trochu vyšší pro profilovku
-        let pbX = W / 2 - pbW / 2;
-        let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
-
-        // Pulzování lišty, pokud se dlouho nic nestalo
-        let pbAlpha = 255;
-        if (millis() - lastEnergyAddedTime > 5000) {
-            pbAlpha = map(sin(frameCount * 0.03), -1, 1, 100, 255);
-        }
-
-        // Temné pozadí baru
-        fill(0, pbAlpha * 0.6);
-        stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pbAlpha); // Rámeček podle barvy arény
-        strokeWeight(2);
-        rect(pbX, pbY, pbW, pbH, 18);
-
-        // Výplň baru (Zlatá barva místo blikající duhové)
-        let goldCol = color(255, 215, 0, pbAlpha * 0.8);
-        fill(goldCol);
-        noStroke();
-        rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 16);
-
-        // Řízení fade efektu pro posledního donátora
-        if (nextLastGifter) {
-            gifterFadeAlpha -= 15;
-            if (gifterFadeAlpha <= 0) {
-                currentLastGifter = nextLastGifter;
-                nextLastGifter = null;
-            }
-        } else if (gifterFadeAlpha < 255) {
-            gifterFadeAlpha += 15;
-        }
-        gifterFadeAlpha = constrain(gifterFadeAlpha, 0, 255);
-
-        // Vykreslení posledního donátora (ikona a jméno)
-        if (currentLastGifter.name !== "") {
-            let avatarPulse = sin(frameCount * 0.1) * 3;
-            let avSize = 24 + avatarPulse;
-            let avX = pbX + 25;
-            let avY = pbY + pbH / 2;
-
-            push();
-            tint(255, (gifterFadeAlpha / 255) * pbAlpha);
-            if (currentLastGifter.img && currentLastGifter.img !== "loaded") {
-                drawingContext.save();
-                drawingContext.beginPath();
-                drawingContext.arc(avX, avY, avSize / 2, 0, TWO_PI);
-                drawingContext.clip();
-                imageMode(CENTER);
-                image(currentLastGifter.img, avX, avY, avSize, avSize);
-                drawingContext.restore();
-            } else {
-                fill(100, (gifterFadeAlpha / 255) * pbAlpha);
-                ellipse(avX, avY, avSize, avSize);
-            }
-            noFill();
-            stroke(255, 215, 0, (gifterFadeAlpha / 255) * pbAlpha);
-            strokeWeight(2);
-            ellipse(avX, avY, avSize, avSize);
-            
-            noStroke();
-            fill(255, 255, 255, (gifterFadeAlpha / 255) * pbAlpha);
-            stroke(0, (gifterFadeAlpha / 255) * pbAlpha); strokeWeight(3);
-            textAlign(LEFT, CENTER);
-            textSize(10);
-            let shortName = currentLastGifter.name.length > 8 ? currentLastGifter.name.substring(0, 8) + "." : currentLastGifter.name;
-            text(`${shortName} +${currentLastGifter.coins}`, avX + 15 + avatarPulse/2, avY);
-            pop();
-        }
-
-        // Animovaný text uvnitř (uprostřed)
-        fill(255, 255, 255, pbAlpha);
-        textAlign(CENTER, CENTER);
-        textSize(12);
-        textStyle(BOLD);
-        stroke(0); strokeWeight(3);
-        
-        let coinsLeft = ARMAGEDDON_GOAL - roundTotalCoins;
-        if (coinsLeft > 0) {
-            // Zvýraznění, když zbývá málo (pod 20%)
-            if (progress > 0.8 && frameCount % 20 < 10) {
-                fill(255, 255, 0, pbAlpha); // Bliká žlutě!
-                textSize(14);
-            }
-        let txt = currentLang === "CZ" ? `🌹 KAPACITA JÁDRA: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 CORE CAPACITY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
-            text(txt, W / 2, pbY + pbH / 2);
-        } else {
-            // Armageddon je plný
-            if (frameCount % 10 < 5) fill(255, 0, 0, pbAlpha); // Agresivní blikání
-            textSize(15);
-            let txt2 = currentLang === "CZ" ? "🚨 ARMAGEDON AKTIVNÍ! 🚨" : "🚨 ARMAGEDDON ACTIVE! 🚨";
-            text(txt2, W / 2, pbY + pbH / 2);
-        }
-        pop();
-      }
+      // ZAKÁZÁNO PRO CLEAN SCREEN
+      // if (showFomoBar) { ... }
   }
 
   if (megaAnnouncement && megaAnnouncement.life > 0) {
+      /* ZAKÁZÁNO PRO CLEAN SCREEN
       push();
       translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
       megaAnnouncement.scale = lerp(megaAnnouncement.scale, 1.2, 0.05);
@@ -3991,11 +3897,12 @@ function draw() {
       textSize(40);
       text(megaAnnouncement.text, 0, 0);
       pop();
+      */
       megaAnnouncement.life -= 2.5;
   }
 
   if (gameState === "PLAYING") {
-      drawSecretCodeUI();
+      // drawSecretCodeUI(); // ZAKÁZÁNO
   }
   
   pop(); // Ukončení global push()
