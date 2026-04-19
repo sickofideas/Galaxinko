@@ -1674,8 +1674,8 @@ function drawSecretCodeUI() {
         else if (cType === "BOOST") baseCol = color(255, 255, 0);
         else if (cType === "SHIELD") baseCol = color(150, 50, 255);
         
-        drawingContext.shadowBlur = random(5, 20);
-        drawingContext.shadowColor = baseCol;
+        // drawingContext.shadowBlur = random(5, 20); // OPTIMALIZACE VÝKONU
+        // drawingContext.shadowColor = baseCol;
         let flicker = random(100, 255);
         
         textSize(isUltraCode ? 26 : 22);
@@ -1709,7 +1709,7 @@ function drawSecretCodeUI() {
             }
         }
         
-        drawingContext.shadowBlur = 0;
+        // drawingContext.shadowBlur = 0;
         pop();
     }
 
@@ -2516,15 +2516,15 @@ function handleBossPlanet() {
         }
 
         if (!bp.isKnockedOut) {
-            drawingContext.shadowBlur = 30 + sin(frameCount * 0.05) * 15;
-            drawingContext.shadowColor = outlineColor;
+            // drawingContext.shadowBlur = 30 + sin(frameCount * 0.05) * 15; // OPTIMALIZACE VÝKONU
+            // drawingContext.shadowColor = outlineColor;
         }
 
         fill(5, 5, 10, 180);
         stroke(outlineColor);
         strokeWeight(bp.isKnockedOut ? 2 : 5);
         ellipse(0, 0, pSize);
-        drawingContext.shadowBlur = 0;
+        // drawingContext.shadowBlur = 0;
 
         // Zobrazení jména a HP lídra
         if (livePlayer) {
@@ -2970,12 +2970,12 @@ function drawPlayer(p) {
       drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
       drawingContext.clip();
       
-      if (p.isZombie) drawingContext.filter = 'grayscale(100%)';
+      // if (p.isZombie) drawingContext.filter = 'grayscale(100%)'; // OPTIMALIZACE VÝKONU
       tint(255, p.avatarAlpha);
       imageMode(CENTER); 
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
       noTint(); 
-      drawingContext.filter = 'none';
+      // drawingContext.filter = 'none';
       drawingContext.restore();
   }
 
