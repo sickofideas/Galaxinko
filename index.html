@@ -16,10 +16,10 @@
       height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive;
     }
     #game-container {
-      position: relative; width: 720px; height: 1330px;
+      position: relative; width: 720px; height: 1280px;
       box-shadow: 0 0 100px rgba(0, 255, 255, 0.2);
       transform-origin: top left;
-      transform: scale(min(window.innerHeight / 1330, window.innerWidth / 720));
+      transform: scale(min(window.innerHeight / 1280, window.innerWidth / 720));
       background: #030306;
     }
     canvas { display: block; }
@@ -64,10 +64,10 @@
 var GAME_TITLE = "GALAXINKO WARS";
 var GAME_VERSION = "v19.58.0"; // Okamžité TTS při startu a nové vesmírné zajímavosti
 var W = 720;
-var H = 1330;
+var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 50; 
-var ARENA_BOT = 1330; 
+var ARENA_TOP = 180; 
+var ARENA_BOT = 900; 
 
 // Theme variables
 var roundThemeColor;
@@ -645,8 +645,8 @@ let gameState = "PLAYING";
 let nukeEffectTimer = 0;
 let resultsTimer = 8;
 let maxResultsTimer = 8;
-let cameraScale = 2.0;
-let targetCameraScale = 2.0;
+let cameraScale = 1.6;
+let targetCameraScale = 1.6;
 let audioStarted = false;
 let synth;
 
@@ -909,8 +909,8 @@ function startNewRound() {
   gameState = "PLAYING";
   nukeEffectTimer = 0;
   engine.timing.timeScale = 1.0;
-  cameraScale = 2.0;
-  targetCameraScale = 2.0;
+  cameraScale = 1.6;
+  targetCameraScale = 1.6;
   particles = []; floatingTexts = []; lightnings = []; deathShockwaves = [];
   nextCommentTime = millis() + 1500;
   nextCodeTime = millis() + random(45000, 85000); 
@@ -1148,8 +1148,8 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
     // TIER 1: Základní potrava (Speed Boost + HP - 1+ mincí)
     else {
         p.orbSpeedTimer = 1 * 60; // 1s Speed boost
-        addPopup("+" + (diam * 200) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
-        createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 10);
+        addPopup("+" + (diam * 200) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+        createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 10);
         safePlaySound(600, 0.1, 0.5);
     }
     
@@ -1161,13 +1161,11 @@ function reviveZombie(p) {
     p.isZombie = false;
     p.hp = 150;
     colorMode(HSB, 360, 100, 100);
-    let rh = random(360);
-    if (rh > 70 && rh < 160) rh = (rh + 100) % 360; // Ochrana proti zelené barvě
-    p.color = color(rh, random(80, 100), random(90, 100));
+    p.color = color(random(360), random(80, 100), random(90, 100));
     colorMode(RGB, 255);
     p.auraFlash = 30;
-    addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
-    createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
+    addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+    createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 30);
     safePlaySound(800, 0.1, 0.2);
 }
 
@@ -1187,7 +1185,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
     p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
-        if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+    if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
         if (allowSpawn) {
@@ -1223,9 +1221,7 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
   let distToTarget = Math.sqrt(dx*dx + dy*dy); let spd = distToTarget / 45; 
   
   colorMode(HSB, 360, 100, 100);
-  let rh = random(360);
-  if (rh > 70 && rh < 160) rh = (rh + 100) % 360; // Ochrana proti zelené barvě
-  let pColor = isZombie ? color(0, 0, 40) : color(rh, random(80, 100), random(90, 100));
+  let pColor = isZombie ? color(0, 0, 40) : color(random(360), random(80, 100), random(90, 100));
   colorMode(RGB, 255);
   
   spawnModules.push({
@@ -1404,7 +1400,7 @@ function handleCombat(p1, p2) {
       let mult = loserData.isBounty ? 5 : 1;
       let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 10) * mult; 
       winner.hp += heal;
-      if(players.length < 50) addPopup("+" + heal + (loserData.isBounty ? " BOUNTY TAKEDOWN!" : " TAKEDOWN!"), winner.body.position.x, winner.body.position.y - winner.r - 20, color(0, 255, 255));
+      if(players.length < 50) addPopup("+" + heal + (loserData.isBounty ? " BOUNTY TAKEDOWN!" : " TAKEDOWN!"), winner.body.position.x, winner.body.position.y - winner.r - 20, color(50, 255, 100));
       winner.auraFlash = 20;
       
       if (loserData.isBounty) {
@@ -1794,12 +1790,16 @@ function screenToWorld(sx, sy) {
 
 function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
+    let isHeavyLoad = players.length > 40;
     
     let p = 1.0 - (roundTimerFrames / (maxRoundTimer * 60)); 
-    p = constrain(p, 0, 1.0); 
+    p = constrain(p, 0, 1.0); // Ochrana proti couvnuti za start při extrémním prodloužení kola
     let aH = ARENA_BOT - ARENA_TOP;
     let perim = 2 * W + 2 * aH;
     let currentDist = p * perim;
+    
+    stroke(roundThemeColor); strokeWeight(3);
+    if(!isHeavyLoad) { drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor; }
     
     let points = [ 
         {x: W/2, y: ARENA_TOP}, 
@@ -1810,20 +1810,50 @@ function drawSpaceshipTimer() {
         {x: W/2, y: ARENA_TOP} 
     ];
     
-    let d = 0; shipX = points[0].x; shipY = points[0].y;
+    let d = 0; let shipAngle = 0; shipX = points[0].x; shipY = points[0].y;
 
     for (let i = 0; i < points.length - 1; i++) {
         let p1 = points[i]; let p2 = points[i+1]; let segLen = dist(p1.x, p1.y, p2.x, p2.y);
         if (currentDist > d + segLen) {
-            d += segLen;
+            line(p1.x, p1.y, p2.x, p2.y); d += segLen;
         } else {
             let t = (currentDist - d) / segLen;
             shipX = lerp(p1.x, p2.x, t); shipY = lerp(p1.y, p2.y, t);
+            line(p1.x, p1.y, shipX, shipY);
+            shipAngle = atan2(p2.y - p1.y, p2.x - p1.x);
             break;
         }
     }
+    if(!isHeavyLoad) drawingContext.shadowBlur = 0;
 
-    // Letající časomíra podél neviditelného okraje
+    push(); translate(shipX, shipY); rotate(shipAngle);
+    
+    fill(255, 100, 0, 150 + sin(frameCount * 0.5) * 100);
+    noStroke();
+    triangle(-20, -6, -20, 6, -35 - random(10), 0);
+    fill(255, 200, 0);
+    triangle(-20, -3, -20, 3, -28 - random(5), 0);
+    
+    fill(100, 150, 255); stroke(0, 255, 255); strokeWeight(1);
+    triangle(-10, 10, -20, 20, 5, 10);
+    triangle(-10, -10, -20, -20, 5, -10);
+    
+    fill(220, 220, 255); stroke(0, 255, 255); strokeWeight(2);
+    beginShape();
+    vertex(20, 0); vertex(5, 10); vertex(-20, 8); vertex(-20, -8); vertex(5, -10);
+    endShape(CLOSE);
+    
+    fill(0, 200, 255); noStroke(); ellipse(5, 0, 10, 6);
+    fill(255); ellipse(7, -1, 3, 2);
+    
+    pop();
+
+    if (frameCount % 4 === 0 && roundTimerFrames > 0 && !isHeavyLoad) {
+        let wPos = screenToWorld(shipX, shipY);
+        particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: roundThemeColor, size: random(4, 8)});
+    }
+    
+    // Časomíra vedle raketky
     let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
     push();
     translate(shipX, shipY);
@@ -1831,16 +1861,15 @@ function drawSpaceshipTimer() {
     let dirY = ((ARENA_TOP+ARENA_BOT)/2) - shipY;
     let len = dist(0, 0, dirX, dirY);
     if (len > 0) {
-        dirX = (dirX / len) * 50; // Odsazení od kraje dovnitř
-        dirY = (dirY / len) * 50;
+        dirX = (dirX / len) * 35;
+        dirY = (dirY / len) * 35;
     }
     
-    fill(255, 60, 60); // Výraznější červená by default
-    if (roundTimer <= 20 && roundTimer % 2 === 0) fill(255, 255, 255); // Bliká bíle posledních 20 sekund
-    textSize(24); textStyle(BOLD); textAlign(CENTER, CENTER);
-    stroke(0); strokeWeight(3);
+    fill(100, 255, 100);
+    if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
+    textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
+    drawingContext.shadowBlur = 5; drawingContext.shadowColor = color(0);
     text(timeStr, dirX, dirY);
-    
     pop();
 }
 
@@ -1983,7 +2012,7 @@ function drawNotifications() {
       }
       
       textAlign(LEFT, CENTER);
-      fill(255); textSize(11); textStyle(BOLD); stroke(0); strokeWeight(3);
+      fill(255); textSize(11); textStyle(BOLD); noStroke();
       text((n.name || "").substring(0, 11), 42, 14);
       
       let actionTextColor = borderColor;
@@ -1995,7 +2024,7 @@ function drawNotifications() {
           colorMode(HSB); actionTextColor = color((frameCount * 5 + 180) % 360, 80, 100); colorMode(RGB);
       }
       
-      fill(actionTextColor); stroke(0); strokeWeight(3);
+      fill(actionTextColor); noStroke();
       textSize(10);
       text(`${icon} ${actionText}`, 42, 30);
       textStyle(NORMAL); // Reset
@@ -2012,7 +2041,7 @@ function drawChatCommands() {
 }
 
 function handleCameraAndPlayers() {
-  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.25, 0.05); return; }
+  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
@@ -2080,7 +2109,7 @@ function handleCameraAndPlayers() {
 
           if (!isHeavyLoad) {
               if (p.isZombie) {
-                    createParticles(px, py, color(0, 255, 255), 8); // Výrazně méně částic, změněno ze zelené na azurovou
+                  createParticles(px, py, color(50, 255, 50), 8); // Výrazně méně částic
                   safePlaySound(200, 0.01, 0.2); // Speciální zvuk zombíka
               } else {
                   createParticles(px, py, p.color, 12); // Výrazně méně částic
@@ -2211,10 +2240,10 @@ function handleCameraAndPlayers() {
 
   // KLAUSTROFOBICKÁ KAMERA: Držíme detail co nejdéle to jde!
   let len = players.length;
-  if (len >= 250) targetCameraScale = 0.85;      // Naprostý extrém
-  else if (len >= 150) targetCameraScale = 1.15; // Mírně poodstoupíme
-  else if (len >= 80) targetCameraScale = 1.5;   // Stále velmi blízko
-  else targetCameraScale = 2.0;                  // Zvětšeno o 25% pro poloprázdnou arénu
+  if (len >= 250) targetCameraScale = 0.7;       // Naprostý extrém (když už je to fakt průser)
+  else if (len >= 150) targetCameraScale = 0.9;  // Mírně poodstoupíme
+  else if (len >= 80) targetCameraScale = 1.2;   // Stále velmi blízko, ať se tam pořádně mačkají
+  else targetCameraScale = 1.6;                  // Úplně nablízko pro poloprázdnou arénu
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.015); // Velmi pomalé a plynulé oddalování
   
@@ -2424,6 +2453,7 @@ function handleBossPlanet() {
 
                     // ZAKÁZÁNO: screenShake, particles, flash
                     safePlaySound(150, 0.1, 1.0); // Pouze tichý basový zvuk
+                    addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(50, 255, 50), true);
                 }
             } 
             // B) ÚPLNĚ PRVNÍ PLANETA -> MAJESTÁTNĚ PŘILÉTÁ DO STŘEDU
@@ -2480,7 +2510,7 @@ function handleBossPlanet() {
 
         // Plynulé zezelenání okraje planety po převzetí
         if (bp.smashGreenFlash > 0) {
-            outlineColor = lerpColor(outlineColor, color(0, 255, 255), bp.smashGreenFlash / 90.0);
+            outlineColor = lerpColor(outlineColor, color(50, 255, 50), bp.smashGreenFlash / 90.0);
             bp.smashGreenFlash--;
         }
 
@@ -2489,7 +2519,7 @@ function handleBossPlanet() {
             drawingContext.shadowColor = outlineColor;
         }
 
-        fill(5, 5, 10, 255); // 100% neprůhlednost, minimalizuje poškození od OBS chroma key na zelené fotce
+        fill(5, 5, 10, 180);
         stroke(outlineColor);
         strokeWeight(bp.isKnockedOut ? 2 : 5);
         ellipse(0, 0, pSize);
@@ -2500,6 +2530,7 @@ function handleBossPlanet() {
             fill(255); stroke(0); strokeWeight(4);
             textSize(22); textAlign(CENTER, CENTER); textStyle(BOLD);
             text(livePlayer.name, 0, -pSize/2 - 25);
+            text(Math.floor(livePlayer.hp).toLocaleString() + " HP", 0, pSize/2 + 25);
         }
 
  
@@ -2768,7 +2799,7 @@ function drawPlayer(p) {
       // ZAKÁZÁNO: Duhové blikání -> Statická zlatá barva
       outlineColor = color(255, 215, 0); 
   }
-  if (p.isZombie) outlineColor = color(0, 255, 255);
+  if (p.isZombie) outlineColor = color(50, 255, 50);
 
 
   // --- ZÁKLAD A ZUBY PILY ---
@@ -2850,10 +2881,10 @@ function drawPlayer(p) {
       push();
       drawingContext.setLineDash([8, 8]);
       strokeWeight(2); noFill();
-      stroke(0, 200, 255, 100); // Změněno ze zelené na azurovou (anti-chroma key)
+      stroke(80, 200, 80, 100); // Původně červená, nyní zelená
       ellipse(0, 0, p.r * 1.6);
       drawingContext.lineDashOffset = 8;
-      stroke(0, 255, 255, 100); // Světlejší azurová pro druhý pruh
+      stroke(100, 255, 100, 100); // Světlejší zelená pro druhý pruh
       drawingContext.setLineDash([]); drawingContext.lineDashOffset = 0;
       pop();
   }
@@ -2949,7 +2980,7 @@ function drawPlayer(p) {
 
   noFill(); 
   stroke(0); strokeWeight(4); ellipse(0, 0, imgSize);
-  stroke(p.isZombie ? color(0, 255, 255) : color(255, 200));
+  stroke(p.isZombie ? color(50, 255, 50) : color(255, 200));
   strokeWeight(2); ellipse(0, 0, imgSize + 4);
 
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
@@ -2999,7 +3030,7 @@ function drawPlayer(p) {
   }
 
   let txtCol = color(255);
-  if (p.hp > 50000) txtCol = color(0, 255, 255);
+  if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
   stroke(0); strokeWeight(Math.max(5, p.r * 0.2)); 
@@ -3244,8 +3275,9 @@ function updateTimers() {
       explosionTimer--; screenShake *= 0.95;
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
-              maxResultsTimer = 6; // Pevně zkráceno na 6 vteřin pro rychlý přechod
-              resultsTimer = 6; 
+          let donorCount = Object.keys(roundGifts).length;
+          maxResultsTimer = Math.min(16, 8 + Math.floor(donorCount / 2));
+          resultsTimer = maxResultsTimer; 
           winnerAnnounced = false;
       } 
   }
@@ -3268,7 +3300,7 @@ function updateTimers() {
           if (p) {
               p.likeBuffTimer = 90;
               if (players.length < 50) {
-                  addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+                  addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
                   // Méně částic = méně lagů, typ ENERGY
                   createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), isMega ? 8 : 3, 'ENERGY');
               }
@@ -3323,65 +3355,146 @@ function updateTimers() {
 
 function drawResults() {
   push();
-  let cx = W / 2;
-  let cy = (ARENA_TOP + ARENA_BOT) / 2;
-
-  // ZAKÁZÁNO PRO CHROMA KEY: Ztmavení arény vytvářelo nevyklíčovatelný tmavě zelený flek
-  // fill(0, 0, 0, 180);
-  // noStroke();
-  // rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
-
-  translate(cx, cy);
+  fill(0, 220); 
+  noStroke(); 
+  rect(0, 0, W, H);
+  pop();
   
-  // Panel
-  fill(10, 15, 20, 255); // 100% neprůhlednost, aby zelená neprosvítala skrz panel
-  stroke(255, 215, 0);
-  strokeWeight(4);
-  rectMode(CENTER);
-  rect(0, -30, W - 150, 320, 20);
-
-  // Získání vítěze
+  textAlign(CENTER, CENTER);
+  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
+  
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
   
-  if (winner) {
-      if (!winnerAnnounced) {
-          winnerAnnounced = true;
-          // Žádný hlasový komentář, pouze zvuk výhry
-          safePlaySound(1000, 0.2, 1.0); 
-      }
-
-      fill(255, 215, 0); stroke(0); strokeWeight(4);
-      textSize(32); textAlign(CENTER, CENTER); textStyle(BOLD);
-      text(currentLang === "CZ" ? "🏆 VÍTĚZ KOLA 🏆" : "🏆 ROUND WINNER 🏆", 0, -140);
-
-      let imgSize = 100;
-      let currAv = userAvatars[winner.name];
-      if (currAv && currAv !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath();
-          drawingContext.arc(0, -40, imgSize/2, 0, TWO_PI);
-          drawingContext.clip();
-          imageMode(CENTER); image(currAv, 0, -40, imgSize, imgSize);
-          drawingContext.restore();
-      } else {
-          fill(winner.color); noStroke(); ellipse(0, -40, imgSize);
-      }
-      noFill(); stroke(255, 215, 0); strokeWeight(4); ellipse(0, -40, imgSize);
-
-      fill(winner.color); stroke(0); strokeWeight(4); textSize(28);
-      text(winner.name, 0, 40);
-
-      fill(255); stroke(0); strokeWeight(3); textSize(20);
-      text(formatK(winner.hp) + " HP", 0, 80);
-  } else {
-      fill(255); stroke(0); strokeWeight(4); textSize(28); textAlign(CENTER, CENTER); textStyle(BOLD);
-      text(currentLang === "CZ" ? "ŽÁDNÝ VÍTĚZ" : "NO WINNER", 0, 0);
+  if(winner && !winnerAnnounced) {
+      winnerAnnounced = true;
+      let wMsg = currentLang === "CZ" ? 
+          `Skvělá práce! Hráč ${winner.name} naprosto ovládl arénu a vyhrává toto kolo!` : 
+          `Great job! Player ${winner.name} absolutely dominated the arena and wins this round!`;
+      speakTTS(wMsg, true);
   }
 
-  // Časovač do dalšího kola
-  fill(255, 100, 100); stroke(0); strokeWeight(3); textSize(20);
-  text((currentLang === "CZ" ? "DALŠÍ KOLO ZA: " : "NEXT ROUND IN: ") + resultsTimer + "s", 0, 170);
+  let bY = ARENA_TOP + 300; 
+  let anim = constrain(map(resultsTimer, maxResultsTimer, maxResultsTimer - 1, 0, 1), 0, 1);
 
-  pop();
+  for (let i = 0; i < Math.min(3, sorted.length); i++) {
+      let p = sorted[i];
+      let px, ph, pcol;
+      if (i === 0) { px = W/2; ph = 100; pcol = color(255, 215, 0); }
+      else if (i === 1) { px = W/2 - 120; ph = 70; pcol = color(192, 192, 192); }
+      else { px = W/2 + 120; ph = 50; pcol = color(205, 127, 50); }
+
+      let curH = ph * anim;
+      
+      push();
+      fill(10, 15, 30, 200); stroke(pcol); strokeWeight(3);
+      rect(px - 45, bY - curH, 90, curH, 10, 10, 0, 0);
+      
+      fill(pcol); noStroke(); textSize(24); textAlign(CENTER, CENTER); textStyle(BOLD);
+      text(i+1, px, bY - curH/2);
+      pop();
+
+      if (anim > 0.8) {
+          push();
+          let imgSize = i === 0 ? 60 : 45;
+          let imgY = bY - curH - imgSize/2 - 10;
+          if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(px, imgY, imgSize/2, 0, TWO_PI); drawingContext.clip();
+              imageMode(CENTER); image(userAvatars[p.name], px, imgY, imgSize, imgSize); drawingContext.restore();
+          } else {
+              fill(p.color); noStroke(); ellipse(px, imgY, imgSize);
+          }
+          noFill(); stroke(pcol); strokeWeight(3); ellipse(px, imgY, imgSize);
+
+          fill(p.color); noStroke(); textSize(i===0 ? 14 : 11); textStyle(BOLD); textAlign(CENTER, BOTTOM);
+          text(p.name.substring(0,10), px, imgY - imgSize/2 - 5);
+          fill(255); textSize(i===0 ? 12 : 10);
+          text(formatK(p.hp) + " HP", px, bY - curH - imgSize - 25);
+          pop();
+      }
+  }
+
+  let mvpArr = Object.entries(roundGifts).sort((a,b)=>b[1].score - a[1].score);
+  if (mvpArr.length > 0 && anim > 0.8) {
+      push();
+      let donorY = bY + 60;
+      fill(20, 15, 30, 240); stroke(255, 215, 0); strokeWeight(3);
+      rect(20, donorY, W - 40, 130, 15);
+
+      fill(255, 215, 0); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
+      text(currentLang === "CZ" ? "💎 DÁRCI TOHOTO KOLA 💎" : "💎 ROUND GIFTERS 💎", W/2, donorY + 15);
+
+      let cardW = 180;
+      let totalW = mvpArr.length * cardW;
+      let scrollX = 0;
+      if (totalW > W - 60) {
+          let availableFrames = maxResultsTimer * 60;
+          let neededSpeed = (totalW + W) / availableFrames;
+          let speed = Math.max(1.5, neededSpeed); 
+          scrollX = (frameCount * speed) % (totalW + W);
+      }
+
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(25, donorY + 40, W - 50, 80);
+      drawingContext.clip();
+
+      for (let j = 0; j < mvpArr.length; j++) {
+          let dData = mvpArr[j];
+          let dName = dData[0];
+          let dScore = dData[1].score;
+          let dColor = dData[1].color;
+          let dAv = dData[1].avatar;
+
+          let xPos = totalW > W - 60 ? W + (j * cardW) - scrollX : (W / 2) - (totalW / 2) + (j * cardW);
+
+          if (xPos > -cardW && xPos < W) {
+              fill(0, 0, 0, 150); stroke(dColor); strokeWeight(2);
+              rect(xPos, donorY + 45, cardW - 15, 65, 8);
+
+              let ax = xPos + 30;
+              let ay = donorY + 77;
+              if (dAv && dAv !== "loaded") {
+                  drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, ay, 18, 0, TWO_PI); drawingContext.clip();
+                  imageMode(CENTER); image(dAv, ax, ay, 36, 36); drawingContext.restore();
+              } else {
+                  fill(dColor); noStroke(); ellipse(ax, ay, 36, 36);
+              }
+              noFill(); stroke(dColor); strokeWeight(2); ellipse(ax, ay, 36, 36);
+
+              noStroke(); fill(dColor); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
+              text(dName.substring(0, 9), xPos + 55, ay - 10);
+              
+              fill(255, 215, 0); textSize(11);
+              let giftEmoji = dScore >= 1000 ? '🚀' : '💎';
+              text(dScore.toLocaleString() + " " + giftEmoji, xPos + 55, ay + 10);
+          }
+      }
+      drawingContext.restore();
+      pop();
+  }
+
+  textAlign(LEFT, CENTER); 
+  let showDonors = (mvpArr.length > 0 && anim > 0.8);
+  let listStartY = showDonors ? bY + 210 : bY + 80; 
+  let maxListItems = showDonors ? 8 : 15;
+  let listLimit = Math.min(sorted.length, maxListItems);
+  for (let i = 3; i < listLimit; i++) {
+    let p = sorted[i]; let yPos = listStartY + (i-3) * 26;
+    fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5)); noStroke(); rect(W/2 - 200, yPos - 12, 400, 24, 5);
+    fill(p.color); textSize(11); textStyle(BOLD); text((i + 1) + ".", W/2 - 180, yPos);
+    if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
+        drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 140, yPos, 9, 0, TWO_PI); drawingContext.clip();
+        image(userAvatars[p.name], W/2 - 140, yPos, 18, 18); drawingContext.restore();
+    }
+    fill(220); textStyle(NORMAL); textSize(11); text(p.name.substring(0, 12), W/2 - 120, yPos);
+    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); text(Math.floor(Math.max(0, p.hp)).toLocaleString(), W/2 + 180, yPos); textAlign(LEFT, CENTER); 
+  }
+  
+  let timerY = ARENA_BOT - 40; 
+  fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
+  noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
+  
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 8; resultsTimer = 8; startNewRound(); } } 
 }
 
 function drawTopHUD() {
@@ -3392,13 +3505,6 @@ function drawTopHUD() {
   drawingContext.fillStyle = topGrad;
   noStroke(); 
   rect(0, 0, W, ARENA_TOP + 20);
-  
-  // PŘIDÁNO: Poloprůhledné černé podkresy pod tabulky pro lepší čitelnost proti hernímu pozadí
-  fill(0, 0, 0, 180);
-  noStroke();
-  rect(5, HUD_TOP, 240, 150, 10);         // SÍŇ SLÁVY
-  rect(W/2 - 110, HUD_TOP, 220, 150, 10); // TOP SPONZOŘI
-  rect(W - 245, HUD_TOP, 240, 150, 10);   // ELITNÍ STÍHAČI
   
   stroke(roundThemeColorDark); strokeWeight(2);
   drawingContext.setLineDash([15, 15]);
@@ -3414,7 +3520,6 @@ function drawTopHUD() {
   let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
   textAlign(LEFT, TOP);
   fill(hoverHp ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
-  stroke(0); strokeWeight(3);
   text(currentLang === "CZ" ? "SÍŇ SLÁVY" : "HALL OF FAME", 15, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
@@ -3429,8 +3534,8 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
+      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
   }
 
   // Rolování od 3 do 20 (index 2+)
@@ -3449,8 +3554,8 @@ function drawTopHUD() {
           drawingContext.restore();
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-          textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
+          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -3461,7 +3566,6 @@ function drawTopHUD() {
   
   let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
   textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0)); textSize(14); textStyle(BOLD);
-  stroke(0); strokeWeight(3);
   text(currentLang === "CZ" ? "TOP SPONZOŘI" : "TOP SPONSORS", W/2, HUD_TOP + 5);
   
   textStyle(NORMAL); textSize(14);
@@ -3476,10 +3580,10 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(gData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
+      textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
       
       let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      textAlign(RIGHT, TOP); fill(255, 215, 0); stroke(0); strokeWeight(3); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
+      textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
   }
 
   if (allGiftsSorted.length > 3) {
@@ -3497,10 +3601,10 @@ function drawTopHUD() {
           drawingContext.restore();
           noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-          textAlign(LEFT, TOP); fill(gData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
+          textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
           
           let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-          textAlign(RIGHT, TOP); fill(255, 215, 0); stroke(0); strokeWeight(3); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
+          textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -3511,7 +3615,6 @@ function drawTopHUD() {
   
   let hoverKills = mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h;
   textAlign(LEFT, TOP); fill(hoverKills ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
-  stroke(0); strokeWeight(3);
   text(currentLang === "CZ" ? "ELITNÍ STÍHAČI" : "ELITE PILOTS", 515, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
@@ -3525,8 +3628,8 @@ function drawTopHUD() {
       drawingContext.restore();
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-      textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
+      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
   }
 
   if (allKillsSorted.length > 2) {
@@ -3544,8 +3647,8 @@ function drawTopHUD() {
           drawingContext.restore();
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
-          textAlign(LEFT, TOP); fill(pData.color); stroke(0); strokeWeight(3); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); stroke(0); strokeWeight(3); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
+          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
+          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
       }
       drawingContext.restore();
   }
@@ -3568,16 +3671,20 @@ function draw() {
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
   
-  // ČISTÉ CHROMA KEY ZELENÉ POZADÍ
-  background(0, 255, 0);
+  // Místo tvrdého background() nakreslíme průhledný obdélník. 
+  // Číslo 200 je průhlednost. Čím blíž k 255, tím slabší je motion blur.
+  push();
+  fill(red(dynamicBg), green(dynamicBg), blue(dynamicBg), 200); 
+  noStroke();
+  rect(0, 0, W, H);
+  pop();
   
   push();
-  // ZAKÁZÁNO PRO CHROMA KEY: Vykreslení vesmíru a hvězd jako první vrstvu
-  // drawSpaceBackground();
+  // 1. Vykreslíme vesmír jako první vrstvu (bude vidět po celé obrazovce, i za UI)
+  drawSpaceBackground();
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
 
   // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
-  /* ZAKÁZÁNO PRO CLEAN SCREEN
   push();
   let pulseAlpha = map(sin(frameCount * 0.015), -1, 1, 15, 70); // O něco jasnější
   textAlign(CENTER, TOP);
@@ -3597,14 +3704,12 @@ function draw() {
   fill(255, 255, 255, pulseAlpha * 0.7); // Bílý světlejší prostředek
   text(GAME_TITLE, W/2, ARENA_TOP + 80); 
   pop();
-  */
 
-  // drawTopHUD(); // ZAKÁZÁNO: Skrytí všech tabulek a UI
+  drawTopHUD();
 
   // --- TOP GIFTER DOČASNÁ LIŠTA ---
   if (topGifterBannerTimer > 0) {
       topGifterBannerTimer--;
-      /* ZAKÁZÁNO PRO CLEAN SCREEN
       
       push();
       // Vykreslení pozadí spodní lišty (stejně jako u notifikací pro plynulý vzhled)
@@ -3638,21 +3743,21 @@ function draw() {
       endShape(CLOSE);
 
       textAlign(LEFT, CENTER); textSize(16); textStyle(BOLD);
-      stroke(0); strokeWeight(3);
       
       // Pulzující nápis
       if (frameCount % 30 < 15) fill(255, 100, 100); else fill(255, 215, 0);
       text("👑 TOP SPONSOR:", barX + 30, barY + barH / 2);
       
-      fill(255); textAlign(RIGHT, CENTER); stroke(0); strokeWeight(3);
+      fill(255); textAlign(RIGHT, CENTER);
       text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 30, barY + barH / 2);
       pop();
-      */
   } else {
-      // drawNotifications(); // ZAKÁZÁNO
+      drawNotifications(); 
   }
 
-  // drawChatCommands(); // ZAKÁZÁNO
+  drawChatCommands();
+
+  stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
 
   if (gameState === "PLAYING") drawSpaceshipTimer();
 
@@ -3665,30 +3770,27 @@ function draw() {
   if (nukeEffectTimer > 0) {
       nukeEffectTimer--;
       let alpha = constrain(map(nukeEffectTimer, 120, 0, 220, 0), 0, 220);
-      // ZAKÁZÁNO PRO CHROMA KEY (aby se zelená nezabarvila do černa)
-      // fill(0, 0, 0, alpha);
-      // rect(-W, -H, W * 3, H * 3);
+      fill(0, 0, 0, alpha);
+      rect(-W, -H, W * 3, H * 3);
       if (nukeEffectTimer <= 0) engine.timing.timeScale = 1.0;
   }
 
   // ARMAGEDDON EFEKT (Červená Aréna)
   if (arenaRedTimer > 0) {
       arenaRedTimer--;
-      // ZAKÁZÁNO PRO CHROMA KEY (aby se zelená nezabarvila do červena)
-      // push();
-      // fill(255, 0, 0, 60); 
-      // rect(-W, -H, W * 3, H * 3); 
-      // pop();
+      push();
+      fill(255, 0, 0, 60); // Krvavě červený poloprůhledný filtr
+      rect(-W, -H, W * 3, H * 3); // Zvětšeno, aby pokrylo i pohled kamery
+      pop();
   }
 
   // Ztemnění arény na konci kola (posledních 10 vteřin)
   if (gameState === "PLAYING" && roundTimerFrames <= 600 && roundTimerFrames > 0) {
       let darkenAlpha = map(roundTimerFrames, 600, 0, 0, 180);
-      // ZAKÁZÁNO PRO CHROMA KEY (aby se zelená nezatemnila)
-      // push();
-      // fill(0, 0, 5, darkenAlpha); 
-      // rect(-W, -H, W * 3, H * 3);
-      // pop();
+      push();
+      fill(0, 0, 5, darkenAlpha); // Temný filtr (lehce do studena)
+      rect(-W, -H, W * 3, H * 3);
+      pop();
   }
 
   // Plynulá fyzika pevným krokem (odstraňuje vibrace a lagy fyziky)
@@ -3751,26 +3853,115 @@ function draw() {
   } 
   
   if (gameState === "RESULTS") {
-    drawResults(); // Vykreslí rychlou výsledkovou tabulku
-    if (frameCount % 60 === 0) { 
-        resultsTimer--; 
-        if (resultsTimer <= 0) { 
-            maxResultsTimer = 6; 
-            resultsTimer = 6; 
-            startNewRound(); 
-        } 
-    }
+    drawResults();
   }
   
   drawingContext.restore(); 
 
   if (gameState === "PLAYING") {
-      // ZAKÁZÁNO PRO CLEAN SCREEN
-      // if (showFomoBar) { ... }
+      if (showFomoBar) {
+        // --- FOMO PROGRESS BAR (Ukazatel cíle nahoře v aréně) ---
+        push();
+        let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
+        let minPbW = 350;
+        let maxPbW = W * 0.85;
+        let pbW = lerp(minPbW, maxPbW, progress); // Šířka postupně roste
+        let pbH = 36; // Trochu vyšší pro profilovku
+        let pbX = W / 2 - pbW / 2;
+        let pbY = ARENA_TOP + 15; // Umístění těsně pod horní okraj arény
+
+        // Pulzování lišty, pokud se dlouho nic nestalo
+        let pbAlpha = 255;
+        if (millis() - lastEnergyAddedTime > 5000) {
+            pbAlpha = map(sin(frameCount * 0.03), -1, 1, 100, 255);
+        }
+
+        // Temné pozadí baru
+        fill(0, pbAlpha * 0.6);
+        stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pbAlpha); // Rámeček podle barvy arény
+        strokeWeight(2);
+        rect(pbX, pbY, pbW, pbH, 18);
+
+        // Výplň baru (Zlatá barva místo blikající duhové)
+        let goldCol = color(255, 215, 0, pbAlpha * 0.8);
+        fill(goldCol);
+        noStroke();
+        rect(pbX + 2, pbY + 2, (pbW - 4) * progress, pbH - 4, 16);
+
+        // Řízení fade efektu pro posledního donátora
+        if (nextLastGifter) {
+            gifterFadeAlpha -= 15;
+            if (gifterFadeAlpha <= 0) {
+                currentLastGifter = nextLastGifter;
+                nextLastGifter = null;
+            }
+        } else if (gifterFadeAlpha < 255) {
+            gifterFadeAlpha += 15;
+        }
+        gifterFadeAlpha = constrain(gifterFadeAlpha, 0, 255);
+
+        // Vykreslení posledního donátora (ikona a jméno)
+        if (currentLastGifter.name !== "") {
+            let avatarPulse = sin(frameCount * 0.1) * 3;
+            let avSize = 24 + avatarPulse;
+            let avX = pbX + 25;
+            let avY = pbY + pbH / 2;
+
+            push();
+            tint(255, (gifterFadeAlpha / 255) * pbAlpha);
+            if (currentLastGifter.img && currentLastGifter.img !== "loaded") {
+                drawingContext.save();
+                drawingContext.beginPath();
+                drawingContext.arc(avX, avY, avSize / 2, 0, TWO_PI);
+                drawingContext.clip();
+                imageMode(CENTER);
+                image(currentLastGifter.img, avX, avY, avSize, avSize);
+                drawingContext.restore();
+            } else {
+                fill(100, (gifterFadeAlpha / 255) * pbAlpha);
+                ellipse(avX, avY, avSize, avSize);
+            }
+            noFill();
+            stroke(255, 215, 0, (gifterFadeAlpha / 255) * pbAlpha);
+            strokeWeight(2);
+            ellipse(avX, avY, avSize, avSize);
+            
+            noStroke();
+            fill(255, 255, 255, (gifterFadeAlpha / 255) * pbAlpha);
+            textAlign(LEFT, CENTER);
+            textSize(10);
+            let shortName = currentLastGifter.name.length > 8 ? currentLastGifter.name.substring(0, 8) + "." : currentLastGifter.name;
+            text(`${shortName} +${currentLastGifter.coins}`, avX + 15 + avatarPulse/2, avY);
+            pop();
+        }
+
+        // Animovaný text uvnitř (uprostřed)
+        fill(255, 255, 255, pbAlpha);
+        textAlign(CENTER, CENTER);
+        textSize(12);
+        textStyle(BOLD);
+        
+        let coinsLeft = ARMAGEDDON_GOAL - roundTotalCoins;
+        if (coinsLeft > 0) {
+            // Zvýraznění, když zbývá málo (pod 20%)
+            if (progress > 0.8 && frameCount % 20 < 10) {
+                fill(255, 255, 0, pbAlpha); // Bliká žlutě!
+                textSize(14);
+            }
+        let txt = currentLang === "CZ" ? `🌹 KAPACITA JÁDRA: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹` : `🌹 CORE CAPACITY: ${roundTotalCoins} / ${ARMAGEDDON_GOAL} 🌹`;
+            text(txt, W / 2, pbY + pbH / 2);
+        } else {
+            // Armageddon je plný
+            if (frameCount % 10 < 5) fill(255, 0, 0, pbAlpha); // Agresivní blikání
+            textSize(15);
+            let txt2 = currentLang === "CZ" ? "🚨 ARMAGEDON AKTIVNÍ! 🚨" : "🚨 ARMAGEDDON ACTIVE! 🚨";
+            text(txt2, W / 2, pbY + pbH / 2);
+        }
+        pop();
+      }
   }
 
   if (megaAnnouncement && megaAnnouncement.life > 0) {
-      /* ZAKÁZÁNO PRO CLEAN SCREEN
       push();
       translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
       megaAnnouncement.scale = lerp(megaAnnouncement.scale, 1.2, 0.05);
@@ -3785,12 +3976,11 @@ function draw() {
       textSize(40);
       text(megaAnnouncement.text, 0, 0);
       pop();
-      */
       megaAnnouncement.life -= 2.5;
   }
 
   if (gameState === "PLAYING") {
-      // drawSecretCodeUI(); // ZAKÁZÁNO
+      drawSecretCodeUI();
   }
   
   pop(); // Ukončení global push()
@@ -4091,3 +4281,5 @@ function mousePressed() {
 </script>
 </body>
 </html>
+
+
