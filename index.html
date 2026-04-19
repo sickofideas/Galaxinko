@@ -1161,7 +1161,9 @@ function reviveZombie(p) {
     p.isZombie = false;
     p.hp = 150;
     colorMode(HSB, 360, 100, 100);
-    p.color = color(random(360), random(80, 100), random(90, 100));
+    let hueVal = random(360);
+    if (hueVal > 80 && hueVal < 160) hueVal = (hueVal + 100) % 360; // Ochrana proti zelené (chroma key)
+    p.color = color(hueVal, random(80, 100), random(90, 100));
     colorMode(RGB, 255);
     p.auraFlash = 30;
     addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
@@ -1221,7 +1223,9 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
   let distToTarget = Math.sqrt(dx*dx + dy*dy); let spd = distToTarget / 45; 
   
   colorMode(HSB, 360, 100, 100);
-  let pColor = isZombie ? color(0, 0, 40) : color(random(360), random(80, 100), random(90, 100));
+  let hueVal = random(360);
+  if (hueVal > 80 && hueVal < 160) hueVal = (hueVal + 100) % 360; // Ochrana proti zelené (chroma key)
+  let pColor = isZombie ? color(0, 0, 40) : color(hueVal, random(80, 100), random(90, 100));
   colorMode(RGB, 255);
   
   spawnModules.push({
@@ -2808,8 +2812,8 @@ function drawPlayer(p) {
   strokeWeight(isEpic ? 3 : 2);
 
   // Mírnější rozměry pily pro kratší bodáky
-  let rOuter = isEpic ? p.r * 1.25 : p.r * 1.15;
-  let rInner = isEpic ? p.r * 0.8 : p.r * 0.9;
+  let rOuter = isEpic ? p.r * 1.15 : p.r * 1.08;
+  let rInner = isEpic ? p.r * 0.85 : p.r * 0.92;
 
   let baseR = red(actualColor);
   let baseG = green(actualColor);
