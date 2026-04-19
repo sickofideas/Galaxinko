@@ -3154,6 +3154,44 @@ function triggerRandomEvent() {
 }
 
 function updateTimers() {
+  // --- ANTI-DUPLIKÁT SYSTÉM (Každých 10 vteřin / 600 framů) ---
+  if (frameCount % 600 === 0) {
+      let nameGroups = {};
+      
+      // Roztřídíme živé hráče podle jména
+      for (let p of players) {
+          if (!p.isZombie) {
+              if (!nameGroups[p.name]) nameGroups[p.name] = [];
+              nameGroups[p.name].push(p);
+          }
+      }
+
+      // Projdeme skupiny a smažeme slabší duplikáty
+      for (let name in nameGroups) {
+          let group = nameGroups[name];
+          if (group.length > 1) {
+              // Seřadíme podle HP sestupně (největší si necháme na indexu 0)
+              group.sort((a, b) => b.hp - a.hp);
+              
+              // Všechny ostatní tiše vymažeme
+              for (let j = 1; j < group.length; j++) {
+                  let dup = group[j];
+                  
+                  // Tichý vizuální fade-out (jen se rozplyne)
+                  if (dup.body) {
+                      createParticles(dup.body.position.x, dup.body.position.y, dup.color, 10);
+                      Matter.World.remove(world, dup.body);
+                  }
+                  
+                  // Odstranění z pole hráčů
+                  let idx = players.indexOf(dup);
+                  if (idx > -1) players.splice(idx, 1);
+              }
+          }
+      }
+  }
+  // -------------------------------------------------------------
+
   if (frameCount % 60 === 0) {
       currentTop10 = [...players].sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
   }
