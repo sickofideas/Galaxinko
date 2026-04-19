@@ -11,16 +11,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     body {
-      margin: 0; padding: 0; background-color: #020204;
+      margin: 0; padding: 0; background-color: #00FF00;
       display: flex; justify-content: center; align-items: center;
       height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive;
     }
     #game-container {
       position: relative; width: 720px; height: 1280px;
-      box-shadow: 0 0 100px rgba(0, 255, 255, 0.2);
+      box-shadow: none;
       transform-origin: top left;
       transform: scale(min(window.innerHeight / 1280, window.innerWidth / 720));
-      background: #030306;
+      background: #00FF00;
     }
     canvas { display: block; }
     
@@ -3394,9 +3394,9 @@ function updateTimers() {
 
 function drawResults() {
   push();
-  fill(0, 220); 
-  noStroke(); 
-  rect(0, 0, W, H);
+  // fill(0, 220); // ZAKÁZÁNO PRO CHROMA KEY
+  // noStroke(); 
+  // rect(0, 0, W, H);
   pop();
   
   textAlign(CENTER, CENTER);
@@ -3710,17 +3710,12 @@ function draw() {
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
   
-  // Místo tvrdého background() nakreslíme průhledný obdélník. 
-  // Číslo 200 je průhlednost. Čím blíž k 255, tím slabší je motion blur.
-  push();
-  fill(red(dynamicBg), green(dynamicBg), blue(dynamicBg), 200); 
-  noStroke();
-  rect(0, 0, W, H);
-  pop();
+  // CHROMA KEY POZADÍ (Čistá zelená)
+  background(0, 255, 0);
   
   push();
-  // 1. Vykreslíme vesmír jako první vrstvu (bude vidět po celé obrazovce, i za UI)
-  drawSpaceBackground();
+  // 1. Vesmír zakázán pro dokonalý zelený klíč v OBS
+  // drawSpaceBackground();
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
 
   // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
@@ -3809,8 +3804,8 @@ function draw() {
   if (nukeEffectTimer > 0) {
       nukeEffectTimer--;
       let alpha = constrain(map(nukeEffectTimer, 120, 0, 220, 0), 0, 220);
-      fill(0, 0, 0, alpha);
-      rect(-W, -H, W * 3, H * 3);
+      // fill(0, 0, 0, alpha); // ZAKÁZÁNO PRO CHROMA KEY
+      // rect(-W, -H, W * 3, H * 3);
       if (nukeEffectTimer <= 0) engine.timing.timeScale = 1.0;
   }
 
@@ -3818,8 +3813,8 @@ function draw() {
   if (arenaRedTimer > 0) {
       arenaRedTimer--;
       push();
-      fill(255, 0, 0, 60); // Krvavě červený poloprůhledný filtr
-      rect(-W, -H, W * 3, H * 3); // Zvětšeno, aby pokrylo i pohled kamery
+      // fill(255, 0, 0, 60); // ZAKÁZÁNO PRO CHROMA KEY
+      // rect(-W, -H, W * 3, H * 3); 
       pop();
   }
 
@@ -3827,8 +3822,8 @@ function draw() {
   if (gameState === "PLAYING" && roundTimerFrames <= 600 && roundTimerFrames > 0) {
       let darkenAlpha = map(roundTimerFrames, 600, 0, 0, 180);
       push();
-      fill(0, 0, 5, darkenAlpha); // Temný filtr (lehce do studena)
-      rect(-W, -H, W * 3, H * 3);
+      // fill(0, 0, 5, darkenAlpha); // ZAKÁZÁNO PRO CHROMA KEY
+      // rect(-W, -H, W * 3, H * 3);
       pop();
   }
 
