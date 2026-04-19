@@ -873,8 +873,8 @@ function startNewRound() {
   // 1. Spawni aktivní přeživší z minulého kola normálně
   oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
 
-  // 2. Spawni ZOMBIES z historie (až 50 skutečných hráčů, co vypadli)
-  let availableZombies = Object.keys(userAvatars).filter(u => !oldPlayers.includes(u));
+  // 2. Spawni ZOMBIES z historie (až 50 skutečných hráčů, co vypadli a dali alespoň 1 like)
+  let availableZombies = Object.keys(userAvatars).filter(u => !oldPlayers.includes(u) && sessionLikes[u] > 0);
   availableZombies.sort(() => 0.5 - random()); // Náhodně zamíchat
   let zombieCount = Math.min(floor(random(5, 51)), availableZombies.length);
   
@@ -2082,8 +2082,10 @@ function handleCameraAndPlayers() {
     }
     
     if (p.hp <= 0) {
-      // PŘIDÁNO: Zapsání do fronty na oživení (VŽDY, aby se zombíci vraceli donekonečna)
-      deadPlayersQueue.push({name: p.name, timeOfDeath: millis(), respawnDelay: 20000 + random(500, 20000)}); // 20s cooldown + náhodný čas (0.5s - 20s)
+      // PŘIDÁNO: Zapsání do fronty na oživení (jen pokud dal hráč alespoň jeden like)
+      if (sessionLikes[p.name] > 0) {
+          deadPlayersQueue.push({name: p.name, timeOfDeath: millis(), respawnDelay: 20000 + random(500, 20000)}); // 20s cooldown + náhodný čas (0.5s - 20s)
+      }
       
       if (p.body && !isNaN(p.body.position.x)) {
           let px = p.body.position.x;
@@ -2453,7 +2455,6 @@ function handleBossPlanet() {
 
                     // ZAKÁZÁNO: screenShake, particles, flash
                     safePlaySound(150, 0.1, 1.0); // Pouze tichý basový zvuk
-                    addPopup("💥 EGO SMASH! 💥", bp.x + dx/2, bp.y + dy/2, color(50, 255, 50), true);
                 }
             } 
             // B) ÚPLNĚ PRVNÍ PLANETA -> MAJESTÁTNĚ PŘILÉTÁ DO STŘEDU
@@ -4281,5 +4282,3 @@ function mousePressed() {
 </script>
 </body>
 </html>
-
-
