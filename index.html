@@ -2954,7 +2954,7 @@ function drawPlayer(p) {
 
   let imgSize = p.r * 1.6;
   let isTop10 = currentTop10.includes(p.name);
-  let shouldDrawAvatar = isTop10 || players.length <= 20;
+  let shouldDrawAvatar = true; // Profilovka je nyní viditelná pro všechny
 
   if (p.avatarAlpha === undefined) p.avatarAlpha = shouldDrawAvatar ? 255 : 0;
   if (shouldDrawAvatar) p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
