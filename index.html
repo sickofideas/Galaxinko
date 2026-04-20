@@ -2843,6 +2843,11 @@ function drawPlayer(p) {
   if (p.isZombie) outlineColor = color(50, 255, 50);
 
 
+  // FALEŠNÝ STÍN PRO 3D EFEKT (Bake-in zdarma)
+  if (!isExtremeLoad) {
+      fill(0, 0, 0, 80); noStroke(); ellipse(5, 5, p.r * 2.5);
+  }
+
   // --- ZÁKLAD A ZUBY PILY ---
   stroke(outlineColor);
   strokeWeight(isEpic ? 3 : 2);
@@ -2860,54 +2865,77 @@ function drawPlayer(p) {
       let teeth = isEpic ? 14 + Math.floor(safeHp / 1500) : 10 + (p.sawType % 3) * 2;
       if (isExtremeLoad) teeth = Math.max(4, Math.floor(teeth * 0.3)); 
       teeth = Math.min(teeth, 40); 
-      let tType = p.sawType % 2; // 0 = Pila, 1 = Ozubené kolo
-      
+      let tType = p.sawType % 2; 
       let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
-      
-      // Hezký radiální gradient (vypnutý při extrémní zátěži pro vyšší FPS)
-      if (isExtremeLoad) {
-          fill(baseR, baseG, baseB, (0.6 + fillFactor * 0.4) * 255);
-      } else {
-          fill(255); 
-          let grad = drawingContext.createRadialGradient(0, 0, rInner * 0.2, 0, 0, rOuter);
-          grad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.2)`);
-          grad.addColorStop(1, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.6 + fillFactor * 0.4})`);
-          drawingContext.fillStyle = grad;
-      }
-      
-      beginShape();
-      let step = TWO_PI / teeth;
-      for(let i=0; i<teeth; i++) {
-          let a = i * step;
-          if (tType === 0) { 
-              vertex(cos(a)*rInner, sin(a)*rInner);
-              vertex(cos(a + step * 0.8)*rOuter, sin(a + step * 0.8)*rOuter);
-          } else { 
-              vertex(cos(a)*rInner, sin(a)*rInner);
-              vertex(cos(a + step * 0.2)*rOuter, sin(a + step * 0.2)*rOuter);
-              vertex(cos(a + step * 0.8)*rOuter, sin(a + step * 0.8)*rOuter);
+
+      // EXTRÉMNÍ OPTIMALIZACE: PRE-RENDERING (BAKE-IN)
+      // Generujeme offscreen canvas pouze při změně stavu nebo vytvoření
+      if (!p.sawCanvas || p.cachedTeeth !== teeth || p.cachedIsEpic !== isEpic || p.cachedFill !== fillFactor) {
+          p.cachedTeeth = teeth;
+          p.cachedIsEpic = isEpic;
+          p.cachedFill = fillFactor;
+          
+          if (!p.sawCanvas) {
+              p.sawCanvas = createGraphics(260, 260);
+          } else {
+              p.sawCanvas.clear();
+          }
+          
+          p.sawCanvas.translate(130, 130);
+          
+          let bakeOuter = isEpic ? 115 : 108;
+          let bakeInner = isEpic ? 85 : 92;
+          
+          if (isExtremeLoad) {
+              p.sawCanvas.fill(baseR, baseG, baseB, (0.6 + fillFactor * 0.4) * 255);
+          } else {
+              p.sawCanvas.fill(255); 
+              let grad = p.sawCanvas.drawingContext.createRadialGradient(0, 0, bakeInner * 0.2, 0, 0, bakeOuter);
+              grad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.2)`);
+              grad.addColorStop(1, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.6 + fillFactor * 0.4})`);
+              p.sawCanvas.drawingContext.fillStyle = grad;
+          }
+          
+          p.sawCanvas.stroke(red(outlineColor), green(outlineColor), blue(outlineColor));
+          p.sawCanvas.strokeWeight(isEpic ? 3 : 2);
+          
+          p.sawCanvas.beginShape();
+          let step = TWO_PI / teeth;
+          for(let i=0; i<teeth; i++) {
+              let a = i * step;
+              if (tType === 0) { 
+                  p.sawCanvas.vertex(cos(a)*bakeInner, sin(a)*bakeInner);
+                  p.sawCanvas.vertex(cos(a + step * 0.8)*bakeOuter, sin(a + step * 0.8)*bakeOuter);
+              } else { 
+                  p.sawCanvas.vertex(cos(a)*bakeInner, sin(a)*bakeInner);
+                  p.sawCanvas.vertex(cos(a + step * 0.2)*bakeOuter, sin(a + step * 0.2)*bakeOuter);
+                  p.sawCanvas.vertex(cos(a + step * 0.8)*bakeOuter, sin(a + step * 0.8)*bakeOuter);
+              }
+          }
+          p.sawCanvas.endShape(CLOSE);
+
+          // Vnitřní design pily přidáme také do cache
+          p.sawCanvas.fill(baseR * 0.2, baseG * 0.2, baseB * 0.2, 200);
+          p.sawCanvas.stroke(red(outlineColor), green(outlineColor), blue(outlineColor));
+          p.sawCanvas.strokeWeight(2);
+          p.sawCanvas.ellipse(0, 0, 150); 
+
+          if (isEpic) {
+              p.sawCanvas.noFill(); p.sawCanvas.stroke(255, 200, 0); p.sawCanvas.strokeWeight(4);
+              p.sawCanvas.ellipse(0, 0, 130);
+              p.sawCanvas.fill(baseR * 0.4, baseG * 0.4, baseB * 0.4, 200); p.sawCanvas.stroke(255, 100, 0); p.sawCanvas.strokeWeight(3);
+              p.sawCanvas.ellipse(0, 0, 90);
+          } else {
+              p.sawCanvas.fill(baseR, baseG, baseB); p.sawCanvas.noStroke();
+              p.sawCanvas.ellipse(0, 0, 80);
+              p.sawCanvas.fill(baseR * 0.15, baseG * 0.15, baseB * 0.15, 255);
+              p.sawCanvas.ellipse(0, 0, 40);
           }
       }
-      endShape(CLOSE);
-
-      // Zjednodušené vnitřní designy bez zbytečných nýtů a výpočtů
-      // Mírně ztmavená barva hráče místo "průhledné" šedé
-      fill(baseR * 0.2, baseG * 0.2, baseB * 0.2, 200);
-      stroke(outlineColor);
-      strokeWeight(2);
-      ellipse(0, 0, p.r * 1.5); 
-
-      if (isEpic) {
-          noFill(); stroke(255, 200, 0); strokeWeight(4);
-          ellipse(0, 0, p.r * 1.3);
-          fill(baseR * 0.4, baseG * 0.4, baseB * 0.4, 200); stroke(255, 100, 0); strokeWeight(3);
-          ellipse(0, 0, p.r * 0.9);
-      } else {
-          fill(actualColor); noStroke();
-          ellipse(0, 0, p.r * 0.8);
-          fill(baseR * 0.15, baseG * 0.15, baseB * 0.15, 255);
-          ellipse(0, 0, p.r * 0.4);
-      }
+      
+      // Kreslíme pouze jeden vygenerovaný obrázek namísto desítek výpočtů a čar
+      imageMode(CENTER);
+      image(p.sawCanvas, 0, 0, p.r * 2.6, p.r * 2.6);
   } else {
       let outlineSizeMult = constrain(map(safeHp, 100, 200, 1.25, 1.75), 1.25, 1.75);
       let outlineWeight = constrain(map(safeHp, 1, 200, 2, 12), 2, 12);
@@ -3108,16 +3136,25 @@ function createParticles(x, y, c, count, type = 'CIRCLE') {
   }
   for(let i=0; i<actualCount; i++) {
       let pSize = (type === 'HEART' || type === 'ENERGY') ? random(8, 16) : random(4, 10);
-      particles.push({x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: pSize, type: type});
+      let p = null;
+      for (let j = 0; j < particles.length; j++) {
+          if (!particles[j].active) { p = particles[j]; break; }
+      }
+      if (p) {
+          p.active = true; p.x = x; p.y = y; p.vx = random(-6,6); p.vy = random(-6,6);
+          p.life = 255; p.c = c; p.size = pSize; p.type = type;
+      } else if (particles.length < 500) { // Limit bazénu na 500 částic
+          particles.push({active: true, x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: pSize, type: type});
+      }
   }
 }
 
 function drawParticles() {
   noStroke();
-  // ZRUŠENO: drawingContext.shadowBlur pro částice (Největší žrout výkonu)
   
-  for(let i=particles.length-1; i>=0; i--) {
+  for(let i=0; i<particles.length; i++) {
     let p = particles[i];
+    if (!p.active) continue;
     
     // Částice se už nekreslí s drahým neonovým stínem, ale s čistou barvou
     fill(red(p.c), green(p.c), blue(p.c), p.life);
@@ -3154,29 +3191,41 @@ function drawParticles() {
     p.size *= 0.98; 
     p.life -= 15; 
     
-    if(p.life <= 0) particles.splice(i, 1);
+    if(p.life <= 0) p.active = false; // Neodstranit, pouze deaktivovat (Object Pooling)
   }
 }
 
 function addPopup(txt, x, y, c, isCrit = false) {
-  floatingTexts.push({txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit, scale: 0.1});
+  let f = null;
+  for (let i = 0; i < floatingTexts.length; i++) {
+      if (!floatingTexts[i].active) { f = floatingTexts[i]; break; }
+  }
+  if (f) {
+      f.active = true; f.txt = txt; f.x = x; f.y = y; f.life = 255; f.c = c; f.vy = -1.5; f.isCrit = isCrit; f.scale = 0.1;
+  } else if (floatingTexts.length < 200) { // Limit bazénu na 200 textů
+      floatingTexts.push({active: true, txt: txt, x: x, y: y, life: 255, c: c, vy: -1.5, isCrit: isCrit, scale: 0.1});
+  }
 }
 
 function drawPopups() {
-  for(let i=floatingTexts.length-1; i>=0; i--) {
-    let f = floatingTexts[i]; f.scale = lerp(f.scale, 1.0, 0.2); 
+  for(let i=0; i<floatingTexts.length; i++) {
+    let f = floatingTexts[i];
+    if (!f.active) continue;
+    
+    f.scale = lerp(f.scale, 1.0, 0.2); 
     push(); translate(f.x, f.y); scale(f.scale);
-    drawingContext.shadowBlur = 5; drawingContext.shadowColor = 'black';
+    // Vypnuto stínování pro obrovský nárůst FPS
     if (f.isCrit) {
         stroke(0); strokeWeight(4); fill(255, 215, 0, f.life); textSize(22 + sin(f.life * 0.1) * 4); textAlign(CENTER); textStyle(BOLD);
-            let critText = "💥 " + f.txt; // Čistší a údernější než zdlouhavý text
+            let critText = "💥 " + f.txt; 
             text(critText, 0, 0); f.y += f.vy - 0.5; f.life -= 8;
     } else {
         stroke(0); strokeWeight(3); fill(red(f.c), green(f.c), blue(f.c), f.life); textSize(16); textAlign(CENTER); textStyle(BOLD);
         text(f.txt, 0, 0); f.y += f.vy; f.life -= 8;
     }
     pop();
-    if(f.life <= 0) floatingTexts.splice(i, 1);
+    
+    if (f.life <= 0) f.active = false; // Deaktivovat místo mazání (Object Pooling)
   }
   drawingContext.shadowBlur = 0; textStyle(NORMAL);
 }
@@ -3586,20 +3635,28 @@ function drawResults() {
 }
 
 function drawTopHUD() {
-  // Plynulý ztracený gradient místo tvrdého překryvu (bezpečnější a hezčí)
+  push();
+  // DÝCHÁNÍ UI (Anti-ban mikropohyb, oživuje statický HUD)
+  let breathY = sin(frameCount * 0.02) * 2.5;
+  translate(0, breathY);
+  
+  // Plynulý ztracený gradient místo tvrdého překryvu
   let topGrad = drawingContext.createLinearGradient(0, 0, 0, ARENA_TOP + 20);
   topGrad.addColorStop(0, "rgba(0,0,0,0.9)");
   topGrad.addColorStop(1, "rgba(0,0,0,0.0)");
   drawingContext.fillStyle = topGrad;
   noStroke(); 
-  rect(0, 0, W, ARENA_TOP + 20);
+  rect(0, -10, W, ARENA_TOP + 30); // Zvětšeno kvůli posunu nahoru/dolů
   
   stroke(roundThemeColorDark); strokeWeight(2);
   drawingContext.setLineDash([15, 15]);
   line(0, ARENA_TOP, W, ARENA_TOP);
   drawingContext.setLineDash([]);
 
-  if (!showLeaderboards) return;
+  if (!showLeaderboards) {
+      pop(); 
+      return;
+  }
 
   // ALL TIME HP
   let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 20); // Zvětšeno na 20 pro rolování
@@ -3740,6 +3797,8 @@ function drawTopHUD() {
       }
       drawingContext.restore();
   }
+  
+  pop(); // Ukončení breathing efektu
 }
 
 function handleTTSCommentary() {
@@ -3762,11 +3821,14 @@ function draw() {
   // CHROMA KEY PRO HORNÍ A SPODNÍ ČÁST S ANTI-BAN POHYBEM
   background(0, 255, 0);
   
-  // Anti-ban šum: velmi jemné zelené pruhy, které zmatou detekci statického obrazu TikToku
-  fill(0, 250, 0);
+  // POKROČILÝ ANTI-BAN ŠUM (Neviditelný pro diváka v OBS, ale matoucí pro TikTok boty)
+  fill(0, 252, 0);
   noStroke();
-  rect(0, (frameCount * 0.5) % H, W, 20);
-  rect((frameCount * 0.8) % W, 0, 20, H);
+  for(let i=0; i<20; i++) {
+      let nx = (noise(frameCount * 0.01 + i * 10) * W * 1.5) % W;
+      let ny = (noise(frameCount * 0.01 + i * 20 + 100) * H * 1.5) % H;
+      rect(nx, ny, 10 + (i%5)*10, 10 + (i%5)*10);
+  }
   
   push();
   // Oříznutí pouze na herní plochu
@@ -3774,8 +3836,8 @@ function draw() {
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawingContext.clip();
   
-  // Vesmírné pozadí s LEHKÝM CHROMA GREEN odstínem, který lze vyladit v OBS
-  fill(0, 30, 10);
+  // MOTION BLUR (Epické světelné stopy zadarmo místo tvrdého smazání obrazovky)
+  fill(0, 30, 10, 100); // 100 alpha = poloviční smazání minulého snímku = šmouhy
   rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawSpaceBackground();
   
@@ -3855,7 +3917,13 @@ function draw() {
 
   drawChatCommands();
 
-  stroke(roundThemeColor); strokeWeight(2); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
+  // Zářící prstenec arény (pulzující okraj)
+  let ringAlpha = map(sin(frameCount * 0.05), -1, 1, 50, 200);
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = roundThemeColor;
+  stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), ringAlpha); 
+  strokeWeight(3); noFill(); rect(2, ARENA_TOP, W-4, ARENA_BOT - ARENA_TOP);
+  drawingContext.shadowBlur = 0; // Reset
 
   if (gameState === "PLAYING") drawSpaceshipTimer();
 
@@ -4097,6 +4165,13 @@ function draw() {
   if (gameState === "PLAYING") {
       drawSecretCodeUI();
   }
+  
+  // SKRYTÁ ANTI-BAN "MOUCHA" (Létající pixel rozbíjející statické zóny na celé ploše)
+  fill((frameCount * 5) % 255, (frameCount * 7) % 255, (frameCount * 11) % 255);
+  noStroke();
+  let flyX = (noise(frameCount * 0.03) * W * 2) % W;
+  let flyY = (noise(frameCount * 0.03 + 1000) * H * 2) % H;
+  rect(flyX, flyY, 2, 2);
   
   pop(); // Ukončení global push()
 }
