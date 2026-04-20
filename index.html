@@ -2005,15 +2005,14 @@ function drawNotifications() {
       else { borderColor = color(0, 0, 100); actionText = "Akce"; icon = "✨"; }
       colorMode(RGB);
       
-      // Užší Sci-Fi design místo tlusté krabice
+      // CHROMA KEY pozadí karet - plně zelené pro průhlednost v OBS
       if (n.type === 'GIFT' && n.extra >= 100) {
-          fill(20, 0, 30, 200); 
+          fill(0, 255, 0); 
           stroke(borderColor); 
           strokeWeight(2 + sin(frameCount * 0.2)); 
-          drawingContext.shadowBlur = 10; 
-          drawingContext.shadowColor = borderColor;
+          drawingContext.shadowBlur = 0;
       } else {
-          fill(5, 8, 12, 180);
+          fill(0, 255, 0);
           stroke(borderColor); 
           strokeWeight(1.5);
           drawingContext.shadowBlur = 0;
