@@ -1020,8 +1020,8 @@ function formatK(num) {
 }
 
 function getRadius(hp) { 
-    // Základní velikost je o dost větší a roste agresivněji
-    return Math.min(45 + Math.sqrt(Math.max(0, hp || 0)) * 1.2, 180); 
+    // Menší koule, aby se jich do arény vešlo více a nezasekávaly se tak brzy
+    return Math.min(30 + Math.sqrt(Math.max(0, hp || 0)) * 0.9, 140); 
 }
 
 // ==========================================
@@ -1263,8 +1263,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   let r = getRadius(safeHp);
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
-      restitution: 0.1,    // 0.1 znamená, že náraz pohltí 90 % energie (předtím to bylo 0.95!)
-      frictionAir: 0.08,   // Funguje jako hustá kapalina, rychle zabrzdí kouli po nárazu
+      restitution: 0.4,    // Zvýšeno z 0.1, aby se od sebe lehce odrážely a nezasekávaly
+      frictionAir: 0.04,   // Sníženo z 0.08, aby se mohly neustále trochu hýbat a prokluzovat
       friction: 0, 
       density: 0.001 
   });
@@ -2055,7 +2055,7 @@ function handleCameraAndPlayers() {
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
   let isExtremeLoad = players.length > 30;  // Dřívější úleva pro grafiku
-  let maxV = 15; 
+  let maxV = 25;
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -2158,9 +2158,11 @@ function handleCameraAndPlayers() {
         }
     }
     
-    // GALAKTICKÝ VORTEX (Kruhová rotace všech stejným směrem - "Mlýn")
-    let cx = W/2; 
-    let cy = (ARENA_TOP+ARENA_BOT)/2;
+    // GALAKTICKÝ VORTEX (Pohyblivý střed, aby nevznikla statická zácpa)
+    // Střed gravitace nyní neustále pomalu cestuje po aréně
+    let cx = W/2 + Math.sin(frameCount * 0.005) * (W * 0.25); 
+    let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.25);
+    
     let dx = cx - p.body.position.x;
     let dy = cy - p.body.position.y;
     let distToCenter = Math.sqrt(dx*dx + dy*dy) || 1;
@@ -2168,24 +2170,31 @@ function handleCameraAndPlayers() {
     let dirX = dx / distToCenter;
     let dirY = dy / distToCenter;
     
-    // MLÝNEK NA MASO: Silný tah do absolutního středu, mírná rotace
-    let pullForce = 0.00006 * p.body.mass;  // 3x silnější tah doprostřed
-    let vortexForce = 0.00001 * p.body.mass * p.baseRotDir; // Mírně silnější rotace
+    // MIXÉR EFEKT: Výrazně slabší tah doprostřed, masivní rotace okolo
+    let pullForce = 0.00002 * p.body.mass;  // Tah do středu zmenšen na třetinu
+    let vortexForce = 0.00008 * p.body.mass * p.baseRotDir; // Rotace zesílena 8x
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
 
-    // Přidání lehkého šumu pro rozbití jakýchkoliv "zaseknutých" hloučků (Optimalizováno)
-    finalFx += Math.sin(p.noiseOffsetX) * 0.00002 * p.body.mass;
-    finalFy += Math.cos(p.noiseOffsetY) * 0.00002 * p.body.mass;
-    p.noiseOffsetX += 0.05;
-    p.noiseOffsetY += 0.05;
+    // ZESÍLENÝ ŠUM A CHAOS pro rozbití "zaseknutých" hloučků
+    finalFx += Math.sin(p.noiseOffsetX) * 0.00015 * p.body.mass;
+    finalFy += Math.cos(p.noiseOffsetY) * 0.00015 * p.body.mass;
+    
+    // Občasné silnější pošťouchnutí pro udržení neustálého hemžení
+    if (Math.random() < 0.05) {
+        finalFx += (Math.random() - 0.5) * 0.001 * p.body.mass;
+        finalFy += (Math.random() - 0.5) * 0.001 * p.body.mass;
+    }
+
+    p.noiseOffsetX += random(0.05, 0.15);
+    p.noiseOffsetY += random(0.05, 0.15);
 
     // Žádná ochranná zóna - všichni se rurou do jednoho bodu!
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 2.8 : 2.4; // ZRYCHLENO: Rychlejší pohyb = větší zábava
+    let tSpd = isTop10 ? 4.5 : 3.8; // ZRYCHLENO VÝRAZNĚ
     let currentMaxV = maxV;
     
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
@@ -2249,12 +2258,22 @@ function handleCameraAndPlayers() {
     }
   }
 
-  // KLAUSTROFOBICKÁ KAMERA: Držíme detail co nejdéle to jde!
-  let len = players.length;
-  if (len >= 250) targetCameraScale = 0.7;       // Naprostý extrém (když už je to fakt průser)
-  else if (len >= 150) targetCameraScale = 0.9;  // Mírně poodstoupíme
-  else if (len >= 80) targetCameraScale = 1.2;   // Stále velmi blízko, ať se tam pořádně mačkají
-  else targetCameraScale = 1.6;                  // Úplně nablízko pro poloprázdnou arénu
+  // DYNAMICKÁ KAMERA: Oddaluje se podle toho, kolik fyzického prostoru koule zabírají!
+  let totalArea = 0;
+  for (let i = 0; i < players.length; i++) {
+      totalArea += players[i].r * players[i].r * Math.PI;
+  }
+  let screenArea = W * (ARENA_BOT - ARENA_TOP);
+  let coverageRatio = totalArea / screenArea;
+  
+  if (coverageRatio > 0) {
+      // Koule necháme natěsnat více (až na 65 % obrazovky) než oddálíme kameru
+      targetCameraScale = Math.sqrt(0.65 / coverageRatio);
+  } else {
+      targetCameraScale = 1.6;
+  }
+  // Limity přiblížení/oddálení
+  targetCameraScale = Math.min(1.6, Math.max(0.35, targetCameraScale));
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.015); // Velmi pomalé a plynulé oddalování
   
@@ -2607,9 +2626,12 @@ function drawSpaceBackground() {
      if (n.y > H * 2 + 1000) { n.y = -H - 1000; n.x = random(-W, W*2); }
   });
 
-  stars.forEach(s => {
+  let isExtremeLoad = players.length > 30;
+  let starLimit = isExtremeLoad ? stars.length / 3 : stars.length;
+  for(let i=0; i<starLimit; i++) {
+    let s = stars[i];
     let currentAlpha = s.baseAlpha;
-    if (s.isPulsing) {
+    if (s.isPulsing && !isExtremeLoad) {
         currentAlpha = (s.baseAlpha * 0.5) + sin(frameCount * s.pulseSpeed + s.pulsePhase) * (s.baseAlpha * 0.5);
     }
     fill(s.rC, s.gC, s.bC, currentAlpha);
@@ -2622,7 +2644,7 @@ function drawSpaceBackground() {
     else if (s.y < -H) { s.y = H * 2; s.x = random(-W, W * 2); }
     if (s.x > W * 2) { s.x = -W; s.y = random(-H, H * 2); }
     else if (s.x < -W) { s.x = W * 2; s.y = random(-H, H * 2); }
-  });
+  }
 
   // ZAKÁZÁNO dle požadavku: Vesmír bez planet a objektů
   // drawingContext.save();
@@ -2830,21 +2852,25 @@ function drawPlayer(p) {
   let baseG = green(actualColor);
   let baseB = blue(actualColor);
 
-  // Zuby pily
-  if (safeHp >= 200) {
+  // Zuby pily (vykreslujeme jen pro větší hráče nebo když není lag)
+  if (safeHp >= 200 && (!isExtremeLoad || safeHp > 500)) {
       let teeth = isEpic ? 14 + Math.floor(safeHp / 1500) : 10 + (p.sawType % 3) * 2;
-      if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.5)); 
+      if (isExtremeLoad) teeth = Math.max(4, Math.floor(teeth * 0.3)); 
       teeth = Math.min(teeth, 40); 
       let tType = p.sawType % 2; // 0 = Pila, 1 = Ozubené kolo
       
       let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
       
-      // Hezký radiální gradient (fade) z barvy hráče pro tělo pily
-      fill(255); 
-      let grad = drawingContext.createRadialGradient(0, 0, rInner * 0.2, 0, 0, rOuter);
-      grad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.2)`);
-      grad.addColorStop(1, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.6 + fillFactor * 0.4})`);
-      drawingContext.fillStyle = grad;
+      // Hezký radiální gradient (vypnutý při extrémní zátěži pro vyšší FPS)
+      if (isExtremeLoad) {
+          fill(baseR, baseG, baseB, (0.6 + fillFactor * 0.4) * 255);
+      } else {
+          fill(255); 
+          let grad = drawingContext.createRadialGradient(0, 0, rInner * 0.2, 0, 0, rOuter);
+          grad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.2)`);
+          grad.addColorStop(1, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.6 + fillFactor * 0.4})`);
+          drawingContext.fillStyle = grad;
+      }
       
       beginShape();
       let step = TWO_PI / teeth;
@@ -3859,7 +3885,14 @@ function draw() {
       pop();
   }
 
-  // Plynulá fyzika pevným krokem (odstraňuje vibrace a lagy fyziky)
+  // Plynulá fyzika pevným krokem (s dynamickým snížením zátěže)
+  if (players.length > 30) {
+      engine.positionIterations = 3;
+      engine.velocityIterations = 2;
+  } else {
+      engine.positionIterations = 6;
+      engine.velocityIterations = 4;
+  }
   try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
   
   processCombatQueue();
