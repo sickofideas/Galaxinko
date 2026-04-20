@@ -1019,7 +1019,10 @@ function formatK(num) {
   return Math.floor(Math.max(0, num || 0)).toLocaleString(); 
 }
 
-function getRadius(hp) { return Math.min(32 + Math.sqrt(Math.max(0, hp || 0)) * 0.5, 110); }
+function getRadius(hp) { 
+    // Základní velikost je o dost větší a roste agresivněji
+    return Math.min(45 + Math.sqrt(Math.max(0, hp || 0)) * 1.2, 180); 
+}
 
 // ==========================================
 // TIERED GIFTS A IMUNITA EFEKTY
@@ -2164,8 +2167,8 @@ function handleCameraAndPlayers() {
     let dirY = dy / distToCenter;
     
     // MLÝNEK NA MASO: Silný tah do absolutního středu, mírná rotace
-    let pullForce = 0.000018 * p.body.mass;  // Silnější gravitace
-    let vortexForce = 0.000006 * p.body.mass * p.baseRotDir; // Slabší rotace, ať se z toho nestane centrifuga
+    let pullForce = 0.00006 * p.body.mass;  // 3x silnější tah doprostřed
+    let vortexForce = 0.00001 * p.body.mass * p.baseRotDir; // Mírně silnější rotace
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
@@ -2997,11 +3000,11 @@ function drawPlayer(p) {
   }
 
   if (p.r > 20) {
-      stroke(0); strokeWeight(Math.max(4, p.r * 0.15));
-      fill(nameCol); textStyle(NORMAL);
-      textSize(Math.floor(Math.max(10, p.r * 0.28))); 
+      stroke(0); strokeWeight(8); // Brutálně tlustý obrys
+      fill(nameCol); textStyle(BOLD);
+      textSize(Math.floor(Math.max(16, p.r * 0.4))); // Mnohem větší základní font
       let dispName = p.name.substring(0, 10);
-      text(dispName, 0, -p.r * 0.45);
+      text(dispName, 0, -p.r * 0.55);
       
       // Korunka pro aktuálního krále arény (nejvíce HP)
       if (isLeader) {
@@ -3038,10 +3041,10 @@ function drawPlayer(p) {
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  stroke(0); strokeWeight(Math.max(5, p.r * 0.2)); 
+  stroke(0); strokeWeight(10); // Extrémně tlustý obrys pro čísla
   fill(txtCol); textStyle(BOLD);
-  textSize(Math.floor(Math.max(14, p.r * 0.4))); 
-  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.3 : 0); 
+  textSize(Math.floor(Math.max(22, p.r * 0.6))); // Čísla musí řvát do očí!
+  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.2 : 0); 
   
   if (p.isLegendary) {
       stroke(0); strokeWeight(Math.max(3, p.r * 0.15));
