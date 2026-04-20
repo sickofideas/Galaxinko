@@ -992,8 +992,9 @@ function setupEvents() {
 
   Matter.Events.on(engine, 'collisionStart', (event) => {
     event.pairs.forEach(pair => {
-      let p1 = players.find(p => p.body === pair.bodyA);
-      let p2 = players.find(p => p.body === pair.bodyB);
+      // EXTRÉMNÍ OPTIMALIZACE: O(1) vyhledávání místo O(N^2)
+      let p1 = pair.bodyA.playerData;
+      let p2 = pair.bodyB.playerData;
       if(p1 && p2 && p1.hp > 0 && p2.hp > 0) {
           combatQueue.push([p1, p2]);
       }
@@ -1006,8 +1007,9 @@ function setupEvents() {
     // OPRAVA: Změněno z 20 na 60! Kuličky, co se o sebe jen třou, dají damage jen 1x za vteřinu (místo 3x)
     if (frameCount % 60 !== 0) return; 
     event.pairs.forEach(pair => {
-      let p1 = players.find(p => p.body === pair.bodyA);
-      let p2 = players.find(p => p.body === pair.bodyB);
+      // EXTRÉMNÍ OPTIMALIZACE: O(1) vyhledávání místo iterace přes celé pole
+      let p1 = pair.bodyA.playerData;
+      let p2 = pair.bodyB.playerData;
       if(p1 && p2 && p1.hp > 0 && p2.hp > 0) {
           combatQueue.push([p1, p2]);
       }
@@ -1281,6 +1283,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     avatarAlpha: 255
   };
   
+  body.playerData = player;
   players.push(player); Matter.World.add(world, body);
   
   if (!isZombie) { 
@@ -2996,11 +2999,13 @@ function drawPlayer(p) {
 
   let imgSize = p.r * 1.6;
   let isTop10 = currentTop10.includes(p.name);
-  let shouldDrawAvatar = true; // Profilovka je nyní viditelná pro všechny
+  let shouldDrawAvatar = true; 
+  // Vypnutí profilovek pro obyčejné hráče při zátěži = masivní nárůst FPS
+  if (isExtremeLoad && safeHp < 500 && !isLeader) shouldDrawAvatar = false;
 
   if (p.avatarAlpha === undefined) p.avatarAlpha = shouldDrawAvatar ? 255 : 0;
   if (shouldDrawAvatar) p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
-  else p.avatarAlpha = Math.max(0, p.avatarAlpha - 15);
+  else p.avatarAlpha = Math.max(0, p.avatarAlpha - 30);
 
   fill(10, 12, 15, 255); 
   noStroke();
@@ -3036,7 +3041,8 @@ function drawPlayer(p) {
   }
 
   if (p.r > 20) {
-      stroke(0); strokeWeight(8); // Brutálně tlustý obrys
+      // Ztenčení obrysu textu při zátěži (v Canvas2D to žere obrovské množství výkonu)
+      stroke(0); strokeWeight(isExtremeLoad ? 3 : 8); 
       fill(nameCol); textStyle(BOLD);
       textSize(Math.floor(Math.max(16, p.r * 0.4))); // Mnohem větší základní font
       let dispName = p.name.substring(0, 10);
@@ -3077,7 +3083,7 @@ function drawPlayer(p) {
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  stroke(0); strokeWeight(10); // Extrémně tlustý obrys pro čísla
+  stroke(0); strokeWeight(isExtremeLoad ? 4 : 10); // Menší obrys při zátěži
   fill(txtCol); textStyle(BOLD);
   textSize(Math.floor(Math.max(22, p.r * 0.6))); // Čísla musí řvát do očí!
   text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.2 : 0); 
