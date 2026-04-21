@@ -1250,7 +1250,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
-    p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
+    p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 180; 
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
@@ -1347,6 +1347,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   
   if (!isZombie) { 
       if (isGift) {
+          player.likeBuffTimer = 180;
           triggerGiftEffect(player, diam, comboMult);
           let giftMsg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", name);
           speakTTS(giftMsg, true);
@@ -2908,157 +2909,52 @@ function drawPlayer(p) {
   let baseG = green(actualColor);
   let baseB = blue(actualColor);
 
-  // --- CIRKULÁRKA: POUZE PŘI LAJKOVÁNÍ (s plynulým fade) ---
   if (p.sawFade === undefined) p.sawFade = 0;
   if (isBuffed) {
-      p.sawFade = Math.min(1.0, p.sawFade + 0.08); // Rychlý fade-in
+      p.sawFade = Math.min(1.0, p.sawFade + 0.1); 
   } else {
-      p.sawFade = Math.max(0.0, p.sawFade - 0.03); // Pomalý fade-out
+      p.sawFade = Math.max(0.0, p.sawFade - 0.05); 
   }
 
   if (p.sawFade > 0.01) {
-      // --- 4 DRUHY CIRKULÁREK (podle sawType) ---
-      let sawVariant = p.sawType % 4; // 0=Klasická, 1=Jemnozubá, 2=TCT karbid, 3=Agresivní řezná
-      let teeth;
-      if (sawVariant === 0) teeth = 16; // Klasická — středně zubů
-      else if (sawVariant === 1) teeth = 28; // Jemnozubá — hodně malých zubů  
-      else if (sawVariant === 2) teeth = 12; // TCT karbid — méně velkých zubů
-      else teeth = 20; // Agresivní — ostré zuby
-      
-      if (isEpic) teeth += 6;
-      teeth = Math.min(teeth, 36);
+      let teeth = isEpic ? 20 : 12 + (p.sawType % 6);
+      let tType = p.sawType % 3;
+      let rOuter = p.r * 1.35; 
+      let rInner = p.r * 1.1;
+      let sawAlpha = p.sawFade * 255;
 
-      let fadeKey = Math.round(p.sawFade * 5);
-      let needsRebake = !p.sawCanvas || p.cachedTeeth !== teeth || p.cachedIsEpic !== isEpic || p.cachedSawFade !== fadeKey || p.cachedSawVariant !== sawVariant;
+      push();
+      // VIBRANT COLORS: Use the actual player color for the teeth
+      stroke(red(actualColor), green(actualColor), blue(actualColor), sawAlpha);
+      strokeWeight(isEpic ? 4 : 2);
+      fill(red(actualColor), green(actualColor), blue(actualColor), sawAlpha * 0.4);
 
-      if (needsRebake) {
-          p.cachedTeeth = teeth;
-          p.cachedIsEpic = isEpic;
-          p.cachedSawFade = fadeKey;
-          p.cachedSawVariant = sawVariant;
-
-          if (!p.sawCanvas) {
-              p.sawCanvas = createGraphics(300, 300);
-          } else {
-              p.sawCanvas.clear();
-          }
-
-          let sc = p.sawCanvas;
-          // OPRAVA: Použít resetMatrix místo opakovaného translate
-          sc.resetMatrix();
-          sc.translate(150, 150);
-
-          let bakeOuter = 130; // Zuby sahají za okraj hráče
-          let bakeInner = 98;  // Vnitřní okraj zubů
-          let sawAlpha = p.sawFade * 255;
-          let oR = red(outlineColor), oG = green(outlineColor), oB = blue(outlineColor);
-
-          // 1) TĚLO KOTOUČE — kovový disk
-          sc.noStroke();
-          let diskGrad = sc.drawingContext.createRadialGradient(0, 0, 30, 0, 0, bakeOuter);
-          let metalR = Math.floor(baseR * 0.5 + 80);
-          let metalG = Math.floor(baseG * 0.5 + 80);
-          let metalB = Math.floor(baseB * 0.5 + 80);
-          diskGrad.addColorStop(0, `rgba(${metalR}, ${metalG}, ${metalB}, ${(0.6 * p.sawFade).toFixed(2)})`);
-          diskGrad.addColorStop(0.6, `rgba(${Math.floor(metalR*0.6)}, ${Math.floor(metalG*0.6)}, ${Math.floor(metalB*0.6)}, ${(0.7 * p.sawFade).toFixed(2)})`);
-          diskGrad.addColorStop(1, `rgba(${Math.floor(metalR*0.3)}, ${Math.floor(metalG*0.3)}, ${Math.floor(metalB*0.3)}, ${(0.85 * p.sawFade).toFixed(2)})`);
-          sc.drawingContext.fillStyle = diskGrad;
-          sc.ellipse(0, 0, bakeInner * 2);
-
-          // 2) ZUBY — 4 různé tvary podle sawVariant
-          sc.stroke(oR, oG, oB, sawAlpha);
-          sc.strokeWeight(isEpic ? 2.5 : 1.8);
-          let step = TWO_PI / teeth;
-
-          // Fill pro zuby - lehce průsvitný kov
-          sc.fill(metalR * 0.4, metalG * 0.4, metalB * 0.4, sawAlpha * 0.8);
-
-          sc.beginShape();
-          for (let i = 0; i < teeth; i++) {
-              let a = i * step;
-
-              if (sawVariant === 0) {
-                  // KLASICKÁ CIRKULÁRKA — rovnoměrné zuby s mírným rake
-                  sc.vertex(cos(a) * bakeInner, sin(a) * bakeInner);
-                  sc.vertex(cos(a + step * 0.3) * bakeOuter, sin(a + step * 0.3) * bakeOuter);
-                  sc.vertex(cos(a + step * 0.5) * (bakeOuter * 0.93), sin(a + step * 0.5) * (bakeOuter * 0.93));
-                  sc.vertex(cos(a + step * 0.85) * bakeInner, sin(a + step * 0.85) * bakeInner);
-              } else if (sawVariant === 1) {
-                  // JEMNOZUBÁ — malé ostré zuby, hodně jich
-                  sc.vertex(cos(a) * (bakeInner + 2), sin(a) * (bakeInner + 2));
-                  sc.vertex(cos(a + step * 0.4) * bakeOuter, sin(a + step * 0.4) * bakeOuter);
-                  sc.vertex(cos(a + step * 0.8) * (bakeInner + 2), sin(a + step * 0.8) * (bakeInner + 2));
-              } else if (sawVariant === 2) {
-                  // TCT KARBID — velké, široké zuby s plochým vrcholem
-                  sc.vertex(cos(a) * bakeInner, sin(a) * bakeInner);
-                  sc.vertex(cos(a + step * 0.15) * bakeOuter, sin(a + step * 0.15) * bakeOuter);
-                  sc.vertex(cos(a + step * 0.45) * bakeOuter, sin(a + step * 0.45) * bakeOuter);
-                  sc.vertex(cos(a + step * 0.55) * (bakeOuter * 0.88), sin(a + step * 0.55) * (bakeOuter * 0.88));
-                  sc.vertex(cos(a + step * 0.85) * bakeInner, sin(a + step * 0.85) * bakeInner);
-              } else {
-                  // AGRESIVNÍ ŘEZNÁ — ostré trojúhelníkové zuby
-                  sc.vertex(cos(a) * bakeInner, sin(a) * bakeInner);
-                  sc.vertex(cos(a + step * 0.25) * (bakeOuter * 1.05), sin(a + step * 0.25) * (bakeOuter * 1.05));
-                  sc.vertex(cos(a + step * 0.45) * bakeInner, sin(a + step * 0.45) * bakeInner);
-                  sc.vertex(cos(a + step * 0.7) * (bakeInner * 1.03), sin(a + step * 0.7) * (bakeInner * 1.03));
-              }
-          }
-          sc.endShape(CLOSE);
-
-          // 3) Kovový lesk — tenký highlight ring
-          sc.noFill();
-          sc.stroke(255, 255, 255, sawAlpha * 0.2);
-          sc.strokeWeight(1);
-          sc.ellipse(0, 0, bakeInner * 2 + 4);
-
-          // 4) Výztužný prstenec kolem středu
-          sc.noFill();
-          sc.stroke(oR * 0.8, oG * 0.8, oB * 0.8, sawAlpha * 0.5);
-          sc.strokeWeight(2);
-          sc.ellipse(0, 0, bakeInner * 1.3);
-
-          // 5) Ventilační sloty
-          let slotCount = sawVariant === 1 ? 6 : (sawVariant === 2 ? 3 : 4);
-          if (isEpic) slotCount += 2;
-          let slotR1 = 32;
-          let slotR2 = bakeInner * 0.55;
-          sc.stroke(10, 10, 15, sawAlpha * 0.7);
-          sc.strokeWeight(sawVariant === 2 ? 4 : 2.5);
-          sc.noFill();
-          for (let i = 0; i < slotCount; i++) {
-              let sa = (i / slotCount) * TWO_PI + (sawVariant * 0.3);
-              // Zakřivený slot
-              sc.beginShape();
-              sc.vertex(cos(sa) * slotR1, sin(sa) * slotR1);
-              sc.vertex(cos(sa + 0.15) * ((slotR1 + slotR2) * 0.5), sin(sa + 0.15) * ((slotR1 + slotR2) * 0.5));
-              sc.vertex(cos(sa + 0.08) * slotR2, sin(sa + 0.08) * slotR2);
-              sc.endShape();
-          }
-
-          // 6) Středový arbor hole
-          sc.fill(5, 5, 10, sawAlpha * 0.9);
-          sc.stroke(oR, oG, oB, sawAlpha * 0.6);
-          sc.strokeWeight(2.5);
-          sc.ellipse(0, 0, 24);
-
-          // 7) Malý highlight ve středu
-          sc.noStroke();
-          sc.fill(255, 255, 255, sawAlpha * 0.1);
-          sc.ellipse(-3, -3, 10);
-
-          // Epic: zlatý vnější ring
-          if (isEpic) {
-              sc.noFill(); sc.stroke(255, 200, 0, sawAlpha * 0.7); sc.strokeWeight(3);
-              sc.ellipse(0, 0, bakeInner * 1.8);
-          }
+      if (!isExtremeLoad) {
+          drawingContext.shadowBlur = 12 * p.sawFade;
+          drawingContext.shadowColor = actualColor;
       }
 
-      // Vykreslení pily — velikost = 2.2x poloměr hráče (zuby přesahují o ~10%)
-      push();
-      drawingContext.globalAlpha = p.sawFade;
-      imageMode(CENTER);
-      image(p.sawCanvas, 0, 0, p.r * 2.8, p.r * 2.8);
-      drawingContext.globalAlpha = 1.0;
+      beginShape();
+      for(let i = 0; i < teeth; i++) {
+          let a1 = i * TWO_PI / teeth;
+          let a2 = (i + 1) * TWO_PI / teeth;
+          if (tType === 0) { 
+              vertex(cos(a1)*rInner, sin(a1)*rInner); 
+              vertex(cos(a1 + TWO_PI/teeth * 0.7)*rOuter, sin(a1 + TWO_PI/teeth * 0.7)*rOuter); 
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else if (tType === 1) { 
+              vertex(cos(a1)*rInner, sin(a1)*rInner); 
+              vertex(cos(a1 + TWO_PI/teeth * 0.25)*rOuter, sin(a1 + TWO_PI/teeth * 0.25)*rOuter); 
+              vertex(cos(a1 + TWO_PI/teeth * 0.75)*rOuter, sin(a1 + TWO_PI/teeth * 0.75)*rOuter); 
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          } else { 
+              vertex(cos(a1)*rInner, sin(a1)*rInner); 
+              vertex(cos((a1 + a2) / 2)*rOuter, sin((a1 + a2) / 2)*rOuter); 
+              vertex(cos(a2)*rInner, sin(a2)*rInner);
+          }
+      }
+      endShape(CLOSE);
+      drawingContext.shadowBlur = 0;
       pop();
   }
   
