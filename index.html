@@ -1016,7 +1016,7 @@ function formatK(num) {
 function formatTikTokHP(hp) {
     if (hp >= 1000) {
         let rounded = (hp / 1000).toFixed(1);
-        return rounded.replace('.0', '').replace('.', ',') + 'k';
+        return rounded.replace('.0', '') + 'K';
     }
     return Math.floor(hp);
 }
@@ -2962,35 +2962,20 @@ function drawResults() {
   if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 8; resultsTimer = 8; startNewRound(); } } 
 }
 
-function drawTopHUD() {
+function drawGiftLegend() {
   if (!showLeaderboards) return;
   push();
-  let breathY = sin(frameCount * 0.02) * 2.5;
-  translate(0, breathY);
+  fill(20, 20, 20, 150);
+  noStroke();
+  rect(W - 220, HUD_TOP + 50, 200, 140, 15);
   
-  // Zjednodušený HUD - pouze TOP 5 aktuálních hráčů podle HP
-  let sortedPlayers = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 5);
-  
-  textAlign(LEFT, TOP);
-  fill(roundThemeColor); textSize(16); textStyle(BOLD); 
-  text(currentLang === "CZ" ? "TOP 5 HRÁČŮ" : "TOP 5 PLAYERS", 15, HUD_TOP + 5); 
-  
-  textStyle(NORMAL); textSize(14);
-  for(let i=0; i < sortedPlayers.length; i++) {
-      let p = sortedPlayers[i]; 
-      let y = HUD_TOP + 30 + i*28; let xBase = 15;
-      let currAv = userAvatars[p.name] || p.avatar;
-      
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 12, y + 12, 12, 0, TWO_PI); drawingContext.clip();
-      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 12, y + 12, 24, 24); } 
-      else { fill(p.color); ellipse(xBase + 12, y + 12, 24, 24); }
-      drawingContext.restore();
-      
-      noFill(); stroke(p.color); strokeWeight(2); ellipse(xBase + 12, y + 12, 24, 24); noStroke();
-
-      textAlign(LEFT, TOP); fill(p.color); textStyle(BOLD); text(`${i+1}. ${p.name.substring(0,8)}`, xBase + 32, y + 4);
-      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), xBase + 200, y + 4); textStyle(NORMAL);
-  }
+  fill(255);
+  textSize(16); textStyle(BOLD);
+  textAlign(LEFT, CENTER);
+  text("🍩 thunder", W - 200, HUD_TOP + 70);
+  text("💖 gun", W - 200, HUD_TOP + 100);
+  text("🐕 clean map all", W - 200, HUD_TOP + 130);
+  text("✨ scan them all", W - 200, HUD_TOP + 160);
   pop();
 }
 
@@ -3001,18 +2986,11 @@ function handleTTSCommentary() {
 }
 
 function draw() {
-  // Ambientní plynulá změna barvy celé arény (za 1 minutu se hue posune o 180 stupňů)
-  colorMode(HSB, 360, 100, 100, 1);
-  let currentHue = (millis() * 0.003) % 360; 
+  roundThemeColor = color(255, 215, 0);
+  roundThemeColorDark = color(100, 80, 0, 100);
   
-  roundThemeColor = color(currentHue, 80, 100);
-  roundThemeColorDark = color(currentHue, 80, 40, 0.5);
-  
-  let dynamicBg = color(currentHue, 45, 8); 
-  colorMode(RGB, 255);
-  
-  // Vrať zpět tmavé vesmírné pozadí
-  background(dynamicBg);
+  // Statické hnědé pozadí (Nolann)
+  background(color(43, 27, 23));
   
   push();
   // Oříznutí pouze na herní plochu
@@ -3020,15 +2998,12 @@ function draw() {
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawingContext.clip();
   
-  // MOTION BLUR (Epické světelné stopy zadarmo místo tvrdého smazání obrazovky)
-  fill(0, 30, 10, 100); // 100 alpha = poloviční smazání minulého snímku = šmouhy
-  rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawSpaceBackground();
   
   pop(); // Konec oříznutí
   // Text GALAXINKO WARS zahozen podle požadavku
 
-  drawTopHUD();
+  drawGiftLegend();
 
   // --- TOP GIFTER DOČASNÁ LIŠTA ---
   if (topGifterBannerTimer > 0) {
