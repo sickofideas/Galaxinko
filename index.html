@@ -2288,33 +2288,7 @@ function drawLightnings() {
 function drawPlayer(p) {
   let safeHp = Math.max(0, p.hp);
   
-  // jednoduchý kruh + avatar
-  drawingContext.save();
-  drawingContext.beginPath();
-  drawingContext.arc(p.body.position.x, p.body.position.y, p.r, 0, TWO_PI);
-  drawingContext.clip();
-  let currAv = userAvatars[p.name] || p.avatar;
-  if (currAv && currAv !== "loaded") {
-      imageMode(CENTER);
-      image(currAv, p.body.position.x, p.body.position.y, p.r*2, p.r*2);
-  } else {
-      fill(p.color); noStroke();
-      ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
-  }
-  drawingContext.restore();
-
-  // border
-  noFill();
-  if (p.isLegendary || p.godModeTimer > 0) {
-      stroke(255, 215, 0);          // zlatý sun border
-      strokeWeight(6);
-  } else {
-      stroke(p.color);
-      strokeWeight(3);
-  }
-  ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
-
-  // SAW BLADE pro speciální hráče (krásná polygonová pila s barvou podle HP)
+  // SAW BLADE - kreslí se PŘED avatarem (za hráčem), aby byla profilovka vidět
   if (p.sawTimer > 0) {
       push();
       translate(p.body.position.x, p.body.position.y);
@@ -2347,13 +2321,35 @@ function drawPlayer(p) {
           vertex(cos(a4) * innerR, sin(a4) * innerR);
       }
       endShape(CLOSE);
-      // Středový kruh (díra v pile)
-      fill(red(sawCol) * 0.4, green(sawCol) * 0.4, blue(sawCol) * 0.4, 180);
-      noStroke();
-      ellipse(0, 0, p.r * 0.3, p.r * 0.3);
       pop();
       p.sawTimer--;
   }
+
+  // Avatar (kruh + profilovka) - vždy navrchu
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.arc(p.body.position.x, p.body.position.y, p.r, 0, TWO_PI);
+  drawingContext.clip();
+  let currAv = userAvatars[p.name] || p.avatar;
+  if (currAv && currAv !== "loaded") {
+      imageMode(CENTER);
+      image(currAv, p.body.position.x, p.body.position.y, p.r*2, p.r*2);
+  } else {
+      fill(p.color); noStroke();
+      ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
+  }
+  drawingContext.restore();
+
+  // border
+  noFill();
+  if (p.isLegendary || p.godModeTimer > 0) {
+      stroke(255, 215, 0);          // zlatý sun border
+      strokeWeight(6);
+  } else {
+      stroke(p.color);
+      strokeWeight(3);
+  }
+  ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
 
   // HP Text nad koulí
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
@@ -3045,39 +3041,50 @@ function draw() {
     });
     sortedToDraw.forEach(p => drawPlayer(p));
     
-    // Saw sound management - zvuk řezání cirkulárky
+    // Saw sound management - jemné kovové drnčení cirkulárky
     let anySaw = players.some(p => p.sawTimer > 0);
     if (anySaw && audioStarted) {
         if (!sawSoundOsc) {
             try {
                 let ctx = getAudioContext();
+                // Hlavní tón: vysoký sinusový tón (kovový zvuk)
                 sawSoundOsc = ctx.createOscillator();
                 sawSoundGain = ctx.createGain();
-                sawSoundOsc.type = 'sawtooth';
-                sawSoundOsc.frequency.setValueAtTime(120, ctx.currentTime);
+                sawSoundOsc.type = 'sine';
+                sawSoundOsc.frequency.setValueAtTime(2800, ctx.currentTime);
                 sawSoundGain.gain.setValueAtTime(0, ctx.currentTime);
-                sawSoundGain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.3);
-                sawSoundOsc.connect(sawSoundGain);
+                sawSoundGain.gain.linearRampToValueAtTime(0.015, ctx.currentTime + 0.5);
+                
+                // Bandpass filtr pro kovový charakter
+                let filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(3000, ctx.currentTime);
+                filter.Q.setValueAtTime(8, ctx.currentTime);
+                
+                sawSoundOsc.connect(filter);
+                filter.connect(sawSoundGain);
                 sawSoundGain.connect(ctx.destination);
                 sawSoundOsc.start();
-                // Jemná modulace frekvence pro realistický efekt řezání
+                
+                // Pomalá jemná modulace frekvence (kovové chvění)
                 let lfo = ctx.createOscillator();
                 let lfoGain = ctx.createGain();
-                lfo.frequency.setValueAtTime(8, ctx.currentTime);
-                lfoGain.gain.setValueAtTime(15, ctx.currentTime);
+                lfo.frequency.setValueAtTime(3, ctx.currentTime);
+                lfoGain.gain.setValueAtTime(40, ctx.currentTime);
                 lfo.connect(lfoGain);
                 lfoGain.connect(sawSoundOsc.frequency);
                 lfo.start();
                 sawSoundOsc._lfo = lfo;
+                sawSoundOsc._filter = filter;
             } catch(e) {}
         }
     } else if (sawSoundOsc) {
         try {
             let ctx = getAudioContext();
-            sawSoundGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+            sawSoundGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
             let oldOsc = sawSoundOsc;
             let oldLfo = sawSoundOsc._lfo;
-            setTimeout(() => { try { oldOsc.stop(); if(oldLfo) oldLfo.stop(); } catch(e){} }, 300);
+            setTimeout(() => { try { oldOsc.stop(); if(oldLfo) oldLfo.stop(); } catch(e){} }, 500);
             sawSoundOsc = null;
             sawSoundGain = null;
         } catch(e) { sawSoundOsc = null; sawSoundGain = null; }
