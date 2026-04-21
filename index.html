@@ -649,6 +649,50 @@ let cameraScale = 1.6;
 let targetCameraScale = 1.6;
 let audioStarted = false;
 let synth;
+let sawHumCtx = null;
+let sawHumOsc = null;
+let sawHumGain = null;
+let sawHumActive = false;
+
+function updateSawHum(anyPlayerBuffed) {
+    if (!audioStarted) return;
+    if (anyPlayerBuffed && !sawHumActive) {
+        try {
+            if (!sawHumCtx) sawHumCtx = new (window.AudioContext || window.webkitAudioContext)();
+            sawHumOsc = sawHumCtx.createOscillator();
+            sawHumGain = sawHumCtx.createGain();
+            sawHumOsc.type = 'sine';
+            sawHumOsc.frequency.setValueAtTime(180, sawHumCtx.currentTime);
+            // Jemná modulace frekvence pro živější zvuk
+            let lfo = sawHumCtx.createOscillator();
+            let lfoGain = sawHumCtx.createGain();
+            lfo.frequency.setValueAtTime(3, sawHumCtx.currentTime); // Pomalá vibrace
+            lfoGain.gain.setValueAtTime(8, sawHumCtx.currentTime); // Minimální rozsah
+            lfo.connect(lfoGain);
+            lfoGain.connect(sawHumOsc.frequency);
+            lfo.start();
+            sawHumGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
+            sawHumGain.gain.linearRampToValueAtTime(0.012, sawHumCtx.currentTime + 0.5); // Velmi jemný fade-in
+            sawHumOsc.connect(sawHumGain);
+            sawHumGain.connect(sawHumCtx.destination);
+            sawHumOsc.start();
+            sawHumOsc._lfo = lfo; // Uložit referenci pro cleanup
+            sawHumActive = true;
+        } catch(e) {}
+    } else if (!anyPlayerBuffed && sawHumActive) {
+        try {
+            if (sawHumGain && sawHumCtx) {
+                sawHumGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.8); // Pomalý fade-out
+                let oscRef = sawHumOsc;
+                let lfoRef = oscRef._lfo;
+                setTimeout(() => { try { oscRef.stop(); if(lfoRef) lfoRef.stop(); } catch(e){} }, 1000);
+            }
+            sawHumActive = false;
+            sawHumOsc = null;
+            sawHumGain = null;
+        } catch(e) { sawHumActive = false; }
+    }
+}
 
 let nextCommentTime = 0;
 let humanPauseEnd = 0;
@@ -2076,7 +2120,7 @@ function handleCameraAndPlayers() {
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
   let isExtremeLoad = players.length > 30;  // Dřívější úleva pro grafiku
-  let maxV = 10;
+  let maxV = 6;
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -2215,7 +2259,7 @@ function handleCameraAndPlayers() {
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 2.2 : 1.8; // ZPOMALENO: Příjemná, hypnotická rychlost pro diváky
+    let tSpd = isTop10 ? 1.4 : 1.1; // ZPOMALENO: Ještě pomalejší, klidnější pohyb
     let currentMaxV = maxV;
     
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
@@ -2860,119 +2904,134 @@ function drawPlayer(p) {
   }
   if (p.isZombie) outlineColor = color(50, 255, 50);
 
-
-  // --- ZÁKLAD A ZUBY PILY ---
-  stroke(outlineColor);
-  strokeWeight(isEpic ? 3 : 2);
-
-  // Mírnější rozměry pily pro kratší bodáky
-  let rOuter = isEpic ? p.r * 1.15 : p.r * 1.08;
-  let rInner = isEpic ? p.r * 0.85 : p.r * 0.92;
-
   let baseR = red(actualColor);
   let baseG = green(actualColor);
   let baseB = blue(actualColor);
 
-  // Zuby pily (vykreslujeme jen pro větší hráče nebo když není lag)
-  if (safeHp >= 200 && (!isExtremeLoad || safeHp > 500)) {
-      let teeth = isEpic ? 14 + Math.floor(safeHp / 1500) : 10 + (p.sawType % 3) * 2;
-      if (isExtremeLoad) teeth = Math.max(4, Math.floor(teeth * 0.3)); 
-      teeth = Math.min(teeth, 40); 
-      let tType = p.sawType % 2; 
-      let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
+  // --- CIRKULÁRKA: POUZE PŘI LAJKOVÁNÍ (s plynulým fade) ---
+  // Inicializace fade faktoru
+  if (p.sawFade === undefined) p.sawFade = 0;
+  if (isBuffed) {
+      p.sawFade = Math.min(1.0, p.sawFade + 0.06); // Plynulý fade-in (~17 framů)
+  } else {
+      p.sawFade = Math.max(0.0, p.sawFade - 0.04); // Pomalejší fade-out (~25 framů)
+  }
 
-      // EXTRÉMNÍ OPTIMALIZACE: PRE-RENDERING (BAKE-IN)
-      // Generujeme offscreen canvas pouze při změně stavu nebo vytvoření
-      if (!p.sawCanvas || p.cachedTeeth !== teeth || p.cachedIsEpic !== isEpic || p.cachedFill !== fillFactor) {
+  if (p.sawFade > 0.01) {
+      // PILA SE ZOBRAZUJE (hráč lajkuje nebo doznívá)
+      let teeth = isEpic ? 20 + Math.floor(safeHp / 2000) : 14 + (p.sawType % 3) * 2;
+      if (isExtremeLoad) teeth = Math.max(6, Math.floor(teeth * 0.4));
+      teeth = Math.min(teeth, 36);
+      let needsRebake = !p.sawCanvas || p.cachedTeeth !== teeth || p.cachedIsEpic !== isEpic || p.cachedSawFade !== Math.round(p.sawFade * 10);
+
+      if (needsRebake) {
           p.cachedTeeth = teeth;
           p.cachedIsEpic = isEpic;
-          p.cachedFill = fillFactor;
-          
+          p.cachedSawFade = Math.round(p.sawFade * 10);
+
           if (!p.sawCanvas) {
-              p.sawCanvas = createGraphics(260, 260);
+              p.sawCanvas = createGraphics(300, 300);
           } else {
               p.sawCanvas.clear();
           }
-          
-          p.sawCanvas.translate(130, 130);
-          
-          let bakeOuter = isEpic ? 115 : 108;
-          let bakeInner = isEpic ? 85 : 92;
-          
-          if (isExtremeLoad) {
-              p.sawCanvas.fill(baseR, baseG, baseB, (0.6 + fillFactor * 0.4) * 255);
-          } else {
-              p.sawCanvas.fill(255); 
-              let grad = p.sawCanvas.drawingContext.createRadialGradient(0, 0, bakeInner * 0.2, 0, 0, bakeOuter);
-              grad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.2)`);
-              grad.addColorStop(1, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.6 + fillFactor * 0.4})`);
-              p.sawCanvas.drawingContext.fillStyle = grad;
-          }
-          
-          p.sawCanvas.stroke(red(outlineColor), green(outlineColor), blue(outlineColor));
-          p.sawCanvas.strokeWeight(isEpic ? 3 : 2);
-          
-          p.sawCanvas.beginShape();
+
+          let sc = p.sawCanvas;
+          let cx = 150, cy = 150;
+          sc.translate(cx, cy);
+
+          let bakeOuter = isEpic ? 120 : 112;
+          let bakeInner = isEpic ? 88 : 94;
+          let sawAlpha = p.sawFade * 255;
+          let oR = red(outlineColor), oG = green(outlineColor), oB = blue(outlineColor);
+
+          // --- REALISTICKÝ TVAR CIRKULÁRKY ---
+          // 1) Tělo kotouče (plochý disk s gradientem)
+          sc.noStroke();
+          let diskGrad = sc.drawingContext.createRadialGradient(0, 0, bakeInner * 0.3, 0, 0, bakeOuter);
+          diskGrad.addColorStop(0, `rgba(${Math.floor(baseR*0.6)}, ${Math.floor(baseG*0.6)}, ${Math.floor(baseB*0.6)}, ${(0.5 * p.sawFade).toFixed(2)})`);
+          diskGrad.addColorStop(0.7, `rgba(${Math.floor(baseR*0.3)}, ${Math.floor(baseG*0.3)}, ${Math.floor(baseB*0.3)}, ${(0.7 * p.sawFade).toFixed(2)})`);
+          diskGrad.addColorStop(1, `rgba(${Math.floor(baseR*0.15)}, ${Math.floor(baseG*0.15)}, ${Math.floor(baseB*0.15)}, ${(0.8 * p.sawFade).toFixed(2)})`);
+          sc.drawingContext.fillStyle = diskGrad;
+          sc.ellipse(0, 0, bakeOuter * 2);
+
+          // 2) Zuby cirkulárky — realistický tvar s gullet (zářez) a čepelí
+          sc.stroke(oR, oG, oB, sawAlpha * 0.9);
+          sc.strokeWeight(isEpic ? 2.5 : 1.5);
           let step = TWO_PI / teeth;
-          for(let i=0; i<teeth; i++) {
+
+          sc.beginShape();
+          for (let i = 0; i < teeth; i++) {
               let a = i * step;
-              if (tType === 0) { 
-                  p.sawCanvas.vertex(cos(a)*bakeInner, sin(a)*bakeInner);
-                  p.sawCanvas.vertex(cos(a + step * 0.8)*bakeOuter, sin(a + step * 0.8)*bakeOuter);
-              } else { 
-                  p.sawCanvas.vertex(cos(a)*bakeInner, sin(a)*bakeInner);
-                  p.sawCanvas.vertex(cos(a + step * 0.2)*bakeOuter, sin(a + step * 0.2)*bakeOuter);
-                  p.sawCanvas.vertex(cos(a + step * 0.8)*bakeOuter, sin(a + step * 0.8)*bakeOuter);
-              }
+              // Gullet (údolí) — zaoblená spodní část
+              let gulletA = a;
+              sc.vertex(cos(gulletA) * bakeInner, sin(gulletA) * bakeInner);
+              // Čepel zubu — šikmý řez nahoru (rake angle)
+              let tipA = a + step * 0.35;
+              sc.vertex(cos(tipA) * bakeOuter, sin(tipA) * bakeOuter);
+              // Hřbet zubu — prudký pád zpět
+              let backA = a + step * 0.55;
+              sc.vertex(cos(backA) * (bakeOuter * 0.92), sin(backA) * (bakeOuter * 0.92));
+              // Přechod do dalšího gullet
+              let nextGulletA = a + step * 0.85;
+              sc.vertex(cos(nextGulletA) * bakeInner, sin(nextGulletA) * bakeInner);
           }
-          p.sawCanvas.endShape(CLOSE);
+          sc.endShape(CLOSE);
 
-          // Vnitřní design pily přidáme také do cache
-          p.sawCanvas.fill(baseR * 0.2, baseG * 0.2, baseB * 0.2, 200);
-          p.sawCanvas.stroke(red(outlineColor), green(outlineColor), blue(outlineColor));
-          p.sawCanvas.strokeWeight(2);
-          p.sawCanvas.ellipse(0, 0, 150); 
+          // Kovový lesk na zubech
+          sc.noFill();
+          sc.stroke(255, 255, 255, sawAlpha * 0.15);
+          sc.strokeWeight(1);
+          sc.ellipse(0, 0, (bakeOuter + bakeInner));
 
+          // 3) Vnitřní disk těla
+          sc.noStroke();
+          sc.fill(baseR * 0.12, baseG * 0.12, baseB * 0.12, sawAlpha * 0.85);
+          sc.ellipse(0, 0, bakeInner * 1.7);
+
+          // 4) Ventilační sloty (typické pro cirkulárky)
+          let slotCount = isEpic ? 6 : 4;
+          let slotInner = bakeInner * 0.45;
+          let slotOuter = bakeInner * 0.75;
+          sc.stroke(baseR * 0.05, baseG * 0.05, baseB * 0.05, sawAlpha * 0.6);
+          sc.strokeWeight(isEpic ? 3 : 2);
+          sc.noFill();
+          for (let i = 0; i < slotCount; i++) {
+              let sa = (i / slotCount) * TWO_PI;
+              // Diamantový tvar slotu
+              sc.beginShape();
+              sc.vertex(cos(sa) * slotInner, sin(sa) * slotInner);
+              sc.vertex(cos(sa + 0.08) * slotOuter, sin(sa + 0.08) * slotOuter);
+              sc.vertex(cos(sa + PI/slotCount) * (slotOuter * 0.85), sin(sa + PI/slotCount) * (slotOuter * 0.85));
+              sc.vertex(cos(sa + PI/slotCount - 0.08) * slotInner, sin(sa + PI/slotCount - 0.08) * slotInner);
+              sc.endShape(CLOSE);
+          }
+
+          // 5) Středový arbor hole (montážní otvor)
+          sc.fill(5, 5, 10, sawAlpha * 0.95);
+          sc.stroke(oR, oG, oB, sawAlpha * 0.5);
+          sc.strokeWeight(2);
+          sc.ellipse(0, 0, bakeInner * 0.4);
+
+          // 6) Okrajový kroužek kolem arbor hole
+          sc.noFill();
+          sc.stroke(baseR * 0.4, baseG * 0.4, baseB * 0.4, sawAlpha * 0.4);
+          sc.strokeWeight(1.5);
+          sc.ellipse(0, 0, bakeInner * 0.55);
+
+          // Epic: zlatý prstenec
           if (isEpic) {
-              p.sawCanvas.noFill(); p.sawCanvas.stroke(255, 200, 0); p.sawCanvas.strokeWeight(4);
-              p.sawCanvas.ellipse(0, 0, 130);
-              p.sawCanvas.fill(baseR * 0.4, baseG * 0.4, baseB * 0.4, 200); p.sawCanvas.stroke(255, 100, 0); p.sawCanvas.strokeWeight(3);
-              p.sawCanvas.ellipse(0, 0, 90);
-          } else {
-              p.sawCanvas.fill(baseR, baseG, baseB); p.sawCanvas.noStroke();
-              p.sawCanvas.ellipse(0, 0, 80);
-              p.sawCanvas.fill(baseR * 0.15, baseG * 0.15, baseB * 0.15, 255);
-              p.sawCanvas.ellipse(0, 0, 40);
+              sc.noFill(); sc.stroke(255, 200, 0, sawAlpha * 0.6); sc.strokeWeight(3);
+              sc.ellipse(0, 0, bakeInner * 1.3);
           }
       }
-      
-      // Kreslíme pouze jeden vygenerovaný obrázek namísto desítek výpočtů a čar
+
+      // Kreslíme cirkulárku s fade-in/out průhledností
+      push();
+      drawingContext.globalAlpha = p.sawFade;
       imageMode(CENTER);
       image(p.sawCanvas, 0, 0, p.r * 2.6, p.r * 2.6);
-  } else {
-      // MINI-PILA pro menší hráče (pod 200 HP) - decentní, ale stále vypadají jako bojovníci
-      let miniTeeth = 6;
-      let miniOuter = p.r * 1.05;
-      let miniInner = p.r * 0.88;
-      let miniStep = TWO_PI / miniTeeth;
-      
-      fill(baseR, baseG, baseB, 150);
-      stroke(outlineColor);
-      strokeWeight(p.isZombie ? 1.5 : 2);
-      
-      beginShape();
-      for (let i = 0; i < miniTeeth; i++) {
-          let a = i * miniStep;
-          vertex(cos(a) * miniInner, sin(a) * miniInner);
-          vertex(cos(a + miniStep * 0.5) * miniOuter, sin(a + miniStep * 0.5) * miniOuter);
-      }
-      endShape(CLOSE);
-      
-      // Vnitřní kruh
-      noStroke(); fill(actualColor);
-      ellipse(0, 0, p.r * 0.7);
-      fill(baseR * 0.15, baseG * 0.15, baseB * 0.15, 180);
-      ellipse(0, 0, p.r * 0.3);
+      drawingContext.globalAlpha = 1.0;
+      pop();
   }
   
   if (p.isZombie) {
@@ -3095,13 +3154,7 @@ function drawPlayer(p) {
 
   if (p.r > 20) {
       // Ztenčení obrysu textu při zátěži (v Canvas2D to žere obrovské množství výkonu)
-      stroke(0); strokeWeight(isExtremeLoad ? 3 : 8); 
-      fill(nameCol); textStyle(BOLD);
-      textSize(Math.floor(Math.max(16, p.r * 0.4))); // Mnohem větší základní font
-      let dispName = p.name.substring(0, 10);
-      text(dispName, 0, -p.r * 0.55);
-      
-      // Korunka pro aktuálního krále arény (nejvíce HP)
+      // Korunka pro aktuálního krále arény (nejvíce HP) — jméno odstraněno
       if (isLeader) {
           push();
           fill(255, 215, 0); stroke(0); strokeWeight(3);
@@ -4030,6 +4083,10 @@ function draw() {
         return a.r - b.r;
     });
     sortedToDraw.forEach(p => drawPlayer(p));
+    
+    // Aktualizace zvuku cirkulárky (jemný hukot při lajkování)
+    let anyBuffed = players.some(p => p.likeBuffTimer > 0);
+    updateSawHum(anyBuffed);
     
     if (particles.length > 80) particles.splice(0, particles.length - 80);
     if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
