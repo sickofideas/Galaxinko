@@ -66,8 +66,8 @@ var GAME_VERSION = "v19.59.0"; // Melodický zvukový systém (pentatonická stu
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 100; 
-var ARENA_BOT = 1180; 
+var ARENA_TOP = 0; 
+var ARENA_BOT = 1280; 
 
 // Theme variables
 var roundThemeColor;
@@ -1455,6 +1455,15 @@ function handleCombat(p1, p2) {
   p1.hp += lifesteal1;
   p2.hp += lifesteal2;
 
+  // Viditelné pop-upy poškození a healu
+  let isEx = players.length > 30;
+  if (!isEx) {
+      if (finalDmgTo1 > 0) addPopup("-" + formatTikTokHP(finalDmgTo1), p1.body.position.x, p1.body.position.y, color(255, 100, 100));
+      if (finalDmgTo2 > 0) addPopup("-" + formatTikTokHP(finalDmgTo2), p2.body.position.x, p2.body.position.y, color(255, 100, 100));
+      if (lifesteal1 > 0) addPopup("+" + formatTikTokHP(lifesteal1), p1.body.position.x, p1.body.position.y - 15, color(100, 255, 100));
+      if (lifesteal2 > 0) addPopup("+" + formatTikTokHP(lifesteal2), p2.body.position.x, p2.body.position.y - 15, color(100, 255, 100));
+  }
+
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
       let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 10) * mult; 
@@ -2634,14 +2643,7 @@ function updateTimers() {
       }
       
       // 2. DAŇ Z VELIKOSTI (Gravitační rozpad)
-      if (frameCount % 60 === 0 && p.hp > 2000 && !p.hasCrown && !p.isZombie) {
-          let isExtremeLoad = players.length > 60;
-          let decay = Math.floor(p.hp * 0.015); // Ztrácí 1.5 % ze své velikosti KAŽDOU VTEŘINU
-          p.hp -= decay;
-          if (!isExtremeLoad) {
-              addPopup("-" + decay + " GRAVITY", p.body.position.x, p.body.position.y, color(150, 150, 150));
-          }
-      }
+      // Samovolné ztrácení HP (decay) bylo ZRUŠENO dle požadavku.
   }
   
   if (gameState === "PLAYING") {
