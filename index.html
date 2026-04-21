@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     body {
-      margin: 0; padding: 0; background-color: #00FF00;
+      margin: 0; padding: 0; background-color: #05050A;
       display: flex; justify-content: center; align-items: center;
       height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive;
     }
@@ -20,7 +20,7 @@
       box-shadow: none;
       transform-origin: top left;
       transform: scale(min(window.innerHeight / 1280, window.innerWidth / 720));
-      background: #00FF00;
+      background: #05050A;
     }
     canvas { display: block; }
     
@@ -66,8 +66,8 @@ var GAME_VERSION = "v19.59.0"; // Melodický zvukový systém (pentatonická stu
 var W = 720;
 var H = 1280;
 var HUD_TOP = 50;  
-var ARENA_TOP = 180; 
-var ARENA_BOT = 900; 
+var ARENA_TOP = 100; 
+var ARENA_BOT = 1180; 
 
 // Theme variables
 var roundThemeColor;
@@ -631,7 +631,7 @@ let globalFlowAngle = 0;
 
 // --- EGO PLANETA PRO TOP HRÁČE ---
 let showBossPlanet = true;
-let bossPlanets = [];
+
 let lastValidBossName = null;
 let lastValidBossColor = null;
 
@@ -657,7 +657,7 @@ let spokenHistory = {}; // Paměť pro 3 minutový limit opakováni TTS hlášek
 let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
-let showLeaderboards = true; // defaultně zapnuto
+let showLeaderboards = false; // defaultně vypnuto
 let showFomoBar = false; // defaultně skryto
 
 let lastGlobalSound = 0;
@@ -681,7 +681,7 @@ let topGifterBannerTimer = 0; // Časovač pro překrytí notifikací
 
 // --- FOMO & COMBO SYSTÉM ---
 let roundTotalCoins = 0; 
-const ARMAGEDDON_GOAL = 20000; // Počet mincí pro odpálení globálního eventu
+const ARMAGEDDON_GOAL = 30000; // Zvýšeno pro delší 30minutová kola
 let globalArmageddonActive = false;
 let lastEnergyAddedTime = 0;
 let currentLastGifter = {name: "", coins: 0, img: null};
@@ -818,17 +818,6 @@ function setup() {
 
 function generateSpaceBackground() {
   stars = []; nebulas = []; shootingStars = []; activePlanets = []; milkyWay = []; activeCrafts = [];
-  
-  let mwPoints = 80;
-  for (let i = 0; i < mwPoints; i++) {
-      let t = i / mwPoints;
-      let baseX = lerp(-W, W * 2, t) + random(-400, 400);
-      let baseY = lerp(-H, H * 2, t) + random(-500, 500);
-      colorMode(HSB);
-      let mwCol = color((hue(roundThemeColor) + random(-30, 30)) % 360, 60, random(50, 100), random(0.02, 0.08));
-      colorMode(RGB);
-      milkyWay.push({ x: baseX, y: baseY, r: random(150, 450), color: mwCol });
-  }
 
   for(let i=0; i<2500; i++) {
     let layer = random([0.2, 0.5, 1.0, 1.5]); 
@@ -837,13 +826,6 @@ function generateSpaceBackground() {
         rC: random(150, 255), gC: random(200, 255), bC: 255, baseAlpha: random(50, 200) * layer,
         isPulsing: random() < 0.6, pulseSpeed: random(0.05, 0.15), pulsePhase: random(TWO_PI), layer: layer
     });
-  }
-  
-  for(let i=0; i<30; i++) {
-      colorMode(HSB);
-      let nCol = color((hue(roundThemeColor) + random(-40, 40)) % 360, random(60, 100), random(50, 100), random(0.02, 0.09));
-      colorMode(RGB);
-      nebulas.push({ x: random(-W, W * 2), y: random(-H, H * 2), r: random(200, 1000), color: nCol, speed: random(0.1, 0.4) });
   }
   
   let pTypes = ['EARTH', 'MOON', 'JUPITER', 'SATURN', 'MARS', 'ICE_GIANT', 'SUN'];
@@ -880,7 +862,7 @@ function startNewRound() {
   players.forEach(p => Matter.World.remove(world, p.body));
   let oldPlayers = [...new Set(players.filter(p => !p.isZombie).map(p => p.name))]; // Zombíci se nepřevádí a zabrání se duplikaci hráčů
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; deadPlayersQueue = []; spawnModules = [];
-  bossPlanets = []; 
+
   lastValidBossName = null;
   previousRoundGifts = Object.assign({}, roundGifts);
   roundGifts = {}; 
@@ -899,13 +881,8 @@ function startNewRound() {
   }
 
       // --- VÁŽENÝ ČASOVAČ KOLA (AGRESIVNÍ MONETIZACE) ---
-      if (random() < 0.85) {
-          // 85% šance na extrémně rychlé kolo (3 až 5 minut)
-          roundTimer = floor(random(180, 301));
-      } else {
-          // 15% šance na "delší" kolo (5 až 8 minut)
-          roundTimer = floor(random(301, 481));
-      }
+      // 15 až 30 minut
+      roundTimer = floor(random(900, 1801));
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
   roundTimerPause = 0;
@@ -1036,15 +1013,24 @@ function formatK(num) {
   return Math.floor(Math.max(0, num || 0)).toLocaleString(); 
 }
 
+function formatTikTokHP(hp) {
+    if (hp >= 1000) {
+        let rounded = (hp / 1000).toFixed(1);
+        return rounded.replace('.0', '').replace('.', ',') + 'k';
+    }
+    return Math.floor(hp);
+}
+
 function getRadius(hp) { 
-    // Menší koule, aby se jich do arény vešlo více a nezasekávaly se tak brzy
-    return Math.min(30 + Math.sqrt(Math.max(0, hp || 0)) * 0.9, 140); 
+    // Menší koule (počáteční velikost), pomalý růst podle TikTok zadání
+    return Math.min(18 + Math.sqrt(Math.max(0, hp || 0)) * 0.4, 140); 
 }
 
 // ==========================================
 // TIERED GIFTS A IMUNITA EFEKTY
 // ==========================================
 function triggerMegaAnnouncement(playerName, diam, customTTS, customText) {
+    return; // Zakázáno
     let col = color(255, 215, 0); 
     if (diam >= 10000) col = color(255, 0, 0);
     else if (diam >= 5000) col = color(150, 0, 255);
@@ -1196,10 +1182,11 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   
   let finalAmount = amount;
   if (isGift) {
-      if (diam >= 5000) finalAmount = diam * 2800 * comboMult;
-      else if (diam >= 1000) finalAmount = diam * 2200 * comboMult;
-      else if (diam >= 100) finalAmount = diam * 1600 * comboMult;
-      else finalAmount = diam * 200 * comboMult;
+      // Výrazně zpomalený zisk HP z donatů podle TikTok plánu. (Základ = 10 HP za minci)
+      if (diam >= 5000) finalAmount = diam * 30 * comboMult;
+      else if (diam >= 1000) finalAmount = diam * 20 * comboMult;
+      else if (diam >= 100) finalAmount = diam * 15 * comboMult;
+      else finalAmount = diam * 10 * comboMult;
   }
 
   let p = players.find(x => x.name === name);
@@ -1207,14 +1194,52 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
     p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 90; 
+    if (!isGift) p.sawTimer = 90;
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-    if (isGift) triggerGiftEffect(p, diam, comboMult);
+    if (isGift) {
+        if (diam >= 500) {
+            let r = random();
+            if (r < 0.3) triggerThunderEffect();
+            else if (r < 0.6) triggerGunEffect();
+            else if (r < 0.8) cleanMapAll();     
+            else scanThemAll();                         
+        }
+        triggerGiftEffect(p, diam, comboMult);
+    }
   } else {
         if (allowSpawn) {
             let baseHp = getStartingHp(name);
             spawnPlayer(name, baseHp + finalAmount, isGift, diam, false, comboMult); 
         }
   }
+}
+
+function triggerThunderEffect() {
+    for(let i=0; i<30; i++) {
+        createParticles(random(-W, W*2), ARENA_TOP, color(255, 255, 0), 1, 'CIRCLE');
+    }
+}
+
+function triggerGunEffect() {
+    for(let i=0; i<5; i++) {
+        createParticles(random(0, W), random(ARENA_TOP, ARENA_BOT), color(255, 100, 0), 3, 'CIRCLE');
+    }
+}
+
+function cleanMapAll() {
+    for(let i=players.length-1; i>=0; i--) {
+        if(players[i].isZombie) {
+            Matter.World.remove(world, players[i].body);
+            players.splice(i, 1);
+        }
+    }
+}
+
+function scanThemAll() {
+    let top3 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0,3);
+    top3.forEach(p => {
+        createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 5, 'CIRCLE');
+    });
 }
 
 function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1) {
@@ -1276,14 +1301,14 @@ function handleSpawnModules() {
 }
 
 function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false, comboMult = 1) {
-  let safeHp = Math.max(0, hp || 150); 
+  let safeHp = Math.max(0, hp || 500); 
   let r = getRadius(safeHp);
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
-      restitution: 0.4,    // Zvýšeno z 0.1, aby se od sebe lehce odrážely a nezasekávaly
-      frictionAir: 0.06,   // Mírně vyšší pro hladký, elegantní pohyb při nižší rychlosti
+      restitution: 0.85,
+      frictionAir: 0.005,
       friction: 0, 
-      density: 0.001 
+      density: 0.002 
   });
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
   
@@ -1291,7 +1316,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     name: name, hp: safeHp, body: body, r: r, targetR: r, color: playerColor,
     rot: 0, auraFlash: 0, baseRotDir: random() < 0.5 ? 1 : -1, 
     noiseOffsetX: random(1000), noiseOffsetY: random(2000),
-    sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
+    sawTimer: 0, sawType: Math.floor(random(30)), likeBuffTimer: 0, giftSpeedTimer: 0, orbSpeedTimer: 0, trail: [],
     immunityTimer: 0, hasCrown: false, boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false,
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
@@ -1390,15 +1415,23 @@ function handleCombat(p1, p2) {
   if (speed > 100) speed = 100; 
 
   let safeHp1 = Math.max(1, p1.hp); let safeHp2 = Math.max(1, p2.hp);
-  let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
-  let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
+
+  // Fixní poškození podle zadání TikTok videa
+  let baseDmgFrom1 = 1.0;
+  let baseDmgFrom2 = 1.0;
   
-  // OCHRANA: Snížena minimální rychlost pro výpočet damage z 2.0 na 1.0
-  let effectiveSpeed = Math.max(speed, 1.0);
-  
-  // OPRAVA: Výrazně snížené násobiče damage (aby hráči neumírali tak rychle)
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.15 + effectiveSpeed * 0.05) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.3 : 1.0);
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.15 + effectiveSpeed * 0.05) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.3 : 1.0);
+  let lifesteal1 = 0;
+  let lifesteal2 = 0;
+
+  // Bonus k poškození a lifesteal pro aktivní pilu
+  if (p1.sawTimer > 0) {
+      baseDmgFrom1 = 1.1;
+      lifesteal1 = 1.2;
+  }
+  if (p2.sawTimer > 0) {
+      baseDmgFrom2 = 1.1;
+      lifesteal2 = 1.2;
+  }
 
   // OCHRANA MALÝCH HRÁČŮ V ČERNÉ DÍŘE (90% snížení poškození při srážkách)
   if (activeEvent === "MAGNET") {
@@ -1406,20 +1439,21 @@ function handleCombat(p1, p2) {
       baseDmgFrom2 *= 0.1;
   }
 
-  baseDmgFrom1 *= random(0.8, 1.2); baseDmgFrom2 *= random(0.8, 1.2);
-
   let isCrit1 = random() < 0.04; let isCrit2 = random() < 0.04;
-  if (isCrit1) baseDmgFrom1 *= 1.3; if (isCrit2) baseDmgFrom2 *= 1.3;
 
-  let finalDmgTo2 = p1.isZombie ? 0 : Math.max(1, Math.floor(baseDmgFrom1)); // Zombíci dávají 0 damage
-  let finalDmgTo1 = p2.isZombie ? 0 : Math.max(1, Math.floor(baseDmgFrom2)); // Zombíci dávají 0 damage
+  let finalDmgTo2 = p1.isZombie ? 0 : baseDmgFrom1; // Pevné poškození včetně desetinných míst
+  let finalDmgTo1 = p2.isZombie ? 0 : baseDmgFrom2; 
 
   // IMMUNITY CHECK (Nové pravidlo pro prevenci damage)
-  if (p1.immunityTimer > 0) finalDmgTo1 = 0;
-  if (p2.immunityTimer > 0) finalDmgTo2 = 0;
+  if (p1.immunityTimer > 0) { finalDmgTo1 = 0; lifesteal2 = 0; }
+  if (p2.immunityTimer > 0) { finalDmgTo2 = 0; lifesteal1 = 0; }
 
   let hp1Before = p1.hp; let hp2Before = p2.hp;
   p1.hp -= finalDmgTo1; p2.hp -= finalDmgTo2;
+  
+  // Přičtení lifestealu za zásah pilou
+  p1.hp += lifesteal1;
+  p2.hp += lifesteal2;
 
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
@@ -1441,8 +1475,8 @@ function handleCombat(p1, p2) {
   if (p2.hp <= 0 && hp2Before > 0) { healLogic(p1, {hpBeforeDead: hp2Before, isBounty: p2.isBounty}); addKill(p1.name, p1.color); }
   
   let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
-  // Zmenšený odraz, aby se v chumlu nerozstřelili příliš agresivně, ale pořád se hýbali
-  let forceMag = 0.0004 + speed * 0.0004; 
+  // Výrazně zmenšený odraz pro efekt přetlačování (tření kuliček o sebe)
+  let forceMag = 0.0001 + Math.min(speed, 5) * 0.00005; // Omezená rychlost pro výpočet odrazu
   
   if(isFinite(forceDir.x) && isFinite(forceDir.y)) {
       Matter.Body.applyForce(p1.body, p1.body.position, { x: -forceDir.x * forceMag * p1.body.mass, y: -forceDir.y * forceMag * p1.body.mass });
@@ -1461,12 +1495,7 @@ function handleCombat(p1, p2) {
       safePlaySound(pentatonic('low'), 0.008, 0.3); // Jemný basový tón při nárazu
   }
   
-  if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
-      if(finalDmgTo1 > 0) addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, isCrit2 ? color(255, 215, 0) : color(255, 80, 80), isCrit2);
-  }
-  if (!isHeavyLoad || finalDmgTo2 > 50 || isCrit1) {
-      if(finalDmgTo2 > 0) addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, isCrit1 ? color(255, 215, 0) : color(255, 80, 80), isCrit1);
-  }
+  // Odstraněny popups za hit, aby nebyla obrazovka zahlcena
 
   if (isCrit1 || isCrit2) {
       safePlaySound(pentatonic('high'), 0.01, 0.15);
@@ -1914,156 +1943,7 @@ function addNotification(type, name, img, extra = "", isMegaLike = false) {
     });
 }
 
-function drawNotifications() {
-  // CHROMA KEY pozadí - plně zelené pro průhlednost v OBS
-  fill(0, 255, 0);
-  noStroke();
-  rect(0, ARENA_BOT, W, H - ARENA_BOT);
 
-  // Zvýšíme věk aktuálně zobrazeným notifikacím
-  for (let n of notifications) {
-      if (n.state === 'DISPLAY') n.age++;
-  }
-
-  // Logika pro zařazování do fronty zobrazení
-  let displayed = notifications.filter(n => n.state === 'DISPLAY');
-  let waiting = notifications.filter(n => n.state === 'WAITING');
-
-  // AUTO-DISMISS: Notifikace zmizí po ~4 sekundách neaktivity (žádné nové ve frontě)
-  if (waiting.length === 0 && displayed.length > 0) {
-      for (let n of displayed) {
-          let maxAge = n.type === 'GIFT' ? 360 : 240; // Dárky vydrží 6s, ostatní 4s
-          if (n.age >= maxAge) {
-              n.state = 'LEAVING';
-          }
-      }
-      // Odstraní opouštějící z displayed pole
-      displayed = displayed.filter(n => n.state === 'DISPLAY');
-  }
-
-  if (waiting.length > 0) {
-      // 1. VIP PŘEDNOST: Dárky přeskakují frontu na první místo
-      waiting.sort((a, b) => (a.type === 'GIFT' ? -1 : (b.type === 'GIFT' ? 1 : 0)));
-
-      if (displayed.length >= 4) { // PŘIDÁNO: Místo pro 4 menší notifikace
-          // 2. ČASOVÁNÍ: Dárky drží déle, ostatní rychleji mizí
-          let requiredAge = displayed[0].type === 'GIFT' ? 300 : 120;
-          
-          // 3. VYHAZOVÁK: Pokud čeká Dárek a zavazí tam obyčejná věc
-          if (waiting[0].type === 'GIFT' && displayed[0].type !== 'GIFT' && displayed[0].age >= 40) {
-              requiredAge = 40; 
-          }
-
-          if (displayed[0].age >= requiredAge) {
-              displayed[0].state = 'LEAVING';
-              displayed.shift(); 
-          }
-      }
-      if (displayed.length < 4) {
-          let next = waiting[0];
-          next.state = 'DISPLAY';
-          next.x = W + 300; // Start zprava
-          displayed.push(next);
-      }
-  }
-
-  // Určíme pozice pro aktuálně zobrazené (nejnovější napravo)
-  displayed.reverse();
-  for (let i = 0; i < displayed.length; i++) {
-      displayed[i].targetX = W - 175 - (i * 180); // Užší mezery
-  }
-
-  for (let n of notifications) {
-      if (n.state === 'WAITING') continue;
-      
-      if (n.state === 'LEAVING') n.targetX = -300;
-      
-      n.x = lerp(n.x, n.targetX, 0.15);
-      
-      push();
-      translate(n.x, ARENA_BOT + 12);
-      
-      let actionText, icon;
-      colorMode(HSB);
-      let hueShift = sin(frameCount * 0.05 + n.age * 0.1) * 25;
-      let borderColor;
-      
-      // ZMĚNA TEXTŮ: Skrytí "Follow", "Like", "Join" za herní lore (TikTok AI friendly)
-      if (n.type === 'JOIN') { borderColor = color((120 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Výsadek" : "Deployed"; icon = "🚀"; }
-      else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Radar lock" : "Radar lock"; icon = "📡"; }
-      else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? `Energie +${n.extra}` : `Energy +${n.extra}`; icon = "⚡"; }
-      else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Pohon!" : "Thrusters!"; icon = "☄️"; }
-      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Štíty!" : "Shields!"; icon = "🛡️"; }
-      else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Hack" : "Hack"; icon = "💻"; }
-      else if (n.type === 'GIFT') { 
-          colorMode(HSB);
-          borderColor = color((frameCount * 5) % 360, 100, 100); 
-          colorMode(RGB);
-          actionText = currentLang === "CZ" ? `DROP (${n.extra})` : `DROP (${n.extra})`; 
-          icon = n.extra >= 1000 ? "🛸" : (n.extra >= 100 ? "📦" : "🛰️"); 
-      }
-      else { borderColor = color(0, 0, 100); actionText = "Akce"; icon = "✨"; }
-      colorMode(RGB);
-      
-      // CHROMA KEY pozadí karet - plně zelené pro průhlednost v OBS
-      if (n.type === 'GIFT' && n.extra >= 100) {
-          fill(0, 255, 0); 
-          stroke(borderColor); 
-          strokeWeight(2 + sin(frameCount * 0.2)); 
-          drawingContext.shadowBlur = 0;
-      } else {
-          fill(0, 255, 0);
-          stroke(borderColor); 
-          strokeWeight(1.5);
-          drawingContext.shadowBlur = 0;
-      }
-      
-      // Vykreslení zkoseného rámečku (Sci-fi panel)
-      beginShape();
-      vertex(8, 0);
-      vertex(170, 0);
-      vertex(170, 36);
-      vertex(162, 44);
-      vertex(0, 44);
-      vertex(0, 8);
-      endShape(CLOSE);
-      drawingContext.shadowBlur = 0; 
-      
-      let currentAvatar = userAvatars[n.name] || n.img;
-      let avSize = 28;
-      if (currentAvatar && currentAvatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath();
-          drawingContext.arc(22, 22, avSize/2, 0, TWO_PI);
-          drawingContext.clip();
-          image(currentAvatar, 22 - avSize/2, 22 - avSize/2, avSize, avSize);
-          drawingContext.restore();
-      } else {
-          fill(80); noStroke(); ellipse(22, 22, avSize, avSize);
-      }
-      
-      textAlign(LEFT, CENTER);
-      fill(255); textSize(11); textStyle(BOLD); noStroke();
-      text((n.name || "").substring(0, 11), 42, 14);
-      
-      let actionTextColor = borderColor;
-      if (n.type === 'LIKE' && n.extra >= 100) {
-          colorMode(HSB); actionTextColor = color((frameCount * 8) % 360, 80, 100); colorMode(RGB);
-      } else if (n.type === 'LIKE' && n.isMegaLike) {
-          actionTextColor = color(255, 215, 0); 
-      } else if (n.type === 'GIFT') {
-          colorMode(HSB); actionTextColor = color((frameCount * 5 + 180) % 360, 80, 100); colorMode(RGB);
-      }
-      
-      fill(actionTextColor); noStroke();
-      textSize(10);
-      text(`${icon} ${actionText}`, 42, 30);
-      textStyle(NORMAL); // Reset
-      
-      pop();
-  }
-  
-  notifications = notifications.filter(n => !(n.state === 'LEAVING' && n.x < -200));
-}
 
 function drawChatCommands() {
     // Funkci necháme prázdnou.
@@ -2071,12 +1951,13 @@ function drawChatCommands() {
 }
 
 function handleCameraAndPlayers() {
-  if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
+  cameraScale = 1.0; targetCameraScale = 1.0;
+  if (players.length === 0) { return; }
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
   let isExtremeLoad = players.length > 30;  // Dřívější úleva pro grafiku
-  let maxV = 10;
+  let maxV = 1.2; // Extrémně zpomaleno (Nolann styl)
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -2179,49 +2060,33 @@ function handleCameraAndPlayers() {
         }
     }
     
-    // GALAKTICKÝ VORTEX (Pohyblivý střed, aby nevznikla statická zácpa)
-    // Střed gravitace nyní neustále pomalu cestuje po aréně
-    let cx = W/2 + Math.sin(frameCount * 0.005) * (W * 0.25); 
-    let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.25);
+    // NOVÝ POHYBOVÝ SYSTÉM: Létající atomy (Brownův pohyb)
+    let finalFx = 0;
+    let finalFy = 0;
+
+    // Pouze silný náhodný tah pro náhodné létání po aréně (Extrémně zpomaleno)
+    finalFx += Math.sin(p.noiseOffsetX) * 0.00001 * p.body.mass;
+    finalFy += Math.cos(p.noiseOffsetY) * 0.00001 * p.body.mass;
     
-    let dx = cx - p.body.position.x;
-    let dy = cy - p.body.position.y;
-    let distToCenter = Math.sqrt(dx*dx + dy*dy) || 1;
+    p.noiseOffsetX += random(0.01, 0.05);
+    p.noiseOffsetY += random(0.01, 0.05);
 
-    let dirX = dx / distToCenter;
-    let dirY = dy / distToCenter;
-    
-    // MIXÉR EFEKT: Výrazně slabší tah doprostřed, masivní rotace okolo
-    let pullForce = 0.00002 * p.body.mass;  // Tah do středu zmenšen na třetinu
-    let vortexForce = 0.00008 * p.body.mass * p.baseRotDir; // Rotace zesílena 8x
-
-    let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
-    let finalFy = (dirY * pullForce) + (dirX * vortexForce);
-
-    // ZESÍLENÝ ŠUM A CHAOS pro rozbití "zaseknutých" hloučků
-    finalFx += Math.sin(p.noiseOffsetX) * 0.00015 * p.body.mass;
-    finalFy += Math.cos(p.noiseOffsetY) * 0.00015 * p.body.mass;
-    
-    // Občasné silnější pošťouchnutí pro udržení neustálého hemžení
-    if (Math.random() < 0.05) {
-        finalFx += (Math.random() - 0.5) * 0.001 * p.body.mass;
-        finalFy += (Math.random() - 0.5) * 0.001 * p.body.mass;
-    }
-
-    p.noiseOffsetX += random(0.05, 0.15);
-    p.noiseOffsetY += random(0.05, 0.15);
-
-    // Žádná ochranná zóna - všichni se rurou do jednoho bodu!
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 2.2 : 1.8; // ZPOMALENO: Příjemná, hypnotická rychlost pro diváky
+    let tSpd = isTop10 ? 0.8 : 0.6; // Mnohem pomalejší (Nolann styl)
     let currentMaxV = maxV;
     
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
     if (p.isZombie) {
         tSpd *= 0.4;
         currentMaxV *= 0.4;
+    }
+
+    // Zrychlení pro aktivní pilu
+    if (p.sawTimer > 0) {
+        tSpd *= 1.2;
+        currentMaxV *= 1.2;
     }
 
     // --- ZRYCHLENÍ ZA TAPOVÁNÍ (LIKE BUFF) ---
@@ -2279,24 +2144,9 @@ function handleCameraAndPlayers() {
     }
   }
 
-  // DYNAMICKÁ KAMERA: Oddaluje se podle toho, kolik fyzického prostoru koule zabírají!
-  let totalArea = 0;
-  for (let i = 0; i < players.length; i++) {
-      totalArea += players[i].r * players[i].r * Math.PI;
-  }
-  let screenArea = W * (ARENA_BOT - ARENA_TOP);
-  let coverageRatio = totalArea / screenArea;
-  
-  if (coverageRatio > 0) {
-      // Koule necháme natěsnat více (až na 65 % obrazovky) než oddálíme kameru
-      targetCameraScale = Math.sqrt(0.65 / coverageRatio);
-  } else {
-      targetCameraScale = 1.6;
-  }
-  // Limity přiblížení/oddálení
-  targetCameraScale = Math.min(1.6, Math.max(0.35, targetCameraScale));
-
-  cameraScale = lerp(cameraScale, targetCameraScale, 0.015); // Velmi pomalé a plynulé oddalování
+  // DYNAMICKÁ KAMERA: ZRUŠENA podle Nolann updatu
+  cameraScale = 1.0; 
+  targetCameraScale = 1.0;
   
   let viewW = W / cameraScale; 
   let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
@@ -2410,261 +2260,29 @@ function handleBackgroundObjects(baseSpeed) {
   }
 }
 
-function handleBossPlanet() {
-    if (!showBossPlanet || players.length === 0) return;
 
-    // Vytvoření globálního zámku (pokud ještě neexistuje)
-    if (typeof window.bossLockTimer === 'undefined') window.bossLockTimer = 0;
-
-    // 1. Zjistíme, kdo má aktuálně nárok na trůn (musí mít 500+ HP)
-    let potentialKing = [...players].filter(p => !p.isZombie && p.hp > 0).sort((a, b) => b.hp - a.hp)[0];
-
-    // 2. ZÁMEK NA 3 VTEŘINY (Ochrana proti okamžitému přepisování)
-    if (potentialKing) {
-        if (!lastValidBossName) {
-            // Úplně první král hry
-            lastValidBossName = potentialKing.name;
-            window.bossLockTimer = millis() + 3000;
-        } else if (potentialKing.name !== lastValidBossName && millis() > window.bossLockTimer) {
-            // Nový král (uběhly minimálně 3 vteřiny od posledního)
-            lastValidBossName = potentialKing.name;
-            window.bossLockTimer = millis() + 3000;
-        }
-    }
-
-    if (!lastValidBossName) return;
-    let activeBossName = lastValidBossName;
-
-    let cx = W/2;
-    let cy = (ARENA_TOP+ARENA_BOT)/2;
-
-    // 3. Hledáme planetu, která patří aktuálnímu králi a ještě není zničená
-    let mainPlanet = bossPlanets.find(p => !p.isKnockedOut && p.name === activeBossName);
-
-    if (!mainPlanet) {
-        // Najdeme tu nejnovější existující planetu v aréně, kterou půjdeme nekompromisně sestřelit
-        let previousPlanet = [...bossPlanets].reverse().find(p => !p.isKnockedOut);
-
-        let newPlanet = {
-            name: activeBossName,
-            x: 0, y: 0, vx: 0, vy: 0, 
-            rot: 0, rotSpeed: random(-0.005, 0.005),
-            isKnockedOut: false,
-            hasSmashed: false,
-            targetPlanet: previousPlanet, // Tu budeme lovit (může jich být takhle i víc za sebou jako vláček)
-            targetPoint: previousPlanet ? null : { x: cx + random(-50, 50), y: cy + random(-50, 50) } // Pokud jsme úplně první, letíme do středu
-        };
-
-        // Spawnování hluboko mimo obrazovku
-        let side = floor(random(4));
-        let offX = W * 0.7; let offY = H * 0.6;
-        if (side === 0) { newPlanet.x = cx + random(-200, 200); newPlanet.y = cy - offY; }
-        else if (side === 1) { newPlanet.x = cx + offX; newPlanet.y = cy + random(-200, 200); }
-        else if (side === 2) { newPlanet.x = cx + random(-200, 200); newPlanet.y = cy + offY; }
-        else { newPlanet.x = cx - offX; newPlanet.y = cy + random(-200, 200); }
-
-        bossPlanets.push(newPlanet);
-    }
-
-    let pSize = W * 0.40; 
-    
-    let boundLeft = cx - W * 0.30; let boundRight = cx + W * 0.30;
-    let boundTop = cy - (ARENA_BOT - ARENA_TOP) * 0.35; let boundBot = cy + (ARENA_BOT - ARENA_TOP) * 0.35;
-
-    for (let i = bossPlanets.length - 1; i >= 0; i--) {
-        let bp = bossPlanets[i];
-
-        // --- POHYBOVÁ LOGIKA ---
-        if (bp.isKnockedOut) {
-            // Letí pryč po prohře
-        } else if (!bp.hasSmashed) {
-            // A) MÁME CÍL -> LETÍME ZNIČIT STAROU PLANETU
-            if (bp.targetPlanet) {
-                let dx = bp.targetPlanet.x - bp.x;
-                let dy = bp.targetPlanet.y - bp.y;
-                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-
-                let speed = 16; // Agresivní let a pronásledování
-                bp.vx = (dx / dist) * speed;
-                bp.vy = (dy / dist) * speed;
-
-                // NÁRAZ!
-                if (dist < pSize * 0.7) {
-                    bp.hasSmashed = true;
-                    bp.vx = random(-0.5, 0.5); bp.vy = random(-0.5, 0.5);
-                    bp.smashGreenFlash = 90; // Nastaví plynulý zelený přechod na 1.5 vteřiny
-
-                    bp.targetPlanet.isKnockedOut = true;
-                    bp.targetPlanet.vx = (dx / dist) * 20 + random(-2, 2);
-                    bp.targetPlanet.vy = (dy / dist) * 20 + random(-2, 2);
-                    bp.targetPlanet.rotSpeed = random(-0.1, 0.1);
-
-                    let liveAttacker = players.find(p => p.name === bp.name);
-                    let attackerColor = liveAttacker ? liveAttacker.color : color(255);
-
-                    // ZAKÁZÁNO: screenShake, particles, flash
-                    safePlaySound(pentatonic('low'), 0.05, 0.8); // Jemný basový tón
-                }
-            } 
-            // B) ÚPLNĚ PRVNÍ PLANETA -> MAJESTÁTNĚ PŘILÉTÁ DO STŘEDU
-            else if (bp.targetPoint) {
-                let dx = bp.targetPoint.x - bp.x;
-                let dy = bp.targetPoint.y - bp.y;
-                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                
-                let speed = 6; // Pomalý přílet
-                bp.vx = (dx / dist) * speed;
-                bp.vy = (dy / dist) * speed;
-
-                if (dist < 15) {
-                    bp.hasSmashed = true; // Dorazila na své místo doprostřed arény
-                    bp.vx = random(-0.5, 0.5); bp.vy = random(-0.5, 0.5);
-                }
-            }
-        } else {
-            // C) PLANETA VLÁDNE -> ODRÁŽÍ SE OD MANTINELŮ V ARÉNĚ
-            if (bp.x < boundLeft) { bp.x = boundLeft; bp.vx *= -1; }
-            if (bp.x > boundRight) { bp.x = boundRight; bp.vx *= -1; }
-            if (bp.y < boundTop) { bp.y = boundTop; bp.vy *= -1; }
-            if (bp.y > boundBot) { bp.y = boundBot; bp.vy *= -1; }
-        }
-
-        // Aplikace pohybu
-        bp.x += bp.vx;
-        bp.y += bp.vy;
-        bp.rot += bp.rotSpeed;
-
-        // Smazání planety ze hry, pokud vyletí po prohře úplně pryč
-        if (bp.isKnockedOut && (bp.x < -W || bp.x > W*2 || bp.y < -H || bp.y > H*2)) {
-            bossPlanets.splice(i, 1);
-            continue;
-        }
-
-        // --- VYKRESLENÍ A BARVY ---
-        push();
-        translate(bp.x, bp.y);
-        
-        // 4. SYNCHRONIZACE BARVY S REÁLNOU PILOU HRÁČE V ARÉNĚ
-        let livePlayer = players.find(p => p.name === bp.name);
-        let outlineColor = color(200); 
-        
-        if (livePlayer) {
-            let danger = constrain(map(Math.max(0, livePlayer.hp), 50, 0, 0, 1), 0, 1);
-            outlineColor = lerpColor(livePlayer.color, color(255, 0, 0), danger); // Červená při umírání
-
-            // Obnovený duhový efekt
-            if (livePlayer.giftSpeedTimer > 0 || livePlayer.immunityTimer > 0 || livePlayer.isGodMode || livePlayer.hasRainbowCrown) {
-                colorMode(HSB);
-                outlineColor = color((frameCount * 5) % 360, 100, 100);
-                colorMode(RGB);
-            }
-        }
-
-        // Plynulé zezelenání okraje planety po převzetí
-        if (bp.smashGreenFlash > 0) {
-            outlineColor = lerpColor(outlineColor, color(50, 255, 50), bp.smashGreenFlash / 90.0);
-            bp.smashGreenFlash--;
-        }
-
-        if (!bp.isKnockedOut) {
-            if (players.length < 40) {
-                drawingContext.shadowBlur = 20 + sin(frameCount * 0.05) * 10;
-                drawingContext.shadowColor = outlineColor;
-            }
-        }
-
-        fill(5, 5, 10, 180);
-        stroke(outlineColor);
-        strokeWeight(bp.isKnockedOut ? 2 : 5);
-        ellipse(0, 0, pSize);
-        drawingContext.shadowBlur = 0;
-
-        // Zobrazení jména a HP lídra
-        if (livePlayer) {
-            fill(255); stroke(0); strokeWeight(4);
-            textSize(22); textAlign(CENTER, CENTER); textStyle(BOLD);
-            text(livePlayer.name, 0, -pSize/2 - 25);
-            text(Math.floor(livePlayer.hp).toLocaleString() + " HP", 0, pSize/2 + 25);
-        }
-
- 
-        rotate(bp.rot);
-
-        let img = userAvatars[bp.name]; 
-        if (img && img !== "loaded") {
-            drawingContext.save();
-            drawingContext.beginPath();
-            drawingContext.arc(0, 0, pSize / 2, 0, TWO_PI);
-            drawingContext.clip();
-            imageMode(CENTER);
-            tint(255, bp.isKnockedOut ? 40 : 180); 
-            image(img, 0, 0, pSize, pSize);
-            noTint();
-            
-            let gradient = drawingContext.createRadialGradient(0, 0, pSize * 0.3, 0, 0, pSize * 0.5);
-            gradient.addColorStop(0, "rgba(0,0,0,0)");
-            gradient.addColorStop(1, "rgba(0,0,0,0.8)");
-            drawingContext.fillStyle = gradient;
-            drawingContext.fillRect(-pSize/2, -pSize/2, pSize, pSize);
-            drawingContext.restore();
-        } else {
-            fill(outlineColor); noStroke(); ellipse(0, 0, pSize * 0.8);
-            fill(255, bp.isKnockedOut ? 30 : 150); 
-            textAlign(CENTER, CENTER); textSize(80); text("👑", 0, 0);
-        }
-        pop();
-    }
-}
 
 function drawSpaceBackground() {
-  flowTime += 0.003;
+  flowTime += 0.0008;
   globalFlowAngle = sin(flowTime) * 0.25;
   
-  // ANTI-DETECT: Rychlost scrollování se v čase neustále plynule mění
-  let antiBotShift = sin(frameCount * 0.002) * 0.8; 
-  let baseScrollSpeed = 1.2 + antiBotShift; 
-
-  noStroke();
-  
-  drawingContext.save();
-  milkyWay.forEach(mw => {
-      fill(mw.color);
-      ellipse(mw.x, mw.y, mw.r * 2);
-      
-      mw.x += sin(globalFlowAngle) * 0.2;
-      mw.y += cos(globalFlowAngle) * 0.2 + (baseScrollSpeed * 0.1);
-      
-      if (mw.y > H * 2 + 500) { mw.y = -H - 500; mw.x = random(-W, W*2); }
-      if (mw.x > W * 2 + 500) { mw.x = -W - 500; }
-      if (mw.x < -W - 500) { mw.x = W * 2 + 500; }
-  });
-  drawingContext.restore();
-
-  nebulas.forEach(n => {
-     fill(n.color);
-     ellipse(n.x, n.y, n.r); 
-     n.y += n.speed + (baseScrollSpeed * 0.2);
-     if (n.y > H * 2 + 1000) { n.y = -H - 1000; n.x = random(-W, W*2); }
-  });
-
   let isExtremeLoad = players.length > 30;
   let starLimit = isExtremeLoad ? stars.length / 3 : stars.length;
   for(let i=0; i<starLimit; i++) {
     let s = stars[i];
+    if (s.baseX === undefined) { s.baseX = s.x; s.baseY = s.y; }
+
     let currentAlpha = s.baseAlpha;
     if (s.isPulsing && !isExtremeLoad) {
         currentAlpha = (s.baseAlpha * 0.5) + sin(frameCount * s.pulseSpeed + s.pulsePhase) * (s.baseAlpha * 0.5);
     }
     fill(s.rC, s.gC, s.bC, currentAlpha);
+    
+    // ANTI-DETECT: Hvězdy se neposouvají nekonečně, ale pouze vibrují kolem svého základu
+    s.x = s.baseX + sin(frameCount * 0.05 + s.y) * 1.5;
+    s.y = s.baseY + cos(frameCount * 0.04 + s.x) * 1.5;
+
     rect(s.x, s.y, s.s, s.s);
-    
-    s.x += sin(globalFlowAngle) * (s.speed * 0.5);
-    s.y += s.speed + baseScrollSpeed * s.layer; 
-    
-    if (s.y > H * 2) { s.y = -H; s.x = random(-W, W * 2); }
-    else if (s.y < -H) { s.y = H * 2; s.x = random(-W, W * 2); }
-    if (s.x > W * 2) { s.x = -W; s.y = random(-H, H * 2); }
-    else if (s.x < -W) { s.x = W * 2; s.y = random(-H, H * 2); }
   }
 
   // ZAKÁZÁNO dle požadavku: Vesmír bez planet a objektů
@@ -2781,374 +2399,59 @@ function drawLightnings() {
 }
 
 function drawPlayer(p) {
-  let pos = p.body.position; 
   let safeHp = Math.max(0, p.hp);
-  let isBuffed = p.likeBuffTimer > 0;
-  if (isBuffed) p.likeBuffTimer--;
   
-  let isLeader = (currentTop10[0] === p.name && !p.isZombie);
-  
-  // 1. FIRE TRAIL
-  if (p.hasFireTrail && frameCount % 3 === 0) {
-      createParticles(pos.x, pos.y, color(255, random(100, 200), 0), 2);
-  }
-
-  // 2. GOD MODE KOUZLO
-  if (p.isGodMode) {
-      p.godModeTimer--;
-      if (p.godModeTimer <= 0) p.isGodMode = false;
-  }
-
-  // Rotace (Zrychleno 10x při lajkování)
-  let baseSpin = 0.02 + Math.min(safeHp * 0.000015, 0.2);
-  if (safeHp >= 1000) baseSpin = 0.08 + Math.min(safeHp * 0.00002, 0.4);
-  if (p.orbSpeedTimer > 0) baseSpin = Math.max(baseSpin, 0.35);
-  p.rot += isBuffed ? baseSpin * p.baseRotDir * 10 : baseSpin * p.baseRotDir;
-  
-  let isHeavyLoad = players.length > 15;
-  let isExtremeLoad = players.length > 30;
-  let isEpic = safeHp >= 1000;
-  let dangerFactor = constrain(map(safeHp, 50, 0, 0, 1), 0, 1);
-  if (p.isZombie) dangerFactor = 0;
-  
-  let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
-
-  // Vykreslení stopy (trail)
-  if (!isExtremeLoad && p.trail.length > 1) {
-      noFill();
-      for (let i = 0; i < p.trail.length - 1; i++) {
-          stroke(red(actualColor), green(actualColor), blue(actualColor), map(i, 0, p.trail.length, 0, 150));
-          strokeWeight(map(i, 0, p.trail.length, p.r * 0.2, p.r * 0.8));
-          line(p.trail[i].x, p.trail[i].y, p.trail[i+1].x, p.trail[i+1].y);
-      }
-  }
-
-  push(); 
-  translate(pos.x, pos.y);
-  scale(isBuffed ? 1.05 : 1.0);
-  rotate(p.rot);
-
-  // Varovné pulzování pro umírající
-  if (p.auraFlash > 0 || dangerFactor > 0) {
-      let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 0;
-      if(dangerFactor > 0) glowAlpha = max(glowAlpha, dangerFactor * 120 + sin(frameCount*0.3)*80);
-      fill(red(actualColor), green(actualColor), blue(actualColor), glowAlpha);
-      noStroke();
-      ellipse(0, 0, p.r * 1.8);
-  }
-  if(p.auraFlash > 0) p.auraFlash--;
-
-  // Speciální zlatá pulzující aura pro vedoucího hráče
-  if (isLeader) {
-      fill(255, 215, 0, 50 + sin(frameCount * 0.15) * 30);
-      noStroke();
-      ellipse(0, 0, p.r * 2.4 + sin(frameCount * 0.2) * 15);
-  }
-
-  // Buff záře
-  if (isBuffed) { 
-      fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke();
-      ellipse(0, 0, p.r * 2.0);
-      if (frameCount % 5 === 0 && !isExtremeLoad) createParticles(pos.x, pos.y, color(255, 150, 0), 1);
-  }
-
-  let outlineColor = actualColor;
-  if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
-      colorMode(HSB);
-      outlineColor = color((frameCount * 8) % 360, 100, 100); 
-      colorMode(RGB);
-  }
-  if (p.isZombie) outlineColor = color(50, 255, 50);
-
-
-  // --- ZÁKLAD A ZUBY PILY ---
-  stroke(outlineColor);
-  strokeWeight(isEpic ? 3 : 2);
-
-  // Mírnější rozměry pily pro kratší bodáky
-  let rOuter = isEpic ? p.r * 1.15 : p.r * 1.08;
-  let rInner = isEpic ? p.r * 0.85 : p.r * 0.92;
-
-  let baseR = red(actualColor);
-  let baseG = green(actualColor);
-  let baseB = blue(actualColor);
-
-  // Zuby pily (vykreslujeme jen pro větší hráče nebo když není lag)
-  if (safeHp >= 200 && (!isExtremeLoad || safeHp > 500)) {
-      let teeth = isEpic ? 14 + Math.floor(safeHp / 1500) : 10 + (p.sawType % 3) * 2;
-      if (isExtremeLoad) teeth = Math.max(4, Math.floor(teeth * 0.3)); 
-      teeth = Math.min(teeth, 40); 
-      let tType = p.sawType % 2; 
-      let fillFactor = constrain(p.likeBuffTimer / 90.0, 0, 1);
-
-      // EXTRÉMNÍ OPTIMALIZACE: PRE-RENDERING (BAKE-IN)
-      // Generujeme offscreen canvas pouze při změně stavu nebo vytvoření
-      if (!p.sawCanvas || p.cachedTeeth !== teeth || p.cachedIsEpic !== isEpic || p.cachedFill !== fillFactor) {
-          p.cachedTeeth = teeth;
-          p.cachedIsEpic = isEpic;
-          p.cachedFill = fillFactor;
-          
-          if (!p.sawCanvas) {
-              p.sawCanvas = createGraphics(260, 260);
-          } else {
-              p.sawCanvas.clear();
-          }
-          
-          p.sawCanvas.translate(130, 130);
-          
-          let bakeOuter = isEpic ? 115 : 108;
-          let bakeInner = isEpic ? 85 : 92;
-          
-          if (isExtremeLoad) {
-              p.sawCanvas.fill(baseR, baseG, baseB, (0.6 + fillFactor * 0.4) * 255);
-          } else {
-              p.sawCanvas.fill(255); 
-              let grad = p.sawCanvas.drawingContext.createRadialGradient(0, 0, bakeInner * 0.2, 0, 0, bakeOuter);
-              grad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.2)`);
-              grad.addColorStop(1, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.6 + fillFactor * 0.4})`);
-              p.sawCanvas.drawingContext.fillStyle = grad;
-          }
-          
-          p.sawCanvas.stroke(red(outlineColor), green(outlineColor), blue(outlineColor));
-          p.sawCanvas.strokeWeight(isEpic ? 3 : 2);
-          
-          p.sawCanvas.beginShape();
-          let step = TWO_PI / teeth;
-          for(let i=0; i<teeth; i++) {
-              let a = i * step;
-              if (tType === 0) { 
-                  p.sawCanvas.vertex(cos(a)*bakeInner, sin(a)*bakeInner);
-                  p.sawCanvas.vertex(cos(a + step * 0.8)*bakeOuter, sin(a + step * 0.8)*bakeOuter);
-              } else { 
-                  p.sawCanvas.vertex(cos(a)*bakeInner, sin(a)*bakeInner);
-                  p.sawCanvas.vertex(cos(a + step * 0.2)*bakeOuter, sin(a + step * 0.2)*bakeOuter);
-                  p.sawCanvas.vertex(cos(a + step * 0.8)*bakeOuter, sin(a + step * 0.8)*bakeOuter);
-              }
-          }
-          p.sawCanvas.endShape(CLOSE);
-
-          // Vnitřní design pily přidáme také do cache
-          p.sawCanvas.fill(baseR * 0.2, baseG * 0.2, baseB * 0.2, 200);
-          p.sawCanvas.stroke(red(outlineColor), green(outlineColor), blue(outlineColor));
-          p.sawCanvas.strokeWeight(2);
-          p.sawCanvas.ellipse(0, 0, 150); 
-
-          if (isEpic) {
-              p.sawCanvas.noFill(); p.sawCanvas.stroke(255, 200, 0); p.sawCanvas.strokeWeight(4);
-              p.sawCanvas.ellipse(0, 0, 130);
-              p.sawCanvas.fill(baseR * 0.4, baseG * 0.4, baseB * 0.4, 200); p.sawCanvas.stroke(255, 100, 0); p.sawCanvas.strokeWeight(3);
-              p.sawCanvas.ellipse(0, 0, 90);
-          } else {
-              p.sawCanvas.fill(baseR, baseG, baseB); p.sawCanvas.noStroke();
-              p.sawCanvas.ellipse(0, 0, 80);
-              p.sawCanvas.fill(baseR * 0.15, baseG * 0.15, baseB * 0.15, 255);
-              p.sawCanvas.ellipse(0, 0, 40);
-          }
-      }
-      
-      // Kreslíme pouze jeden vygenerovaný obrázek namísto desítek výpočtů a čar
+  // jednoduchý kruh + avatar
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.arc(p.body.position.x, p.body.position.y, p.r, 0, TWO_PI);
+  drawingContext.clip();
+  let currAv = userAvatars[p.name] || p.avatar;
+  if (currAv && currAv !== "loaded") {
       imageMode(CENTER);
-      image(p.sawCanvas, 0, 0, p.r * 2.6, p.r * 2.6);
+      image(currAv, p.body.position.x, p.body.position.y, p.r*2, p.r*2);
   } else {
-      // MINI-PILA pro menší hráče (pod 200 HP) - decentní, ale stále vypadají jako bojovníci
-      let miniTeeth = 6;
-      let miniOuter = p.r * 1.05;
-      let miniInner = p.r * 0.88;
-      let miniStep = TWO_PI / miniTeeth;
-      
-      fill(baseR, baseG, baseB, 150);
-      stroke(outlineColor);
-      strokeWeight(p.isZombie ? 1.5 : 2);
-      
-      beginShape();
-      for (let i = 0; i < miniTeeth; i++) {
-          let a = i * miniStep;
-          vertex(cos(a) * miniInner, sin(a) * miniInner);
-          vertex(cos(a + miniStep * 0.5) * miniOuter, sin(a + miniStep * 0.5) * miniOuter);
-      }
-      endShape(CLOSE);
-      
-      // Vnitřní kruh
-      noStroke(); fill(actualColor);
-      ellipse(0, 0, p.r * 0.7);
-      fill(baseR * 0.15, baseG * 0.15, baseB * 0.15, 180);
-      ellipse(0, 0, p.r * 0.3);
+      fill(p.color); noStroke();
+      ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
   }
-  
-  if (p.isZombie) {
-      push();
-      drawingContext.setLineDash([8, 8]);
-      strokeWeight(2); noFill();
-      stroke(80, 200, 80, 100); // Původně červená, nyní zelená
-      ellipse(0, 0, p.r * 1.6);
-      drawingContext.lineDashOffset = 8;
-      stroke(100, 255, 100, 100); // Světlejší zelená pro druhý pruh
-      drawingContext.setLineDash([]); drawingContext.lineDashOffset = 0;
-      pop();
-  }
+  drawingContext.restore();
 
-  rotate(-p.rot); 
-  
-  if (p.isBounty) {
-      push();
-      rotate(frameCount * 0.05);
-      let tSize = p.r * 2.8 + sin(frameCount * 0.2) * 10;
-      fill(255, 0, 0, 40); stroke(255, 50, 50, 200); strokeWeight(3);
-      ellipse(0, 0, tSize);
-      let cL = tSize * 0.2;
-      line(-tSize/2 - 10, 0, -tSize/2 + cL, 0); line(tSize/2 + 10, 0, tSize/2 - cL, 0);
-      line(0, -tSize/2 - 10, 0, -tSize/2 + cL); line(0, tSize/2 + 10, 0, tSize/2 - cL);
-      noFill(); stroke(255, 0, 0, 100); strokeWeight(1); ellipse(0, 0, tSize * 0.6);
-      pop();
+  // border
+  noFill();
+  if (p.isLegendary || p.godModeTimer > 0) {
+      stroke(255, 215, 0);          // zlatý sun border
+      strokeWeight(6);
+  } else {
+      stroke(p.color);
+      strokeWeight(3);
   }
+  ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
 
-  if (p.immunityTimer > 0) {
+  // SAW BLADE pro speciální hráče
+  if (p.sawTimer > 0) {
       push();
-      let pulse = sin(frameCount * 0.1) * 10;
-      fill(50, 100, 255, 60 + sin(frameCount * 0.2) * 40);
-      stroke(100, 150, 255, 200); strokeWeight(3);
-      ellipse(0, 0, p.r * 2.8 + pulse);
-      
-      rotate(frameCount * 0.05);
-      for(let o = 0; o < 3; o++) {
-          let a = (o * TWO_PI) / 3;
-          let ox = cos(a) * (p.r * 1.4 + pulse/2); let oy = sin(a) * (p.r * 1.4 + pulse/2);
-          fill(255); noStroke(); ellipse(ox, oy, 6 + random(-2, 2));
+      translate(p.body.position.x, p.body.position.y);
+      rotate(frameCount * 0.08);
+      stroke(255, 240, 0);
+      strokeWeight(4);
+      for(let i = 0; i < 12; i++) {
+          rotate(TWO_PI/12);
+          line(p.r*1.1, 0, p.r*1.4, 0);
       }
       pop();
+      p.sawTimer--;
   }
 
-  if (p.hasCrown) {
-      push();
-      translate(0, -p.r * 1.5 - 10);
-      fill(255, 215, 0); stroke(255); strokeWeight(2);
-      beginShape();
-      vertex(-15, 0); vertex(-25, -15); vertex(-8, -8); 
-      vertex(0, -25); vertex(8, -8); vertex(25, -15); vertex(15, 0);
-      endShape(CLOSE);
-      pop();
-  }
-  
-  if (p.isGodMode) {
-      push(); noFill();
-      strokeWeight(5 + sin(frameCount * 0.2) * 5); stroke(255, 0, 0, 150);
-      ellipse(0, 0, p.r * 2 + 20);
-      pop();
-  }
-
-  if (p.hasRainbowCrown) {
-      push();
-      translate(0, -p.r - 25);
-      colorMode(HSB);
-      fill((frameCount * 6) % 360, 100, 100);
-      colorMode(RGB);
-      stroke(255); strokeWeight(2);
-      beginShape();
-      vertex(-15, 0); vertex(-25, -20); vertex(-10, -10);
-      vertex(0, -25); vertex(10, -10);  vertex(25, -20); vertex(15, 0);
-      endShape(CLOSE);
-      pop();
-  }
-
-  let imgSize = p.r * 1.6;
-  let isTop10 = currentTop10.includes(p.name);
-  let shouldDrawAvatar = true; 
-  // Vypnutí profilovek pro obyčejné hráče při zátěži = masivní nárůst FPS
-  if (isExtremeLoad && safeHp < 500 && !isLeader) shouldDrawAvatar = false;
-
-  if (p.avatarAlpha === undefined) p.avatarAlpha = shouldDrawAvatar ? 255 : 0;
-  if (shouldDrawAvatar) p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
-  else p.avatarAlpha = Math.max(0, p.avatarAlpha - 30);
-
-  fill(10, 12, 15, 255); 
-  noStroke();
-  ellipse(0, 0, imgSize); 
-
-  if (p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
-      drawingContext.clip();
-      
-      // if (p.isZombie) drawingContext.filter = 'grayscale(100%)'; // OPTIMALIZACE VÝKONU
-      tint(255, p.avatarAlpha);
-      imageMode(CENTER); 
-      image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
-      noTint(); 
-      // drawingContext.filter = 'none';
-      drawingContext.restore();
-  }
-
-  noFill(); 
-  stroke(0); strokeWeight(4); ellipse(0, 0, imgSize);
-  stroke(p.isZombie ? color(50, 255, 50) : color(255, 200));
-  strokeWeight(2); ellipse(0, 0, imgSize + 4);
-
+  // HP Text nad koulí
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
-  
-  let nameCol = isLeader ? color(255, 215, 0) : color(230); // Zlaté jméno pro lídra
-  if (p.immunityTimer > 0) {
-      colorMode(HSB);
-      nameCol = color((frameCount * 8) % 360, 80, 100);
-      colorMode(RGB);
-  }
-
-  if (p.r > 20) {
-      // Ztenčení obrysu textu při zátěži (v Canvas2D to žere obrovské množství výkonu)
-      stroke(0); strokeWeight(isExtremeLoad ? 3 : 8); 
-      fill(nameCol); textStyle(BOLD);
-      textSize(Math.floor(Math.max(16, p.r * 0.4))); // Mnohem větší základní font
-      let dispName = p.name.substring(0, 10);
-      text(dispName, 0, -p.r * 0.55);
-      
-      // Korunka pro aktuálního krále arény (nejvíce HP)
-      if (isLeader) {
-          push();
-          fill(255, 215, 0); stroke(0); strokeWeight(3);
-          let bounce = sin(frameCount * 0.1) * 5; // Levitace korunky
-          textSize(Math.floor(Math.max(18, p.r * 0.35))); // Větší korunka
-          text("👑", 0, -p.r * 0.45 - 20 - bounce);
-          pop();
-      }
-      
-      if (isBuffed) {
-          push();
-          let energyPulse = 1.0 + sin(frameCount * 0.3) * 0.2;
-          translate(0, -p.r * 0.08); // Umístění přesně mezi jméno a HP
-          scale(energyPulse);
-          fill(255, 215, 0); // Zlatá barva pro energii
-          stroke(0);
-          strokeWeight(Math.max(1, p.r * 0.04));
-          let hs = p.r * 0.35; // Mírně zvětšeno pro lepší viditelnost
-          beginShape();
-          vertex(hs * 0.2, -hs * 0.6);
-          vertex(-hs * 0.4, hs * 0.1);
-          vertex(-hs * 0.1, hs * 0.1);
-          vertex(-hs * 0.3, hs * 0.6);
-          vertex(hs * 0.4, -hs * 0.1);
-          vertex(hs * 0.1, -hs * 0.1);
-          endShape(CLOSE);
-          pop();
-      }
-  }
-
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  stroke(0); strokeWeight(isExtremeLoad ? 4 : 10); // Menší obrys při zátěži
+  stroke(0); strokeWeight(4);
   fill(txtCol); textStyle(BOLD);
-  textSize(Math.floor(Math.max(22, p.r * 0.6))); // Čísla musí řvát do očí!
-  text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.2 : 0); 
-  
-  if (p.isLegendary) {
-      stroke(0); strokeWeight(Math.max(3, p.r * 0.15));
-      fill(255, 215, 0);
-      textSize(Math.floor(Math.max(10, p.r * 0.22)));
-      text("👑 LEGEND", 0, p.r > 20 ? p.r * 0.65 : 15);
-  }
-
-  noStroke(); pop();
+  textSize(Math.floor(Math.max(16, p.r * 0.6))); 
+  text(formatTikTokHP(safeHp), p.body.position.x, p.body.position.y); 
 }
 
 function createParticles(x, y, c, count, type = 'CIRCLE') {
@@ -3168,7 +2471,7 @@ function createParticles(x, y, c, count, type = 'CIRCLE') {
       if (p) {
           p.active = true; p.x = x; p.y = y; p.vx = random(-6,6); p.vy = random(-6,6);
           p.life = 255; p.c = c; p.size = pSize; p.type = type;
-      } else if (particles.length < 500) { // Limit bazénu na 500 částic
+      } else if (particles.length < 40) { // Limit bazénu na 40 částic
           particles.push({active: true, x: x, y: y, vx: random(-6,6), vy: random(-6,6), life: 255, c: c, size: pSize, type: type});
       }
   }
@@ -3660,162 +2963,35 @@ function drawResults() {
 }
 
 function drawTopHUD() {
+  if (!showLeaderboards) return;
   push();
-  // DÝCHÁNÍ UI (Anti-ban mikropohyb, oživuje statický HUD)
   let breathY = sin(frameCount * 0.02) * 2.5;
   translate(0, breathY);
   
-  // CHROMA KEY pozadí - plně zelené pro průhlednost v OBS
-  fill(0, 255, 0);
-  noStroke(); 
-  rect(0, -10, W, ARENA_TOP + 30); // Zvětšeno kvůli posunu nahoru/dolů
-
-  if (!showLeaderboards) {
-      pop(); 
-      return;
-  }
-
-  // ALL TIME HP
-  let allTimeSorted = Object.entries(allTimeHpLeaderboard).sort((a,b) => b[1].score - a[1].score).slice(0, 20); // Zvětšeno na 20 pro rolování
-  allTimeLbRect = {x: 10, y: HUD_TOP + 5, w: 150, h: 20}; 
+  // Zjednodušený HUD - pouze TOP 5 aktuálních hráčů podle HP
+  let sortedPlayers = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 5);
   
-  let hoverHp = mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h;
   textAlign(LEFT, TOP);
-  fill(hoverHp ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
-  text(currentLang === "CZ" ? "SÍŇ SLÁVY" : "HALL OF FAME", 15, HUD_TOP + 5); 
+  fill(roundThemeColor); textSize(16); textStyle(BOLD); 
+  text(currentLang === "CZ" ? "TOP 5 HRÁČŮ" : "TOP 5 PLAYERS", 15, HUD_TOP + 5); 
   
   textStyle(NORMAL); textSize(14);
-  // Vykreslení prvních 2 fixně
-  for(let i=0; i<Math.min(2, allTimeSorted.length); i++) {
-      let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*26; let xBase = 15;
-      let currAv = userAvatars[pName] || pData.avatar;
+  for(let i=0; i < sortedPlayers.length; i++) {
+      let p = sortedPlayers[i]; 
+      let y = HUD_TOP + 30 + i*28; let xBase = 15;
+      let currAv = userAvatars[p.name] || p.avatar;
       
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
-      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
-      else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
+      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 12, y + 12, 12, 0, TWO_PI); drawingContext.clip();
+      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 12, y + 12, 24, 24); } 
+      else { fill(p.color); ellipse(xBase + 12, y + 12, 24, 24); }
       drawingContext.restore();
-      noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
-
-      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
-  }
-
-  // Rolování od 3 do 20 (index 2+)
-  if (allTimeSorted.length > 2) {
-      let numExtra = allTimeSorted.length - 2; let scrollYBase = HUD_TOP + 28 + 2*26; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(10, scrollYBase - 2, 200, 50); drawingContext.clip();
-      let itemH = 26; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
       
-      for(let i=0; i<numExtra * 2; i++) { 
-          let idx = 2 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 15;
-          let currAv = userAvatars[pName] || pData.avatar;
-          
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
-          if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
-          else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-          drawingContext.restore();
-          noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
+      noFill(); stroke(p.color); strokeWeight(2); ellipse(xBase + 12, y + 12, 24, 24); noStroke();
 
-          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(pData.score).toLocaleString(), xBase + 185, y + 2); textStyle(NORMAL);
-      }
-      drawingContext.restore();
+      textAlign(LEFT, TOP); fill(p.color); textStyle(BOLD); text(`${i+1}. ${p.name.substring(0,8)}`, xBase + 32, y + 4);
+      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(Math.floor(p.hp).toLocaleString(), xBase + 200, y + 4); textStyle(NORMAL);
   }
-  
-  // TOP GIFTERS (3 fixní, od 4. roluje)
-  let allGiftsSorted = Object.entries(allTimeGifts).sort((a,b) => b[1].score - a[1].score).slice(0, 20);
-  giftLbRect = {x: 285, y: HUD_TOP + 5, w: 150, h: 20}; 
-  
-  let hoverGift = mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h;
-  textAlign(CENTER, TOP); fill(hoverGift ? color(255, 50, 50) : color(255, 215, 0)); textSize(14); textStyle(BOLD);
-  text(currentLang === "CZ" ? "TOP SPONZOŘI" : "TOP SPONSORS", W/2, HUD_TOP + 5);
-  
-  textStyle(NORMAL); textSize(14);
-  for(let i=0; i<Math.min(3, allGiftsSorted.length); i++) {
-      let gName = allGiftsSorted[i][0]; let gData = allGiftsSorted[i][1]; 
-      let xBase = 265; let y = HUD_TOP + 28 + i * 26; 
-      
-      let currAv = userAvatars[gName] || gData.avatar;
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
-      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
-      else { fill(gData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-      drawingContext.restore();
-      noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
-
-      textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
-      
-      let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-      textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
-  }
-
-  if (allGiftsSorted.length > 3) {
-      let numExtra = allGiftsSorted.length - 3; let scrollYBase = HUD_TOP + 28 + 3*26; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(260, scrollYBase - 2, 200, 28); drawingContext.clip();
-      let itemH = 26; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
-      
-      for(let i=0; i<numExtra * 2; i++) { 
-          let idx = 3 + (i % numExtra); let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 265;
-          let currAv = userAvatars[gName] || gData.avatar;
-          
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
-          if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
-          else { fill(gData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-          drawingContext.restore();
-          noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
-
-          textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
-          
-          let giftEmoji = gData.lastGiftDiam === 1 ? '🌹' : (gData.lastGiftDiam >= 1000 ? '🚀' : '💎');
-          textAlign(RIGHT, TOP); fill(255, 215, 0); textStyle(BOLD); text(gData.score.toLocaleString() + giftEmoji, xBase + 190, y + 2); textStyle(NORMAL);
-      }
-      drawingContext.restore();
-  }
-
-  // TOP BOJOVNICI
-  let allKillsSorted = Object.entries(allTimeKills).sort((a,b) => b[1].score - a[1].score).slice(0, 30);
-  killsLbRect = {x: 520, y: HUD_TOP + 5, w: 150, h: 20}; 
-  
-  let hoverKills = mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h;
-  textAlign(LEFT, TOP); fill(hoverKills ? color(255, 50, 50) : roundThemeColor); textSize(14); textStyle(BOLD); 
-  text(currentLang === "CZ" ? "ELITNÍ STÍHAČI" : "ELITE PILOTS", 515, HUD_TOP + 5); 
-  
-  textStyle(NORMAL); textSize(14);
-  for(let i=0; i<Math.min(2, allKillsSorted.length); i++) {
-      let pName = allKillsSorted[i][0]; let pData = allKillsSorted[i][1]; let y = HUD_TOP + 28 + i*26; let xBase = 515;
-      let currAv = userAvatars[pName] || pData.avatar;
-
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
-      if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
-      else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-      drawingContext.restore();
-      noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
-
-      textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-      textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
-  }
-
-  if (allKillsSorted.length > 2) {
-      let numExtra = allKillsSorted.length - 2; let scrollYBase = HUD_TOP + 28 + 2*26; 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.rect(510, scrollYBase - 2, 200, 50); drawingContext.clip();
-      let itemH = 26; let totalExtraH = numExtra * itemH; let scrollPos = (frameCount * 0.4) % totalExtraH; 
-      
-      for(let i=0; i<numExtra * 2; i++) { 
-          let idx = 2 + (i % numExtra); let pName = allKillsSorted[idx][0]; let pData = allKillsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 515;
-          let currAv = userAvatars[pName] || pData.avatar;
-          
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
-          if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
-          else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-          drawingContext.restore();
-          noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
-
-          textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
-          textAlign(RIGHT, TOP); fill(255); textStyle(BOLD); text(pData.score + " 💥", xBase + 185, y + 2); textStyle(NORMAL);
-      }
-      drawingContext.restore();
-  }
-  
-  pop(); // Ukončení breathing efektu
+  pop();
 }
 
 function handleTTSCommentary() {
@@ -3835,17 +3011,8 @@ function draw() {
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
   
-  // CHROMA KEY PRO HORNÍ A SPODNÍ ČÁST S ANTI-BAN POHYBEM
-  background(0, 255, 0);
-  
-  // POKROČILÝ ANTI-BAN ŠUM (Neviditelný pro diváka v OBS, ale matoucí pro TikTok boty)
-  fill(0, 252, 0);
-  noStroke();
-  for(let i=0; i<20; i++) {
-      let nx = (noise(frameCount * 0.01 + i * 10) * W * 1.5) % W;
-      let ny = (noise(frameCount * 0.01 + i * 20 + 100) * H * 1.5) % H;
-      rect(nx, ny, 10 + (i%5)*10, 10 + (i%5)*10);
-  }
+  // Vrať zpět tmavé vesmírné pozadí
+  background(dynamicBg);
   
   push();
   // Oříznutí pouze na herní plochu
@@ -3859,28 +3026,7 @@ function draw() {
   drawSpaceBackground();
   
   pop(); // Konec oříznutí
-  handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
-
-  // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
-  push();
-  let pulseAlpha = map(sin(frameCount * 0.015), -1, 1, 15, 70); // O něco jasnější
-  textAlign(CENTER, TOP);
-  textSize(54); // Mírně větší a údernější text
-  textStyle(BOLD);
-  
-  // Neonový zářivý efekt s dvojitým vykreslením
-  drawingContext.shadowBlur = 20;
-  drawingContext.shadowColor = color(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
-  
-  fill(0, pulseAlpha); // Tmavší jádro
-  stroke(red(roundThemeColor), green(roundThemeColor), blue(roundThemeColor), pulseAlpha);
-  strokeWeight(4); // Silný barevný obrys
-  text(GAME_TITLE, W/2, ARENA_TOP + 80); // Posunuto mírně nahoru
-  
-  noStroke();
-  fill(255, 255, 255, pulseAlpha * 0.7); // Bílý světlejší prostředek
-  text(GAME_TITLE, W/2, ARENA_TOP + 80); 
-  pop();
+  // Text GALAXINKO WARS zahozen podle požadavku
 
   drawTopHUD();
 
@@ -3889,11 +3035,6 @@ function draw() {
       topGifterBannerTimer--;
       
       push();
-      // CHROMA KEY pozadí - plně zelené pro průhlednost v OBS
-      fill(0, 255, 0);
-      noStroke();
-      rect(0, ARENA_BOT, W, H - ARENA_BOT);
-
       let barW = W - 80;
       let barH = 44;
       let barX = 40; 
@@ -3920,8 +3061,6 @@ function draw() {
       fill(255); textAlign(RIGHT, CENTER);
       text(topGifter.name + " (" + topGifter.coins + " 💎)", barX + barW - 30, barY + barH / 2);
       pop();
-  } else {
-      drawNotifications(); 
   }
 
   drawChatCommands();
@@ -3988,17 +3127,11 @@ function draw() {
     }
     
     // Plynulé doznívání třesu obrazovky
-    if (screenShake > 0) {
-        screenShake *= 0.9;
-        if (screenShake < 0.5) screenShake = 0;
-    }
+    screenShake = 0;
     
     push();
     translate(W/2, (ARENA_TOP + ARENA_BOT)/2);
     scale(cameraScale);
-    if (screenShake > 0) {
-        translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
-    }
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
     if(players.length < 50) { drawDeathShockwaves(); }
@@ -4286,7 +3419,8 @@ function connectTikfinity() {
           let p = players.find(x => x.name === u);
           if (p) {
               if (p.isZombie) reviveZombie(p); // Oživení při liku
-              p.hp += likesCount * 2;
+              p.hp += likesCount * 1; // Pomalý zisk HP za like
+              p.sawTimer = 300;
           } else {
               handleAction(u, likesCount * 2, false, 0, true);
           }
@@ -4350,6 +3484,7 @@ function connectTikfinity() {
           let p = players.find(x => x.name === u);
           
           if (p) {
+              p.sawTimer = 300;
               // Legenda status
               if (comboMult >= 3 && !p.isLegendary) {
                   p.isLegendary = true;
@@ -4459,23 +3594,6 @@ function mousePressed() {
       return;
   }
 
-  if (showLeaderboards) {
-      if (mouseX > allTimeLbRect.x && mouseX < allTimeLbRect.x + allTimeLbRect.w && mouseY > allTimeLbRect.y && mouseY < allTimeLbRect.y + allTimeLbRect.h) { 
-          allTimeHpLeaderboard = {}; 
-          localStorage.removeItem('galaxinko_alltime_hp');
-          safePlaySound(pentatonic('mid'), 0.04, 0.3); 
-      }
-          if (mouseX > giftLbRect.x && mouseX < giftLbRect.x + giftLbRect.w && mouseY > giftLbRect.y && mouseY < giftLbRect.y + giftLbRect.h) { 
-              allTimeGifts = {}; 
-              localStorage.removeItem('galaxinko_alltime_gifts');
-              safePlaySound(pentatonic('mid'), 0.04, 0.3); 
-          }
-          if (mouseX > killsLbRect.x && mouseX < killsLbRect.x + killsLbRect.w && mouseY > killsLbRect.y && mouseY < killsLbRect.y + killsLbRect.h) { 
-              allTimeKills = {}; 
-              localStorage.removeItem('galaxinko_alltime_kills');
-              safePlaySound(pentatonic('mid'), 0.04, 0.3); 
-          }
-  }
 }
 </script>
 </body>
