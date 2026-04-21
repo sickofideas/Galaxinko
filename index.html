@@ -649,6 +649,8 @@ let cameraScale = 1.6;
 let targetCameraScale = 1.6;
 let audioStarted = false;
 let synth;
+let sawSoundOsc = null;
+let sawSoundGain = null;
 
 let nextCommentTime = 0;
 let humanPauseEnd = 0;
@@ -1022,8 +1024,8 @@ function formatTikTokHP(hp) {
 }
 
 function getRadius(hp) { 
-    // Menší koule (počáteční velikost), pomalý růst podle TikTok zadání
-    return Math.min(18 + Math.sqrt(Math.max(0, hp || 0)) * 0.4, 140); 
+    // Větší koule jako na Nolann screenshotu
+    return Math.min(28 + Math.sqrt(Math.max(0, hp || 0)) * 0.65, 180); 
 }
 
 // ==========================================
@@ -2436,17 +2438,34 @@ function drawPlayer(p) {
   }
   ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
 
-  // SAW BLADE pro speciální hráče
+  // SAW BLADE pro speciální hráče (krásná polygonová pila)
   if (p.sawTimer > 0) {
       push();
       translate(p.body.position.x, p.body.position.y);
-      rotate(frameCount * 0.08);
-      stroke(255, 240, 0);
-      strokeWeight(4);
-      for(let i = 0; i < 12; i++) {
-          rotate(TWO_PI/12);
-          line(p.r*1.1, 0, p.r*1.4, 0);
+      rotate(frameCount * 0.06);
+      let sawR = p.r * 1.25;
+      let innerR = p.r * 1.05;
+      let teeth = 18;
+      // Vykreslení ozubeného kruhu
+      fill(180, 180, 180, 200);
+      stroke(220, 220, 220);
+      strokeWeight(2);
+      beginShape();
+      for (let i = 0; i < teeth; i++) {
+          let a1 = (TWO_PI / teeth) * i;
+          let a2 = a1 + (TWO_PI / teeth) * 0.35;
+          let a3 = a1 + (TWO_PI / teeth) * 0.5;
+          let a4 = a1 + (TWO_PI / teeth) * 0.65;
+          vertex(cos(a1) * innerR, sin(a1) * innerR);
+          vertex(cos(a2) * sawR, sin(a2) * sawR);
+          vertex(cos(a3) * sawR, sin(a3) * sawR);
+          vertex(cos(a4) * innerR, sin(a4) * innerR);
       }
+      endShape(CLOSE);
+      // Středový kruh (díra v pile)
+      fill(100, 100, 100, 180);
+      noStroke();
+      ellipse(0, 0, p.r * 0.3, p.r * 0.3);
       pop();
       p.sawTimer--;
   }
@@ -3141,6 +3160,44 @@ function draw() {
     });
     sortedToDraw.forEach(p => drawPlayer(p));
     
+    // Saw sound management - zvuk řezání cirkulárky
+    let anySaw = players.some(p => p.sawTimer > 0);
+    if (anySaw && audioStarted) {
+        if (!sawSoundOsc) {
+            try {
+                let ctx = getAudioContext();
+                sawSoundOsc = ctx.createOscillator();
+                sawSoundGain = ctx.createGain();
+                sawSoundOsc.type = 'sawtooth';
+                sawSoundOsc.frequency.setValueAtTime(120, ctx.currentTime);
+                sawSoundGain.gain.setValueAtTime(0, ctx.currentTime);
+                sawSoundGain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.3);
+                sawSoundOsc.connect(sawSoundGain);
+                sawSoundGain.connect(ctx.destination);
+                sawSoundOsc.start();
+                // Jemná modulace frekvence pro realistický efekt řezání
+                let lfo = ctx.createOscillator();
+                let lfoGain = ctx.createGain();
+                lfo.frequency.setValueAtTime(8, ctx.currentTime);
+                lfoGain.gain.setValueAtTime(15, ctx.currentTime);
+                lfo.connect(lfoGain);
+                lfoGain.connect(sawSoundOsc.frequency);
+                lfo.start();
+                sawSoundOsc._lfo = lfo;
+            } catch(e) {}
+        }
+    } else if (sawSoundOsc) {
+        try {
+            let ctx = getAudioContext();
+            sawSoundGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+            let oldOsc = sawSoundOsc;
+            let oldLfo = sawSoundOsc._lfo;
+            setTimeout(() => { try { oldOsc.stop(); if(oldLfo) oldLfo.stop(); } catch(e){} }, 300);
+            sawSoundOsc = null;
+            sawSoundGain = null;
+        } catch(e) { sawSoundOsc = null; sawSoundGain = null; }
+    }
+
     if (particles.length > 80) particles.splice(0, particles.length - 80);
     if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
     
