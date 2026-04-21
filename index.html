@@ -748,12 +748,12 @@ function playChatSound() {
 }
 
 function getStartingHp(name) {
-    if (previousRoundGifts[name] && previousRoundGifts[name].score >= 1) return 500;
+    if (previousRoundGifts[name] && previousRoundGifts[name].score >= 1) return 700;
     let idx = previousTop10.indexOf(name);
-    if (idx === 0) return 300;
-    if (idx === 1) return 240;
-    if (idx === 2) return 200;
-    return 150;
+    if (idx === 0) return 600;
+    if (idx === 1) return 550;
+    if (idx === 2) return 520;
+    return 500;
 }
 
 function setup() {
@@ -1024,8 +1024,14 @@ function formatTikTokHP(hp) {
 }
 
 function getRadius(hp) { 
-    // Větší koule jako na Nolann screenshotu
-    return Math.min(28 + Math.sqrt(Math.max(0, hp || 0)) * 0.65, 180); 
+    // Větší koule jako na Nolann screenshotu, pod 500 HP se jemně zmenšují
+    let baseR = 28 + Math.sqrt(Math.max(0, hp || 0)) * 0.65;
+    // Jemné zmenšení pod 500 HP (min. 70% základní velikosti)
+    if (hp < 500) {
+        let shrink = 0.7 + 0.3 * (Math.max(0, hp) / 500);
+        baseR *= shrink;
+    }
+    return Math.min(baseR, 180); 
 }
 
 // ==========================================
@@ -1857,87 +1863,37 @@ function screenToWorld(sx, sy) {
 
 function drawSpaceshipTimer() {
     if (maxRoundTimer <= 0) return;
-    let isHeavyLoad = players.length > 40;
     
     let p = 1.0 - (roundTimerFrames / (maxRoundTimer * 60)); 
-    p = constrain(p, 0, 1.0); // Ochrana proti couvnuti za start při extrémním prodloužení kola
-    let aH = ARENA_BOT - ARENA_TOP;
-    let perim = 2 * W + 2 * aH;
-    let currentDist = p * perim;
+    p = constrain(p, 0, 1.0);
     
-    stroke(roundThemeColor); strokeWeight(3);
-    if(!isHeavyLoad) { drawingContext.shadowBlur = 10; drawingContext.shadowColor = roundThemeColor; }
+    // Nolann styl: tenký horizontální progress bar nahoře uprostřed
+    let barW = 200;
+    let barH = 6;
+    let bx = (W - barW) / 2;
+    let by = 22;
     
-    let points = [ 
-        {x: W/2, y: ARENA_TOP}, 
-        {x: W, y: ARENA_TOP}, 
-        {x: W, y: ARENA_BOT}, 
-        {x: 0, y: ARENA_BOT}, 
-        {x: 0, y: ARENA_TOP},
-        {x: W/2, y: ARENA_TOP} 
-    ];
-    
-    let d = 0; let shipAngle = 0; shipX = points[0].x; shipY = points[0].y;
-
-    for (let i = 0; i < points.length - 1; i++) {
-        let p1 = points[i]; let p2 = points[i+1]; let segLen = dist(p1.x, p1.y, p2.x, p2.y);
-        if (currentDist > d + segLen) {
-            line(p1.x, p1.y, p2.x, p2.y); d += segLen;
-        } else {
-            let t = (currentDist - d) / segLen;
-            shipX = lerp(p1.x, p2.x, t); shipY = lerp(p1.y, p2.y, t);
-            line(p1.x, p1.y, shipX, shipY);
-            shipAngle = atan2(p2.y - p1.y, p2.x - p1.x);
-            break;
-        }
-    }
-    if(!isHeavyLoad) drawingContext.shadowBlur = 0;
-
-    push(); translate(shipX, shipY); rotate(shipAngle);
-    
-    fill(255, 100, 0, 150 + sin(frameCount * 0.5) * 100);
+    // Podkladový tmavý bar
+    fill(40, 40, 40, 200);
     noStroke();
-    triangle(-20, -6, -20, 6, -35 - random(10), 0);
-    fill(255, 200, 0);
-    triangle(-20, -3, -20, 3, -28 - random(5), 0);
+    rect(bx, by, barW, barH, 3);
     
-    fill(100, 150, 255); stroke(0, 255, 255); strokeWeight(1);
-    triangle(-10, 10, -20, 20, 5, 10);
-    triangle(-10, -10, -20, -20, 5, -10);
+    // Zelený progress (zmenšuje se)
+    let remaining = 1 - p;
+    let barColor;
+    if (remaining > 0.5) barColor = color(80, 220, 80);
+    else if (remaining > 0.2) barColor = color(255, 200, 50);
+    else barColor = color(255, 50, 50);
     
-    fill(220, 220, 255); stroke(0, 255, 255); strokeWeight(2);
-    beginShape();
-    vertex(20, 0); vertex(5, 10); vertex(-20, 8); vertex(-20, -8); vertex(5, -10);
-    endShape(CLOSE);
+    fill(barColor);
+    rect(bx, by, barW * remaining, barH, 3);
     
-    fill(0, 200, 255); noStroke(); ellipse(5, 0, 10, 6);
-    fill(255); ellipse(7, -1, 3, 2);
-    
-    pop();
-
-    if (frameCount % 4 === 0 && roundTimerFrames > 0 && !isHeavyLoad) {
-        let wPos = screenToWorld(shipX, shipY);
-        particles.push({x: wPos.x, y: wPos.y, vx: -cos(shipAngle)*3 + random(-1,1), vy: -sin(shipAngle)*3 + random(-1,1), life: 200, c: roundThemeColor, size: random(4, 8)});
-    }
-    
-    // Časomíra vedle raketky
-    let timeStr = nf(floor(roundTimer/60),2) + ":" + nf(roundTimer%60,2);
-    push();
-    translate(shipX, shipY);
-    let dirX = (W/2) - shipX;
-    let dirY = ((ARENA_TOP+ARENA_BOT)/2) - shipY;
-    let len = dist(0, 0, dirX, dirY);
-    if (len > 0) {
-        dirX = (dirX / len) * 35;
-        dirY = (dirY / len) * 35;
-    }
-    
-    fill(100, 255, 100);
-    if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
-    textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
-    drawingContext.shadowBlur = 5; drawingContext.shadowColor = color(0);
-    text(timeStr, dirX, dirY);
-    pop();
+    // Čas text vpravo od baru
+    let timeStr = nf(floor(roundTimer / 60), 1) + ":" + nf(roundTimer % 60, 2);
+    fill(200, 200, 200);
+    noStroke();
+    textSize(11); textStyle(BOLD); textAlign(LEFT, CENTER);
+    text(timeStr, bx + barW + 8, by + barH / 2);
 }
 
 function addNotification(type, name, img, extra = "", isMegaLike = false) {
@@ -2274,93 +2230,13 @@ function handleBackgroundObjects(baseSpeed) {
 
 
 function drawSpaceBackground() {
-  flowTime += 0.0008;
-  globalFlowAngle = sin(flowTime) * 0.25;
-  
-  let isExtremeLoad = players.length > 30;
-  let starLimit = isExtremeLoad ? stars.length / 3 : stars.length;
-  for(let i=0; i<starLimit; i++) {
+  // Statické hvězdy - žádný pohyb, žádné komety (Nolann styl)
+  noStroke();
+  for(let i=0; i<stars.length; i++) {
     let s = stars[i];
-    if (s.baseX === undefined) { s.baseX = s.x; s.baseY = s.y; }
-
-    let currentAlpha = s.baseAlpha;
-    if (s.isPulsing && !isExtremeLoad) {
-        currentAlpha = (s.baseAlpha * 0.5) + sin(frameCount * s.pulseSpeed + s.pulsePhase) * (s.baseAlpha * 0.5);
-    }
-    fill(s.rC, s.gC, s.bC, currentAlpha);
-    
-    // ANTI-DETECT: Hvězdy se neposouvají nekonečně, ale pouze vibrují kolem svého základu
-    s.x = s.baseX + sin(frameCount * 0.05 + s.y) * 1.5;
-    s.y = s.baseY + cos(frameCount * 0.04 + s.x) * 1.5;
-
+    fill(200, 200, 200, s.baseAlpha || 150);
     rect(s.x, s.y, s.s, s.s);
   }
-
-  // ZAKÁZÁNO dle požadavku: Vesmír bez planet a objektů
-  // drawingContext.save();
-  // handleBackgroundObjects(baseScrollSpeed);
-  // drawingContext.restore();
-
-  if (random() < 0.04) { 
-      let side = Math.floor(random(4));
-      let sx, sy, svx, svy;
-      
-      if (side === 0) { sx = random(-W, W*2); sy = -H; svx = random(-20, 20); svy = random(20, 50); }
-      else if (side === 1) { sx = random(-W, W*2); sy = H*2; svx = random(-20, 20); svy = random(-50, -20); }
-      else if (side === 2) { sx = -W; sy = random(-H, H*2); svx = random(20, 50); svy = random(-20, 20); }
-      else { sx = W*2; sy = random(-H, H*2); svx = random(-50, -20); svy = random(-20, 20); }
-      
-      shootingStars.push({
-          x: sx, y: sy, 
-          vx: svx, vy: svy, 
-          life: 255, length: random(40, 150),
-          thick: random(1, 4)
-      });
-  }
-
-  for (let i = shootingStars.length - 1; i >= 0; i--) {
-      let s = shootingStars[i];
-      stroke(255, 255, 255, s.life); strokeWeight(s.thick);
-      line(s.x, s.y, s.x - s.vx * (s.length/20), s.y - s.vy * (s.length/20));
-      s.x += s.vx; s.y += s.vy; 
-      s.life -= 4; 
-      
-      // 3. Detekce nárazu do hráčů
-      let hit = false;
-      for (let p of players) {
-          let d = dist(s.x, s.y, p.body.position.x, p.body.position.y);
-          
-          // OPRAVA 1: Větší hitbox (o 20px), aby rychlé hvězdy neproletěly skrz hráče bez detekce
-          let sSize = s.size || s.thick || 5; 
-          if (d < p.r + sSize + 20) { 
-              
-              let speedMag = dist(0, 0, s.vx, s.vy);
-              let dirX = s.vx / speedMag;
-              let dirY = s.vy / speedMag;
-              
-              // Zvýšená síla pro výraznější odhození hráče (bez exploze)
-              let pushForce = 0.006 * p.body.mass; 
-              
-              Matter.Body.applyForce(p.body, p.body.position, {
-                  x: dirX * pushForce,
-                  y: dirY * pushForce
-              });
-
-              hit = true;
-              break; 
-          }
-      }
-
-      if (hit) {
-          shootingStars.splice(i, 1);
-          continue;
-      }
-
-      if (s.life <= 0 || s.x < -W*1.5 || s.x > W*2.5 || s.y < -H*1.5 || s.y > H*2.5) {
-          shootingStars.splice(i, 1);
-      }
-  }
-  noStroke();
 }
 
 function drawDeathShockwaves() {
@@ -2438,7 +2314,7 @@ function drawPlayer(p) {
   }
   ellipse(p.body.position.x, p.body.position.y, p.r*2, p.r*2);
 
-  // SAW BLADE pro speciální hráče (krásná polygonová pila)
+  // SAW BLADE pro speciální hráče (krásná polygonová pila s barvou podle HP)
   if (p.sawTimer > 0) {
       push();
       translate(p.body.position.x, p.body.position.y);
@@ -2446,9 +2322,18 @@ function drawPlayer(p) {
       let sawR = p.r * 1.25;
       let innerR = p.r * 1.05;
       let teeth = 18;
+      // Barva pily podle HP tierů (po tisících)
+      let sawCol;
+      if (p.hp >= 10000) sawCol = color(255, 50, 50);       // 10K+ = červená
+      else if (p.hp >= 7000) sawCol = color(255, 100, 255);  // 7K+ = růžová
+      else if (p.hp >= 5000) sawCol = color(255, 215, 0);    // 5K+ = zlatá
+      else if (p.hp >= 3000) sawCol = color(0, 200, 255);    // 3K+ = modrá
+      else if (p.hp >= 2000) sawCol = color(100, 255, 100);  // 2K+ = zelená
+      else if (p.hp >= 1000) sawCol = color(255, 200, 100);  // 1K+ = oranžová
+      else sawCol = color(200, 200, 200);                     // pod 1K = šedá
       // Vykreslení ozubeného kruhu
-      fill(180, 180, 180, 200);
-      stroke(220, 220, 220);
+      fill(red(sawCol), green(sawCol), blue(sawCol), 200);
+      stroke(255, 255, 255, 180);
       strokeWeight(2);
       beginShape();
       for (let i = 0; i < teeth; i++) {
@@ -2463,7 +2348,7 @@ function drawPlayer(p) {
       }
       endShape(CLOSE);
       // Středový kruh (díra v pile)
-      fill(100, 100, 100, 180);
+      fill(red(sawCol) * 0.4, green(sawCol) * 0.4, blue(sawCol) * 0.4, 180);
       noStroke();
       ellipse(0, 0, p.r * 0.3, p.r * 0.3);
       pop();
