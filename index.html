@@ -3910,7 +3910,7 @@ function draw() {
   // MOTION BLUR (Epické světelné stopy zadarmo místo tvrdého smazání obrazovky)
   fill(0, 30, 10, 100); // 100 alpha = poloviční smazání minulého snímku = šmouhy
   rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
-  drawSpaceBackground();
+  // drawSpaceBackground(); // VYPNUTO KVŮLI DAYZ POZADÍ
   
   pop(); // Konec oříznutí
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
