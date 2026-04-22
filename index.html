@@ -16,10 +16,10 @@
       height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive;
     }
     #game-container {
-      position: relative; width: 720px; height: 1280px;
+      position: relative; width: 1080px; height: 1920px;
       box-shadow: none;
       transform-origin: top left;
-      transform: scale(min(window.innerHeight / 1280, window.innerWidth / 720));
+      transform: scale(min(window.innerHeight / 1920, window.innerWidth / 1080));
       background: #00FF00;
     }
     canvas { display: block; }
@@ -63,11 +63,11 @@
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
 var GAME_VERSION = "v19.59.0"; // Melodický zvukový systém (pentatonická stupnice) + zpomalení kuliček + auto-dismiss notifikací
-var W = 720;
-var H = 1280;
-var HUD_TOP = 50;  
-var ARENA_TOP = 180; 
-var ARENA_BOT = 900; 
+var W = 1080;
+var H = 1920;
+var HUD_TOP = 75;  
+var ARENA_TOP = 270; 
+var ARENA_BOT = 1350; 
 
 // Theme variables
 var roundThemeColor;
