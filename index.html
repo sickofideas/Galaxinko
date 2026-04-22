@@ -3358,15 +3358,6 @@ function updateTimers() {
           }
       }
       
-      // 2. DAŇ Z VELIKOSTI (Gravitační rozpad)
-      if (frameCount % 60 === 0 && p.hp > 2000 && !p.hasCrown && !p.isZombie) {
-          let isExtremeLoad = players.length > 60;
-          let decay = Math.floor(p.hp * 0.015); // Ztrácí 1.5 % ze své velikosti KAŽDOU VTEŘINU
-          p.hp -= decay;
-          if (!isExtremeLoad) {
-              addPopup("-" + decay + " GRAVITY", p.body.position.x, p.body.position.y, color(150, 150, 150));
-          }
-      }
   }
   
   if (gameState === "PLAYING") {
