@@ -736,6 +736,14 @@ const TIKFINITY_URL = "ws://localhost:21213/";
 let socket;
 const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch", "Cosmos", "Apollo"];
 
+// --- IDLE / SCREENSAVER MODE SYSTÉM ---
+let lastRealInteractionTime = Date.now();
+let isIdleMode = false;
+let nextBotSpawnTime = 0;
+const MAX_IDLE_BOTS = 18;
+const BOT_ADJ = ["Dark", "Cosmic", "Neon", "Super", "Mega", "Cyber", "Ultra", "Space", "Star", "Void", "Galactic", "Epic", "Turbo"];
+const BOT_NOUNS = ["Knight", "Doge", "Ranger", "Warrior", "Pilot", "Bot", "User", "Runner", "Hunter", "Ghost", "Titan", "Nova"];
+
 // --- PENTATONICKÁ STUPNICE (Vždy zní příjemně a harmonicky) ---
 var PENTA_NOTES = [
     261.63, 293.66, 329.63, 392.00, 440.00,  // C4, D4, E4, G4, A4
@@ -942,14 +950,8 @@ function startNewRound() {
       spawnPlayer(zName, 50, false, 0, true); // true = isZombie, menší HP = menší koule
   }
 
-      // --- VÁŽENÝ ČASOVAČ KOLA (AGRESIVNÍ MONETIZACE) ---
-      if (random() < 0.85) {
-          // 85% šance na extrémně rychlé kolo (3 až 5 minut)
-          roundTimer = floor(random(180, 301));
-      } else {
-          // 15% šance na "delší" kolo (5 až 8 minut)
-          roundTimer = floor(random(301, 481));
-      }
+      // Náhodná délka kola mezi 10 a 15 minutami
+      roundTimer = floor(random(600, 901));
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
   roundTimerPause = 0;
@@ -1083,6 +1085,36 @@ function formatK(num) {
 function getRadius(hp) { 
     // Ještě o kousek menší koule pro lepší plynulost v aréně
     return Math.min(15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7, 130); 
+}
+
+function spawnIdleBot() {
+    let name = random(BOT_ADJ) + random(BOT_NOUNS) + floor(random(10, 9999));
+    let baseHp = 150 + floor(random(0, 100));
+    spawnPlayer(name, baseHp, false, 0, false, 1, true); // true = isBot
+}
+
+function drawBotFace(x, y, r) {
+    push();
+    translate(x, y);
+    // Sklo helmy (kosmonaut styl)
+    fill(20, 20, 40, 200);
+    stroke(255, 100);
+    strokeWeight(1);
+    ellipse(0, -r * 0.1, r * 1.4, r * 1.0);
+    
+    // Odlesk na skle
+    noStroke();
+    fill(255, 80);
+    ellipse(-r * 0.3, -r * 0.3, r * 0.3, r * 0.15);
+    
+    // Jednoduché anténky nebo detaily
+    stroke(255, 150);
+    strokeWeight(2);
+    line(-r * 0.5, -r * 0.7, -r * 0.7, -r * 1.0);
+    fill(255, 0, 0);
+    noStroke();
+    ellipse(-r * 0.7, -r * 1.0, 4, 4);
+    pop();
 }
 
 // ==========================================
@@ -1238,6 +1270,9 @@ function reviveZombie(p) {
 function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true, comboMult = 1) {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
+  // RESET IDLE TIMERU PŘI REÁLNÉ AKCI
+  lastRealInteractionTime = millis();
+  
   let finalAmount = amount;
   if (isGift) {
       if (diam >= 5000) finalAmount = diam * 2800 * comboMult;
@@ -1261,7 +1296,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   }
 }
 
-function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1) {
+function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false) {
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -1295,7 +1330,8 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
   spawnModules.push({
       name: name, hp: safeHp, x: wPos.x, y: wPos.y, targetX: bestX, targetY: bestY,
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
-      life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie, comboMult: comboMult
+      life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie, comboMult: comboMult,
+      isBot: isBot
   });
       safePlaySound(pentatonic('high'), 0.008, 0.15);
 }
@@ -1313,13 +1349,13 @@ function handleSpawnModules() {
         pop();
         
         if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
-            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie, m.comboMult);
+            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie, m.comboMult, m.isBot);
             spawnModules.splice(i, 1);
         }
     }
 }
 
-function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false, comboMult = 1) {
+function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false) {
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
@@ -1339,7 +1375,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     immunityTimer: 0, hasCrown: false, boostCooldown: 0, shieldCooldown: 0, attackCooldown: 0, isBounty: false,
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
-    avatarAlpha: 255
+    avatarAlpha: 255, isBot: isBot
   };
   
   body.playerData = player;
@@ -2256,6 +2292,15 @@ function handleCameraAndPlayers() {
     p.noiseOffsetX += random(0.05, 0.15);
     p.noiseOffsetY += random(0.05, 0.15);
 
+    // --- BOT BEHAVIOR (Chaos movement) ---
+    if (p.isBot && frameCount % 60 === (i % 60)) {
+        let chaosForce = 0.0008 * p.body.mass;
+        Matter.Body.applyForce(p.body, p.body.position, {
+            x: (random() - 0.5) * chaosForce,
+            y: (random() - 0.5) * chaosForce
+        });
+    }
+
     // Žádná ochranná zóna - všichni se rurou do jednoho bodu!
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
@@ -2873,6 +2918,11 @@ function drawPlayer(p) {
   scale(isBuffed ? 1.05 : 1.0);
   rotate(p.rot);
 
+  // 3. BOT FACE (Geometrický avatar pro boty)
+  if (p.isBot) {
+      drawBotFace(0, 0, p.r);
+  }
+
   // Varovné pulzování pro umírající
   if (p.auraFlash > 0 || dangerFactor > 0) {
       let glowAlpha = p.auraFlash > 0 ? p.auraFlash * 15 : 0;
@@ -3116,7 +3166,7 @@ function drawPlayer(p) {
 
   stroke(0); strokeWeight(isExtremeLoad ? 4 : 10); // Menší obrys při zátěži
   fill(txtCol); textStyle(BOLD);
-  textSize(Math.floor(Math.max(22, p.r * 0.6))); // Čísla musí řvát do očí!
+  textSize(Math.floor(Math.max(16, p.r * 0.35))); // Zmenšený text HP, aby nezakrýval celý kruh
   text(Math.floor(safeHp).toLocaleString(), 0, p.r > 20 ? p.r * 0.2 : 0); 
   
   if (p.isLegendary) {
@@ -3416,8 +3466,8 @@ function updateTimers() {
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
           let donorCount = Object.keys(roundGifts).length;
-          maxResultsTimer = Math.min(16, 8 + Math.floor(donorCount / 2));
-          resultsTimer = maxResultsTimer; 
+          maxResultsTimer = 4;
+          resultsTimer = 4; 
           winnerAnnounced = false;
       } 
   }
@@ -3495,7 +3545,7 @@ function updateTimers() {
 
 function drawResults() {
   push();
-  fill(0, 220); 
+  fill(0, 0); // Plně průhledné pozadí na konci kola
   noStroke(); 
   rect(0, 0, W, H);
   pop();
@@ -3507,10 +3557,7 @@ function drawResults() {
   
   if(winner && !winnerAnnounced) {
       winnerAnnounced = true;
-      let wMsg = currentLang === "CZ" ? 
-          `Skvělá práce! Hráč ${winner.name} naprosto ovládl arénu a vyhrává toto kolo!` : 
-          `Great job! Player ${winner.name} absolutely dominated the arena and wins this round!`;
-      speakTTS(wMsg, true);
+      // TTS na konci kola vypnuto na žádost uživatele
   }
 
   let bY = ARENA_TOP + 300; 
@@ -3634,7 +3681,7 @@ function drawResults() {
   fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
   noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 8; resultsTimer = 8; startNewRound(); } } 
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 4; resultsTimer = 4; startNewRound(); } } 
 }
 
 function drawTopHUD() {
@@ -3812,6 +3859,35 @@ function draw() {
   
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
+  
+  // --- IDLE / SCREENSAVER MODE LOGIKA ---
+  let idleThreshold = 90000; // 90 vteřin ticha
+  if (millis() - lastRealInteractionTime > idleThreshold) {
+      if (!isIdleMode) {
+          isIdleMode = true;
+          speakTTS(currentLang === "CZ" ? "Aktivuji úsporný režim arény." : "Activating arena power saving mode.");
+      }
+      
+      // Spawnování botů
+      let botCount = players.filter(p => p.isBot).length;
+      if (botCount < MAX_IDLE_BOTS && millis() > nextBotSpawnTime) {
+          spawnIdleBot();
+          nextBotSpawnTime = millis() + random(2000, 3500);
+      }
+  } else {
+      if (isIdleMode) {
+          isIdleMode = false;
+          // Postupné ničení botů, aby to nevypadalo uměle
+          for (let p of players) {
+              if (p.isBot) {
+                  // Nastavíme jim hp na 0 s náhodným zpožděním (0 až 3s)
+                  setTimeout(((botPlayer) => {
+                      return () => { if(botPlayer) botPlayer.hp = 0; };
+                  })(p), random(100, 3000));
+              }
+          }
+      }
+  }
   
   // CHROMA KEY PRO HORNÍ A SPODNÍ ČÁST S ANTI-BAN POHYBEM
   background(0, 255, 0);
@@ -4173,6 +4249,10 @@ function connectTikfinity() {
     try {
       let d = JSON.parse(e.data); let evt = d?.event || d?.type || ""; let n = d?.data?.nickname || d?.data?.uniqueId || "Anonym";
       if (n === "Anonym") return;
+      
+      // RESET IDLE TIMERU PŘI JAKÉKOLIV AKCI ZE SOCKETU
+      lastRealInteractionTime = millis();
+      
       let u = n.substring(0, 15);
       
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
