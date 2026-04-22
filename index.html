@@ -3889,30 +3889,20 @@ function draw() {
       }
   }
   
-  // CHROMA KEY PRO HORNÍ A SPODNÍ ČÁST S ANTI-BAN POHYBEM
-  background(0, 255, 0);
-  
-  // POKROČILÝ ANTI-BAN ŠUM (Neviditelný pro diváka v OBS, ale matoucí pro TikTok boty)
-  fill(0, 252, 0);
-  noStroke();
-  for(let i=0; i<20; i++) {
-      let nx = (noise(frameCount * 0.01 + i * 10) * W * 1.5) % W;
-      let ny = (noise(frameCount * 0.01 + i * 20 + 100) * H * 1.5) % H;
-      rect(nx, ny, 10 + (i%5)*10, 10 + (i%5)*10);
-  }
-  
+  // --- ČISTÝ CHROMA KEY PRO DAYZ POZADÍ ---
+  background(0, 255, 0); // Dokonale čistá zelená pro OBS klíčování
+
   push();
-  // Oříznutí pouze na herní plochu
+  // Oříznutí pouze na herní plochu arény
   drawingContext.beginPath();
   drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   drawingContext.clip();
-  
-  // MOTION BLUR (Epické světelné stopy zadarmo místo tvrdého smazání obrazovky)
-  fill(0, 30, 10, 100); // 100 alpha = poloviční smazání minulého snímku = šmouhy
+
+  // Čisté poloprůhledné ztmavení, aby kuličky a texty vynikly nad DayZ videem
+  fill(0, 0, 0, 140);
   rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
-  // drawSpaceBackground(); // VYPNUTO KVŮLI DAYZ POZADÍ
   
-  pop(); // Konec oříznutí
+  pop();
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
 
   // --- GALAXINKO WARS PULSUJÍCÍ NÁPIS NA POZADÍ ARÉNY ---
