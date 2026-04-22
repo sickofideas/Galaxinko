@@ -3844,32 +3844,23 @@ function draw() {
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
   
-  // --- IDLE / SCREENSAVER MODE LOGIKA ---
-  let idleThreshold = 90000; // 90 vteřin ticha
-  if (millis() - lastRealInteractionTime > idleThreshold) {
-      if (!isIdleMode) {
-          isIdleMode = true;
-          speakTTS(currentLang === "CZ" ? "Aktivuji úsporný režim arény." : "Activating arena power saving mode.");
-      }
-      
-      // Spawnování botů
-      let botCount = players.filter(p => p.isBot).length;
-      if (botCount < MAX_IDLE_BOTS && millis() > nextBotSpawnTime) {
+  // --- SMART BOT FILLER (Boti jsou v aréně hned a mizejí postupně) ---
+  let realPlayersCount = players.filter(p => !p.isBot && !p.isZombie).length;
+  let botCount = players.filter(p => p.isBot).length;
+
+  // 1. Neustálé doplňování: Udržujeme vždy alespoň 15-18 cílů na ploše
+  if (realPlayersCount < 15 && (realPlayersCount + botCount) < 18) {
+      if (millis() > nextBotSpawnTime) {
           spawnIdleBot();
-          nextBotSpawnTime = millis() + random(2000, 3500);
+          nextBotSpawnTime = millis() + random(2000, 4000);
       }
-  } else {
-      if (isIdleMode) {
-          isIdleMode = false;
-          // Postupné ničení botů, aby to nevypadalo uměle
-          for (let p of players) {
-              if (p.isBot) {
-                  // Nastavíme jim hp na 0 s náhodným zpožděním (0 až 3s)
-                  setTimeout(((botPlayer) => {
-                      return () => { if(botPlayer) botPlayer.hp = 0; };
-                  })(p), random(100, 3000));
-              }
-          }
+  }
+
+  // 2. Postupné mizení: Pokud je reálných hráčů dost (5 a více), každé 3 vteřiny vybuchne jeden bot
+  if (realPlayersCount >= 5 && botCount > 0) {
+      if (frameCount % 180 === 0) { // Každé 3 vteřiny (při 60 FPS)
+          let botToKill = players.find(p => p.isBot);
+          if (botToKill) botToKill.hp = 0; // Plynulé uvolnění místa
       }
   }
   
