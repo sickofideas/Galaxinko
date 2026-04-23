@@ -798,11 +798,8 @@ function playChatSound() {
 }
 
 function getStartingHp(name) {
-    if (previousRoundGifts[name] && previousRoundGifts[name].score >= 1) return 500;
     let idx = previousTop10.indexOf(name);
-    if (idx === 0) return 300;
-    if (idx === 1) return 240;
-    if (idx === 2) return 200;
+    if (idx === 0) return 510; // Bonus 10 HP pro vítěze minulého kola, aby okamžitě převzal Ego Smash
     return 500;
 }
 
@@ -930,7 +927,7 @@ function startNewRound() {
   previousTop10 = [...players].filter(p => !p.isZombie).sort((a,b) => b.hp - a.hp).slice(0, 10).map(p => p.name);
 
   players.forEach(p => Matter.World.remove(world, p.body));
-  let oldPlayers = [...new Set(players.filter(p => !p.isZombie).map(p => p.name))]; // Zombíci se nepřevádí a zabrání se duplikaci hráčů
+  let survivors = players.filter(p => !p.isZombie).map(p => ({ name: p.name, isBot: p.isBot }));
   players = []; orbs = []; screenShake = 0; winnerAnnounced = false; combatQueue = []; deadPlayersQueue = []; spawnModules = [];
   bossPlanets = []; 
   lastValidBossName = null;
@@ -938,10 +935,23 @@ function startNewRound() {
   roundGifts = {}; 
   
   // 1. Spawni aktivní přeživší z minulého kola normálně
-  oldPlayers.forEach(name => spawnPlayer(name, getStartingHp(name))); 
+  survivors.forEach(s => {
+      let hp = s.isBot ? 150 : getStartingHp(s.name);
+      spawnPlayer(s.name, hp, false, 0, false, 1, s.isBot);
+  }); 
+
+  // OKAMŽITÝ EGO SMASH PO RESTARTU: Pokud přežil vítěz minulého kola, hned ho nastavit jako krále
+  if (previousTop10.length > 0) {
+      let topSurvivor = survivors.find(s => s.name === previousTop10[0] && !s.isBot);
+      if (topSurvivor) {
+          lastValidBossName = topSurvivor.name;
+          window.bossLockTimer = millis() + 2000; // Kratší zámek po startu
+      }
+  }
 
   // 2. Spawni ZOMBIES z historie (až 50 skutečných hráčů, co vypadli a dali alespoň 1 like)
-  let availableZombies = Object.keys(userAvatars).filter(u => !oldPlayers.includes(u) && sessionLikes[u] > 0);
+  let survivorNames = survivors.map(s => s.name);
+  let availableZombies = Object.keys(userAvatars).filter(u => !survivorNames.includes(u) && sessionLikes[u] > 0);
   availableZombies.sort(() => 0.5 - random()); // Náhodně zamíchat
   let zombieCount = Math.min(floor(random(5, 51)), availableZombies.length);
   
