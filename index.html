@@ -4341,14 +4341,8 @@ function connectTikfinity() {
           pendingLikes[u].count += likesCount;
           pendingLikes[u].lastUpdate = millis();
 
-          // Plynulé přidávání HP bez zátěže (řeší lagy)
-          let p = players.find(x => x.name === u);
-          if (p) {
-              if (p.isZombie) reviveZombie(p); // Oživení při liku
-              p.hp += likesCount * 2;
-          } else {
-              handleAction(u, likesCount * 2, false, 0, true);
-          }
+          // Plynulé přidávání HP přes handleAction (aby fungovala pila a další efekty)
+          handleAction(u, likesCount * 2, false, 0, true);
       }
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || d?.data?.coins || 1;
