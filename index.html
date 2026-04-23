@@ -803,7 +803,7 @@ function getStartingHp(name) {
     if (idx === 0) return 300;
     if (idx === 1) return 240;
     if (idx === 2) return 200;
-    return 150;
+    return 500;
 }
 
 function setup() {
@@ -1083,13 +1083,13 @@ function formatK(num) {
 }
 
 function getRadius(hp) { 
-    // Zvětšeno na dvojnásobek podle požadavku
-    return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7) * 2.0, 260); 
+    // Výrazné zvětšení pro zaplnění prázdného prostoru v aréně
+    return Math.min((30 + Math.sqrt(Math.max(0, hp || 0)) * 1.0) * 2.5, 400); 
 }
 
 function spawnIdleBot() {
     let name = random(BOT_ADJ) + random(BOT_NOUNS) + floor(random(10, 9999));
-    let baseHp = 80 + floor(random(0, 40)); // Boti mají méně HP než reální hráči
+    let baseHp = 150; // Boti mají nyní fixně 150 HP
     spawnPlayer(name, baseHp, false, 0, false, 1, true); // true = isBot
 }
 
@@ -2902,8 +2902,8 @@ function drawPlayer(p) {
   
   let actualColor = lerpColor(p.color, color(255, 0, 0), dangerFactor);
 
-  // Vykreslení stopy (trail)
-  if (!isExtremeLoad && p.trail.length > 1) {
+  // Vykreslení stopy (trail) - Vypnuto pro boty pro odstranění "tečky" uprostřed
+  if (!isExtremeLoad && p.trail.length > 1 && !p.isBot) {
       noFill();
       for (let i = 0; i < p.trail.length - 1; i++) {
           stroke(red(actualColor), green(actualColor), blue(actualColor), map(i, 0, p.trail.length, 0, 150));
