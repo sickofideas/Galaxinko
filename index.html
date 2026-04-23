@@ -1297,7 +1297,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
-    p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 180; 
+    p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 150; // Pila poběží 2.5 vteřiny
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
@@ -2980,21 +2980,23 @@ function drawPlayer(p) {
   }
 
   if (p.sawFade > 0.01) {
-      let teeth = isEpic ? 24 : 16 + (p.sawType % 8);
-      let tType = p.sawType % 3;
-      let rOuter = p.r * 1.25; 
-      let rInner = p.r * 1.05;
+      let teeth = isEpic ? 32 : 24; // Více zubů pro agresivnější vzhled
+      let rOuter = p.r * 1.45; // Větší a agresivnější průměr pily
+      let rInner = p.r * 1.02;
       let sawAlpha = p.sawFade * 255;
 
       push();
-      // VIBRANT COLORS: Use the actual player color for the teeth
-      stroke(red(actualColor), green(actualColor), blue(actualColor), sawAlpha);
-      strokeJoin(ROUND);
-      strokeWeight(isEpic ? 4 : 2);
-      fill(red(actualColor), green(actualColor), blue(actualColor), sawAlpha * 0.4);
+      // Extra rychlá rotace cirkulárky (nezávislá na rotaci hráče)
+      rotate(frameCount * 0.4 * p.baseRotDir); 
+
+      // AGRESIVNÍ VZHLED: Kovově šedý základ s barevným ostřím
+      stroke(200, sawAlpha); 
+      strokeJoin(BEVEL);
+      strokeWeight(isEpic ? 3 : 1.5);
+      fill(red(actualColor), green(actualColor), blue(actualColor), sawAlpha * 0.6);
 
       if (!isExtremeLoad) {
-          drawingContext.shadowBlur = 15 * p.sawFade;
+          drawingContext.shadowBlur = 20 * p.sawFade;
           drawingContext.shadowColor = actualColor;
       }
 
@@ -3002,22 +3004,18 @@ function drawPlayer(p) {
       for(let i = 0; i < teeth; i++) {
           let a1 = i * TWO_PI / teeth;
           let a2 = (i + 1) * TWO_PI / teeth;
-          if (tType === 0) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner); 
-              vertex(cos(a1 + TWO_PI/teeth * 0.5)*rOuter, sin(a1 + TWO_PI/teeth * 0.5)*rOuter); 
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else if (tType === 1) { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner); 
-              vertex(cos(a1 + TWO_PI/teeth * 0.3)*rOuter, sin(a1 + TWO_PI/teeth * 0.3)*rOuter); 
-              vertex(cos(a1 + TWO_PI/teeth * 0.7)*rOuter, sin(a1 + TWO_PI/teeth * 0.7)*rOuter); 
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          } else { 
-              vertex(cos(a1)*rInner, sin(a1)*rInner); 
-              vertex(cos((a1 + a2) / 2)*rOuter, sin((a1 + a2) / 2)*rOuter); 
-              vertex(cos(a2)*rInner, sin(a2)*rInner);
-          }
+          
+          // Zahnuté zuby (jako u skutečné cirkulárky)
+          vertex(cos(a1) * rInner, sin(a1) * rInner); 
+          vertex(cos(a1 + (TWO_PI / teeth) * 0.8) * rOuter, sin(a1 + (TWO_PI / teeth) * 0.8) * rOuter); 
+          vertex(cos(a1 + (TWO_PI / teeth) * 0.85) * rInner, sin(a1 + (TWO_PI / teeth) * 0.85) * rInner);
       }
       endShape(CLOSE);
+      
+      // Vnitřní kovový disk
+      fill(150, sawAlpha * 0.5);
+      stroke(255, sawAlpha * 0.3);
+      ellipse(0, 0, p.r * 2.1);
       drawingContext.shadowBlur = 0;
       pop();
   }
