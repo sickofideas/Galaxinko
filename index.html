@@ -3090,8 +3090,8 @@ function drawPlayer(p) {
   let imgSize = p.r * 1.6;
   let isTop10 = currentTop10.includes(p.name);
   let shouldDrawAvatar = true; 
-  // Vypnutí profilovek pro obyčejné hráče při zátěži = masivní nárůst FPS
-  if (isExtremeLoad && safeHp < 500 && !isLeader) shouldDrawAvatar = false;
+  // Vypnutí profilovek pro obyčejné hráče při zátěži bylo odstraněno na žádost uživatele (profilovky musí být vidět vždy)
+  // if (isExtremeLoad && safeHp < 500 && !isLeader) shouldDrawAvatar = false;
 
   if (p.avatarAlpha === undefined) p.avatarAlpha = shouldDrawAvatar ? 255 : 0;
   if (shouldDrawAvatar) p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
