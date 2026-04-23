@@ -950,8 +950,10 @@ function startNewRound() {
       spawnPlayer(zName, 50, false, 0, true); // true = isZombie, menší HP = menší koule
   }
 
-      // Náhodná délka kola mezi 10 a 15 minutami
-      roundTimer = floor(random(600, 901));
+      // Náhodná délka kola mezi 5 a 15 minutami (váženo kolem 6 minut)
+      let r = random();
+      if (r < 0.7) roundTimer = floor(random(300, 480)); // 5 - 8 minut (častější)
+      else roundTimer = floor(random(480, 901)); // 8 - 15 minut
   maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
   roundTimerPause = 0;
