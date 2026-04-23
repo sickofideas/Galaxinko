@@ -1083,8 +1083,8 @@ function formatK(num) {
 }
 
 function getRadius(hp) { 
-    // Ještě o kousek menší koule pro lepší plynulost v aréně
-    return Math.min(15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7, 130); 
+    // Zvětšeno na dvojnásobek podle požadavku
+    return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7) * 2.0, 260); 
 }
 
 function spawnIdleBot() {
