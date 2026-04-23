@@ -1091,12 +1091,6 @@ function spawnIdleBot() {
     let name = random(BOT_ADJ) + random(BOT_NOUNS) + floor(random(10, 9999));
     let baseHp = 80 + floor(random(0, 40)); // Boti mají méně HP než reální hráči
     spawnPlayer(name, baseHp, false, 0, false, 1, true); // true = isBot
-
-    // PŘIDÁNO: Načtení profilového obrázku pro bota, aby vypadal jako reálný hráč
-    if (!userAvatars[name]) {
-        let botAvatarUrl = `https://i.pravatar.cc/150?u=${name}`;
-        loadImage(botAvatarUrl, img => { userAvatars[name] = img; });
-    }
 }
 
 function drawBotFace(x, y, r) {
@@ -3101,11 +3095,15 @@ function drawPlayer(p) {
   if (shouldDrawAvatar) p.avatarAlpha = Math.min(255, p.avatarAlpha + 15);
   else p.avatarAlpha = Math.max(0, p.avatarAlpha - 30);
 
-  fill(10, 12, 15, 255); 
+  if (p.isBot) {
+      fill(red(actualColor), green(actualColor), blue(actualColor), 127); // 50% průhlednost
+  } else {
+      fill(10, 12, 15, 255); 
+  }
   noStroke();
   ellipse(0, 0, imgSize); 
 
-  if (p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
+  if (!p.isBot && p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
       drawingContext.save();
       drawingContext.beginPath();
       drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
@@ -3121,8 +3119,13 @@ function drawPlayer(p) {
   }
 
   noFill(); 
-  stroke(0); strokeWeight(4); ellipse(0, 0, imgSize);
-  stroke(p.isZombie ? color(50, 255, 50) : color(255, 200));
+  stroke(0, p.isBot ? 127 : 255); 
+  strokeWeight(4); ellipse(0, 0, imgSize);
+  let outStroke = p.isZombie ? color(50, 255, 50) : color(255, 200);
+  if (p.isBot) {
+      outStroke = color(red(outStroke), green(outStroke), blue(outStroke), 127);
+  }
+  stroke(outStroke);
   strokeWeight(2); ellipse(0, 0, imgSize + 4);
 
   drawingContext.lineJoin = "round"; textAlign(CENTER, CENTER);
