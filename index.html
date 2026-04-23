@@ -1297,7 +1297,14 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
-    p.hp += finalAmount; p.auraFlash = 15; p.likeBuffTimer = 150; // Pila poběží 2.5 vteřiny
+    p.hp += finalAmount; p.auraFlash = 15; 
+    
+    // NOVÁ LOGIKA TRVÁNÍ PILY: První like = 5s, každý další +0.25s
+    if (!p.likeBuffTimer || p.likeBuffTimer <= 0) {
+        p.likeBuffTimer = 300; 
+    } else {
+        p.likeBuffTimer = Math.min(600, p.likeBuffTimer + 15); // Přidá 0.25s, max 10s celkem
+    }
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
@@ -2980,42 +2987,47 @@ function drawPlayer(p) {
   }
 
   if (p.sawFade > 0.01) {
-      let teeth = isEpic ? 32 : 24; // Více zubů pro agresivnější vzhled
-      let rOuter = p.r * 1.45; // Větší a agresivnější průměr pily
-      let rInner = p.r * 1.02;
+      let teeth = isEpic ? 64 : 48; // Mnohem více zubů pro industriální vzhled
+      let rOuter = p.r * 1.30; // Kratší, ale o to nebezpečnější hroty
+      let rInner = p.r * 1.15;
       let sawAlpha = p.sawFade * 255;
 
       push();
-      // Extra rychlá rotace cirkulárky (nezávislá na rotaci hráče)
-      rotate(frameCount * 0.4 * p.baseRotDir); 
+      // Velmi rychlá rotace (brutální cirkulárka)
+      rotate(frameCount * 0.6 * p.baseRotDir); 
 
-      // AGRESIVNÍ VZHLED: Kovově šedý základ s barevným ostřím
-      stroke(200, sawAlpha); 
-      strokeJoin(BEVEL);
-      strokeWeight(isEpic ? 3 : 1.5);
-      fill(red(actualColor), green(actualColor), blue(actualColor), sawAlpha * 0.6);
+      // INDUSTRIÁLNÍ VZHLED: Tmavý kov s broušeným ostřím
+      noStroke();
+      fill(40, sawAlpha); // Tmavý základ disku
+      ellipse(0, 0, rOuter * 1.8);
 
-      if (!isExtremeLoad) {
-          drawingContext.shadowBlur = 20 * p.sawFade;
-          drawingContext.shadowColor = actualColor;
-      }
-
+      // 1. ZUBY (Broušená ocel)
+      fill(red(actualColor), green(actualColor), blue(actualColor), sawAlpha * 0.8);
       beginShape();
       for(let i = 0; i < teeth; i++) {
           let a1 = i * TWO_PI / teeth;
           let a2 = (i + 1) * TWO_PI / teeth;
           
-          // Zahnuté zuby (jako u skutečné cirkulárky)
+          // Agresivní, ale krátké průmyslové zuby
           vertex(cos(a1) * rInner, sin(a1) * rInner); 
-          vertex(cos(a1 + (TWO_PI / teeth) * 0.8) * rOuter, sin(a1 + (TWO_PI / teeth) * 0.8) * rOuter); 
-          vertex(cos(a1 + (TWO_PI / teeth) * 0.85) * rInner, sin(a1 + (TWO_PI / teeth) * 0.85) * rInner);
+          vertex(cos(a1 + (TWO_PI / teeth) * 0.6) * rOuter, sin(a1 + (TWO_PI / teeth) * 0.6) * rOuter); 
+          vertex(cos(a1 + (TWO_PI / teeth) * 0.7) * rInner, sin(a1 + (TWO_PI / teeth) * 0.7) * rInner);
       }
       endShape(CLOSE);
+
+      // 2. VNITŘNÍ MECHANIKA (Broušený kov s odlesky)
+      fill(180, sawAlpha * 0.4);
+      ellipse(0, 0, p.r * 2.2);
       
-      // Vnitřní kovový disk
-      fill(150, sawAlpha * 0.5);
-      stroke(255, sawAlpha * 0.3);
-      ellipse(0, 0, p.r * 2.1);
+      stroke(255, sawAlpha * 0.5);
+      strokeWeight(1);
+      noFill();
+      ellipse(0, 0, p.r * 2.1); // Detailní kroužek uvnitř
+      
+      // Dynamické odlesky na čepeli
+      rotate(frameCount * -0.2); // Protirotace pro efekt odlesku
+      stroke(255, sawAlpha * 0.4);
+      line(-p.r, 0, p.r, 0);
       drawingContext.shadowBlur = 0;
       pop();
   }
