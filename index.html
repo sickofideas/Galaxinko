@@ -1299,8 +1299,8 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
     p.hp += finalAmount; p.auraFlash = 15; 
     
-    // AKTUALIZOVANÁ LOGIKA TRVÁNÍ PILY: Každý like resetuje pilu na 5 sekund
-    p.likeBuffTimer = 300; 
+    // AKTUALIZOVANÁ LOGIKA TRVÁNÍ PILY: Každý like resetuje pilu na 5 sekund (přes millis() pro přesnost)
+    p.likeBuffTimer = millis() + 5000; 
     if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
@@ -2887,8 +2887,8 @@ function drawLightnings() {
 function drawPlayer(p) {
   let pos = p.body.position; 
   let safeHp = Math.max(0, p.hp);
-  let isBuffed = p.likeBuffTimer > 0;
-  if (isBuffed) p.likeBuffTimer--;
+  let isBuffed = p.likeBuffTimer && millis() < p.likeBuffTimer;
+  // p.likeBuffTimer--; // Již není potřeba, používáme millis()
   
   let isLeader = (currentTop10[0] === p.name && !p.isZombie);
   
@@ -4075,15 +4075,15 @@ function draw() {
     }
     
     let sortedToDraw = [...players].sort((a, b) => {
-        let aActive = (a.likeBuffTimer > 0 || a.giftSpeedTimer > 0) ? 1 : 0;
-        let bActive = (b.likeBuffTimer > 0 || b.giftSpeedTimer > 0) ? 1 : 0;
+        let aActive = ((a.likeBuffTimer && millis() < a.likeBuffTimer) || a.giftSpeedTimer > 0) ? 1 : 0;
+        let bActive = ((b.likeBuffTimer && millis() < b.likeBuffTimer) || b.giftSpeedTimer > 0) ? 1 : 0;
         if (aActive !== bActive) return aActive - bActive;
         return a.r - b.r;
     });
     sortedToDraw.forEach(p => drawPlayer(p));
     
     // Aktualizace zvuku cirkulárky (jemný hukot při lajkování)
-    let anyBuffed = players.some(p => p.likeBuffTimer > 0);
+    let anyBuffed = players.some(p => p.likeBuffTimer && millis() < p.likeBuffTimer);
     updateSawHum(anyBuffed);
     
     if (particles.length > 80) particles.splice(0, particles.length - 80);
@@ -4295,7 +4295,7 @@ function connectTikfinity() {
           else if (p && (msgLower.startsWith("!repost") || msgLower.startsWith("repost")) && !p.hasUsedRepost) {
               p.hasUsedRepost = true; // Lze použít jen jednou za život/kolo
               p.hp += 500;
-              p.likeBuffTimer = 180; // Dlouhý vizuální buff
+              p.likeBuffTimer = millis() + 5000; // Dlouhý vizuální buff (5s)
               addPopup("REPOST BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
               createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), 50);
               safePlaySound(pentatonic('high'), 0.08, 0.4);
