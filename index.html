@@ -741,8 +741,8 @@ let lastRealInteractionTime = Date.now();
 let isIdleMode = false;
 let nextBotSpawnTime = 0;
 const MAX_IDLE_BOTS = 18;
-const BOT_ADJ = ["Dark", "Cosmic", "Neon", "Super", "Mega", "Cyber", "Ultra", "Space", "Star", "Void", "Galactic", "Epic", "Turbo"];
-const BOT_NOUNS = ["Knight", "Doge", "Ranger", "Warrior", "Pilot", "Bot", "User", "Runner", "Hunter", "Ghost", "Titan", "Nova"];
+const BOT_ADJ = ["Dark", "Cosmic", "Neon", "Super", "Mega", "Cyber", "Ultra", "Space", "Star", "Void", "Galactic", "Epic", "Turbo", "Funny", "Crazy", "Cool", "Mighty", "Little", "Big", "Zany"];
+const BOT_NOUNS = ["Knight", "Doge", "Ranger", "Warrior", "Pilot", "Bot", "User", "Runner", "Hunter", "Ghost", "Titan", "Nova", "Player", "Friend", "Buddy", "Captain", "Ace", "Hero"];
 
 // --- PENTATONICKÁ STUPNICE (Vždy zní příjemně a harmonicky) ---
 var PENTA_NOTES = [
@@ -1089,8 +1089,14 @@ function getRadius(hp) {
 
 function spawnIdleBot() {
     let name = random(BOT_ADJ) + random(BOT_NOUNS) + floor(random(10, 9999));
-    let baseHp = 150 + floor(random(0, 100));
+    let baseHp = 80 + floor(random(0, 40)); // Boti mají méně HP než reální hráči
     spawnPlayer(name, baseHp, false, 0, false, 1, true); // true = isBot
+
+    // PŘIDÁNO: Načtení profilového obrázku pro bota, aby vypadal jako reálný hráč
+    if (!userAvatars[name]) {
+        let botAvatarUrl = `https://i.pravatar.cc/150?u=${name}`;
+        loadImage(botAvatarUrl, img => { userAvatars[name] = img; });
+    }
 }
 
 function drawBotFace(x, y, r) {
@@ -2506,8 +2512,8 @@ function handleBossPlanet() {
     // Vytvoření globálního zámku (pokud ještě neexistuje)
     if (typeof window.bossLockTimer === 'undefined') window.bossLockTimer = 0;
 
-    // 1. Zjistíme, kdo má aktuálně nárok na trůn (musí mít 500+ HP)
-    let potentialKing = [...players].filter(p => !p.isZombie && p.hp > 0).sort((a, b) => b.hp - a.hp)[0];
+    // 1. Zjistíme, kdo má aktuálně nárok na trůn (musí mít 500+ HP a NESMÍ TO BÝT BOT)
+    let potentialKing = [...players].filter(p => !p.isZombie && p.hp > 0 && !p.isBot).sort((a, b) => b.hp - a.hp)[0];
 
     // 2. ZÁMEK NA 3 VTEŘINY (Ochrana proti okamžitému přepisování)
     if (potentialKing) {
@@ -2520,18 +2526,24 @@ function handleBossPlanet() {
             lastValidBossName = potentialKing.name;
             window.bossLockTimer = millis() + 3000;
         }
+    } else {
+        // Pokud nikdo reálný nepřežil nebo není v aréně, Ego Smash se vypne
+        lastValidBossName = null;
     }
 
-    if (!lastValidBossName) return;
-    let activeBossName = lastValidBossName;
+    // Pokud není žádný platný král, pošleme stávající planety pryč
+    if (!lastValidBossName) {
+        bossPlanets.forEach(p => { if(!p.isKnockedOut) { p.isKnockedOut = true; p.vx *= 1.5; p.vy *= 1.5; } });
+    }
 
+    let activeBossName = lastValidBossName;
     let cx = W/2;
     let cy = (ARENA_TOP+ARENA_BOT)/2;
 
     // 3. Hledáme planetu, která patří aktuálnímu králi a ještě není zničená
-    let mainPlanet = bossPlanets.find(p => !p.isKnockedOut && p.name === activeBossName);
+    let mainPlanet = activeBossName ? bossPlanets.find(p => !p.isKnockedOut && p.name === activeBossName) : null;
 
-    if (!mainPlanet) {
+    if (!mainPlanet && activeBossName) {
         // Najdeme tu nejnovější existující planetu v aréně, kterou půjdeme nekompromisně sestřelit
         let previousPlanet = [...bossPlanets].reverse().find(p => !p.isKnockedOut);
 
@@ -2911,10 +2923,12 @@ function drawPlayer(p) {
   scale(isBuffed ? 1.05 : 1.0);
   rotate(p.rot);
 
-  // 3. BOT FACE (Geometrický avatar pro boty)
+  // 3. BOT FACE (Vypnuto - boti nyní mají profilovky jako reální hráči)
+  /*
   if (p.isBot) {
       drawBotFace(0, 0, p.r);
   }
+  */
 
   // Varovné pulzování pro umírající
   if (p.auraFlash > 0 || dangerFactor > 0) {
