@@ -652,6 +652,8 @@ let synth;
 let sawHumCtx = null;
 let sawHumOsc = null;
 let sawHumGain = null;
+let sawMetalOsc = null;
+let sawMetalGain = null;
 let sawHumActive = false;
 
 function updateSawHum(anyPlayerBuffed) {
@@ -659,37 +661,83 @@ function updateSawHum(anyPlayerBuffed) {
     if (anyPlayerBuffed && !sawHumActive) {
         try {
             if (!sawHumCtx) sawHumCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // 1. ZÁKLADNÍ HUKOT (Bass)
             sawHumOsc = sawHumCtx.createOscillator();
             sawHumGain = sawHumCtx.createGain();
             sawHumOsc.type = 'sine';
             sawHumOsc.frequency.setValueAtTime(180, sawHumCtx.currentTime);
-            // Jemná modulace frekvence pro živější zvuk
+            
             let lfo = sawHumCtx.createOscillator();
             let lfoGain = sawHumCtx.createGain();
-            lfo.frequency.setValueAtTime(3, sawHumCtx.currentTime); // Pomalá vibrace
-            lfoGain.gain.setValueAtTime(8, sawHumCtx.currentTime); // Minimální rozsah
+            lfo.frequency.setValueAtTime(3, sawHumCtx.currentTime);
+            lfoGain.gain.setValueAtTime(8, sawHumCtx.currentTime);
             lfo.connect(lfoGain);
             lfoGain.connect(sawHumOsc.frequency);
             lfo.start();
+            
             sawHumGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            sawHumGain.gain.linearRampToValueAtTime(0.012, sawHumCtx.currentTime + 0.5); // Velmi jemný fade-in
+            sawHumGain.gain.linearRampToValueAtTime(0.012, sawHumCtx.currentTime + 0.5);
             sawHumOsc.connect(sawHumGain);
             sawHumGain.connect(sawHumCtx.destination);
             sawHumOsc.start();
-            sawHumOsc._lfo = lfo; // Uložit referenci pro cleanup
+            sawHumOsc._lfo = lfo;
+
+            // 2. KOVOVÝ ŠKRABOT (Metal on Metal)
+            sawMetalOsc = sawHumCtx.createOscillator();
+            sawMetalGain = sawHumCtx.createGain();
+            let metalFilter = sawHumCtx.createBiquadFilter();
+            
+            sawMetalOsc.type = 'triangle'; // Bohatší na harmonické tóny než sine
+            sawMetalOsc.frequency.setValueAtTime(2200, sawHumCtx.currentTime); // Vysoký kovový tón
+            
+            // Modulace pro efekt "broušení"
+            let scrapeLfo = sawHumCtx.createOscillator();
+            let scrapeGain = sawHumCtx.createGain();
+            scrapeLfo.frequency.setValueAtTime(15, sawHumCtx.currentTime); // Rychlá vibrace
+            scrapeGain.gain.setValueAtTime(100, sawHumCtx.currentTime); 
+            scrapeLfo.connect(scrapeGain);
+            scrapeGain.connect(sawMetalOsc.frequency);
+            scrapeLfo.start();
+            
+            metalFilter.type = 'bandpass';
+            metalFilter.frequency.setValueAtTime(2200, sawHumCtx.currentTime);
+            metalFilter.Q.setValueAtTime(5, sawHumCtx.currentTime);
+            
+            sawMetalGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
+            sawMetalGain.gain.linearRampToValueAtTime(0.004, sawHumCtx.currentTime + 0.8); // Velmi tiché
+            
+            sawMetalOsc.connect(metalFilter);
+            metalFilter.connect(sawMetalGain);
+            sawMetalGain.connect(sawHumCtx.destination);
+            sawMetalOsc.start();
+            sawMetalOsc._lfo = scrapeLfo;
+
             sawHumActive = true;
         } catch(e) {}
     } else if (!anyPlayerBuffed && sawHumActive) {
         try {
             if (sawHumGain && sawHumCtx) {
-                sawHumGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.8); // Pomalý fade-out
+                sawHumGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.8);
+                if (sawMetalGain) sawMetalGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.8);
+                
                 let oscRef = sawHumOsc;
-                let lfoRef = oscRef._lfo;
-                setTimeout(() => { try { oscRef.stop(); if(lfoRef) lfoRef.stop(); } catch(e){} }, 1000);
+                let lfoRef = oscRef ? oscRef._lfo : null;
+                let mOscRef = sawMetalOsc;
+                let mLfoRef = mOscRef ? mOscRef._lfo : null;
+                
+                setTimeout(() => { 
+                    try { 
+                        if(oscRef) oscRef.stop(); if(lfoRef) lfoRef.stop(); 
+                        if(mOscRef) mOscRef.stop(); if(mLfoRef) mLfoRef.stop();
+                    } catch(e){} 
+                }, 1000);
             }
             sawHumActive = false;
             sawHumOsc = null;
             sawHumGain = null;
+            sawMetalOsc = null;
+            sawMetalGain = null;
         } catch(e) { sawHumActive = false; }
     }
 }
