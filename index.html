@@ -67,7 +67,7 @@ var W = 1080;
 var H = 1920;
 var HUD_TOP = 75;  
 var ARENA_TOP = 270; 
-var ARENA_BOT = 1350; 
+var ARENA_BOT = 1850; 
 
 // Theme variables
 var roundThemeColor;
@@ -1095,8 +1095,8 @@ function formatK(num) {
 }
 
 function getRadius(hp) { 
-    // Mírně zvětšeno oproti původní verzi (cca 1.5x), aby v aréně nebylo příliš prázdno, ale koule nebyly obří
-    return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7) * 1.5, 200); 
+    // Mírně zvětšeno oproti původní verzi (cca 1.8x), aby v aréně nebylo příliš prázdno, ale koule nebyly obří
+    return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7) * 1.8, 200); 
 }
 
 function spawnIdleBot() {
@@ -1376,7 +1376,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
       restitution: 0.4,    // Zvýšeno z 0.1, aby se od sebe lehce odrážely a nezasekávaly
-      frictionAir: 0.085,  // Zvýšeno, aby se koule pohybovaly pomaleji
+      frictionAir: 0.11,   // Zvýšeno, aby se koule pohybovaly pomaleji
       friction: 0, 
       density: 0.001 
   });
@@ -1538,7 +1538,7 @@ function handleCombat(p1, p2) {
   
   let forceDir = { x: distVec.x / distVal, y: distVec.y / distVal };
   // Zmenšený odraz, aby se v chumlu nerozstřelili příliš agresivně, ale pořád se hýbali
-  let forceMag = 0.0004 + speed * 0.0004; 
+  let forceMag = 0.0003 + speed * 0.0003; 
   
   if(isFinite(forceDir.x) && isFinite(forceDir.y)) {
       Matter.Body.applyForce(p1.body, p1.body.position, { x: -forceDir.x * forceMag * p1.body.mass, y: -forceDir.y * forceMag * p1.body.mass });
@@ -2172,7 +2172,7 @@ function handleCameraAndPlayers() {
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
   let isExtremeLoad = players.length > 30;  // Dřívější úleva pro grafiku
-  let maxV = 6;
+  let maxV = 5;
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -2320,7 +2320,7 @@ function handleCameraAndPlayers() {
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 1.4 : 1.1; // ZPOMALENO: Ještě pomalejší, klidnější pohyb
+    let tSpd = isTop10 ? 1.2 : 0.9; // ZPOMALENO: Ještě pomalejší, klidnější pohyb
     let currentMaxV = maxV;
     
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
