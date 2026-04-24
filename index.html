@@ -694,7 +694,7 @@ function updateSawHum(anyPlayerBuffed) {
                 for (let f of freqs) {
                     sample += Math.sin(TWO_PI * f * t) * (f === 2200 ? 0.5 : 0.25);
                 }
-                data[i] = sample * envelope * 0.5;
+                data[i] = sample * envelope * 0.4;
             }
 
             sawBellSource = sawHumCtx.createBufferSource();
@@ -704,7 +704,7 @@ function updateSawHum(anyPlayerBuffed) {
             sawBellGain = sawHumCtx.createGain();
             sawBellGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
             // SLYŠITELNÁ HLASITOST (0.35 je dostatečně hlasité)
-            sawBellGain.gain.linearRampToValueAtTime(0.28, sawHumCtx.currentTime + 0.2); 
+            sawBellGain.gain.linearRampToValueAtTime(0.17, sawHumCtx.currentTime + 0.2); 
             
             sawBellSource.connect(sawBellGain);
             sawBellGain.connect(sawHumCtx.destination);
