@@ -704,7 +704,7 @@ function updateSawHum(anyPlayerBuffed) {
             sawBellGain = sawHumCtx.createGain();
             sawBellGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
             // SLYŠITELNÁ HLASITOST (0.35 je dostatečně hlasité)
-            sawBellGain.gain.linearRampToValueAtTime(0.17, sawHumCtx.currentTime + 0.2); 
+            sawBellGain.gain.linearRampToValueAtTime(0.08, sawHumCtx.currentTime + 0.2); 
             
             sawBellSource.connect(sawBellGain);
             sawBellGain.connect(sawHumCtx.destination);
