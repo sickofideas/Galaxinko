@@ -694,7 +694,7 @@ function updateSawHum(anyPlayerBuffed) {
                 for (let f of freqs) {
                     sample += Math.sin(TWO_PI * f * t) * (f === freqs[0] ? 0.5 : 0.25);
                 }
-                data[i] = sample * envelope * 0.3; 
+                data[i] = sample * envelope * 0.22; 
             }
 
             sawBellSource = sawHumCtx.createBufferSource();
@@ -703,8 +703,8 @@ function updateSawHum(anyPlayerBuffed) {
             
             sawBellGain = sawHumCtx.createGain();
             sawBellGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            // VÝRAZNĚJŠÍ HLASITOST (0.05)
-            sawBellGain.gain.linearRampToValueAtTime(0.05, sawHumCtx.currentTime + 0.2); 
+            // VYVÁŽENÁ HLASITOST (0.03)
+            sawBellGain.gain.linearRampToValueAtTime(0.03, sawHumCtx.currentTime + 0.2); 
             
             sawBellSource.connect(sawBellGain);
             sawBellGain.connect(sawHumCtx.destination);
