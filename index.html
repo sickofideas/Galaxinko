@@ -656,6 +656,9 @@ let sawMetalOsc = null;
 let sawMetalGain = null;
 let sawNoiseSource = null;
 let sawNoiseBuffer = null;
+let sawBellSource = null;
+let sawBellBuffer = null;
+let sawBellGain = null;
 let sawHumActive = false;
 
 function updateSawHum(anyPlayerBuffed) {
@@ -670,101 +673,66 @@ function updateSawHum(anyPlayerBuffed) {
             sawHumGain = sawHumCtx.createGain();
             sawHumOsc.type = 'sine';
             sawHumOsc.frequency.setValueAtTime(180, sawHumCtx.currentTime);
-            
-            let lfo = sawHumCtx.createOscillator();
-            let lfoGain = sawHumCtx.createGain();
-            lfo.frequency.setValueAtTime(3, sawHumCtx.currentTime);
-            lfoGain.gain.setValueAtTime(8, sawHumCtx.currentTime);
-            lfo.connect(lfoGain);
-            lfoGain.connect(sawHumOsc.frequency);
-            lfo.start();
-            
             sawHumGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            sawHumGain.gain.linearRampToValueAtTime(0.012, sawHumCtx.currentTime + 0.5);
+            sawHumGain.gain.linearRampToValueAtTime(0.015, sawHumCtx.currentTime + 0.5);
             sawHumOsc.connect(sawHumGain);
             sawHumGain.connect(sawHumCtx.destination);
             sawHumOsc.start();
-            sawHumOsc._lfo = lfo;
 
-            // 2. KOVOVÝ ŠKRABOT (Broušení/Noise)
-            if (!sawNoiseBuffer) {
-                let bufferSize = sawHumCtx.sampleRate * 2;
-                sawNoiseBuffer = sawHumCtx.createBuffer(1, bufferSize, sawHumCtx.sampleRate);
-                let output = sawNoiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
+            // 2. KOVOVÉ CINKÁNÍ (Realistic Clink with Decay)
+            let clinkRate = 10; 
+            let bufferLen = Math.floor(sawHumCtx.sampleRate / clinkRate); 
+            
+            sawBellBuffer = sawHumCtx.createBuffer(1, bufferLen, sawHumCtx.sampleRate);
+            let data = sawBellBuffer.getChannelData(0);
+            let freqs = [2200, 3140, 4450];
+            
+            for (let i = 0; i < bufferLen; i++) {
+                let t = i / sawHumCtx.sampleRate;
+                let envelope = Math.exp(-t * 15); // Ještě rychlejší dozvuk pro čistší zvuk
+                let sample = 0;
+                for (let f of freqs) {
+                    sample += Math.sin(TWO_PI * f * t) * (f === 2200 ? 0.5 : 0.25);
+                }
+                data[i] = sample * envelope * 0.5;
             }
 
-            sawNoiseSource = sawHumCtx.createBufferSource();
-            sawNoiseSource.buffer = sawNoiseBuffer;
-            sawNoiseSource.loop = true;
+            sawBellSource = sawHumCtx.createBufferSource();
+            sawBellSource.buffer = sawBellBuffer;
+            sawBellSource.loop = true;
             
-            sawMetalGain = sawHumCtx.createGain();
-            let metalFilter = sawHumCtx.createBiquadFilter();
-            metalFilter.type = 'bandpass';
-            metalFilter.frequency.setValueAtTime(2500, sawHumCtx.currentTime); // Vyšší kovový tón
-            metalFilter.Q.setValueAtTime(10, sawHumCtx.currentTime);
+            sawBellGain = sawHumCtx.createGain();
+            sawBellGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
+            // SLYŠITELNÁ HLASITOST (0.35 je dostatečně hlasité)
+            sawBellGain.gain.linearRampToValueAtTime(0.28, sawHumCtx.currentTime + 0.2); 
             
-            // Modulace pro efekt "přerušovaného broušení"
-            let scrapeLfo = sawHumCtx.createOscillator();
-            let scrapeGain = sawHumCtx.createGain();
-            scrapeLfo.frequency.setValueAtTime(22, sawHumCtx.currentTime); // Rychlejší rachtání
-            scrapeGain.gain.setValueAtTime(0.6, sawHumCtx.currentTime); 
-            scrapeLfo.connect(scrapeGain);
-            
-            let ampGain = sawHumCtx.createGain();
-            ampGain.gain.setValueAtTime(0.4, sawHumCtx.currentTime);
-            scrapeGain.connect(ampGain.gain);
-            
-            sawMetalGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            // ZVÝŠENÁ HLASITOST: Z 0.004 na 0.035
-            sawMetalGain.gain.linearRampToValueAtTime(0.035, sawHumCtx.currentTime + 0.3); 
-            
-            sawNoiseSource.connect(metalFilter);
-            metalFilter.connect(ampGain);
-            ampGain.connect(sawMetalGain);
-            sawMetalGain.connect(sawHumCtx.destination);
-            sawNoiseSource.start();
-            sawNoiseSource._lfo = scrapeLfo;
-            scrapeLfo.start();
-
-            // 3. START-UP CLICK (Kovový náraz při startu)
-            let clickOsc = sawHumCtx.createOscillator();
-            let clickGain = sawHumCtx.createGain();
-            clickOsc.type = 'triangle';
-            clickOsc.frequency.setValueAtTime(3000, sawHumCtx.currentTime);
-            clickOsc.frequency.exponentialRampToValueAtTime(100, sawHumCtx.currentTime + 0.1);
-            clickGain.gain.setValueAtTime(0.05, sawHumCtx.currentTime);
-            clickGain.gain.exponentialRampToValueAtTime(0.001, sawHumCtx.currentTime + 0.1);
-            clickOsc.connect(clickGain);
-            clickGain.connect(sawHumCtx.destination);
-            clickOsc.start();
-            clickOsc.stop(sawHumCtx.currentTime + 0.1);
+            sawBellSource.connect(sawBellGain);
+            sawBellGain.connect(sawHumCtx.destination);
+            sawBellSource.start();
 
             sawHumActive = true;
         } catch(e) {}
     } else if (!anyPlayerBuffed && sawHumActive) {
         try {
-            if (sawHumGain && sawHumCtx) {
-                sawHumGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
-                if (sawMetalGain) sawMetalGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
+            if (sawHumCtx) {
+                if (sawHumGain) sawHumGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
+                if (sawBellGain) sawBellGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
                 
-                let oscRef = sawHumOsc;
-                let lfoRef = oscRef ? oscRef._lfo : null;
-                let nSrcRef = sawNoiseSource;
-                let nLfoRef = nSrcRef ? nSrcRef._lfo : null;
+                let oRef = sawHumOsc;
+                let bSrcRef = sawBellSource;
                 
                 setTimeout(() => { 
                     try { 
-                        if(oscRef) oscRef.stop(); if(lfoRef) lfoRef.stop(); 
-                        if(nSrcRef) nSrcRef.stop(); if(nLfoRef) nLfoRef.stop();
+                        if(oRef) oRef.stop(); 
+                        if(bSrcRef) bSrcRef.stop();
                     } catch(e){} 
                 }, 600);
             }
             sawHumActive = false;
             sawHumOsc = null;
             sawHumGain = null;
-            sawNoiseSource = null;
-            sawMetalGain = null;
+            sawBellSource = null;
+            sawBellGain = null;
         } catch(e) { sawHumActive = false; }
     }
 }
