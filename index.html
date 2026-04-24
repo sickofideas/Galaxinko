@@ -692,9 +692,9 @@ function updateSawHum(anyPlayerBuffed) {
                 let envelope = Math.exp(-t * 15); // Ještě rychlejší dozvuk pro čistší zvuk
                 let sample = 0;
                 for (let f of freqs) {
-                    sample += Math.sin(TWO_PI * f * t) * (f === 2200 ? 0.5 : 0.25);
+                    sample += Math.sin(TWO_PI * f * t) * (f === freqs[0] ? 0.5 : 0.25);
                 }
-                data[i] = sample * envelope * 0.1; // Sníženo z 0.4
+                data[i] = sample * envelope * 0.12; 
             }
 
             sawBellSource = sawHumCtx.createBufferSource();
@@ -703,8 +703,8 @@ function updateSawHum(anyPlayerBuffed) {
             
             sawBellGain = sawHumCtx.createGain();
             sawBellGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            // EXTRÉMNĚ TICHÉ (0.012)
-            sawBellGain.gain.linearRampToValueAtTime(0.012, sawHumCtx.currentTime + 0.2); 
+            // JEMNĚ SLYŠITELNÉ (0.018)
+            sawBellGain.gain.linearRampToValueAtTime(0.018, sawHumCtx.currentTime + 0.2); 
             
             sawBellSource.connect(sawBellGain);
             sawBellGain.connect(sawHumCtx.destination);
