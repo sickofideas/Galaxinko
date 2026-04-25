@@ -2713,6 +2713,8 @@ function handleBossPlanet() {
         else if (side === 2) { newPlanet.x = cx + random(-200, 200); newPlanet.y = cy + offY; }
         else { newPlanet.x = cx - offX; newPlanet.y = cy + random(-200, 200); }
 
+        // Nejdřív natvrdo smazat všechny existující fialové koule, aby tam nezůstávaly viset
+        bossPlanets = []; 
         bossPlanets.push(newPlanet);
     }
 
