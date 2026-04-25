@@ -4629,6 +4629,10 @@ function removeDiacritics(text) {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = window.speechSynthesis.getVoices;
+}
+
 function speakTTS(txt, force = false) {
   if (!('speechSynthesis' in window)) return;
   if (window.speechSynthesis.speaking) return; 
@@ -4659,6 +4663,15 @@ function speakTTS(txt, force = false) {
   
   var msg = new SpeechSynthesisUtterance(cleanTxt); 
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
+
+  // PŘIDÁNO: Specifický hlas Vlasta pro český stream
+  if (currentLang === "CZ") {
+      let voices = window.speechSynthesis.getVoices();
+      let femaleVoice = voices.find(v => v.name.includes('Vlasta'));
+      if (femaleVoice) {
+          msg.voice = femaleVoice;
+      }
+  }
   
   // HUMANIZE: Náhodné odchylky v rychlosti a výšce hlasu pro každý proslov
   msg.rate = random(1.05, 1.25); 
