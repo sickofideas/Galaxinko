@@ -4629,16 +4629,15 @@ function removeDiacritics(text) {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-let czechFemaleVoice = null;
+let zenskyHlas = null;
 
 function nactiHlasy() {
     if (!('speechSynthesis' in window)) return;
     let voices = window.speechSynthesis.getVoices();
-    
-    // Agresivní hledání Vlasty nebo jakékoliv české ženské
-    czechFemaleVoice = voices.find(v => v.name.toLowerCase().includes('vlasta')) || 
-                      voices.find(v => v.lang === 'cs-CZ' && v.name.includes('Google')) ||
-                      voices.find(v => v.lang === 'cs-CZ'); 
+    // Priorita: Vlasta (Windows), pak Google čeština (Chrome), pak jakákoliv čeština
+    zenskyHlas = voices.find(v => v.name.toLowerCase().includes('vlasta')) || 
+                 voices.find(v => v.name.includes('Google') && v.lang.includes('cs')) ||
+                 voices.find(v => v.lang.includes('cs'));
 }
 
 if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
@@ -4661,14 +4660,16 @@ function speakTTS(txt, force = false) {
   }
 
   var msg = new SpeechSynthesisUtterance(cleanTxt);
-  msg.lang = 'cs-CZ'; // VYNUCENÁ ČEŠTINA
+  msg.lang = 'cs-CZ';
 
-  if (czechFemaleVoice) {
-      msg.voice = czechFemaleVoice;
+  if (zenskyHlas) {
+      msg.voice = zenskyHlas;
+      msg.pitch = 1.1; 
+  } else {
+      // Pokud ani Google hlas není, Jakubovi aspoň zvýšíme tón, aby zněl víc jako holka
+      msg.pitch = 1.4; 
   }
   
-  // Pokud by to i tak vybralo chlapa, tohle mu zvedne hlas (víc do ženska)
-  msg.pitch = 1.2; 
   msg.rate = 1.1; 
   
   window.speechSynthesis.speak(msg);
