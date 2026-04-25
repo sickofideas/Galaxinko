@@ -4630,14 +4630,17 @@ function removeDiacritics(text) {
 }
 
 let czechFemaleVoice = null;
+
 function nactiHlasy() {
     if (!('speechSynthesis' in window)) return;
     let voices = window.speechSynthesis.getVoices();
-    czechFemaleVoice = voices.find(v => 
-        v.name.toLowerCase().includes('vlasta') || 
-        (v.name.includes('Google') && v.lang === 'cs-CZ')
-    );
+    
+    // Agresivní hledání Vlasty nebo jakékoliv české ženské
+    czechFemaleVoice = voices.find(v => v.name.toLowerCase().includes('vlasta')) || 
+                      voices.find(v => v.lang === 'cs-CZ' && v.name.includes('Google')) ||
+                      voices.find(v => v.lang === 'cs-CZ'); 
 }
+
 if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
     window.speechSynthesis.onvoiceschanged = nactiHlasy;
 }
@@ -4645,43 +4648,28 @@ nactiHlasy();
 
 function speakTTS(txt, force = false) {
   if (!('speechSynthesis' in window)) return;
-  if (window.speechSynthesis.speaking) return; 
-  
-  // Omezovač proti spamu (Pokud to není vynucené, čeká aspoň 12 vteřin mezi běžnými promluvami)
+  // Pokud už mluví, přerušíme to, aby se hlasy nepřekrývaly
+  if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+
   if (!force && millis() - lastSpeakTime < 12000) return;
-  
-  // Očištění od emoji
+
   let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
   
-  // MAXIMÁLNÍ OCHRANA: Odstraní diakritiku a SMAŽE všechny mezery, tečky a pomlčky
-  // Tím TTS chytne i jména jako "n i g e r", "n.e.g.r", "p.i.c.a"
   let checkText = removeDiacritics(cleanTxt.toLowerCase()).replace(/[\s\.\-_]/g, "");
-  
   for (let word of FORBIDDEN_WORDS) {
-      if (checkText.includes(word)) {
-          console.log("TTS ZABLOKOVÁNO (Ochrana proti banu): " + cleanTxt);
-          return; // Zastaví čtení
-      }
+      if (checkText.includes(word)) return;
   }
 
-  // 2. OPRAVA VÝSLOVNOSTI
-  cleanTxt = cleanTxt.replace(/ú ú ú/gi, "bum bum bum");
-  
-  // Explicitní čtení vykřičníku u herních příkazů
-  let exclamWord = currentLang === "CZ" ? "vykřičník " : "exclamation mark ";
-  cleanTxt = cleanTxt.replace(/!(join|boost|shield)/gi, exclamWord + "$1");
-  
-  var msg = new SpeechSynthesisUtterance(cleanTxt); 
-  msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
+  var msg = new SpeechSynthesisUtterance(cleanTxt);
+  msg.lang = 'cs-CZ'; // VYNUCENÁ ČEŠTINA
 
-  // PŘIDÁNO: Specifický hlas Vlasta pro český stream (načtený asynchronně)
-  if (currentLang === "CZ" && czechFemaleVoice) {
+  if (czechFemaleVoice) {
       msg.voice = czechFemaleVoice;
   }
   
-  // HUMANIZE: Náhodné odchylky v rychlosti a výšce hlasu pro každý proslov
-  msg.rate = random(1.05, 1.25); 
-  msg.pitch = random(0.9, 1.2); 
+  // Pokud by to i tak vybralo chlapa, tohle mu zvedne hlas (víc do ženska)
+  msg.pitch = 1.2; 
+  msg.rate = 1.1; 
   
   window.speechSynthesis.speak(msg);
   lastSpeakTime = millis();
