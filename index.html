@@ -54,6 +54,7 @@
       <button id="toggleBossBtn" style="background: #9c27b0;">PLANETA: ZAP</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
       <button id="toggleFomoBtn">ZOBRAZIT FOMO</button>
+      <button id="tBlock" style="background: #000; color: #ff0000;">TEST BLOCK</button>
     </div>
   </div>
 
@@ -1101,6 +1102,15 @@ function setupEvents() {
       e.target.innerText = showFomoBar ? 'SKRÝT FOMO' : 'ZOBRAZIT FOMO';
   };
 
+  document.getElementById('tBlock').onclick = () => {
+      if(players.length > 0) {
+          let p = random(players);
+          if (!p.isBot) {
+              removePlayerCompletely(p.name);
+          }
+      }
+  };
+
   // PŘIDÁNA LOGIKA TLAČÍTKA PRO PLANETU
   document.getElementById('toggleBossBtn').onclick = (e) => { 
       showBossPlanet = !showBossPlanet; 
@@ -1460,6 +1470,64 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   
   createParticles(spawnX, spawnY, playerColor, 15);
   safePlaySound(pentatonic('high'), 0.008, 0.15);
+}
+
+function removePlayerCompletely(name) {
+    // 1. Matter.js body removal
+    for (let i = players.length - 1; i >= 0; i--) {
+        if (players[i].name === name) {
+            if (players[i].body) Matter.World.remove(world, players[i].body);
+            players.splice(i, 1);
+        }
+    }
+    
+    // 2. Queue removal
+    egoQueue = egoQueue.filter(n => n !== name);
+    previousTop10 = previousTop10.filter(n => n !== name);
+    
+    // 3. Boss Planet removal
+    for (let i = bossPlanets.length - 1; i >= 0; i--) {
+        if (bossPlanets[i].name === name) {
+            bossPlanets.splice(i, 1);
+        }
+    }
+    if (lastValidBossName === name) {
+        lastValidBossName = null;
+    }
+    
+    // 4. Persistence removal (Permanentní smazání ze všech statistik)
+    delete allTimeHpLeaderboard[name];
+    delete allTimeGifts[name];
+    delete allTimeKills[name];
+    delete sessionLikes[name];
+    delete roundGifts[name];
+    delete roundGiftStreaks[name];
+    
+    // 5. Avatar cache
+    delete userAvatars[name];
+    
+    // 6. Force save leaderboards
+    saveLeaderboards();
+}
+
+function saveLeaderboards() {
+    let hpToSave = {};
+    for(let k in allTimeHpLeaderboard) {
+        hpToSave[k] = { score: allTimeHpLeaderboard[k].score, color: allTimeHpLeaderboard[k].color.toString('#rrggbb') };
+    }
+    localStorage.setItem('galaxinko_alltime_hp', JSON.stringify(hpToSave));
+
+    let giftToSave = {};
+    for(let k in allTimeGifts) {
+        giftToSave[k] = { score: allTimeGifts[k].score, lastGiftDiam: allTimeGifts[k].lastGiftDiam, color: allTimeGifts[k].color.toString('#rrggbb') };
+    }
+    localStorage.setItem('galaxinko_alltime_gifts', JSON.stringify(giftToSave));
+
+    let killToSave = {};
+    for(let k in allTimeKills) {
+        killToSave[k] = { score: allTimeKills[k].score, color: allTimeKills[k].color.toString('#rrggbb') };
+    }
+    localStorage.setItem('galaxinko_alltime_kills', JSON.stringify(killToSave));
 }
 
 function updateHpLB(name, hp, col) {
@@ -4329,6 +4397,11 @@ function connectTikfinity() {
       if (evt === "follow") {
           playFollowSound();
           addNotification('FOLLOW', u, userAvatars[u]);
+      }
+      
+      if (evt === "block" || evt === "ban" || evt === "user_block" || evt === "user_ban") {
+          removePlayerCompletely(u);
+          return;
       }
       
       if (!players.find(x => x.name === u) && evt !== "gift") {
