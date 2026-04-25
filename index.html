@@ -4629,9 +4629,19 @@ function removeDiacritics(text) {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = window.speechSynthesis.getVoices;
+let czechFemaleVoice = null;
+function nactiHlasy() {
+    if (!('speechSynthesis' in window)) return;
+    let voices = window.speechSynthesis.getVoices();
+    czechFemaleVoice = voices.find(v => 
+        v.name.toLowerCase().includes('vlasta') || 
+        (v.name.includes('Google') && v.lang === 'cs-CZ')
+    );
 }
+if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = nactiHlasy;
+}
+nactiHlasy();
 
 function speakTTS(txt, force = false) {
   if (!('speechSynthesis' in window)) return;
@@ -4664,13 +4674,9 @@ function speakTTS(txt, force = false) {
   var msg = new SpeechSynthesisUtterance(cleanTxt); 
   msg.lang = currentLang === "CZ" ? "cs-CZ" : "en-US"; 
 
-  // PŘIDÁNO: Specifický hlas Vlasta pro český stream
-  if (currentLang === "CZ") {
-      let voices = window.speechSynthesis.getVoices();
-      let femaleVoice = voices.find(v => v.name.includes('Vlasta'));
-      if (femaleVoice) {
-          msg.voice = femaleVoice;
-      }
+  // PŘIDÁNO: Specifický hlas Vlasta pro český stream (načtený asynchronně)
+  if (currentLang === "CZ" && czechFemaleVoice) {
+      msg.voice = czechFemaleVoice;
   }
   
   // HUMANIZE: Náhodné odchylky v rychlosti a výšce hlasu pro každý proslov
