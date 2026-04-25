@@ -632,6 +632,7 @@ let globalFlowAngle = 0;
 // --- EGO PLANETA PRO TOP HRÁČE ---
 let showBossPlanet = true;
 let bossPlanets = [];
+let egoQueue = []; // Fronta pro nové hráče, kteří mají dostat Ego Smash
 let lastValidBossName = null;
 let lastValidBossColor = null;
 
@@ -976,11 +977,12 @@ function startNewRound() {
   lastValidBossName = null;
   previousRoundGifts = Object.assign({}, roundGifts);
   roundGifts = {}; 
+  egoQueue = []; // Vyčistit frontu pro nové kolo
   
   // 1. Spawni aktivní přeživší z minulého kola normálně
   survivors.forEach(s => {
       let hp = s.isBot ? 150 : getStartingHp(s.name);
-      spawnPlayer(s.name, hp, false, 0, false, 1, s.isBot);
+      spawnPlayer(s.name, hp, false, 0, false, 1, s.isBot, false); // survivors nejdou do fronty
   }); 
 
   // OKAMŽITÝ EGO SMASH PO RESTARTU: Pokud přežil vítěz minulého kola, hned ho nastavit jako krále
@@ -1000,7 +1002,7 @@ function startNewRound() {
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      spawnPlayer(zName, 50, false, 0, true); // true = isZombie, menší HP = menší koule
+      spawnPlayer(zName, 50, false, 0, true, 1, false, false); // zombies nejdou do fronty
   }
 
       // Náhodná délka kola mezi 5 a 15 minutami (váženo kolem 6 minut)
@@ -1349,12 +1351,12 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   } else {
         if (allowSpawn) {
             let baseHp = getStartingHp(name);
-            spawnPlayer(name, baseHp + finalAmount, isGift, diam, false, comboMult); 
+            spawnPlayer(name, baseHp + finalAmount, isGift, diam, false, comboMult, false, true); 
         }
   }
 }
 
-function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false) {
+function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false, shouldQueue = true) {
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -1389,7 +1391,7 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
       name: name, hp: safeHp, x: wPos.x, y: wPos.y, targetX: bestX, targetY: bestY,
       vx: (dx/distToTarget)*spd, vy: (dy/distToTarget)*spd,
       life: 45, trail: [], color: pColor, isGift: isGift, diam: diam, isZombie: isZombie, comboMult: comboMult,
-      isBot: isBot
+      isBot: isBot, shouldQueue: shouldQueue
   });
       safePlaySound(pentatonic('high'), 0.008, 0.15);
 }
@@ -1407,13 +1409,16 @@ function handleSpawnModules() {
         pop();
         
         if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
-            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie, m.comboMult, m.isBot);
+            finalizeSpawnPlayer(m.name, m.hp, m.targetX, m.targetY, m.color, m.isGift, m.diam, m.isZombie, m.comboMult, m.isBot, m.shouldQueue);
             spawnModules.splice(i, 1);
         }
     }
 }
 
-function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false) {
+function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false, shouldQueue = true) {
+  if (shouldQueue && !isBot && !isZombie) {
+      if (!egoQueue.includes(name)) egoQueue.push(name);
+  }
   let safeHp = Math.max(0, hp || 150); 
   let r = getRadius(safeHp);
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
@@ -2564,23 +2569,46 @@ function handleBossPlanet() {
     // Vytvoření globálního zámku (pokud ještě neexistuje)
     if (typeof window.bossLockTimer === 'undefined') window.bossLockTimer = 0;
 
-    // 1. Zjistíme, kdo má aktuálně nárok na trůn (musí mít 500+ HP a NESMÍ TO BÝT BOT)
-    let potentialKing = [...players].filter(p => !p.isZombie && p.hp > 0 && !p.isBot).sort((a, b) => b.hp - a.hp)[0];
+    // 1. Vyčistíme frontu od mrtvých hráčů nebo těch, co už v aréně nejsou
+    while (egoQueue.length > 0) {
+        let name = egoQueue[0];
+        let p = players.find(x => x.name === name && x.hp > 0);
+        if (p) break;
+        egoQueue.shift();
+    }
 
-    // 2. ZÁMEK NA 3 VTEŘINY (Ochrana proti okamžitému přepisování)
-    if (potentialKing) {
-        if (!lastValidBossName) {
-            // Úplně první král hry
-            lastValidBossName = potentialKing.name;
-            window.bossLockTimer = millis() + 3000;
-        } else if (potentialKing.name !== lastValidBossName && millis() > window.bossLockTimer) {
-            // Nový král (uběhly minimálně 3 vteřiny od posledního)
-            lastValidBossName = potentialKing.name;
+    // 2. PRIORITA: Fronta nových hráčů (každý dostane 3 vteřiny slávy)
+    if (egoQueue.length > 0) {
+        let nextInQueue = egoQueue[0];
+        if (lastValidBossName === nextInQueue) {
+            // Aktuální boss je ten z fronty, zkontrolujeme jestli už mu vypršel čas
+            if (millis() > window.bossLockTimer) {
+                egoQueue.shift();
+                // Shiftem se uvolní místo pro dalšího v řadě nebo pro top HP hráče v dalším kroku
+            }
+        } else {
+            // NOVÝ hráč z fronty přebírá Ego Smash (přebije i top HP hráče)
+            lastValidBossName = nextInQueue;
             window.bossLockTimer = millis() + 3000;
         }
-    } else {
-        // Pokud nikdo reálný nepřežil nebo není v aréně, Ego Smash se vypne
-        lastValidBossName = null;
+    }
+
+    // 3. POKUD JE FRONTA PRÁZDNÁ: Zobrazíme hráče s nejvíce HP
+    if (egoQueue.length === 0) {
+        let potentialKing = [...players].filter(p => !p.isZombie && p.hp > 0 && !p.isBot).sort((a, b) => b.hp - a.hp)[0];
+
+        if (potentialKing) {
+            if (lastValidBossName !== potentialKing.name) {
+                // Přepneme na top HP hráče pouze pokud vypršel předchozí zámek
+                if (millis() > window.bossLockTimer) {
+                    lastValidBossName = potentialKing.name;
+                    window.bossLockTimer = millis() + 3000;
+                }
+            }
+        } else {
+            // Pokud nikdo reálný nepřežil nebo není v aréně, Ego Smash se vypne
+            lastValidBossName = null;
+        }
     }
 
     // Pokud není žádný platný král, pošleme stávající planety pryč
