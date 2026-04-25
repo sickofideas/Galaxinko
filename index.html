@@ -4452,6 +4452,30 @@ function connectTikfinity() {
               addNotification('JOIN', u, userAvatars[u]);
               speakTTS(currentLang === "CZ" ? `Hráč ${u} se oživil a vrátil se do bitvy!` : `Player ${u} has respawned and joined the battle!`);
           }
+          else if (p && (msgLower === "!join" || msgLower === "join")) {
+              let now = millis();
+              // Kontrola, zda uběhla 1 minuta (60000 ms) od posledního použití
+              if (!p.lastJoinBoost || now - p.lastJoinBoost >= 60000) {
+                  p.lastJoinBoost = now;
+                  
+                  // 1. Znovu vyvolá Ego Smash (přidá do fronty)
+                  if (!egoQueue.includes(u)) egoQueue.push(u);
+                  
+                  // 2. Simulace 10x like (přidá HP, spustí pilu a vizuální efekty)
+                  handleAction(u, 20, false, 0, true);
+                  
+                  // 3. Fyzický boost rychlosti do náhodného směru
+                  if (p.body) {
+                      let boostPower = 12; 
+                      let angle = random(TWO_PI);
+                      Matter.Body.setVelocity(p.body, { 
+                          x: p.body.velocity.x + cos(angle) * boostPower, 
+                          y: p.body.velocity.y + sin(angle) * boostPower 
+                      });
+                  }
+                  addPopup("RE-JOIN BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
+              }
+          }
 
           if (codeActive && msg.toUpperCase() === secretCode) {
               codeActive = false;
