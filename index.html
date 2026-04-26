@@ -51,7 +51,7 @@
       <button id="tChat">TTS CHAT</button>
       <button id="tFollow">TEST FOLLOW</button>
       <button id="toggleLBBtn">ZOBRAZIT ŽEBŘÍČKY</button>
-      <button id="toggleBossBtn" style="background: #9c27b0;">PLANETA: ZAP</button>
+      <button id="toggleBossBtn" style="background: #555;">EGO SMASH: VYP</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
       <button id="toggleFomoBtn">ZOBRAZIT FOMO</button>
       <button id="tBlock" style="background: #000; color: #ff0000;">TEST BLOCK</button>
@@ -631,7 +631,7 @@ let flowTime = 0;
 let globalFlowAngle = 0;
 
 // --- EGO PLANETA PRO TOP HRÁČE ---
-let showBossPlanet = true;
+let showBossPlanet = false;
 let bossPlanets = [];
 let egoQueue = []; // Fronta pro nové hráče, kteří mají dostat Ego Smash
 let lastValidBossName = null;
@@ -1112,7 +1112,7 @@ function setupEvents() {
   // PŘIDÁNA LOGIKA TLAČÍTKA PRO PLANETU
   document.getElementById('toggleBossBtn').onclick = (e) => { 
       showBossPlanet = !showBossPlanet; 
-      e.target.innerText = showBossPlanet ? "PLANETA: ZAP" : "PLANETA: VYP"; 
+      e.target.innerText = showBossPlanet ? "EGO SMASH: ZAP" : "EGO SMASH: VYP"; 
       e.target.style.background = showBossPlanet ? "#9c27b0" : "#555";
   };
 
@@ -1148,8 +1148,8 @@ function formatK(num) {
 }
 
 function getRadius(hp) { 
-    // Mírně zvětšeno oproti původní verzi (cca 1.8x), aby v aréně nebylo příliš prázdno, ale koule nebyly obří
-    return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.7) * 1.8, 200); 
+    // Zpomaleno o 3x (z 0.7 na 0.233), aby koule nezabíraly příliš místa
+    return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.233) * 1.8, 200); 
 }
 
 function spawnIdleBot() {
@@ -1340,10 +1340,10 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   
   let finalAmount = amount;
   if (isGift) {
-      if (diam >= 5000) finalAmount = diam * 2800 * comboMult;
-      else if (diam >= 1000) finalAmount = diam * 2200 * comboMult;
-      else if (diam >= 100) finalAmount = diam * 1600 * comboMult;
-      else finalAmount = diam === 1 ? 100 : diam * 200 * comboMult;
+      if (diam >= 5000) finalAmount = diam * 2000 * comboMult;
+      else if (diam >= 1000) finalAmount = diam * 1500 * comboMult;
+      else if (diam >= 100) finalAmount = diam * 1000 * comboMult;
+      else finalAmount = diam === 1 ? 50 : diam * 120 * comboMult;
   }
 
   let p = players.find(x => x.name === name);
