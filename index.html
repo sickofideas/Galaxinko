@@ -1006,11 +1006,9 @@ function startNewRound() {
       spawnPlayer(zName, 50, false, 0, true, 1, false, false); // zombies nejdou do fronty
   }
 
-      // Náhodná délka kola mezi 5 a 15 minutami (váženo kolem 6 minut)
-      let r = random();
-      if (r < 0.7) roundTimer = floor(random(300, 480)); // 5 - 8 minut (častější)
-      else roundTimer = floor(random(480, 901)); // 8 - 15 minut
-  maxRoundTimer = roundTimer;
+      // Náhodná délka kola mezi 20 a 30 minutami
+      roundTimer = floor(random(1200, 1801)); 
+      maxRoundTimer = roundTimer;
   roundTimerFrames = roundTimer * 60;
   roundTimerPause = 0;
   
@@ -1609,8 +1607,8 @@ function handleCombat(p1, p2) {
   let effectiveSpeed = Math.max(speed, 1.0);
   
   // OPRAVA: Výrazně snížené násobiče damage (aby hráči neumírali tak rychle)
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.15 + effectiveSpeed * 0.05) * massAdvantage1 * (p1.likeBuffTimer > 0 ? 1.3 : 1.0);
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.15 + effectiveSpeed * 0.05) * massAdvantage2 * (p2.likeBuffTimer > 0 ? 1.3 : 1.0);
+  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.15 + effectiveSpeed * 0.05) * massAdvantage1 * (p1.likeBuffTimer > millis() ? 1.3 : 1.0);
+  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.15 + effectiveSpeed * 0.05) * massAdvantage2 * (p2.likeBuffTimer > millis() ? 1.3 : 1.0);
 
   // OCHRANA MALÝCH HRÁČŮ V ČERNÉ DÍŘE (90% snížení poškození při srážkách)
   if (activeEvent === "MAGNET") {
@@ -2435,8 +2433,9 @@ function handleCameraAndPlayers() {
     // Žádná ochranná zóna - všichni se rurou do jednoho bodu!
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
+    let isBuffed = p.likeBuffTimer && millis() < p.likeBuffTimer;
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 1.2 : 0.9; // ZPOMALENO: Ještě pomalejší, klidnější pohyb
+    let tSpd = isTop10 ? 0.9 : 0.6; // ZPOMALENO: Hráči co nelajkují se plouží
     let currentMaxV = maxV;
     
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
@@ -2446,10 +2445,10 @@ function handleCameraAndPlayers() {
     }
 
     // --- ZRYCHLENÍ ZA TAPOVÁNÍ (LIKE BUFF) ---
-    // Pokud hráč aktivně posílá liky, získá dočasně o 40 % vyšší rychlost
-    if (p.likeBuffTimer > 0) {
-        tSpd *= 1.40; 
-        currentMaxV *= 1.40;
+    // Pokud hráč aktivně posílá liky, získá dočasně o 100 % vyšší rychlost (kompenzace za pomalejší základ)
+    if (isBuffed) {
+        tSpd *= 2.0; 
+        currentMaxV *= 2.0;
         
         // Vizuální zpětná vazba: Občasné jiskry za koulí při zrychleném pohybu
         if (frameCount % 10 === 0 && !isExtremeLoad) {
