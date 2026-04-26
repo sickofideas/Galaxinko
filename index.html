@@ -1453,8 +1453,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   players.push(player); Matter.World.add(world, body);
   
   if (!isZombie) { 
+      player.likeBuffTimer = millis() + 5000; // Pila se točí 5 sekund po spawnu
       if (isGift) {
-          player.likeBuffTimer = millis() + 5000;
           triggerGiftEffect(player, diam, comboMult);
           let giftMsg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", name);
           speakTTS(giftMsg, true);
@@ -4448,24 +4448,17 @@ function connectTikfinity() {
               addNotification('BOOST', u, userAvatars[u], "REPOST"); 
           }
           else if (!p && (msgLower === "!join" || msgLower === "join")) {
-              let baseHp = getStartingHp(u);
-              spawnPlayer(u, baseHp);
+              handleAction(u, 100, false, 0, true);
               addNotification('JOIN', u, userAvatars[u]);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} se oživil a vrátil se do bitvy!` : `Player ${u} has respawned and joined the battle!`);
+              speakTTS(currentLang === "CZ" ? `Hráč ${u} se připojil s bonusem!` : `Player ${u} joined with a bonus!`);
           }
           else if (p && (msgLower === "!join" || msgLower === "join")) {
               let now = millis();
-              // Kontrola, zda uběhla 1 minuta (60000 ms) od posledního použití
-              if (!p.lastJoinBoost || now - p.lastJoinBoost >= 60000) {
+              if (!p.lastJoinBoost || now - p.lastJoinBoost >= 300000) {
                   p.lastJoinBoost = now;
-                  
-                  // 1. Znovu vyvolá Ego Smash (přidá do fronty)
                   if (!egoQueue.includes(u)) egoQueue.push(u);
+                  handleAction(u, 100, false, 0, true);
                   
-                  // 2. Simulace 10x like (přidá HP, spustí pilu a vizuální efekty)
-                  handleAction(u, 20, false, 0, true);
-                  
-                  // 3. Fyzický boost rychlosti do náhodného směru
                   if (p.body) {
                       let boostPower = 12; 
                       let angle = random(TWO_PI);
