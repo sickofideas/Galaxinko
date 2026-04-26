@@ -1343,7 +1343,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
       if (diam >= 5000) finalAmount = diam * 2800 * comboMult;
       else if (diam >= 1000) finalAmount = diam * 2200 * comboMult;
       else if (diam >= 100) finalAmount = diam * 1600 * comboMult;
-      else finalAmount = diam * 200 * comboMult;
+      else finalAmount = diam === 1 ? 100 : diam * 200 * comboMult;
   }
 
   let p = players.find(x => x.name === name);
@@ -2800,6 +2800,13 @@ function handleBossPlanet() {
         push();
         translate(bp.x, bp.y);
         
+        // --- VIDITELNOST: Pokud je někdo v aréně větší než tato planeta, zneviditelnit ---
+        let isSomeoneLarger = players.some(p => !p.isZombie && p.r > (pSize / 2) * 0.95);
+        if (isSomeoneLarger && !bp.isKnockedOut) {
+            pop();
+            continue;
+        }
+        
         // 4. SYNCHRONIZACE BARVY S REÁLNOU PILOU HRÁČE V ARÉNĚ
         let livePlayer = players.find(p => p.name === bp.name);
         let outlineColor = color(200); 
@@ -4025,11 +4032,11 @@ function draw() {
   let realPlayersCount = players.filter(p => !p.isBot && !p.isZombie).length;
   let botCount = players.filter(p => p.isBot).length;
 
-  // 1. Neustálé doplňování: Udržujeme vždy alespoň 15-18 cílů na ploše
-  if (realPlayersCount < 15 && (realPlayersCount + botCount) < 18) {
+  // 1. Neustálé doplňování: Udržujeme vždy alespoň 40-45 cílů na ploše
+  if (realPlayersCount < 40 && (realPlayersCount + botCount) < 45) {
       if (millis() > nextBotSpawnTime) {
           spawnIdleBot();
-          nextBotSpawnTime = millis() + random(2000, 4000);
+          nextBotSpawnTime = millis() + random(800, 2000);
       }
   }
 
