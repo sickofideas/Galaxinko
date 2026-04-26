@@ -785,7 +785,7 @@ const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch
 let lastRealInteractionTime = Date.now();
 let isIdleMode = false;
 let nextBotSpawnTime = 0;
-const MAX_IDLE_BOTS = 18;
+const MAX_IDLE_BOTS = 100;
 const BOT_ADJ = ["Dark", "Cosmic", "Neon", "Super", "Mega", "Cyber", "Ultra", "Space", "Star", "Void", "Galactic", "Epic", "Turbo", "Funny", "Crazy", "Cool", "Mighty", "Little", "Big", "Zany"];
 const BOT_NOUNS = ["Knight", "Doge", "Ranger", "Warrior", "Pilot", "Bot", "User", "Runner", "Hunter", "Ghost", "Titan", "Nova", "Player", "Friend", "Buddy", "Captain", "Ace", "Hero"];
 
@@ -4028,23 +4028,32 @@ function draw() {
   let dynamicBg = color(currentHue, 45, 8); 
   colorMode(RGB, 255);
   
-  // --- SMART BOT FILLER (Boti jsou v aréně hned a mizejí postupně) ---
+  // --- SMART BOT FILLER (Boti doplňují arénu pro "šťavnatý" pocit) ---
   let realPlayersCount = players.filter(p => !p.isBot && !p.isZombie).length;
   let botCount = players.filter(p => p.isBot).length;
+  let totalAlive = realPlayersCount + botCount;
 
-  // 1. Neustálé doplňování: Udržujeme vždy alespoň 40-45 cílů na ploše
-  if (realPlayersCount < 40 && (realPlayersCount + botCount) < 45) {
+  // 1. Neustálé doplňování: Udržujeme vždy kolem 100 cílů
+  let targetTotal = 100;
+  if (totalAlive < targetTotal) {
       if (millis() > nextBotSpawnTime) {
           spawnIdleBot();
-          nextBotSpawnTime = millis() + random(800, 2000);
+          // Pokud je v aréně hodně prázdno, spawnovat rychleji (každých 300-500ms)
+          let spawnInterval = totalAlive < 50 ? 400 : 800;
+          nextBotSpawnTime = millis() + random(spawnInterval, spawnInterval * 1.5);
       }
   }
 
-  // 2. Postupné mizení: Pokud je reálných hráčů dost (5 a více), každé 3 vteřiny vybuchne jeden bot
-  if (realPlayersCount >= 5 && botCount > 0) {
-      if (frameCount % 180 === 0) { // Každé 3 vteřiny (při 60 FPS)
+  // 2. Postupné mizení: Pouze pokud celkový počet výrazně překročí limit nebo je v aréně hromada lidí (50+)
+  if (realPlayersCount > 50 && botCount > 20) {
+      if (frameCount % 60 === 0) { // 1x za vteřinu uvolnit místo pro reálné lidi
           let botToKill = players.find(p => p.isBot);
-          if (botToKill) botToKill.hp = 0; // Plynulé uvolnění místa
+          if (botToKill) botToKill.hp = 0;
+      }
+  } else if (totalAlive > targetTotal + 10 && botCount > 0) {
+      if (frameCount % 120 === 0) { // Pomalejší čistění nadbytečných botů nad limit
+          let botToKill = players.find(p => p.isBot);
+          if (botToKill) botToKill.hp = 0;
       }
   }
   
