@@ -1452,8 +1452,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   body.playerData = player;
   players.push(player); Matter.World.add(world, body);
   
-  if (!isZombie) { 
-      player.likeBuffTimer = millis() + 5000; // Pila se točí 5 sekund po spawnu
+  if (!isZombie && !isBot) { 
+      player.likeBuffTimer = millis() + 5000; // Pila se po spawnu točí jen reálným hráčům
       if (isGift) {
           triggerGiftEffect(player, diam, comboMult);
           let giftMsg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", name);
