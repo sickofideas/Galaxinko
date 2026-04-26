@@ -2102,10 +2102,15 @@ function drawSpaceshipTimer() {
         dirY = (dirY / len) * 35;
     }
     
+    // Pozadí pro lepší čitelnost na chromě
+    rectMode(CENTER);
+    fill(0, 180); noStroke();
+    rect(dirX, dirY, 58, 24, 5);
+    
     fill(100, 255, 100);
     if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
     textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
-    drawingContext.shadowBlur = 5; drawingContext.shadowColor = color(0);
+    stroke(0); strokeWeight(3);
     text(timeStr, dirX, dirY);
     pop();
 }
