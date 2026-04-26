@@ -2107,7 +2107,7 @@ function drawSpaceshipTimer() {
     fill(0, 180); noStroke();
     rect(dirX, dirY, 58, 24, 5);
     
-    fill(100, 255, 100);
+    fill(255); // Bílá, aby ji chroma key nesmazal
     if (roundTimer <= 30 && roundTimer % 2 === 0) fill(255, 50, 50);
     textSize(18); textStyle(BOLD); textAlign(CENTER, CENTER);
     stroke(0); strokeWeight(3);
