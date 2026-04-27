@@ -1158,6 +1158,15 @@ function formatK(num) {
   return Math.floor(Math.max(0, num || 0)).toLocaleString(); 
 }
 
+function getStartingHp(name) {
+    let hist = allTimeHpLeaderboard[name];
+    let base = 150;
+    // Pokud už hráč někdy měl hodně HP, začne s mírným bonusem
+    if (hist && hist.score > 2000) base = 250;
+    else if (hist && hist.score > 500) base = 200;
+    return base;
+}
+
 function getRadius(hp) { 
     // Zpomaleno o 3x (z 0.7 na 0.233), aby koule nezabíraly příliš místa
     return Math.min((15 + Math.sqrt(Math.max(0, hp || 0)) * 0.233) * 1.8, 200); 
@@ -1351,7 +1360,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
   // RESET IDLE TIMERU PŘI REÁLNÉ AKCI
   lastRealInteractionTime = millis();
   
-  let finalAmount = amount;
+  let finalAmount = amount || 0;
   if (isGift) {
       if (diam >= 5000) finalAmount = diam * 2000 * comboMult;
       else if (diam >= 1000) finalAmount = diam * 1500 * comboMult;
@@ -1678,16 +1687,7 @@ function handleCombat(p1, p2) {
       safePlaySound(pentatonic('low'), 0.008, 0.3); // Jemný basový tón při nárazu
   }
   
-  if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
-      // Smazány přímé popupy pro damage, budou se zobrazovat plynule po -1
-  }
-  if (!isHeavyLoad || finalDmgTo2 > 50 || isCrit1) {
-      // Smazány přímé popupy pro damage, budou se zobrazovat plynule po -1
-  }
-
-  if (isCrit1 || isCrit2) {
-      safePlaySound(pentatonic('high'), 0.01, 0.15);
-  }
+  // Přímé popupy pro damage a zvuky critu smazány (nyní běží plynule po -1)
 }
 
 function shootBonusFromShip() {
