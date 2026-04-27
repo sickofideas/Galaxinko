@@ -1376,12 +1376,18 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
     if (finalAmount !== 0) {
         p.hp += finalAmount;
         p.auraFlash = 30; // Záblesk při změně HP
-        if (Math.abs(finalAmount) >= 5) {
-            addPopup((finalAmount > 0 ? "+" : "") + Math.floor(finalAmount), p.body.position.x, p.body.position.y - p.r, finalAmount > 0 ? color(0, 255, 0) : color(255, 50, 50));
+        
+        // AKUMULACE PRO ÚSPORNÉ ZOBRAZENÍ
+        if (finalAmount > 0) {
+            p.healDisplayValue += finalAmount;
+            p.healDisplayTimer = 45; // Zobrazit na 45 framů (~0.7s)
+        } else {
+            p.dmgDisplayValue += Math.abs(finalAmount);
+            p.dmgDisplayTimer = 45;
         }
     }
     
-    // AKTUALIZOVANÁ LOGIKA TRVÁNÍ PILY: Každý like resetuje pilu na 5 sekund (přes millis() pro přesnost)
+    // AKTUALIZOVANÁ LOGIKA TRVÁNÍ PILY: Každý like resetuje pilu na 5 sekund
     p.likeBuffTimer = millis() + 5000; 
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
@@ -1474,7 +1480,9 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot,
-    shareBuffTimer: 0, shareCooldown: 0
+    shareBuffTimer: 0, shareCooldown: 0,
+    dmgDisplayValue: 0, dmgDisplayTimer: 0,
+    healDisplayValue: 0, healDisplayTimer: 0
   };
   
   body.playerData = player;
@@ -1651,12 +1659,20 @@ function handleCombat(p1, p2) {
   if (p2.immunityTimer > 0) finalDmgTo2 = 0;
 
   let hp1Before = p1.hp; let hp2Before = p2.hp;
-  p1.hp -= finalDmgTo1; p2.hp -= finalDmgTo2;
+  p1.hp -= finalDmgTo1; 
+  p1.dmgDisplayValue += finalDmgTo1;
+  p1.dmgDisplayTimer = 45;
+
+  p2.hp -= finalDmgTo2;
+  p2.dmgDisplayValue += finalDmgTo2;
+  p2.dmgDisplayTimer = 45;
 
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
       let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 10) * mult; 
       winner.hp += heal;
+      winner.healDisplayValue += heal;
+      winner.healDisplayTimer = 45;
       winner.auraFlash = 20;
       
       if (loserData.isBounty) {
@@ -3388,6 +3404,30 @@ function drawPlayer(p) {
       fill(255, 215, 0);
       textSize(Math.floor(Math.max(10, p.r * 0.22)));
       text("👑 LEGEND", 0, p.r > 20 ? p.r * 0.65 : 15);
+  }
+
+  // --- ÚSPORNÉ INDIKÁTORY DMG A HEAL (Přímo nad HP číslem) ---
+  let hpY = p.r > 20 ? p.r * 0.2 : 0;
+  
+  if (p.dmgDisplayTimer > 0) {
+      let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 255);
+      fill(255, 50, 50, alpha); stroke(0, alpha); strokeWeight(4);
+      textSize(Math.floor(Math.max(14, p.r * 0.35)));
+      // Vyskakuje nad HP číslo
+      let yOff = hpY - 25 - map(45 - p.dmgDisplayTimer, 0, 45, 0, 30);
+      text("-" + Math.floor(p.dmgDisplayValue), 0, yOff);
+      p.dmgDisplayTimer--;
+      if (p.dmgDisplayTimer === 0) p.dmgDisplayValue = 0;
+  }
+  if (p.healDisplayTimer > 0) {
+      let alpha = map(p.healDisplayTimer, 0, 15, 0, 255);
+      fill(50, 255, 50, alpha); stroke(0, alpha); strokeWeight(4);
+      textSize(Math.floor(Math.max(14, p.r * 0.35)));
+      // Vyskakuje nad HP číslo
+      let yOff = hpY - 25 - map(45 - p.healDisplayTimer, 0, 45, 0, 30);
+      text("+" + Math.floor(p.healDisplayValue), 0, yOff);
+      p.healDisplayTimer--;
+      if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
   }
 
   noStroke(); pop();
