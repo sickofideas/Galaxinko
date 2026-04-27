@@ -1162,10 +1162,10 @@ function formatK(num) {
 
 function getStartingHp(name) {
     let hist = allTimeHpLeaderboard[name];
-    let base = 150;
+    let base = 500; // Zvýšeno ze 150 na 500 dle požadavku
     // Pokud už hráč někdy měl hodně HP, začne s mírným bonusem
-    if (hist && hist.score > 2000) base = 250;
-    else if (hist && hist.score > 500) base = 200;
+    if (hist && hist.score > 2000) base = 600;
+    else if (hist && hist.score > 500) base = 550;
     return base;
 }
 
@@ -1399,7 +1399,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 }
 
 function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, comboMult = 1, isBot = false, shouldQueue = true) {
-  let safeHp = Math.max(0, hp || 150); 
+  let safeHp = Math.max(0, hp || 500); 
   let r = getRadius(safeHp);
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let viewW = W / cameraScale; let viewH = (ARENA_BOT - ARENA_TOP) / cameraScale;
@@ -1460,7 +1460,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   if (shouldQueue && !isBot && !isZombie) {
       if (!egoQueue.includes(name)) egoQueue.push(name);
   }
-  let safeHp = Math.max(0, hp || 150); 
+  let safeHp = Math.max(0, hp || 500); 
   let r = getRadius(safeHp);
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
@@ -1481,6 +1481,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot,
     shareBuffTimer: 0, shareCooldown: 0,
+    hpBuffer: 0, // OPRAVA: Inicializace hpBuffer, aby fungoval Share/Repost bonus
     dmgDisplayValue: 0, dmgDisplayTimer: 0,
     healDisplayValue: 0, healDisplayTimer: 0
   };
@@ -1651,8 +1652,8 @@ function handleCombat(p1, p2) {
       return d;
   };
 
-  let finalDmgTo2 = (p1.isZombie || (p1.isBot && !p2.isBot)) ? 0 : calcDmg(p1, speed);
-  let finalDmgTo1 = (p2.isZombie || (p2.isBot && !p1.isBot)) ? 0 : calcDmg(p2, speed);
+  let finalDmgTo2 = (p1.isZombie || p1.isBot) ? 0 : calcDmg(p1, speed);
+  let finalDmgTo1 = (p2.isZombie || p2.isBot) ? 0 : calcDmg(p2, speed);
 
   // IMMUNITY CHECK (Nové pravidlo pro prevenci damage)
   if (p1.immunityTimer > 0) finalDmgTo1 = 0;
@@ -3410,7 +3411,7 @@ function drawPlayer(p) {
   let hpY = p.r > 20 ? p.r * 0.2 : 0;
   
   if (p.dmgDisplayTimer > 0) {
-      let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 140); // Snížená viditelnost (max 140 ze 255)
+      let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 100); // Snížená viditelnost (ze 140 na 100)
       fill(255, 50, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2); // Jemnější obrys
       textSize(Math.floor(Math.max(14, p.r * 0.35)));
       // Vyskakuje nad HP číslo
@@ -3420,7 +3421,7 @@ function drawPlayer(p) {
       if (p.dmgDisplayTimer === 0) p.dmgDisplayValue = 0;
   }
   if (p.healDisplayTimer > 0) {
-      let alpha = map(p.healDisplayTimer, 0, 15, 0, 140); // Snížená viditelnost
+      let alpha = map(p.healDisplayTimer, 0, 15, 0, 200); // Vyšší viditelnost pro zelené HP
       fill(50, 255, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2);
       textSize(Math.floor(Math.max(14, p.r * 0.35)));
       // Vyskakuje nad HP číslo
