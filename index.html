@@ -1332,8 +1332,8 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
     // TIER 1: Základní potrava (Speed Boost + HP - 1+ mincí)
     else {
         p.orbSpeedTimer = 1 * 60; // 1s Speed boost
-        addPopup("+" + (diam * 200) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-        createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 10);
+        addPopup("+" + (diam * 200) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+        createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 10);
         safePlaySound(pentatonic('mid'), 0.06, 0.4);
     }
     
@@ -1350,8 +1350,8 @@ function reviveZombie(p) {
     p.color = color(hueVal, random(80, 100), random(90, 100));
     colorMode(RGB, 255);
     p.auraFlash = 30;
-    addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
-    createParticles(p.body.position.x, p.body.position.y, color(50, 255, 100), 30);
+    addPopup("REVIVED!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+    createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
     safePlaySound(pentatonic('high'), 0.05, 0.3);
 }
 
@@ -1636,6 +1636,20 @@ function handleCombat(p1, p2) {
   if (isNaN(speed) || !isFinite(speed)) return; 
   if (speed > 100) speed = 100; 
 
+  // --- HP DRAIN MECHANIKA (Hráč vysává 1 HP/s z bota při dotyku) ---
+  if (p1.isBot !== p2.isBot) {
+      let bot = p1.isBot ? p1 : p2;
+      let player = p1.isBot ? p2 : p1;
+      let drain = 0.2; // Sníženo z 1.0 na 0.2 HP/s
+      bot.hp -= drain;
+      player.hp += drain;
+      // Akumulace: Číslo se zobrazí až ve chvíli, kdy nasbírá alespoň +1 HP
+      player.healDisplayValue += drain;
+      if (player.healDisplayValue >= 1) {
+          player.healDisplayTimer = 45;
+      }
+  }
+
   let safeHp1 = Math.max(1, p1.hp); let safeHp2 = Math.max(1, p2.hp);
   let massAdvantage1 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp1 / safeHp2)));
   let massAdvantage2 = Math.min(1.5, Math.max(1, Math.sqrt(safeHp2 / safeHp1)));
@@ -1652,21 +1666,29 @@ function handleCombat(p1, p2) {
       return d;
   };
 
-  let finalDmgTo2 = (p1.isZombie || p1.isBot) ? 0 : calcDmg(p1, speed);
-  let finalDmgTo1 = (p2.isZombie || p2.isBot) ? 0 : calcDmg(p2, speed);
+  let finalDmgTo2 = (p1.isZombie || (p1.isBot && !p2.isBot)) ? 0 : calcDmg(p1, speed);
+  let finalDmgTo1 = (p2.isZombie || (p2.isBot && !p1.isBot)) ? 0 : calcDmg(p2, speed);
 
   // IMMUNITY CHECK (Nové pravidlo pro prevenci damage)
   if (p1.immunityTimer > 0) finalDmgTo1 = 0;
   if (p2.immunityTimer > 0) finalDmgTo2 = 0;
 
   let hp1Before = p1.hp; let hp2Before = p2.hp;
-  p1.hp -= finalDmgTo1; 
-  p1.dmgDisplayValue += finalDmgTo1;
-  p1.dmgDisplayTimer = 45;
+  if (finalDmgTo1 > 0) {
+      p1.hp -= finalDmgTo1;
+      if (!p1.isBot || !p2.isBot) {
+          p1.dmgDisplayValue += finalDmgTo1;
+          p1.dmgDisplayTimer = 45;
+      }
+  }
 
-  p2.hp -= finalDmgTo2;
-  p2.dmgDisplayValue += finalDmgTo2;
-  p2.dmgDisplayTimer = 45;
+  if (finalDmgTo2 > 0) {
+      p2.hp -= finalDmgTo2;
+      if (!p1.isBot || !p2.isBot) {
+          p2.dmgDisplayValue += finalDmgTo2;
+          p2.dmgDisplayTimer = 45;
+      }
+  }
 
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
@@ -2372,11 +2394,11 @@ function handleCameraAndPlayers() {
               let dx = other.body.position.x - px;
               let dy = other.body.position.y - py;
               let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-              let effectRadius = p.r + 50; // Dosah exploze zmenšen (z 120)
+              let effectRadius = p.r + 150; // Dosah exploze zvýšen pro větší dopad
               
               if (dist < effectRadius) {
-                  let forceMag = 0.005 * other.body.mass * (effectRadius / dist); // Síla snížena (z 0.015)
-                  forceMag = Math.min(forceMag, 0.05 * other.body.mass); // Max odhoz snížen (z 0.15)
+                  let forceMag = 0.012 * other.body.mass * (effectRadius / dist); // Síla zvýšena
+                  forceMag = Math.min(forceMag, 0.12 * other.body.mass); // Max odhoz zvýšen
                   Matter.Body.applyForce(other.body, other.body.position, {
                       x: (dx / dist) * forceMag,
                       y: (dy / dist) * forceMag
@@ -2386,10 +2408,10 @@ function handleCameraAndPlayers() {
 
           if (!isHeavyLoad) {
               if (p.isZombie) {
-                  createParticles(px, py, color(50, 255, 50), 8); // Výrazně méně částic
-                  safePlaySound(pentatonic('low'), 0.008, 0.2); // Jemný tón zombíka
+                  createParticles(px, py, color(50, 255, 50), 20); // Více částic pro zombíky
+                  safePlaySound(pentatonic('low'), 0.01, 0.2); 
               } else {
-                  createParticles(px, py, p.color, 12); // Výrazně méně částic
+                  createParticles(px, py, p.color, 35); // Více částic pro hráče
                   deathShockwaves.push({x: px, y: py, r: p.r, color: p.color, life: 255});
                   safePlaySound(pentatonic('low'), 0.01, 0.15);
               }
@@ -2458,7 +2480,7 @@ function handleCameraAndPlayers() {
 
     // --- BOT BEHAVIOR (Chaos movement) ---
     if (p.isBot && frameCount % 60 === (i % 60)) {
-        let chaosForce = 0.0005 * p.body.mass; // Sníženo pro klidnější pohyb
+        let chaosForce = 0.0002 * p.body.mass; // Sníženo pro pomalé ploužení
         Matter.Body.applyForce(p.body, p.body.position, {
             x: (random() - 0.5) * chaosForce,
             y: (random() - 0.5) * chaosForce
@@ -2484,8 +2506,8 @@ function handleCameraAndPlayers() {
 
     // BOTI JSOU POMALEJŠÍ (-40% rychlost oproti hráčům)
     if (p.isBot) {
-        tSpd *= 0.6;
-        currentMaxV *= 0.6;
+        tSpd *= 0.3; // Zpomaleno ze 0.6 pro "ploužení"
+        currentMaxV *= 0.3;
     }
 
     // --- ZRYCHLENÍ ZA TAPOVÁNÍ (LIKE BUFF) ---
@@ -3309,7 +3331,7 @@ function drawPlayer(p) {
       pop();
   }
 
-  let imgSize = p.r * 1.6;
+  let imgSize = p.r * 1.93;
   let isTop10 = currentTop10.includes(p.name);
   let shouldDrawAvatar = true; 
   // Vypnutí profilovek pro obyčejné hráče při zátěži bylo odstraněno na žádost uživatele (profilovky musí být vidět vždy)
@@ -3742,7 +3764,7 @@ function updateTimers() {
           if (p) {
               p.likeBuffTimer = millis() + 5000;
               if (players.length < 50) {
-                  addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
+                  addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
                   // Méně částic = méně lagů, typ ENERGY
                   createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), isMega ? 8 : 3, 'ENERGY');
               }
