@@ -101,6 +101,19 @@ const FORBIDDEN_WORDS = [
     "fuck", "bitch", "asshole", "shit", "cunt", "slut", "whore", "dick", "cock", "pussy", "fag", "faggot", "kys", "suicide", "retard", "pedofil", "pedo"
 ];
 
+// --- TTS OPTIMALIZACE ---
+var giftThrottle = {}; // { username: { count: 0, lastTTS: 0 } }
+
+function cleanNameForTTS(name) {
+    if (!name) return "Bojovník";
+    // Odstraní emoji a speciální znaky, ponechá písmena a čísla
+    let cleaned = name.replace(/[^\w\s\u00C0-\u017F]/gi, '').trim(); 
+    if (cleaned.length === 0) return "Bojovník";
+    // Vezmeme jen první dvě části jména
+    let parts = cleaned.split(/\s+/);
+    return parts.slice(0, 2).join(" ");
+}
+
 // --- 2. ROZŠÍŘENÉ KNIHOVNY HLÁŠEK ---
 var COMMENTARY_TAP = {
   CZ: [
@@ -157,11 +170,11 @@ var COMMENTARY_SOLO = {
 
 var COMMENTARY_GIFT = {
   CZ: [
-    "Neuvěřitelný drop od {p}! Díky!",
-    "Masivní podpora! {p} to v aréně rozjíždí!",
-    "Páni, {p}, to je jízda! Díky moc!",
-    "Hráč {p} posílá mega podporu! Respekt!",
-    "Vesmírná síla! {p} právě změnil pravidla hry!"
+    "Díky, {p}!",
+    "Super drop, {p}!",
+    "Pecka, {p}!",
+    "{p} to rozjíždí!",
+    "Masivní podpora, {p}!"
   ],
   EN: [
     "Incredible drop from {p}! Thanks!",
@@ -1332,7 +1345,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
     // TIER 1: Základní potrava (Speed Boost + HP - 1+ mincí)
     else {
         p.orbSpeedTimer = 1 * 60; // 1s Speed boost
-        addPopup("+" + (diam * 200) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+        addPopup("+" + (diam * 100) + " HP & SPEED!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 10);
         safePlaySound(pentatonic('mid'), 0.06, 0.4);
     }
@@ -1366,7 +1379,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
       if (diam >= 5000) finalAmount = diam * 2000 * comboMult;
       else if (diam >= 1000) finalAmount = diam * 1500 * comboMult;
       else if (diam >= 100) finalAmount = diam * 1000 * comboMult;
-      else finalAmount = diam === 1 ? 50 : diam * 120 * comboMult;
+      else finalAmount = diam * 100 * comboMult;
   }
 
   let p = players.find(x => x.name === name);
@@ -2403,6 +2416,13 @@ function handleCameraAndPlayers() {
                       x: (dx / dist) * forceMag,
                       y: (dy / dist) * forceMag
                   });
+
+                  // --- NOVINKA: POŠKOZENÍ OKOLÍ (-50 HP) ---
+                  if (other.immunityTimer <= 0) {
+                      other.hp -= 50;
+                      other.dmgDisplayValue += 50;
+                      other.dmgDisplayTimer = 45;
+                  }
               }
           }
 
@@ -4731,27 +4751,26 @@ function connectTikfinity() {
 
           addNotification('GIFT', u, userAvatars[u], diam);
 
-          if (diam >= 1000) {
-              let msg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", u);
-              speakTTS(msg, true);
+          let cleanU = cleanNameForTTS(u);
+          if (diam >= 100) {
+              if (diam >= 1000) {
+                  let msg = random(COMMENTARY_GIFT[currentLang]).replace("{p}", cleanU);
+                  speakTTS(msg, true);
+              } else {
+                  let giftMsgsCZ = ["Díky, " + cleanU + "!", "Super, " + cleanU + "!", "Pecka, " + cleanU + "!", "Díky za podporu!"];
+                  speakTTS(random(giftMsgsCZ), true);
+              }
           } else {
-              let giftMsgsCZ = [
-                  "Díky moc, " + u + "!",
-                  "Super podpora, " + u + "!",
-                  "Skvěle, " + u + "!",
-                  "Díky za dárky, " + u + "!",
-                  "Pecka, " + u + ", díky!",
-                  u + " to rozjíždí, díky!"
-              ];
-              let giftMsgsEN = [
-                  "Thanks a lot, " + u + "!",
-                  "Great support, " + u + "!",
-                  "Awesome, " + u + "!",
-                  "Thanks for the gifts, " + u + "!",
-                  "Nice one, " + u + ", thanks!",
-                  u + " is on fire, thanks!"
-              ];
-              speakTTS(currentLang === "CZ" ? random(giftMsgsCZ) : random(giftMsgsEN), true); 
+              // Malé dárky (růže) - děkujeme jen při náloži (5+)
+              if (!giftThrottle[u]) giftThrottle[u] = { count: 0, lastTTS: 0 };
+              giftThrottle[u].count += 1;
+              
+              if (giftThrottle[u].count >= 5 && millis() - giftThrottle[u].lastTTS > 8000) {
+                  let comboMsgsCZ = ["Díky za nálož, " + cleanU + "!", "Páni, " + cleanU + " to tam sype!", "Skvělá série, " + cleanU + "!"];
+                  speakTTS(random(comboMsgsCZ), true);
+                  giftThrottle[u].count = 0;
+                  giftThrottle[u].lastTTS = millis();
+              }
           }
       }
     } catch (err) {}
