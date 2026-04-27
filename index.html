@@ -1122,7 +1122,7 @@ function setupEvents() {
           let p = random(players);
           p.shareBuffTimer = 20 * 60; 
           p.shareCooldown = 60 * 60;
-          p.likeBuffTimer = millis() + 5000;
+          p.likeBuffTimer = millis() + 20000;
           addPopup("SHARE BOOST!", p.body.position.x, p.body.position.y - p.r, color(233, 30, 99));
           createParticles(p.body.position.x, p.body.position.y, color(233, 30, 99), 30);
       }
@@ -4557,7 +4557,7 @@ function connectTikfinity() {
           if (p && p.shareCooldown <= 0) {
               p.shareBuffTimer = 20 * 60; 
               p.shareCooldown = 60 * 60;
-              p.likeBuffTimer = millis() + 5000;
+              p.likeBuffTimer = millis() + 20000;
               addPopup("SHARE BOOST!", p.body.position.x, p.body.position.y - p.r, color(233, 30, 99));
               createParticles(p.body.position.x, p.body.position.y, color(233, 30, 99), 30);
               addNotification('BOOST', u, userAvatars[u], "SHARE");
