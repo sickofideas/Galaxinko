@@ -2530,7 +2530,7 @@ function handleCameraAndPlayers() {
             p.hpBuffer -= add;
             // Popupy jen občas pro úsporu FPS
             if (frameCount % 10 === 0) {
-                addPopup("+1", p.body.position.x, p.body.position.y - p.r, color(0, 255, 0));
+                addPopup("+1", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
             }
         } else if (p.hpBuffer < 0) {
             let sub = Math.min(step, Math.abs(p.hpBuffer));
@@ -3411,22 +3411,28 @@ function drawPlayer(p) {
   let hpY = p.r > 20 ? p.r * 0.2 : 0;
   
   if (p.dmgDisplayTimer > 0) {
-      let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 100); // Snížená viditelnost (ze 140 na 100)
-      fill(255, 50, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2); // Jemnější obrys
-      textSize(Math.floor(Math.max(14, p.r * 0.35)));
-      // Vyskakuje nad HP číslo
-      let yOff = hpY - 20 - map(45 - p.dmgDisplayTimer, 0, 45, 0, 20);
-      text("-" + Math.round(p.dmgDisplayValue), 0, yOff);
+      let roundedDmg = Math.round(p.dmgDisplayValue);
+      if (roundedDmg > 0) {
+          let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 100); // Snížená viditelnost (ze 140 na 100)
+          fill(255, 50, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2); // Jemnější obrys
+          textSize(Math.floor(Math.max(14, p.r * 0.35)));
+          // Vyskakuje nad HP číslo
+          let yOff = hpY - 20 - map(45 - p.dmgDisplayTimer, 0, 45, 0, 20);
+          text("-" + roundedDmg, 0, yOff);
+      }
       p.dmgDisplayTimer--;
       if (p.dmgDisplayTimer === 0) p.dmgDisplayValue = 0;
   }
   if (p.healDisplayTimer > 0) {
-      let alpha = map(p.healDisplayTimer, 0, 15, 0, 200); // Vyšší viditelnost pro zelené HP
-      fill(50, 255, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2);
-      textSize(Math.floor(Math.max(14, p.r * 0.35)));
-      // Vyskakuje nad HP číslo
-      let yOff = hpY - 20 - map(45 - p.healDisplayTimer, 0, 45, 0, 20);
-      text("+" + Math.round(p.healDisplayValue), 0, yOff);
+      let roundedHeal = Math.round(p.healDisplayValue);
+      if (roundedHeal > 0) {
+          let alpha = map(p.healDisplayTimer, 0, 15, 0, 200); // Vyšší viditelnost pro zelené HP
+          fill(0, 255, 255, alpha); stroke(0, alpha * 0.4); strokeWeight(2);
+          textSize(Math.floor(Math.max(14, p.r * 0.35)));
+          // Vyskakuje nad HP číslo
+          let yOff = hpY - 20 - map(45 - p.healDisplayTimer, 0, 45, 0, 20);
+          text("+" + roundedHeal, 0, yOff);
+      }
       p.healDisplayTimer--;
       if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
   }
