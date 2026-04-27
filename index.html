@@ -157,18 +157,18 @@ var COMMENTARY_SOLO = {
 
 var COMMENTARY_GIFT = {
   CZ: [
-    "Neuvěřitelné! Hráč {p} posílá mega podporu!",
-    "Všichni povstaňte, velitel {p} právě shodil bombu!",
-    "Tohle je naprosté šílenství! Děkujeme ti, {p}!",
-    "Pozor, přilétá masivní podpora od {p}! Tohle změní hru!",
-    "Hráč {p} se právě stal hlavním sponzorem této bitvy!"
+    "Neuvěřitelný drop od {p}! Díky!",
+    "Masivní podpora! {p} to v aréně rozjíždí!",
+    "Páni, {p}, to je jízda! Díky moc!",
+    "Hráč {p} posílá mega podporu! Respekt!",
+    "Vesmírná síla! {p} právě změnil pravidla hry!"
   ],
   EN: [
-    "Unbelievable! Player {p} sends mega support!",
-    "Everyone stand up, commander {p} just dropped a bomb!",
-    "This is absolute madness! Thank you, {p}!",
-    "Watch out, massive support arriving from {p}! This changes everything!",
-    "Player {p} just became the main sponsor of this battle!"
+    "Incredible drop from {p}! Thanks!",
+    "Massive support! {p} is rocking the arena!",
+    "Wow, {p}, what a move! Thank you so much!",
+    "Player {p} sends mega support! Respect!",
+    "Space power! {p} just changed the game!"
   ]
 };
 
@@ -4708,16 +4708,20 @@ function connectTikfinity() {
               speakTTS(msg, true);
           } else {
               let giftMsgsCZ = [
-                  "Obrovské díky, " + u + "! Tvá energie je naprosto úžasná!",
-                  "Páni, " + u + " nám posílá nádhernou podporu! Moc děkujeme!",
-                  "Vesmír jásá! Děkujeme ti, " + u + ", za tvoji štědrost!",
-                  "Neuvěřitelné! " + u + " je opravdová hvězda arény. Děkujeme moc!"
+                  "Díky moc, " + u + "!",
+                  "Super podpora, " + u + "!",
+                  "Skvěle, " + u + "!",
+                  "Díky za dárky, " + u + "!",
+                  "Pecka, " + u + ", díky!",
+                  u + " to rozjíždí, díky!"
               ];
               let giftMsgsEN = [
-                  "Massive thanks, " + u + "! Your energy is absolutely amazing!",
-                  "Wow, " + u + " is sending beautiful support! Thank you so much!",
-                  "The universe rejoices! Thank you, " + u + ", for your generosity!",
-                  "Incredible! " + u + " is a true star of the arena. Thank you very much!"
+                  "Thanks a lot, " + u + "!",
+                  "Great support, " + u + "!",
+                  "Awesome, " + u + "!",
+                  "Thanks for the gifts, " + u + "!",
+                  "Nice one, " + u + ", thanks!",
+                  u + " is on fire, thanks!"
               ];
               speakTTS(currentLang === "CZ" ? random(giftMsgsCZ) : random(giftMsgsEN), true); 
           }
