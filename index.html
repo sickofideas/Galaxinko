@@ -1119,11 +1119,13 @@ function setupEvents() {
 
   document.getElementById('tShare').onclick = () => {
       if(players.length > 0) {
+      if (players.length > 0) {
           let p = random(players);
-          p.shareBuffTimer = 20 * 60; 
-          p.shareCooldown = 60 * 60;
-          p.likeBuffTimer = millis() + 20000;
+          p.hpBuffer += 200; // Instantní nášup do bufferu (plynule se přičte)
+          p.shareCooldown = 60 * 60; // 1 min cooldown
+          p.likeBuffTimer = millis() + 10000; // Pila na 10 sekund
           createParticles(p.body.position.x, p.body.position.y, color(233, 30, 99), 30);
+      }
       }
   };
 
@@ -1342,7 +1344,6 @@ function reviveZombie(p) {
     if (!p.isZombie) return;
     p.isZombie = false;
     p.hp = 150;
-    p.hpBuffer = 0;
     colorMode(HSB, 360, 100, 100);
     let hueVal = random(360);
     if (hueVal > 80 && hueVal < 160) hueVal = (hueVal + 100) % 360; // Ochrana proti zelené (chroma key)
@@ -1372,7 +1373,13 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
-    p.hpBuffer += finalAmount; p.auraFlash = 15; 
+    if (finalAmount !== 0) {
+        p.hp += finalAmount;
+        p.auraFlash = 30; // Záblesk při změně HP
+        if (Math.abs(finalAmount) >= 5) {
+            addPopup((finalAmount > 0 ? "+" : "") + Math.floor(finalAmount), p.body.position.x, p.body.position.y - p.r, finalAmount > 0 ? color(0, 255, 0) : color(255, 50, 50));
+        }
+    }
     
     // AKTUALIZOVANÁ LOGIKA TRVÁNÍ PILY: Každý like resetuje pilu na 5 sekund (přes millis() pro přesnost)
     p.likeBuffTimer = millis() + 5000; 
@@ -1432,9 +1439,8 @@ function handleSpawnModules() {
         m.x += m.vx; m.y += m.vy; m.life--;
         
         push(); translate(m.x, m.y); rotate(atan2(m.vy, m.vx));
-        // Extrémně zjednodušená raketka
-        fill(255, 150, 0, 200); noStroke(); triangle(-8, -4, -8, 4, -16, 0); // Plamínek
-        fill(m.color); stroke(255); strokeWeight(1); ellipse(0, 0, 16, 16); // Samotná kulička v barvě hráče
+        // Raketka a plamínek smazány - jen čistá kulička letící do arény
+        fill(m.color); stroke(255); strokeWeight(1); ellipse(0, 0, 16, 16); 
         pop();
         
         if (m.life <= 0 || dist(m.x, m.y, m.targetX, m.targetY) < 10) {
@@ -1468,8 +1474,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot,
-    shareBuffTimer: 0, shareCooldown: 0,
-    hpBuffer: 0
+    shareBuffTimer: 0, shareCooldown: 0
   };
   
   body.playerData = player;
@@ -1646,12 +1651,12 @@ function handleCombat(p1, p2) {
   if (p2.immunityTimer > 0) finalDmgTo2 = 0;
 
   let hp1Before = p1.hp; let hp2Before = p2.hp;
-  p1.hpBuffer -= finalDmgTo1; p2.hpBuffer -= finalDmgTo2;
+  p1.hp -= finalDmgTo1; p2.hp -= finalDmgTo2;
 
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
       let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 10) * mult; 
-      winner.hpBuffer += heal;
+      winner.hp += heal;
       winner.auraFlash = 20;
       
       if (loserData.isBounty) {
@@ -1806,7 +1811,7 @@ function handleOrbs() {
                   if (!isHeavyLoad) addPopup("5x SPEED BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 255, 0));
                   safePlaySound(pentatonic('high'), 0.01, 0.25);
               } else {
-                  p.hpBuffer += o.value;
+                  p.hp += o.value;
                   safePlaySound(pentatonic('mid'), 0.01, 0.2);
               }
               createParticles(o.x, o.y, orbColor, 15);
@@ -2472,10 +2477,7 @@ function handleCameraAndPlayers() {
         tSpd *= 1.25; 
         currentMaxV *= 2.0;
         
-        // Vizuální zpětná vazba: Občasné jiskry za koulí při zrychleném pohybu
-        if (frameCount % 10 === 0 && !isExtremeLoad) {
-            createParticles(p.body.position.x, p.body.position.y, color(255, 100, 100), 1);
-        }
+        // Vizuální jiskry smazány
     }
 
     if (p.isBounty) {
@@ -2494,16 +2496,9 @@ function handleCameraAndPlayers() {
         p.orbSpeedTimer--;
         tSpd *= 5.0;
         currentMaxV *= 5.0;
-        if (frameCount % 5 === 0 && !isExtremeLoad) {
-            createParticles(p.body.position.x, p.body.position.y, color(255, 255, 0), 2);
-        }
+        // Žluté jiskry smazány
     }
 
-    // --- GRADUÁLNÍ BONUS ZA SDÍLENÍ ---
-    if (p.shareBuffTimer > 0) {
-        p.shareBuffTimer--;
-        p.hp += 200 / 1200; // Přidá 200 HP během 20 vteřin (1200 framů)
-    }
     if (p.shareCooldown > 0) p.shareCooldown--;
 
     // --- PLYNULÉ PŘIDÁVÁNÍ/UBÍRÁNÍ HP (BUFFEROVANÉ) ---
@@ -3092,10 +3087,7 @@ function drawPlayer(p) {
   
   let isLeader = (currentTop10[0] === p.name && !p.isZombie);
   
-  // 1. FIRE TRAIL
-  if (p.hasFireTrail && frameCount % 3 === 0) {
-      createParticles(pos.x, pos.y, color(255, random(100, 200), 0), 2);
-  }
+  // 1. FIRE TRAIL smazán
 
   // 2. GOD MODE KOUZLO
   if (p.isGodMode) {
@@ -3157,11 +3149,11 @@ function drawPlayer(p) {
   }
 
   // Buff záře (Vypnuto pro boty)
-  if (isBuffed && !p.isBot) { 
-      fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke();
-      ellipse(0, 0, p.r * 2.0);
-      if (frameCount % 5 === 0 && !isExtremeLoad) createParticles(pos.x, pos.y, color(255, 150, 0), 1);
-  }
+      if (isBuffed && !p.isBot) { 
+          fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke();
+          ellipse(0, 0, p.r * 2.0);
+          // Oranžové jiskry smazány
+      }
 
   let outlineColor = actualColor;
   if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
@@ -3220,10 +3212,7 @@ function drawPlayer(p) {
       noFill();
       ellipse(0, 0, p.r * 2.1); // Detailní kroužek uvnitř
       
-      // Dynamické odlesky na čepeli
-      rotate(frameCount * -0.2); // Protirotace pro efekt odlesku
-      stroke(255, sawAlpha * 0.4);
-      line(-p.r, 0, p.r, 0);
+      // Dynamické odlesky na čepeli smazány
       drawingContext.shadowBlur = 0;
       pop();
   }
@@ -4580,9 +4569,9 @@ function connectTikfinity() {
       else if (evt === "share") {
           let p = players.find(x => x.name === u);
           if (p && p.shareCooldown <= 0) {
-              p.shareBuffTimer = 20 * 60; 
+              p.hp += 200; 
               p.shareCooldown = 60 * 60;
-              p.likeBuffTimer = millis() + 20000;
+              p.likeBuffTimer = millis() + 10000;
               createParticles(p.body.position.x, p.body.position.y, color(233, 30, 99), 30);
           }
       }
