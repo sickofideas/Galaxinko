@@ -2355,11 +2355,11 @@ function handleCameraAndPlayers() {
               let dx = other.body.position.x - px;
               let dy = other.body.position.y - py;
               let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-              let effectRadius = p.r + 120; // Dosah exploze
+              let effectRadius = p.r + 50; // Dosah exploze zmenšen (z 120)
               
               if (dist < effectRadius) {
-                  let forceMag = 0.015 * other.body.mass * (effectRadius / dist); 
-                  forceMag = Math.min(forceMag, 0.15 * other.body.mass); // Zastropování síly odhozu na polovinu
+                  let forceMag = 0.005 * other.body.mass * (effectRadius / dist); // Síla snížena (z 0.015)
+                  forceMag = Math.min(forceMag, 0.05 * other.body.mass); // Max odhoz snížen (z 0.15)
                   Matter.Body.applyForce(other.body, other.body.position, {
                       x: (dx / dist) * forceMag,
                       y: (dy / dist) * forceMag
