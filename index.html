@@ -1078,9 +1078,9 @@ function setupEvents() {
                   let reward = isUltraCode ? 750 : 375;
                   handleAction(u, reward, false, 0, true);
               } else if (cType === "BOOST") {
-                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hp += 250; } else handleAction(u, 250, false, 0, true);
+                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hpBuffer += 250; } else handleAction(u, 250, false, 0, true);
               } else if (cType === "SHIELD") {
-                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hp += 250; } else handleAction(u, 250, false, 0, true);
+                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hpBuffer += 250; } else handleAction(u, 250, false, 0, true);
               }
           addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
           speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil ${isUltraCode ? "ultra" : "tajný"} kód!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`, true);
@@ -1123,7 +1123,6 @@ function setupEvents() {
           p.shareBuffTimer = 20 * 60; 
           p.shareCooldown = 60 * 60;
           p.likeBuffTimer = millis() + 20000;
-          addPopup("SHARE BOOST!", p.body.position.x, p.body.position.y - p.r, color(233, 30, 99));
           createParticles(p.body.position.x, p.body.position.y, color(233, 30, 99), 30);
       }
   };
@@ -1142,7 +1141,7 @@ function setupEvents() {
   // PŘIDÁNO: Kontinuální damage při dotyku v hloučku (Vortex)
   Matter.Events.on(engine, 'collisionActive', (event) => {
     if (activeEvent === "MAGNET") return; // OCHRANA: V černé díře se kuličky nedrtí o sebe
-    // OPRAVA: Změněno z 20 na 60! Kuličky, co se o sebe jen třou, dají damage jen 1x za vteřinu (místo 3x)
+    // Vráceno: V chumlu se damage uděluje 1x za vteřinu (aby to bylo pomalé)
     if (frameCount % 60 !== 0) return; 
     event.pairs.forEach(pair => {
       // EXTRÉMNÍ OPTIMALIZACE: O(1) vyhledávání místo iterace přes celé pole
@@ -1245,6 +1244,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
             // Instakill pro všechny, co nemají aspoň 5000 HP
             if (other.hp < 5000) {
                 other.hp = 0;
+                other.hpBuffer = 0;
             }
         }
         
@@ -1333,6 +1333,7 @@ function reviveZombie(p) {
     if (!p.isZombie) return;
     p.isZombie = false;
     p.hp = 150;
+    p.hpBuffer = 0;
     colorMode(HSB, 360, 100, 100);
     let hueVal = random(360);
     if (hueVal > 80 && hueVal < 160) hueVal = (hueVal + 100) % 360; // Ochrana proti zelené (chroma key)
@@ -1362,11 +1363,10 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 
   if (p) {
     if (p.isZombie) reviveZombie(p); // Okamžité oživení!
-    p.hp += finalAmount; p.auraFlash = 15; 
+    p.hpBuffer += finalAmount; p.auraFlash = 15; 
     
     // AKTUALIZOVANÁ LOGIKA TRVÁNÍ PILY: Každý like resetuje pilu na 5 sekund (přes millis() pro přesnost)
     p.likeBuffTimer = millis() + 5000; 
-    if (players.length < 50 && !isGift) addPopup("+" + finalAmount, p.body.position.x, p.body.position.y - p.r, color(50, 255, 100));
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
         if (allowSpawn) {
@@ -1459,7 +1459,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot,
-    shareBuffTimer: 0, shareCooldown: 0
+    shareBuffTimer: 0, shareCooldown: 0,
+    hpBuffer: 0
   };
   
   body.playerData = player;
@@ -1619,36 +1620,29 @@ function handleCombat(p1, p2) {
   // OCHRANA: Snížena minimální rychlost pro výpočet damage z 2.0 na 1.0
   let effectiveSpeed = Math.max(speed, 1.0);
   
-  // OPRAVA: Výrazně snížené násobiče damage (aby hráči neumírali tak rychle)
-  let baseDmgFrom1 = (Math.log10(safeHp1) * 0.15 + effectiveSpeed * 0.05) * massAdvantage1 * (p1.likeBuffTimer > millis() ? 2.0 : 1.0);
-  let baseDmgFrom2 = (Math.log10(safeHp2) * 0.15 + effectiveSpeed * 0.05) * massAdvantage2 * (p2.likeBuffTimer > millis() ? 2.0 : 1.0);
+  // NOVÁ LOGIKA: Velmi pomalý a náhodný damage podle zadání
+  let calcDmg = (p, spd) => {
+      let d = floor(random(1, 3)); // Základ 1-2
+      if (spd > 5) d = floor(random(1, 4)); // Rychlý 1-3
+      if (p.likeBuffTimer > millis()) d = floor(random(1, 5)); // Pila 1-4
+      if (p.giftSpeedTimer > 0) d *= 2; // Gift bonus zdvojnásobí dmg
+      return d;
+  };
 
-  // OCHRANA MALÝCH HRÁČŮ V ČERNÉ DÍŘE (90% snížení poškození při srážkách)
-  if (activeEvent === "MAGNET") {
-      baseDmgFrom1 *= 0.1;
-      baseDmgFrom2 *= 0.1;
-  }
-
-  baseDmgFrom1 *= random(0.8, 1.2); baseDmgFrom2 *= random(0.8, 1.2);
-
-  let isCrit1 = random() < 0.04; let isCrit2 = random() < 0.04;
-  if (isCrit1) baseDmgFrom1 *= 1.3; if (isCrit2) baseDmgFrom2 *= 1.3;
-
-  let finalDmgTo2 = (p1.isZombie || (p1.isBot && !p2.isBot)) ? 0 : Math.max(1, Math.floor(baseDmgFrom1)); 
-  let finalDmgTo1 = (p2.isZombie || (p2.isBot && !p1.isBot)) ? 0 : Math.max(1, Math.floor(baseDmgFrom2)); 
+  let finalDmgTo2 = (p1.isZombie || (p1.isBot && !p2.isBot)) ? 0 : calcDmg(p1, speed);
+  let finalDmgTo1 = (p2.isZombie || (p2.isBot && !p1.isBot)) ? 0 : calcDmg(p2, speed);
 
   // IMMUNITY CHECK (Nové pravidlo pro prevenci damage)
   if (p1.immunityTimer > 0) finalDmgTo1 = 0;
   if (p2.immunityTimer > 0) finalDmgTo2 = 0;
 
   let hp1Before = p1.hp; let hp2Before = p2.hp;
-  p1.hp -= finalDmgTo1; p2.hp -= finalDmgTo2;
+  p1.hpBuffer -= finalDmgTo1; p2.hpBuffer -= finalDmgTo2;
 
   let healLogic = (winner, loserData) => {
       let mult = loserData.isBounty ? 5 : 1;
       let heal = Math.floor(loserData.hpBeforeDead * 0.3 + 10) * mult; 
-      winner.hp += heal;
-      if(players.length < 50) addPopup("+" + heal + (loserData.isBounty ? " BOUNTY TAKEDOWN!" : " TAKEDOWN!"), winner.body.position.x, winner.body.position.y - winner.r - 20, color(50, 255, 100));
+      winner.hpBuffer += heal;
       winner.auraFlash = 20;
       
       if (loserData.isBounty) {
@@ -1685,10 +1679,10 @@ function handleCombat(p1, p2) {
   }
   
   if (!isHeavyLoad || finalDmgTo1 > 50 || isCrit2) {
-      if(finalDmgTo1 > 0) addPopup("-" + finalDmgTo1, p1.body.position.x, p1.body.position.y, isCrit2 ? color(255, 215, 0) : color(255, 80, 80), isCrit2);
+      // Smazány přímé popupy pro damage, budou se zobrazovat plynule po -1
   }
   if (!isHeavyLoad || finalDmgTo2 > 50 || isCrit1) {
-      if(finalDmgTo2 > 0) addPopup("-" + finalDmgTo2, p2.body.position.x, p2.body.position.y, isCrit1 ? color(255, 215, 0) : color(255, 80, 80), isCrit1);
+      // Smazány přímé popupy pro damage, budou se zobrazovat plynule po -1
   }
 
   if (isCrit1 || isCrit2) {
@@ -1812,8 +1806,7 @@ function handleOrbs() {
                   if (!isHeavyLoad) addPopup("5x SPEED BOOST!", p.body.position.x, p.body.position.y - p.r, color(255, 255, 0));
                   safePlaySound(pentatonic('high'), 0.01, 0.25);
               } else {
-                  p.hp += o.value;
-                  if (!isHeavyLoad) addPopup("+" + o.value + " BONUS!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
+                  p.hpBuffer += o.value;
                   safePlaySound(pentatonic('mid'), 0.01, 0.2);
               }
               createParticles(o.x, o.y, orbColor, 15);
@@ -2304,7 +2297,7 @@ function handleCameraAndPlayers() {
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
   let isHeavyLoad = players.length > 15;    // Dřívější úleva pro grafiku
   let isExtremeLoad = players.length > 30;  // Dřívější úleva pro grafiku
-  let maxV = 5;
+  let maxV = 4; // SNÍŽENO (z 5)
   
   for (let i = players.length - 1; i >= 0; i--) {
     let p = players[i];
@@ -2443,7 +2436,7 @@ function handleCameraAndPlayers() {
 
     // --- BOT BEHAVIOR (Chaos movement) ---
     if (p.isBot && frameCount % 60 === (i % 60)) {
-        let chaosForce = 0.0008 * p.body.mass;
+        let chaosForce = 0.0005 * p.body.mass; // Sníženo pro klidnější pohyb
         Matter.Body.applyForce(p.body, p.body.position, {
             x: (random() - 0.5) * chaosForce,
             y: (random() - 0.5) * chaosForce
@@ -2455,7 +2448,7 @@ function handleCameraAndPlayers() {
 
     let isBuffed = p.likeBuffTimer && millis() < p.likeBuffTimer;
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 2.2 : 1.8; // ZRYCHLENO: Koule víc lítají po aréně
+    let tSpd = isTop10 ? 1.6 : 1.3; // SNÍŽENO (z 2.2 / 1.8) pro klidnější arénu
     
     // SÍLA PODLE HP: Čím větší koule, tím lehce vyšší tah na bránu
     tSpd *= (1.0 + Math.sqrt(p.hp) * 0.0015);
@@ -2465,6 +2458,12 @@ function handleCameraAndPlayers() {
     if (p.isZombie) {
         tSpd *= 0.4;
         currentMaxV *= 0.4;
+    }
+
+    // BOTI JSOU POMALEJŠÍ (-40% rychlost oproti hráčům)
+    if (p.isBot) {
+        tSpd *= 0.6;
+        currentMaxV *= 0.6;
     }
 
     // --- ZRYCHLENÍ ZA TAPOVÁNÍ (LIKE BUFF) ---
@@ -2506,6 +2505,30 @@ function handleCameraAndPlayers() {
         p.hp += 200 / 1200; // Přidá 200 HP během 20 vteřin (1200 framů)
     }
     if (p.shareCooldown > 0) p.shareCooldown--;
+
+    // --- PLYNULÉ PŘIDÁVÁNÍ/UBÍRÁNÍ HP (BUFFEROVANÉ) ---
+    if (p.hpBuffer !== 0) {
+        // Rychlost změny: min 1 HP, ale při velkém rozdílu zrychlíme, aby to netrvalo věčnost
+        let step = 1;
+        if (Math.abs(p.hpBuffer) > 100) step = Math.ceil(Math.abs(p.hpBuffer) / 60);
+        
+        if (p.hpBuffer > 0) {
+            let add = Math.min(step, p.hpBuffer);
+            p.hp += add;
+            p.hpBuffer -= add;
+            // Popupy jen občas pro úsporu FPS
+            if (frameCount % 10 === 0) {
+                addPopup("+1", p.body.position.x, p.body.position.y - p.r, color(0, 255, 0));
+            }
+        } else if (p.hpBuffer < 0) {
+            let sub = Math.min(step, Math.abs(p.hpBuffer));
+            p.hp -= sub;
+            p.hpBuffer += sub;
+            if (frameCount % 10 === 0) {
+                addPopup("-1", p.body.position.x, p.body.position.y - p.r, color(255, 80, 80));
+            }
+        }
+    }
 
     let vx = p.body.velocity.x;
     let vy = p.body.velocity.y;
@@ -3472,7 +3495,7 @@ function drawPopups() {
     // Vypnuto stínování pro obrovský nárůst FPS
     if (f.isCrit) {
         stroke(0); strokeWeight(4); fill(255, 215, 0, f.life); textSize(22 + sin(f.life * 0.1) * 4); textAlign(CENTER); textStyle(BOLD);
-            let critText = "💥 " + f.txt; 
+            let critText = f.txt; 
             text(critText, 0, 0); f.y += f.vy - 0.5; f.life -= 8;
     } else {
         stroke(0); strokeWeight(3); fill(red(f.c), green(f.c), blue(f.c), f.life); textSize(16); textAlign(CENTER); textStyle(BOLD);
@@ -4430,7 +4453,9 @@ function connectTikfinity() {
   socket = new WebSocket(TIKFINITY_URL);
   socket.onmessage = (e) => {
     try {
-      let d = JSON.parse(e.data); let evt = d?.event || d?.type || ""; let n = d?.data?.nickname || d?.data?.uniqueId || "Anonym";
+      let d = JSON.parse(e.data); 
+      let evt = d?.event || d?.type || ""; 
+      let n = d?.data?.uniqueId || d?.uniqueId || d?.data?.nickname || d?.nickname || "Anonym";
       if (n === "Anonym") return;
       
       // RESET IDLE TIMERU PŘI JAKÉKOLIV AKCI ZE SOCKETU
@@ -4558,9 +4583,7 @@ function connectTikfinity() {
               p.shareBuffTimer = 20 * 60; 
               p.shareCooldown = 60 * 60;
               p.likeBuffTimer = millis() + 20000;
-              addPopup("SHARE BOOST!", p.body.position.x, p.body.position.y - p.r, color(233, 30, 99));
               createParticles(p.body.position.x, p.body.position.y, color(233, 30, 99), 30);
-              addNotification('BOOST', u, userAvatars[u], "SHARE");
           }
       }
       else if (evt === "gift") { 
