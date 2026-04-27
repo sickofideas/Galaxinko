@@ -1642,11 +1642,11 @@ function handleCombat(p1, p2) {
   // OCHRANA: Snížena minimální rychlost pro výpočet damage z 2.0 na 1.0
   let effectiveSpeed = Math.max(speed, 1.0);
   
-  // NOVÁ LOGIKA: Velmi pomalý a náhodný damage podle zadání
+  // NOVÁ LOGIKA: Sníženo na polovinu pro delší hru
   let calcDmg = (p, spd) => {
-      let d = floor(random(1, 3)); // Základ 1-2
-      if (spd > 5) d = floor(random(1, 4)); // Rychlý 1-3
-      if (p.likeBuffTimer > millis()) d = floor(random(1, 5)); // Pila 1-4
+      let d = random(0.5, 1.0); // Základ 0.5-1.0
+      if (spd > 5) d = random(0.5, 1.5); // Rychlý 0.5-1.5
+      if (p.likeBuffTimer > millis()) d = random(0.5, 2.0); // Pila 0.5-2.0
       if (p.giftSpeedTimer > 0) d *= 2; // Gift bonus zdvojnásobí dmg
       return d;
   };
@@ -3410,22 +3410,22 @@ function drawPlayer(p) {
   let hpY = p.r > 20 ? p.r * 0.2 : 0;
   
   if (p.dmgDisplayTimer > 0) {
-      let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 255);
-      fill(255, 50, 50, alpha); stroke(0, alpha); strokeWeight(4);
+      let alpha = map(p.dmgDisplayTimer, 0, 15, 0, 140); // Snížená viditelnost (max 140 ze 255)
+      fill(255, 50, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2); // Jemnější obrys
       textSize(Math.floor(Math.max(14, p.r * 0.35)));
       // Vyskakuje nad HP číslo
-      let yOff = hpY - 25 - map(45 - p.dmgDisplayTimer, 0, 45, 0, 30);
-      text("-" + Math.floor(p.dmgDisplayValue), 0, yOff);
+      let yOff = hpY - 20 - map(45 - p.dmgDisplayTimer, 0, 45, 0, 20);
+      text("-" + Math.round(p.dmgDisplayValue), 0, yOff);
       p.dmgDisplayTimer--;
       if (p.dmgDisplayTimer === 0) p.dmgDisplayValue = 0;
   }
   if (p.healDisplayTimer > 0) {
-      let alpha = map(p.healDisplayTimer, 0, 15, 0, 255);
-      fill(50, 255, 50, alpha); stroke(0, alpha); strokeWeight(4);
+      let alpha = map(p.healDisplayTimer, 0, 15, 0, 140); // Snížená viditelnost
+      fill(50, 255, 50, alpha); stroke(0, alpha * 0.4); strokeWeight(2);
       textSize(Math.floor(Math.max(14, p.r * 0.35)));
       // Vyskakuje nad HP číslo
-      let yOff = hpY - 25 - map(45 - p.healDisplayTimer, 0, 45, 0, 30);
-      text("+" + Math.floor(p.healDisplayValue), 0, yOff);
+      let yOff = hpY - 20 - map(45 - p.healDisplayTimer, 0, 45, 0, 20);
+      text("+" + Math.round(p.healDisplayValue), 0, yOff);
       p.healDisplayTimer--;
       if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
   }
