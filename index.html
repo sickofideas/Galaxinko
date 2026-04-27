@@ -919,6 +919,7 @@ function setup() {
 
   document.getElementById('version-display').innerText = GAME_TITLE + " " + GAME_VERSION;
 
+  frameRate(60); // OCHRANA: Fixuje délku kola (20-30 min) i na monitorech s vysokou obnovovací frekvencí
   startNewRound();
   setupEvents();
   connectTikfinity();
@@ -2417,18 +2418,13 @@ function handleCameraAndPlayers() {
                       y: (dy / dist) * forceMag
                   });
 
-                  // --- NOVINKA: POŠKOZENÍ OKOLÍ (-50 HP) ---
-                  if (other.immunityTimer <= 0) {
-                      other.hp -= 50;
-                      other.dmgDisplayValue += 50;
-                      other.dmgDisplayTimer = 45;
-                  }
+                  // --- ODSTRANĚNO: POŠKOZENÍ OKOLÍ (Způsobovalo řetězovou reakci a "pád" arény) ---
               }
           }
 
           if (!isHeavyLoad) {
               if (p.isZombie) {
-                  createParticles(px, py, color(50, 255, 50), 20); // Více částic pro zombíky
+                  createParticles(px, py, color(0, 255, 255), 20); // Změněno ze zelené na azurovou pro Chroma Key
                   safePlaySound(pentatonic('low'), 0.01, 0.2); 
               } else {
                   createParticles(px, py, p.color, 35); // Více částic pro hráče
