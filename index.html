@@ -628,6 +628,8 @@ let isRiddleModeActive = false; // DEFAULTNĚ VYPNUTO
 let activeRiddle = { question: null, answer: null };
 let usedRiddles = [];
 let autoSkipRiddleTimer; // Odpočet 3 minut
+let riddleHintTimer; // Odpočet 2 minut pro nápovědu
+let riddleRevealedLetters = []; // Indexy odhalench písmen
 
 const RIDDLES = [
     { q: "Kdo to vyrobí, nepotřebuje to. Kdo to koupí, nepoužije to. Kdo to použije, nevidí to.", a: "rakev" },
@@ -675,19 +677,36 @@ const RIDDLES = [
 function generateNewRiddle() {
     if (!isRiddleModeActive) return;
     clearTimeout(autoSkipRiddleTimer);
+    clearTimeout(riddleHintTimer);
+    riddleRevealedLetters = [];
 
     if (random() < 0.3) { 
         // 30% šance na číslo (od 1 do 999)
         let num = Math.floor(random(1, 1000));
-        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999 (+2000 HP)`, answer: num.toString() };
+        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999`, answer: num.toString() };
     } else { 
         // 70% šance na těžkou hádanku
         let available = RIDDLES.filter(r => !usedRiddles.includes(r.a));
         if (available.length === 0) { usedRiddles = []; available = RIDDLES; } 
         let picked = random(available);
         usedRiddles.push(picked.a);
-        activeRiddle = { question: `HÁDANKA: ${picked.q} (+2000 HP)`, answer: picked.a };
+        activeRiddle = { question: picked.q, answer: picked.a };
     }
+
+    // NÁPOVĚDA PO 2 MINUTÁCH: Odhalí náhodné písmenko
+    riddleHintTimer = setTimeout(() => {
+        if (isRiddleModeActive && activeRiddle.answer && activeRiddle.answer.length > 1) {
+            let unrevealed = [];
+            for (let i = 0; i < activeRiddle.answer.length; i++) {
+                if (!riddleRevealedLetters.includes(i)) unrevealed.push(i);
+            }
+            if (unrevealed.length > 0) {
+                let idx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+                riddleRevealedLetters.push(idx);
+                speakTTS("Nápověda! Jedno písmeno bylo odhaleno.");
+            }
+        }
+    }, 120000);
 
     // AUTOMATICKÝ SKIP PO 3 MINUTÁCH (180 000 ms)
     autoSkipRiddleTimer = setTimeout(() => {
@@ -2052,14 +2071,9 @@ function drawSecretCodeUI() {
     
     push();
     
-    // Pulzující scale efekt
     let bannerCenterY = ARENA_TOP / 2 + 35;
-    let pulse = 1.0 + sin(frameCount * 0.06) * 0.06;
-    translate(W/2, bannerCenterY);
-    scale(pulse);
-    translate(-W/2, -bannerCenterY);
     
-    // Pozadí banneru NAD arénou
+    // Pozadí banneru NAD arénou (statické, nepulzuje)
     rectMode(CENTER);
     fill(0, 0, 0, 180);
     noStroke();
@@ -2068,40 +2082,42 @@ function drawSecretCodeUI() {
     textAlign(CENTER, CENTER);
     textStyle(BOLD);
     
-    // 1. Řádek nahoře: ODMĚNA
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = 'rgba(255, 215, 0, 0.8)';
-    fill(255, 215, 0);
-    stroke(0);
-    strokeWeight(3);
-    textSize(18);
-    text("SPRÁVNÁ ODPOVĚĎ = +2000 HP", W/2, bannerCenterY - 55);
+    // Jemné pulzování pouze textu (alpha)
+    let textPulse = map(sin(frameCount * 0.04), -1, 1, 200, 255);
     
-    // 2. Hlavní text hádanky
+    // 1. Hlavní text hádanky
     let txtLen = activeRiddle.question.length;
     let riddleSize = txtLen > 55 ? 14 : (txtLen > 45 ? 16 : (txtLen > 35 ? 19 : 22));
     textSize(riddleSize);
     
-    drawingContext.shadowBlur = 30;
-    drawingContext.shadowColor = 'rgba(255, 0, 80, 1)';
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(255, 0, 80, 0.6)';
     
-    fill(255);
+    fill(255, 255, 255, textPulse);
     stroke(0);
-    strokeWeight(5);
-    text(activeRiddle.question.toUpperCase(), W/2, bannerCenterY - 10);
+    strokeWeight(4);
+    text(activeRiddle.question.toUpperCase(), W/2, bannerCenterY - 15);
     
-    // 3. Podtržítka pro každé písmenko odpovědi: _ _ _ _ _ (N)
+    // 2. Podtržítka s případně odhalenými písmeny
     if (activeRiddle.answer) {
         let ansLen = activeRiddle.answer.length;
-        let blanks = Array(ansLen).fill("_").join("  ") + "  (" + ansLen + ")";
+        let chars = [];
+        for (let i = 0; i < ansLen; i++) {
+            if (riddleRevealedLetters.includes(i)) {
+                chars.push(activeRiddle.answer[i].toUpperCase());
+            } else {
+                chars.push("_");
+            }
+        }
+        let blanks = chars.join("  ") + "  (" + ansLen + ")";
         
-        drawingContext.shadowColor = 'rgba(0, 242, 254, 0.8)';
-        drawingContext.shadowBlur = 20;
-        fill(0, 242, 254);
+        drawingContext.shadowColor = 'rgba(0, 242, 254, 0.6)';
+        drawingContext.shadowBlur = 10;
+        fill(0, 242, 254, textPulse);
         textSize(28);
         stroke(0);
         strokeWeight(3);
-        text(blanks, W/2, bannerCenterY + 35);
+        text(blanks, W/2, bannerCenterY + 30);
     }
     
     drawingContext.shadowBlur = 0;
