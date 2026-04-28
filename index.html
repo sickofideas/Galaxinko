@@ -4834,7 +4834,7 @@ function connectTikfinity() {
               
               // Aktivovat pilu (saw) po celou dobu bonusu
               if (winnerP) {
-                  winnerP.likeBuffTimer = Math.max(winnerP.likeBuffTimer, 20 * 60); // 20s pila
+                  winnerP.likeBuffTimer = Math.max(winnerP.likeBuffTimer, millis() + 20000); // 20s pila
               }
               
               // Zobrazí výherce přímo v banneru hádanky na 5 vteřin
