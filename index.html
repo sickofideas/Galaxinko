@@ -5377,14 +5377,37 @@ if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== un
 }
 nactiHlasy();
 
+// Vyčistí nick pro TTS - odstraní emoji, speciální znaky, zkrátí
+function cleanNameForTTS(name) {
+    if (!name) return "";
+    // Odstraní všechny emoji a speciální Unicode symboly
+    let clean = name.replace(/[\u{0080}-\u{00FF}\u{0100}-\u{024F}\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}\u{200B}-\u{200F}\u{2028}-\u{202F}\u{2060}-\u{206F}\u{E000}-\u{F8FF}\u{D800}-\u{DFFF}]/gu, '');
+    // Odstraní všechny non-ASCII emoji (zachová české znaky)
+    clean = clean.replace(/[^\p{L}\p{N}\s._\-]/gu, '');
+    clean = clean.trim();
+    if (clean.length === 0) return name.substring(0, 8); // Fallback
+    if (clean.length > 15) clean = clean.substring(0, 15);
+    return clean;
+}
+
 function speakTTS(txt, force = false) {
   if (!('speechSynthesis' in window)) return;
-  // Pokud uĹľ mluvĂ­, pĹ™eruĹˇĂ­me to, aby se hlasy nepĹ™ekrĂ˝valy
   if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 
   if (!force && millis() - lastSpeakTime < 12000) return;
 
-  let cleanTxt = txt.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F970}-\u{1F99F}]/gu, '');
+  // Agresivní odstranění emoji a speciálních znaků
+  let cleanTxt = txt
+      .replace(/[\u{0080}-\u{00FF}]/gu, '') // Latin extended chars that TTS reads weirdly
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '') // Emoticons, symbols, flags
+      .replace(/[\u{2600}-\u{27BF}]/gu, '') // Misc symbols, dingbats
+      .replace(/[\u{FE00}-\u{FEFF}]/gu, '') // Variation selectors
+      .replace(/[\u{200B}-\u{200F}\u{2028}-\u{202F}\u{2060}-\u{206F}]/gu, '') // Zero-width, invisible
+      .replace(/[\u{E000}-\u{F8FF}]/gu, '') // Private use area
+      .replace(/[\u{10000}-\u{10FFFF}]/gu, '') // Supplementary planes (emoji, rare symbols)
+      .replace(/[^\p{L}\p{N}\s.,!?:+\-()]/gu, '') // Keep only letters, numbers, basic punctuation
+      .replace(/\s+/g, ' ').trim();
+  if (cleanTxt.length > 80) cleanTxt = cleanTxt.substring(0, 80);
   
   let checkText = removeDiacritics(cleanTxt.toLowerCase()).replace(/[\s\.\-_]/g, "");
   for (let word of FORBIDDEN_WORDS) {
@@ -5398,7 +5421,6 @@ function speakTTS(txt, force = false) {
       msg.voice = zenskyHlas;
       msg.pitch = 1.1; 
   } else {
-      // Pokud ani Google hlas nenĂ­, Jakubovi aspoĹ zvĂ˝ĹˇĂ­me tĂłn, aby znÄ›l vĂ­c jako holka
       msg.pitch = 1.4; 
   }
   
@@ -5407,7 +5429,6 @@ function speakTTS(txt, force = false) {
   window.speechSynthesis.speak(msg);
   lastSpeakTime = millis();
 }
-
 function mousePressed() {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
