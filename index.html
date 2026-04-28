@@ -2193,14 +2193,14 @@ function drawSecretCodeUI() {
     
     push();
     
-    let bannerH = ARENA_TOP - HUD_TOP - 10; // Výška banneru: od HUD_TOP po ARENA_TOP s mezerou
-    let bannerCenterY = HUD_TOP + bannerH / 2 + 5; // Střed banneru
+    let bannerH = ARENA_TOP - HUD_TOP + 2; // +2px overlap s arénou pro eliminaci mezery
+    let bannerCenterY = HUD_TOP + bannerH / 2; // Střed banneru
     
-    // Pozadí banneru NAD arénou (statické, nepulzuje, NEKRYTÍ arénu)
+    // Pozadí banneru NAD arénou (statické, nepulzuje, plná šířka, rovný spodek)
     rectMode(CENTER);
     fill(0, 0, 0, 180);
     noStroke();
-    rect(W/2, bannerCenterY, W - 20, bannerH, 12);
+    rect(W/2, bannerCenterY, W, bannerH, 0, 0, 0, 0); // Bez zakulacení - plná šířka
     
     // Jemné pulzování textu (scale jako v HTML šabloně)
     let textPulse = 1.0 + sin(frameCount * 0.06) * 0.04;
@@ -4375,15 +4375,15 @@ function draw() {
   background(0, 255, 0); // Dokonale čistá zelená pro OBS klíčování
 
   push();
-  // Oříznutí pouze na herní plochu arény
+  // Oříznutí na celou herní plochu (od HUD_TOP po ARENA_BOT)
   drawingContext.beginPath();
-  drawingContext.rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
+  drawingContext.rect(0, HUD_TOP, W, ARENA_BOT - HUD_TOP);
   drawingContext.clip();
 
-  // Čisté poloprůhledné ztmavení, aby kuličky a texty vynikly nad DayZ videem
+  // Čisté poloprůhledné ztmavení celé herní plochy
   rectMode(CORNER);
   fill(0, 0, 0, 140);
-  rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
+  rect(0, HUD_TOP, W, ARENA_BOT - HUD_TOP);
   
   pop();
   handleBossPlanet(); // PŘIDÁNO: Zpracování a vykreslení Ego Smash planet
