@@ -2196,11 +2196,11 @@ function drawSecretCodeUI() {
     let bannerH = ARENA_TOP - HUD_TOP + 2; // +2px overlap s arénou pro eliminaci mezery
     let bannerCenterY = HUD_TOP + bannerH / 2; // Střed banneru
     
-    // Pozadí banneru NAD arénou (statické, nepulzuje, plná šířka, rovný spodek)
+    // Pozadí banneru - CHROMA KEY zelená (průhledné v OBS)
     rectMode(CENTER);
-    fill(0, 0, 0, 180);
+    fill(0, 255, 0);
     noStroke();
-    rect(W/2, bannerCenterY, W, bannerH, 0, 0, 0, 0); // Bez zakulacení - plná šířka
+    rect(W/2, bannerCenterY, W, bannerH, 0, 0, 0, 0);
     
     // Jemné pulzování textu (scale jako v HTML šabloně)
     let textPulse = 1.0 + sin(frameCount * 0.06) * 0.04;
