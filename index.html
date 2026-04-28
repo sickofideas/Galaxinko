@@ -825,7 +825,6 @@ function generateNewRiddle() {
             if (unrevealed.length > 0) {
                 let idx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
                 riddleRevealedLetters.push(idx);
-                speakTTS("Nápověda! Jedno písmeno bylo odhaleno.");
             }
         }
     }, 120000);
@@ -833,8 +832,9 @@ function generateNewRiddle() {
     // AUTOMATICKÝ SKIP PO 3 MINUTÁCH (180 000 ms)
     autoSkipRiddleTimer = setTimeout(() => {
         if (isRiddleModeActive && activeRiddle.answer) {
-            speakTTS("Čas vypršel! Hádanka byla moc těžká. Zkoušíme další.");
-            generateNewRiddle();
+            activeRiddle = { question: null, answer: null }; // Skryj banner
+            // Náhodná pauza 5-30s před další hádankou
+            setTimeout(generateNewRiddle, random(5000, 30000));
         }
     }, 180000);
 }
@@ -4830,13 +4830,21 @@ function connectTikfinity() {
               createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), 100);
               
               let prevDisplayAnswer = activeRiddle.displayAnswer || activeRiddle.answer;
-              speakTTS(currentLang === "CZ" ? `Konečně! Hráč ${u} uhodl správnou odpověď, je to ${prevDisplayAnswer}.` : `Player ${u} guessed correctly!`);
+              speakTTS(currentLang === "CZ" ? `${u} uhodl, je to ${prevDisplayAnswer}!` : `${u} guessed correctly!`);
+              
+              // Aktivovat pilu (saw) po celou dobu bonusu
+              if (winnerP) {
+                  winnerP.likeBuffTimer = Math.max(winnerP.likeBuffTimer, 20 * 60); // 20s pila
+              }
               
               // Zobrazí výherce přímo v banneru hádanky na 5 vteřin
               activeRiddle = { question: "VÝHERCE", answer: null, winner: u, revealedAnswer: prevDisplayAnswer };
               
-              // Za 5 vteřin nová hádanka
-              setTimeout(generateNewRiddle, 5000);
+              // Za 5 vteřin skrýt banner, pak náhodná pauza 5-30s před další hádankou
+              setTimeout(() => {
+                  activeRiddle = { question: null, answer: null };
+                  setTimeout(generateNewRiddle, random(5000, 30000));
+              }, 5000);
           }
             handleAction(u, 10, false, 0, false); 
       }
