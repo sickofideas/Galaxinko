@@ -671,8 +671,127 @@ const RIDDLES = [
     { q: "Vidíš to ve dne, v noci to zmizí. Je to větší než strom, ale lehčí než pírko.", a: "stin" },
     { q: "Mám tolik očí, kolik chci, ale nevidím s nimi. Roste to v hlíně.", a: "brambor" },
     { q: "Jakmile se o to s někým podělíš, už to nemáš.", a: "tajemstvi" },
-    { q: "Ráno to chodí po čtyřech, v poledne po dvou a večer po třech.", a: "clovek" }
+    { q: "Ráno to chodí po čtyřech, v poledne po dvou a večer po třech.", a: "clovek" },
+    { q: "Když jsi uvnitř, nevíš o tom. Když z toho vyjdeš, pamatuješ si to jen někdy.", a: "sen" },
+    { q: "Je to pořád hladové. Jakmile se to napije vody, okamžitě to umře.", a: "ohen" },
+    { q: "Čím víc toho z toho vyndáš, tím je to větší.", a: "dira" },
+    { q: "Dělá se to s láskou, ale bolí to. Máš to na kůži.", a: "tetovani" },
+    { q: "Může to být lehké jako pírko, ale ani obr to neudrží dlouho.", a: "dech" },
+    { q: "Má to hlavu, ocas, ale žádné tělo.", a: "mince" },
+    { q: "Skáče to do výšky, ale nemá to nohy.", a: "mic" },
+    { q: "Rozbiješ to hned, jakmile to nahlas pojmenuješ.", a: "ticho" },
+    { q: "Zabije to krále a zničí města, ale nemá to žádnou zbraň.", a: "cas" },
+    { q: "Má to dlouhý krk, ale nemá to hlavu. Pije se z toho.", a: "lahev" },
+    { q: "Zloděj to nechce ukrást a boháč to nepotřebuje koupit.", a: "nic" },
+    { q: "Můžeš se do toho dívat celý den, ale nikdy neuvidíš dál než na povrch.", a: "zrcadlo" },
+    { q: "Co má desítky klíčů, ale vůbec žádný zámek?", a: "klavir" },
+    { q: "Dá se to bez problémů uvařit, ale nedá se to sníst.", a: "caj" },
+    { q: "Může to být absolutně prázdné, i když je v tom spousta věcí.", a: "hlava" },
+    { q: "Nemůžeš to vidět, dokud to nepřejde. Pak už je to navždy pryč.", a: "minulost" },
+    { q: "Když to padá z nebe, je to žluté. Když to leží na zemi, křupe to.", a: "listi" },
+    { q: "Dívá se to celý život do zdi a má to uši. Ale neslyší to.", a: "zasuvka" },
+    { q: "Má to dvě ramena, ale žádné tělo. Občas to křičí na obě strany.", a: "vaha" },
+    { q: "Když prší a zvedne se to, padá z toho voda.", a: "destnik" },
+    { q: "Čím je to starší, tím je to menší a víc to pění.", a: "mydlo" },
+    { q: "Leží to nenápadně ve tmě. Je to noční postrach všech bosých nohou.", a: "lego" },
+    { q: "Co má křídla, stříbrné břicho a pravidelně to polyká lidi?", a: "letadlo" },
+    { q: "Má to dlouhý jazyk, ale nikdy to nepromluví. Nosíš to ven.", a: "bota" },
+    { q: "Jezdí to rychle po kolejích, ale nemá to volant.", a: "vlak" },
+    { q: "Běhá to po domě sem a tam a sbírá to prach.", a: "smetak" },
+    { q: "Nemá to ústa, ale všechno to ve vesmíru spolkne, včetně světla.", a: "cernadira" },
+    { q: "Stojí to ve vodě, ale nenapije se to. Spojuje to dva břehy.", a: "most" },
+    { q: "Je to sice lehčí než pírko, ale dokáže to zastavit i srdce.", a: "strach" },
+    { q: "Svléká to kůži, i když to vlastně nikdy nebylo nahé.", a: "had" },
+    { q: "Nemá to nohy, ale uteče to úplně každému bez výjimky.", a: "cas" },
+    { q: "Dá se to natáhnout, ale nedá se to zkrátit. Všichni toho mají stejně.", a: "cas" },
+    { q: "Slyšíš to křičet, ale nemá to hlasivky. Jen to píská na plotně.", a: "konvice" },
+    { q: "V noci to zmizí, ve dne to chodí všude za tebou.", a: "stin" },
+    { q: "Vidíš to denně na obloze, ale nikdy to nebude mít úplně stejný tvar.", a: "oblak" },
+    { q: "Je to černé, bílé a červené zároveň. Žije to v mrazu.", a: "tucnak" },
+    { q: "Můžeš se v tom utopit, i když to není voda. Slouží to k pití.", a: "vino" },
+    { q: "Dvě sestry, které se neustále honí dokola, ale nikdy se nechytí.", a: "rucicky" },
+    { q: "Má to plnou hlavu zubů, ale roste to venku na poli.", a: "cesnek" },
+    { q: "Leží to v posteli, je to plné peří, ale nelétá to.", a: "polstar" },
+    { q: "Má to oko, ale nikdy s ním nic neuvidí. Pomáhá to s oblečením.", a: "jehla" },
+    { q: "Mluví to všemi jazyky světa, ale nemá to svůj vlastní hlas.", a: "ozvena" },
+    { q: "Má to města bez lidí, hory bez kamenů a řeky bez kapek vody.", a: "mapa" },
+    { q: "Když to koupíš, je to černé. Když to používáš, je to červené.", a: "uhli" },
+    { q: "Zabere to úplně celou místnost, ale nic to neváží.", a: "svetlo" },
+    { q: "Narodí se to velké, ale umírá to jako malý kousek.", a: "svicka" },
+    { q: "Chytíš to snadno, ale pustit to je strašně těžké.", a: "zvyk" },
+    { q: "Může to být nesnesitelně hořké, i když se to vůbec nedá jíst.", a: "pravda" },
+    { q: "Vstoupíš do toho jednou dírou, ale musíš vyjít třemi.", a: "tricko" },
+    { q: "Má to palec a prsty, ale není v tom ani špetka života.", a: "rukavice" },
+    { q: "Roste to v zimě úplně naopak – odshora dolů.", a: "rampouch" },
+    { q: "Můžeš to snadno zlomit, aniž bys to vzal do ruky.", a: "slib" },
+    { q: "Je to neustále před námi, ale nikdo to ještě nikdy neviděl.", a: "budoucnost" },
+    { q: "Má to hřbet, ale žádné kosti. Má to listy, ale není to strom.", a: "kniha" },
+    { q: "Nemá to žádnou barvu, ale díky tomu je celý svět barevný.", a: "slunce" },
+    { q: "Chodí to po hlavě a zanechává to za sebou temnou stopu.", a: "pero" },
+    { q: "Má to oči, ale brečí to, jen a pouze když to krájíš.", a: "cibule" },
+    { q: "Stojí to na jedné noze a dokáže to rozzářit tmu.", a: "lampa" },
+    { q: "Co je vždycky na konci duhy? Jen jedno písmeno.", a: "a" },
+    { q: "Když je to černé, je to čisté. Když je to bílé, je to špinavé.", a: "tabule" },
+    { q: "Všichni to chtějí prodloužit, ale nikdo to nechce zastavit.", a: "zivot" },
+    { q: "Dáš to do mrazáku, ono to změní skupenství, ale je to pořád to samé.", a: "voda" },
+    { q: "Nemá to tělo, ale může to rozhýbat stromy a pohnout loděmi.", a: "vitr" },
+    { q: "Má to tisíc očí, ale vidí jen to, co skrz to propadne.", a: "sito" },
+    { q: "Skáče to, nemá to nohy. Nemá to plíce, přesto to občas funí.", a: "mic" },
+    { q: "Můžeš se na to postavit, ale krok neuděláš. Létá to jen v pohádkách.", a: "koberec" },
+    { q: "Dvě okna, která se večer sama zavřou a ráno zase otevřou.", a: "oci" },
+    { q: "Kdo má plné kapsy peněz, ale nikdy si v obchodě nic nekoupí?", a: "kalhoty" },
+    { q: "Čím víc jich za den uděláš, tím víc jich za tebou zůstane.", a: "kroky" },
+    { q: "Dělá se to sice ze dřeva, ale už se to nikdy nedá řezat.", a: "pilina" },
+    { q: "Když se to zastaví, všechno umře. Ale neumí to samo chodit.", a: "srdce" },
+    { q: "Nosí to na sobě svůj dům, ale nikdy nikomu neplatí nájem.", a: "snek" },
+    { q: "Nikdy to nepřijde, i když na to všichni netrpělivě čekají.", a: "zitra" },
+    { q: "Má to miliony příběhů, tisíce postav, ale neumí to vůbec mluvit.", a: "knihovna" },
+    { q: "Rozbije se to často i bez dotyku. Stačí jen otevřít ústa.", a: "slib" },
+    { q: "Plave to potichu ve vodě, ale neudělá to ani sebemenší vlnku.", a: "led" },
+    { q: "Má to ocas a uši, ale štěká to, jen když se děje něco zlého.", a: "alarm" },
+    { q: "Má to rohy, ale netrká to. Můžeš si to koupit v pekárně.", a: "rohlik" },
+    { q: "Co začíná na P, končí na A a jsou v tom doslova tisíce písmen?", a: "posta" },
+    { q: "Zabíjí to lidi bez dotyku, ale prodává se to v krabičkách.", a: "cigareta" },
+    { q: "Má to nohy, ale nikdy to neudělá ani krok z místnosti.", a: "stul" },
+    { q: "Když to hodíš na zem, je to bílé. Když se to rozbije, je to žluté.", a: "vejce" },
+    { q: "Je to tvrdé jako ten nejtvrdší kámen, ale roztaje to v horku.", a: "led" },
+    { q: "Kdo to vyrobí, nepotřebuje to. Kdo to použije, neví o tom.", a: "rakev" },
+    { q: "Když to potřebuješ k práci, zahodíš to. Když ne, vytáhneš to nahoru.", a: "kotva" },
+    { q: "Může to běžet hodiny, dny i roky, ale nikdy to neudělá krok.", a: "reka" },
+    { q: "Je to lehké, ale když se to naplní, nese to lidi do nebe.", a: "balon" },
+    { q: "Dá se to najít v každém rohu, ale nikdy to z něj nevyjde.", a: "znamka" },
+    { q: "Padá to každý den dolů, ale nikdy to nenarazí na zem.", a: "noc" },
+    { q: "Je to vždycky před tebou, i když se otočíš.", a: "budoucnost" },
+    { q: "Můžeš se s tím mýt celý den, ale čím víc se myješ, tím je to menší.", a: "mydlo" },
+    { q: "Nemůžeš to obejmout, i když je to neustále všude kolem tebe.", a: "vzduch" },
+    { q: "Staví to architektonické skvosty z vláken a loví bez zbraně.", a: "pavouk" },
+    { q: "Spí to celou zimu v teple a probudí se to až s jarem.", a: "medved" },
+    { q: "Je to jediné místo, kde dnešek přichází před včerejškem.", a: "slovnik" },
+    { q: "Má to oči, nos i ústa, ale přesto tě to nikdy nepozdraví.", a: "socha" },
+    { q: "Létá to po nebi, spí to hlavou dolů a miluje to tmu.", a: "netopyr" },
+    { q: "Má to čtyři nohy ráno, dvě odpoledne a tři večer.", a: "clovek" },
+    { q: "Je to malé, zelené a dokáže to proskákat celou zahradu.", a: "zaba" },
+    { q: "Má to klíče, které neotevřou dveře, ale vytvoří melodii.", a: "klavir" }
 ];
+
+// Mapa pro zobrazení odpovědí se správnou českou diakritikou
+const RIDDLE_DISPLAY = {
+    "ohen": "oheň", "reka": "řeka", "svicka": "svíčka", "svetlo": "světlo",
+    "tricko": "tričko", "stin": "stín", "ryma": "rýma", "ozvena": "ozvěna",
+    "dira": "díra", "cas": "čas", "zaba": "žába", "klavir": "klavír",
+    "myslenka": "myšlenka", "posta": "pošta", "tajemstvi": "tajemství",
+    "clovek": "člověk", "tetovani": "tetování", "mic": "míč",
+    "caj": "čaj", "listi": "listí", "zasuvka": "zásuvka", "vaha": "váha",
+    "destnik": "deštník", "mydlo": "mýdlo", "smetak": "smeták",
+    "cernadira": "černá díra", "tucnak": "tučňák", "vino": "víno",
+    "rucicky": "ručičky", "cesnek": "česnek", "polstar": "polštář",
+    "uhli": "uhlí", "jmeno": "jméno", "zivot": "život", "vitr": "vítr",
+    "sito": "síto", "oci": "oči", "snek": "šnek", "zitra": "zítra",
+    "rohlik": "rohlík", "stul": "stůl", "balon": "balón", "znamka": "známka",
+    "medved": "medvěd", "slovnik": "slovník", "netopyr": "netopýr",
+    "budoucnost": "budoucnost", "rampouch": "rampouch", "pilina": "pilina",
+    "minulost": "minulost", "cigareta": "cigareta"
+};
 
 function generateNewRiddle() {
     if (!isRiddleModeActive) return;
@@ -680,17 +799,20 @@ function generateNewRiddle() {
     clearTimeout(riddleHintTimer);
     riddleRevealedLetters = [];
 
-    if (random() < 0.3) { 
-        // 30% šance na číslo (od 1 do 999)
-        let num = Math.floor(random(1, 1000));
-        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999`, answer: num.toString() };
-    } else { 
-        // 70% šance na těžkou hádanku
-        let available = RIDDLES.filter(r => !usedRiddles.includes(r.a));
-        if (available.length === 0) { usedRiddles = []; available = RIDDLES; } 
+    // PŘEDNOST MAJÍ HÁDANKY - číslo až když dojdou
+    let available = RIDDLES.filter(r => !usedRiddles.includes(r.a));
+    
+    if (available.length > 0) {
+        // Jsou ještě nevyužité hádanky
         let picked = random(available);
         usedRiddles.push(picked.a);
-        activeRiddle = { question: picked.q, answer: picked.a };
+        let displayAns = RIDDLE_DISPLAY[picked.a] || picked.a;
+        activeRiddle = { question: picked.q, answer: picked.a, displayAnswer: displayAns };
+    } else {
+        // Všechny hádanky byly použity → jednou číslo, pak reset poolu
+        let num = Math.floor(random(1, 1000));
+        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999`, answer: num.toString(), displayAnswer: num.toString() };
+        usedRiddles = []; // Reset pro další kolo hádanek
     }
 
     // NÁPOVĚDA PO 2 MINUTÁCH: Odhalí náhodné písmenko
@@ -2071,16 +2193,17 @@ function drawSecretCodeUI() {
     
     push();
     
-    let bannerCenterY = ARENA_TOP / 2 + 35;
+    let bannerH = ARENA_TOP - HUD_TOP - 10; // Výška banneru: od HUD_TOP po ARENA_TOP s mezerou
+    let bannerCenterY = HUD_TOP + bannerH / 2 + 5; // Střed banneru
     
-    // Pozadí banneru NAD arénou (statické, nepulzuje)
+    // Pozadí banneru NAD arénou (statické, nepulzuje, NEKRYTÍ arénu)
     rectMode(CENTER);
     fill(0, 0, 0, 180);
     noStroke();
-    rect(W/2, bannerCenterY, W - 20, ARENA_TOP - 20, 12);
+    rect(W/2, bannerCenterY, W - 20, bannerH, 12);
     
     // Jemné pulzování textu (scale jako v HTML šabloně)
-    let textPulse = 1.0 + sin(frameCount * 0.06) * 0.04; // 1.0 - 1.04
+    let textPulse = 1.0 + sin(frameCount * 0.06) * 0.04;
     
     push();
     translate(W/2, bannerCenterY);
@@ -2090,43 +2213,61 @@ function drawSecretCodeUI() {
     textAlign(CENTER, CENTER);
     textStyle(BOLD);
     
-    // 1. Hlavní text hádanky - VELKÝ, vyplňuje šířku
-    let riddleText = activeRiddle.question.toUpperCase() + " (+2000 HP)";
-    let txtLen = riddleText.length;
-    // Adaptivní velikost: kratší text = větší font, delší = menší
-    let riddleSize = txtLen > 70 ? 17 : (txtLen > 55 ? 20 : (txtLen > 40 ? 24 : 28));
-    textSize(riddleSize);
-    
-    // Neonový glow jako v HTML (text-shadow: 0px 0px 30px rgba(255, 0, 80, 1))
-    drawingContext.shadowBlur = 30;
-    drawingContext.shadowColor = 'rgba(255, 0, 80, 1)';
-    
-    // Silný černý obrys pro čitelnost
-    fill(255);
-    stroke(0);
-    strokeWeight(5);
-    text(riddleText, W/2, bannerCenterY - 18);
-    
-    // 2. Podtržítka s případně odhalenými písmeny
-    if (activeRiddle.answer) {
-        let ansLen = activeRiddle.answer.length;
-        let chars = [];
-        for (let i = 0; i < ansLen; i++) {
-            if (riddleRevealedLetters.includes(i)) {
-                chars.push(activeRiddle.answer[i].toUpperCase());
-            } else {
-                chars.push("_");
-            }
-        }
-        let blanks = chars.join("  ") + "  (" + ansLen + ")";
+    if (activeRiddle.winner) {
+        // --- REŽIM VÝHERCE: Jméno + odtajněná odpověď ---
+        drawingContext.shadowBlur = 30;
+        drawingContext.shadowColor = 'rgba(255, 215, 0, 1)';
         
+        fill(255, 215, 0);
+        stroke(0);
+        strokeWeight(5);
+        textSize(32);
+        text("\u2B50 " + activeRiddle.winner.toUpperCase() + " UHODL! \u2B50", W/2, bannerCenterY - 18);
+        
+        // Odtajněná odpověď
         drawingContext.shadowColor = 'rgba(0, 242, 254, 0.8)';
         drawingContext.shadowBlur = 20;
         fill(0, 242, 254);
-        textSize(34);
+        textSize(36);
         stroke(0);
         strokeWeight(3);
-        text(blanks, W/2, bannerCenterY + 32);
+        text(activeRiddle.revealedAnswer.toUpperCase(), W/2, bannerCenterY + 28);
+    } else {
+        // --- NORMÁLNÍ REŽIM: Hádanka + podtržítka ---
+        let riddleText = activeRiddle.question.toUpperCase() + " (+2000 HP)";
+        let txtLen = riddleText.length;
+        let riddleSize = txtLen > 70 ? 17 : (txtLen > 55 ? 20 : (txtLen > 40 ? 24 : 28));
+        textSize(riddleSize);
+        
+        drawingContext.shadowBlur = 30;
+        drawingContext.shadowColor = 'rgba(255, 0, 80, 1)';
+        
+        fill(255);
+        stroke(0);
+        strokeWeight(5);
+        text(riddleText, W/2, bannerCenterY - 18);
+        
+        if (activeRiddle.answer) {
+            let dispAns = activeRiddle.displayAnswer || activeRiddle.answer;
+            let ansLen = dispAns.length;
+            let chars = [];
+            for (let i = 0; i < ansLen; i++) {
+                if (riddleRevealedLetters.includes(i)) {
+                    chars.push(dispAns[i].toUpperCase());
+                } else {
+                    chars.push("_");
+                }
+            }
+            let blanks = chars.join("  ") + "  (" + ansLen + ")";
+            
+            drawingContext.shadowColor = 'rgba(0, 242, 254, 0.8)';
+            drawingContext.shadowBlur = 20;
+            fill(0, 242, 254);
+            textSize(34);
+            stroke(0);
+            strokeWeight(3);
+            text(blanks, W/2, bannerCenterY + 32);
+        }
     }
     
     pop(); // ukončení scale transformace
@@ -4240,6 +4381,7 @@ function draw() {
   drawingContext.clip();
 
   // Čisté poloprůhledné ztmavení, aby kuličky a texty vynikly nad DayZ videem
+  rectMode(CORNER);
   fill(0, 0, 0, 140);
   rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   
@@ -4683,16 +4825,18 @@ function connectTikfinity() {
               }
               
               clearTimeout(autoSkipRiddleTimer); // Zastavit odpočet
+              clearTimeout(riddleHintTimer);
               addPopup("UHODL!", W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), true);
               createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), 100);
-              speakTTS(currentLang === "CZ" ? `Konečně! Hráč ${u} uhodl správnou odpověď, je to ${activeRiddle.answer}.` : `Player ${u} guessed correctly!`);
               
-              // Oslavný text na 8 vteřin
-              let prevAnswer = activeRiddle.answer;
-              activeRiddle = { question: `VÝHERCE: ${u.toUpperCase()}! (Odpověď: ${prevAnswer.toUpperCase()})`, answer: null };
+              let prevDisplayAnswer = activeRiddle.displayAnswer || activeRiddle.answer;
+              speakTTS(currentLang === "CZ" ? `Konečně! Hráč ${u} uhodl správnou odpověď, je to ${prevDisplayAnswer}.` : `Player ${u} guessed correctly!`);
               
-              // Za 8 vteřin nová hádanka
-              setTimeout(generateNewRiddle, 8000);
+              // Zobrazí výherce přímo v banneru hádanky na 5 vteřin
+              activeRiddle = { question: "VÝHERCE", answer: null, winner: u, revealedAnswer: prevDisplayAnswer };
+              
+              // Za 5 vteřin nová hádanka
+              setTimeout(generateNewRiddle, 5000);
           }
             handleAction(u, 10, false, 0, false); 
       }
