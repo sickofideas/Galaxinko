@@ -4172,10 +4172,10 @@ function drawTopHUD() {
   let breathY = sin(frameCount * 0.02) * 2.5;
   translate(0, breathY);
   
-  // CHROMA KEY pozadí - plně zelené pro průhlednost v OBS
+  // CHROMA KEY pozadí - pouze admin bar (nepřekrývá tmavé pozadí arény)
   fill(0, 255, 0);
   noStroke(); 
-  rect(0, -10, W, ARENA_TOP + 30); // Zvětšeno kvůli posunu nahoru/dolů
+  rect(0, -10, W, HUD_TOP + 20); // Pouze admin bar oblast
 
   if (!showLeaderboards) {
       pop(); 
