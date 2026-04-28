@@ -3879,10 +3879,22 @@ function drawPlayer(p) {
       // Korunka pro aktuĂˇlnĂ­ho krĂˇle arĂ©ny (nejvĂ­ce HP) â€” jmĂ©no odstranÄ›no
       if (isLeader) {
           push();
-          fill(255, 215, 0); stroke(0); strokeWeight(3);
-          let bounce = sin(frameCount * 0.1) * 5; // Levitace korunky
-          textSize(Math.floor(Math.max(18, p.r * 0.35))); // VÄ›tĹˇĂ­ korunka
-          text("đź‘‘", 0, -p.r * 0.45 - 20 - bounce);
+          let bounce = sin(frameCount * 0.1) * 5;
+          let crownY = -p.r * 0.45 - 25 - bounce;
+          let cs = Math.max(10, p.r * 0.25);
+          fill(255, 215, 0); stroke(180, 140, 0); strokeWeight(2);
+          beginShape();
+          vertex(-cs, crownY); vertex(-cs * 1.3, -cs * 0.8 + crownY);
+          vertex(-cs * 0.5, -cs * 0.4 + crownY); vertex(0, -cs * 1.2 + crownY);
+          vertex(cs * 0.5, -cs * 0.4 + crownY); vertex(cs * 1.3, -cs * 0.8 + crownY);
+          vertex(cs, crownY);
+          endShape(CLOSE);
+          fill(255, 50, 50); noStroke();
+          ellipse(-cs * 0.5, -cs * 0.25 + crownY, cs * 0.25);
+          fill(50, 150, 255);
+          ellipse(0, -cs * 0.5 + crownY, cs * 0.3);
+          fill(255, 50, 50);
+          ellipse(cs * 0.5, -cs * 0.25 + crownY, cs * 0.25);
           pop();
       }
       
