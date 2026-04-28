@@ -2079,24 +2079,33 @@ function drawSecretCodeUI() {
     noStroke();
     rect(W/2, bannerCenterY, W - 20, ARENA_TOP - 20, 12);
     
+    // Jemné pulzování textu (scale jako v HTML šabloně)
+    let textPulse = 1.0 + sin(frameCount * 0.06) * 0.04; // 1.0 - 1.04
+    
+    push();
+    translate(W/2, bannerCenterY);
+    scale(textPulse);
+    translate(-W/2, -bannerCenterY);
+    
     textAlign(CENTER, CENTER);
     textStyle(BOLD);
     
-    // Jemné pulzování pouze textu (alpha)
-    let textPulse = map(sin(frameCount * 0.04), -1, 1, 200, 255);
-    
-    // 1. Hlavní text hádanky
-    let txtLen = activeRiddle.question.length;
-    let riddleSize = txtLen > 55 ? 14 : (txtLen > 45 ? 16 : (txtLen > 35 ? 19 : 22));
+    // 1. Hlavní text hádanky - VELKÝ, vyplňuje šířku
+    let riddleText = activeRiddle.question.toUpperCase() + " (+2000 HP)";
+    let txtLen = riddleText.length;
+    // Adaptivní velikost: kratší text = větší font, delší = menší
+    let riddleSize = txtLen > 70 ? 17 : (txtLen > 55 ? 20 : (txtLen > 40 ? 24 : 28));
     textSize(riddleSize);
     
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = 'rgba(255, 0, 80, 0.6)';
+    // Neonový glow jako v HTML (text-shadow: 0px 0px 30px rgba(255, 0, 80, 1))
+    drawingContext.shadowBlur = 30;
+    drawingContext.shadowColor = 'rgba(255, 0, 80, 1)';
     
-    fill(255, 255, 255, textPulse);
+    // Silný černý obrys pro čitelnost
+    fill(255);
     stroke(0);
-    strokeWeight(4);
-    text(activeRiddle.question.toUpperCase(), W/2, bannerCenterY - 15);
+    strokeWeight(5);
+    text(riddleText, W/2, bannerCenterY - 18);
     
     // 2. Podtržítka s případně odhalenými písmeny
     if (activeRiddle.answer) {
@@ -2111,14 +2120,16 @@ function drawSecretCodeUI() {
         }
         let blanks = chars.join("  ") + "  (" + ansLen + ")";
         
-        drawingContext.shadowColor = 'rgba(0, 242, 254, 0.6)';
-        drawingContext.shadowBlur = 10;
-        fill(0, 242, 254, textPulse);
-        textSize(28);
+        drawingContext.shadowColor = 'rgba(0, 242, 254, 0.8)';
+        drawingContext.shadowBlur = 20;
+        fill(0, 242, 254);
+        textSize(34);
         stroke(0);
         strokeWeight(3);
-        text(blanks, W/2, bannerCenterY + 30);
+        text(blanks, W/2, bannerCenterY + 32);
     }
+    
+    pop(); // ukončení scale transformace
     
     drawingContext.shadowBlur = 0;
     pop();
