@@ -54,6 +54,7 @@
       <button id="toggleBossBtn" style="background: #555;">EGO SMASH: VYP</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
       <button id="toggleFomoBtn">ZOBRAZIT FOMO</button>
+      <button id="toggleRiddleBtn" style="background: #ff9800; color: #000;">HÁDANKY: VYP</button>
       <button id="tBlock" style="background: #000; color: #ff0000;">TEST BLOCK</button>
       <button id="tShare" style="background: #e91e63;">TEST SHARE</button>
     </div>
@@ -607,9 +608,9 @@ let spawnModules = [];
 // Fronta pro infotainment
 let notifications = []; 
 
-// Variables for Secret Code Minigame
+// Variables for Secret Code Minigame (legacy)
 let secretCode = "";
-let codeType = "HP"; // PŘIDÁNO: Výchozí typ kódu
+let codeType = "HP";
 let codeActive = false;
 let nextCodeTime = 0;
 let codeX = 0;
@@ -621,6 +622,81 @@ let lastCodeWinner = null;
 let failedCodeAttempts = 0;
 let isUltraCode = false;
 let usedCodesHistory = [];
+
+// --- MINIHRA: TĚŽKÉ HÁDANKY A ČÍSLA ---
+let isRiddleModeActive = false; // DEFAULTNĚ VYPNUTO
+let activeRiddle = { question: null, answer: null };
+let usedRiddles = [];
+let autoSkipRiddleTimer; // Odpočet 3 minut
+
+const RIDDLES = [
+    { q: "Kdo to vyrobí, nepotřebuje to. Kdo to koupí, nepoužije to. Kdo to použije, nevidí to.", a: "rakev" },
+    { q: "Když mě potřebuješ, zahodíš mě. Když mě nepotřebuješ, vytáhneš mě nahoru.", a: "kotva" },
+    { q: "Čím jsem lehčí, tím hůře mě udržíš. Ani ten nejsilnější mě neudrží dlouho.", a: "dech" },
+    { q: "Svléká si to kůži dřív, než to vůbec vyroste.", a: "had" },
+    { q: "Krm mě a budu žít. Dej mi napít a okamžitě zemřu.", a: "ohen" },
+    { q: "Může to běžet, ale nechodí to. Má to ústa, ale nemluví to.", a: "reka" },
+    { q: "Má to třináct srdcí, ale žádné jiné orgány.", a: "karty" },
+    { q: "Čím více toho kolem tebe je, tím méně toho vidíš.", a: "tma" },
+    { q: "Zajde to nejdál, když se to rozdělí mezi lidi.", a: "tajemstvi" },
+    { q: "Narodí se to velké, ale umírá to malé.", a: "svicka" },
+    { q: "Vyplní to celou místnost, ale nezabere to vůbec žádné místo.", a: "svetlo" },
+    { q: "Odpočine si to a zastaví se to jen tehdy, když to umře.", a: "srdce" },
+    { q: "Vstoupíš jednou dírou, vyjdeš třemi. Když jsi uvnitř, jsi připraven jít ven.", a: "tricko" },
+    { q: "Roste to úplně naopak – kořeny vzhůru.", a: "rampouch" },
+    { q: "Díváš se do toho přímo, ale vidíš jen to, co je za tebou.", a: "zrcadlo" },
+    { q: "Jde to přes pole, ale neohne to ani jediné stéblo trávy.", a: "stin" },
+    { q: "Nevidíš to, ale můžeš to chytit. Jakmile to chytíš, chceš se toho zbavit.", a: "ryma" },
+    { q: "Má to dlouhý krk, ale nemá to žádnou hlavu.", a: "lahev" },
+    { q: "Mluví to všemi jazyky světa, ale nemá to svůj vlastní hlas.", a: "ozvena" },
+    { q: "Můžeš to snadno zlomit, aniž bys to vzal do ruky nebo se toho dotkl.", a: "slib" },
+    { q: "Má to města bez lidí, hory bez kamenů a moře bez kapky vody.", a: "mapa" },
+    { q: "Je to neustále před námi, ale ještě to nikdy nikdo neviděl.", a: "budoucnost" },
+    { q: "Patří to jen a jen tobě, ale ostatní to používají mnohem víc než ty.", a: "jmeno" },
+    { q: "Létá to vysoko bez křídel a pláče to bez očí.", a: "mrak" },
+    { q: "Má to spoustu ostrých zubů, ale nikdy to nekouše.", a: "pila" },
+    { q: "Má to palec a čtyři prsty, ale není to vůbec živé.", a: "rukavice" },
+    { q: "Je to zvláštní – čím víc z toho odebereš, tím je to větší.", a: "dira" },
+    { q: "Běží to neustále dopředu, nikdy to necouvá a nelze to zastavit.", a: "cas" },
+    { q: "Když to konečně nahlas vyslovíš, v ten moment to zničíš.", a: "ticho" },
+    { q: "Má to jedno oko, ale nic nevidí. Má to ouško, ale nic neslyší.", a: "jehla" },
+    { q: "Nemá to žádné nohy, ale skáče to. Nemá to plíce, ale dýchá to.", a: "zaba" },
+    { q: "Jaká věc má desítky klíčů, ale nedokáže otevřít žádné dveře?", a: "klavir" },
+    { q: "Dělá se to ze dřeva, ale řezat se to už nedá.", a: "pilina" },
+    { q: "Může to být velké jako dům, ale neváží to absolutně nic.", a: "stin" },
+    { q: "Nosíš to v hlavě, ale nenahmatáš to. Dá se to ztratit, ale ne ukrást.", a: "myslenka" },
+    { q: "Co začíná na 'P', končí na 'A' a má to v sobě tisíce písmen?", a: "posta" },
+    { q: "Vidíš to ve dne, v noci to zmizí. Je to větší než strom, ale lehčí než pírko.", a: "stin" },
+    { q: "Mám tolik očí, kolik chci, ale nevidím s nimi. Roste to v hlíně.", a: "brambor" },
+    { q: "Jakmile se o to s někým podělíš, už to nemáš.", a: "tajemstvi" },
+    { q: "Ráno to chodí po čtyřech, v poledne po dvou a večer po třech.", a: "clovek" }
+];
+
+function generateNewRiddle() {
+    if (!isRiddleModeActive) return;
+    clearTimeout(autoSkipRiddleTimer);
+
+    if (random() < 0.3) { 
+        // 30% šance na číslo (od 1 do 999)
+        let num = Math.floor(random(1, 1000));
+        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999 (+2000 HP)`, answer: num.toString() };
+    } else { 
+        // 70% šance na těžkou hádanku
+        let available = RIDDLES.filter(r => !usedRiddles.includes(r.a));
+        if (available.length === 0) { usedRiddles = []; available = RIDDLES; } 
+        let picked = random(available);
+        usedRiddles.push(picked.a);
+        activeRiddle = { question: `HÁDANKA: ${picked.q} (+2000 HP)`, answer: picked.a };
+    }
+
+    // AUTOMATICKÝ SKIP PO 3 MINUTÁCH (180 000 ms)
+    autoSkipRiddleTimer = setTimeout(() => {
+        if (isRiddleModeActive && activeRiddle.answer) {
+            speakTTS("Čas vypršel! Hádanka byla moc těžká. Zkoušíme další.");
+            generateNewRiddle();
+        }
+    }, 180000);
+}
 
 let wallTop, wallBot, wallLeft, wallRight;
 const wallThick = 2000;
@@ -760,7 +836,7 @@ let spokenHistory = {}; // Paměť pro 3 minutový limit opakováni TTS hlášek
 let screenShake = 0;
 let shipX = 0, shipY = 0;
 let winnerAnnounced = false;
-let showLeaderboards = true; // defaultně zapnuto
+let showLeaderboards = false; // defaultně vypnuto
 let showFomoBar = false; // defaultně skryto
 
 let lastGlobalSound = 0;
@@ -1113,6 +1189,20 @@ function setupEvents() {
   document.getElementById('toggleFomoBtn').onclick = (e) => {
       showFomoBar = !showFomoBar;
       e.target.innerText = showFomoBar ? 'SKRÝT FOMO' : 'ZOBRAZIT FOMO';
+  };
+
+  document.getElementById('toggleRiddleBtn').onclick = (e) => {
+      isRiddleModeActive = !isRiddleModeActive;
+      e.target.innerText = isRiddleModeActive ? "HÁDANKY: ZAP" : "HÁDANKY: VYP";
+      e.target.style.background = isRiddleModeActive ? "#4caf50" : "#ff9800";
+      e.target.style.color = isRiddleModeActive ? "#fff" : "#000";
+
+      if (isRiddleModeActive) {
+          generateNewRiddle();
+      } else {
+          activeRiddle = { question: null, answer: null };
+          clearTimeout(autoSkipRiddleTimer);
+      }
   };
 
   document.getElementById('tBlock').onclick = () => {
@@ -1958,130 +2048,64 @@ function handleSecretCode() {
 }
 
 function drawSecretCodeUI() {
-    if (codeActive) {
-        codeX += codeVX;
-        codeY += codeVY;
+    if (!isRiddleModeActive || !activeRiddle.question) return;
+    
+    push();
+    
+    // Pulzující scale efekt
+    let bannerCenterY = ARENA_TOP / 2 + 35;
+    let pulse = 1.0 + sin(frameCount * 0.06) * 0.06;
+    translate(W/2, bannerCenterY);
+    scale(pulse);
+    translate(-W/2, -bannerCenterY);
+    
+    // Pozadí banneru NAD arénou
+    rectMode(CENTER);
+    fill(0, 0, 0, 180);
+    noStroke();
+    rect(W/2, bannerCenterY, W - 20, ARENA_TOP - 20, 12);
+    
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
+    
+    // 1. Řádek nahoře: ODMĚNA
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(255, 215, 0, 0.8)';
+    fill(255, 215, 0);
+    stroke(0);
+    strokeWeight(3);
+    textSize(18);
+    text("SPRÁVNÁ ODPOVĚĎ = +2000 HP", W/2, bannerCenterY - 55);
+    
+    // 2. Hlavní text hádanky
+    let txtLen = activeRiddle.question.length;
+    let riddleSize = txtLen > 55 ? 14 : (txtLen > 45 ? 16 : (txtLen > 35 ? 19 : 22));
+    textSize(riddleSize);
+    
+    drawingContext.shadowBlur = 30;
+    drawingContext.shadowColor = 'rgba(255, 0, 80, 1)';
+    
+    fill(255);
+    stroke(0);
+    strokeWeight(5);
+    text(activeRiddle.question.toUpperCase(), W/2, bannerCenterY - 10);
+    
+    // 3. Podtržítka pro každé písmenko odpovědi: _ _ _ _ _ (N)
+    if (activeRiddle.answer) {
+        let ansLen = activeRiddle.answer.length;
+        let blanks = Array(ansLen).fill("_").join("  ") + "  (" + ansLen + ")";
         
-        // Odrazy od mantinelů arény
-        if (codeX < 100 || codeX > W - 100) codeVX *= -1;
-        if (codeY < ARENA_TOP + 50 || codeY > ARENA_BOT - 50) codeVY *= -1;
-        
-        push();
-        let baseCol = color(0, 255, 255);
-        let cType = typeof codeType !== 'undefined' ? codeType : "HP";
-        if (cType === "HP" && isUltraCode) baseCol = color(255, 50, 50);
-        else if (cType === "BOOST") baseCol = color(255, 255, 0);
-        else if (cType === "SHIELD") baseCol = color(150, 50, 255);
-        
-        if (players.length < 40) {
-            drawingContext.shadowBlur = random(5, 15);
-            drawingContext.shadowColor = baseCol;
-        }
-        let flicker = random(100, 255);
-        
-        textSize(isUltraCode ? 26 : 22);
-        textAlign(CENTER, CENTER);
-        textStyle(BOLD);
-        
-        let cx = codeX + sin(frameCount * 0.1) * 40;
-        let cy = codeY + cos(frameCount * 0.08) * 25;
-        
-        let skipText = random() < 0.15;
-        
-        if (!skipText) {
-            if (random() < 0.2) {
-                cx += random(-15, 15);
-                cy += random(-10, 10);
-                fill(255); 
-            } else {
-                fill(red(baseCol), green(baseCol), blue(baseCol), flicker);
-            }
-            
-            stroke(0);
-            strokeWeight(4); // Černý obrys přidán pro lepší čitelnost létajícího kódu
-            text(secretCode, cx, cy);
-            
-            if (random() < 0.6) {
-                noStroke();
-                fill(255, 0, 0, flicker * 0.7);
-                text(secretCode, cx - 3, cy);
-                fill(0, 255, 255, flicker * 0.7);
-                text(secretCode, cx + 3, cy);
-            }
-        }
-        
-        drawingContext.shadowBlur = 0;
-        pop();
+        drawingContext.shadowColor = 'rgba(0, 242, 254, 0.8)';
+        drawingContext.shadowBlur = 20;
+        fill(0, 242, 254);
+        textSize(28);
+        stroke(0);
+        strokeWeight(3);
+        text(blanks, W/2, bannerCenterY + 35);
     }
-
-    if (codeActive || lastCodeWinner) {
-        push();
-        // --- PŘIDÁNA TMAVÁ LIŠTA PRO PERFEKTNÍ ČITELNOST ---
-        rectMode(CENTER);
-        fill(0, 5, 10, 230);
-        let borderCol = codeActive ? (isUltraCode && codeType === "HP" ? color(255, 100, 100) : roundThemeColor) : color(255, 215, 0);
-        stroke(borderCol);
-        strokeWeight(2);
-        rect(W/2, ARENA_BOT + 168, W - 40, 30, 8);
-        rectMode(CORNER);
-
-        if (codeActive) {
-            let rewardTxt = "";
-            let hintCol = roundThemeColor;
-            let cType = typeof codeType !== 'undefined' ? codeType : "HP";
-            
-            if (cType === "HP") {
-                rewardTxt = isUltraCode ? "+750 HP" : "+375 HP";
-                hintCol = isUltraCode ? color(255, 100, 100) : roundThemeColor; 
-            } else if (cType === "BOOST") {
-                rewardTxt = "5s BOOST"; hintCol = color(255, 255, 0);
-            } else if (cType === "SHIELD") {
-                rewardTxt = "5s SHIELD"; hintCol = color(150, 100, 255);
-            }
-            
-            let hint = currentLang === "CZ" ? `/// ZACHYCEN SIGNÁL: ${rewardTxt} ///` : `/// ANOMALY DETECTED: ${rewardTxt} ///`;
-            if (isUltraCode && cType === "HP") hint = currentLang === "CZ" ? `/// KRITICKÁ ANOMÁLIE: ${rewardTxt} ///` : `/// CRITICAL ANOMALY: ${rewardTxt} ///`;
-            
-            // Text je solidní, nebliká a má černý obrys pro perfektní kontrast
-            fill(hintCol);
-            stroke(0);
-            strokeWeight(3);
-            textSize(11);
-            textAlign(CENTER, CENTER);
-            textStyle(BOLD);
-            text(hint, W/2, ARENA_BOT + 168);
-        } else if (lastCodeWinner) {
-            fill(255, 215, 0);
-            stroke(0);
-            strokeWeight(3);
-            textSize(11);
-            textStyle(BOLD);
-            
-            let wTxt = currentLang === "CZ" ? `POSLEDNÍ KÓD PROLOMIL: ` : `LAST CODE CRACKED BY: `;
-            let tw = textWidth(wTxt);
-            
-            textAlign(RIGHT, CENTER);
-            text(wTxt, W/2 - 10, ARENA_BOT + 168);
-            
-            if (lastCodeWinner.img && lastCodeWinner.img !== "loaded") {
-                drawingContext.save(); drawingContext.beginPath();
-                drawingContext.arc(W/2 + 2, ARENA_BOT + 168, 9, 0, TWO_PI);
-                drawingContext.clip();
-                imageMode(CENTER);
-                image(lastCodeWinner.img, W/2 + 2, ARENA_BOT + 168, 18, 18);
-                drawingContext.restore();
-            } else {
-                fill(100); noStroke(); ellipse(W/2 + 2, ARENA_BOT + 168, 18, 18);
-            }
-            
-            fill(255);
-            stroke(0);
-            strokeWeight(3);
-            textAlign(LEFT, CENTER);
-            text(lastCodeWinner.name, W/2 + 16, ARENA_BOT + 168);
-        }
-        pop();
-    }
+    
+    drawingContext.shadowBlur = 0;
+    pop();
 }
 
 function screenToWorld(sx, sy) {
@@ -4616,27 +4640,32 @@ function connectTikfinity() {
               }
           }
 
-          if (codeActive && msg.toUpperCase() === secretCode) {
-              codeActive = false;
-              lastCodeWinner = { name: u, img: userAvatars[u] };
-              nextCodeTime = millis() + random(45000, 85000);
-
-              let p = players.find(x => x.name === u);
-              let cType = typeof codeType !== 'undefined' ? codeType : "HP";
-              if (cType === "HP") {
-                  let reward = isUltraCode ? 750 : 375;
-                  handleAction(u, reward, false, 0, true);
-              } else if (cType === "BOOST") {
-                  if (p) { p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 5 * 60); p.hp += 250; } 
-                  else handleAction(u, 250, false, 0, true);
-              } else if (cType === "SHIELD") {
-                  if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hp += 250; } 
-                  else handleAction(u, 250, false, 0, true);
+          // --- LOGIKA TĚŽKÝCH HÁDANEK ---
+          let guess = removeDiacritics(msg).toLowerCase().trim();
+          if (isRiddleModeActive && activeRiddle.answer && guess === activeRiddle.answer) {
+              let winnerP = players.find(x => x.name === u);
+              if (winnerP) {
+                  winnerP.hp += 2000;
+                  winnerP.orbSpeedTimer = Math.max(winnerP.orbSpeedTimer, 20 * 60); 
+              } else {
+                  handleAction(u, 2000, false, 0, true);
+                  setTimeout(() => {
+                      let newP = players.find(x => x.name === u);
+                      if (newP) newP.orbSpeedTimer = 20 * 60;
+                  }, 500);
               }
               
-              addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-              speakTTS(currentLang === "CZ" ? `Hráč ${u} prolomil kód!` : `Player ${u} cracked the code!`, true);
-              createParticles(W/2, H/2, color(255, 215, 0), 100);
+              clearTimeout(autoSkipRiddleTimer); // Zastavit odpočet
+              addPopup("UHODL!", W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), true);
+              createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), 100);
+              speakTTS(currentLang === "CZ" ? `Konečně! Hráč ${u} uhodl správnou odpověď, je to ${activeRiddle.answer}.` : `Player ${u} guessed correctly!`);
+              
+              // Oslavný text na 8 vteřin
+              let prevAnswer = activeRiddle.answer;
+              activeRiddle = { question: `VÝHERCE: ${u.toUpperCase()}! (Odpověď: ${prevAnswer.toUpperCase()})`, answer: null };
+              
+              // Za 8 vteřin nová hádanka
+              setTimeout(generateNewRiddle, 8000);
           }
             handleAction(u, 10, false, 0, false); 
       }
