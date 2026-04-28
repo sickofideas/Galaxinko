@@ -629,7 +629,8 @@ let activeRiddle = { question: null, answer: null };
 let usedRiddles = [];
 let autoSkipRiddleTimer; // OdpoÄŤet 3 minut
 let riddleHintTimer; // OdpoÄŤet 2 minut pro nĂˇpovÄ›du
-let riddleRevealedLetters = []; // Indexy odhalench pĂ­smen
+let riddleRevealedLetters = []; // Indexy odhalench písmen
+let riddleWins = {}; // Počítadlo uhodnutých hádanek { jméno: počet }
 
 const RIDDLES = [
     { q: "Zvíře na farmě (7)", a: "slepice" },
@@ -1446,6 +1447,9 @@ function startNewRound() {
       let hp = s.isBot ? 150 : getStartingHp(s.name);
       spawnPlayer(s.name, hp, false, 0, false, 1, s.isBot, false); // survivors nejdou do fronty
   }); 
+
+  // Reset pil po spawnu - nové kolo začíná čistě bez aktivních pil
+  players.forEach(p => { p.likeBuffTimer = 0; p.orbSpeedTimer = 0; });
 
   // OKAMĹ˝ITĂť EGO SMASH PO RESTARTU: Pokud pĹ™eĹľil vĂ­tÄ›z minulĂ©ho kola, hned ho nastavit jako krĂˇle
   if (previousTop10.length > 0) {
@@ -2443,24 +2447,76 @@ function drawSecretCodeUI() {
     textStyle(BOLD);
     
     if (activeRiddle.winner) {
-        // --- REĹ˝IM VĂťHERCE: JmĂ©no + odtajnÄ›nĂˇ odpovÄ›ÄŹ ---
+        // --- REŽIM VÝHERCE: Jméno + koule s pilou + odtajněná odpověď ---
+        let winP = players.find(x => x.name === activeRiddle.winner);
+        
+        // Koule hráče vlevo
+        let ballX = W/2 - 180;
+        let ballY = bannerCenterY;
+        let ballR = 35;
+        
+        if (winP) {
+            push();
+            translate(ballX, ballY);
+            
+            // Pila (saw) kolem koule
+            let sawTeeth = 48;
+            let rOuter = ballR * 1.35;
+            let rInner = ballR * 1.15;
+            push();
+            rotate(frameCount * 0.3);
+            noStroke();
+            fill(40, 200);
+            ellipse(0, 0, rOuter * 1.8);
+            fill(red(winP.color), green(winP.color), blue(winP.color), 200);
+            beginShape();
+            for(let i = 0; i < sawTeeth; i++) {
+                let a1 = i * TWO_PI / sawTeeth;
+                vertex(cos(a1) * rInner, sin(a1) * rInner); 
+                vertex(cos(a1 + (TWO_PI / sawTeeth) * 0.6) * rOuter, sin(a1 + (TWO_PI / sawTeeth) * 0.6) * rOuter); 
+                vertex(cos(a1 + (TWO_PI / sawTeeth) * 0.7) * rInner, sin(a1 + (TWO_PI / sawTeeth) * 0.7) * rInner);
+            }
+            endShape(CLOSE);
+            fill(180, 100);
+            ellipse(0, 0, ballR * 2.2);
+            pop();
+            
+            // Koule s profilovkou
+            if (userAvatars[winP.name] && userAvatars[winP.name] !== "loaded") {
+                drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(0, 0, ballR, 0, TWO_PI); drawingContext.clip();
+                imageMode(CENTER); image(userAvatars[winP.name], 0, 0, ballR*2, ballR*2); drawingContext.restore();
+            } else {
+                fill(winP.color); noStroke(); ellipse(0, 0, ballR * 2);
+            }
+            stroke(255, 215, 0); strokeWeight(3); noFill();
+            ellipse(0, 0, ballR * 2);
+            
+            // HP pod koulí
+            noStroke(); fill(255); textSize(11); textAlign(CENTER, TOP);
+            text(Math.floor(winP.hp) + " HP", 0, ballR + 5);
+            
+            pop();
+        }
+        
+        // Text výherce (vpravo od koule)
         drawingContext.shadowBlur = 30;
         drawingContext.shadowColor = 'rgba(255, 215, 0, 1)';
         
         fill(255, 215, 0);
         stroke(0);
         strokeWeight(5);
-        textSize(32);
-        text("\u2B50 " + activeRiddle.winner.toUpperCase() + " UHODL! \u2B50", W/2, bannerCenterY - 18);
+        textSize(30);
+        textAlign(CENTER, CENTER);
+        text("\u2B50 " + activeRiddle.winner.toUpperCase() + " UHODL! \u2B50", W/2 + 30, bannerCenterY - 18);
         
-        // OdtajnÄ›nĂˇ odpovÄ›ÄŹ
+        // Odtajněná odpověď
         drawingContext.shadowColor = 'rgba(0, 242, 254, 0.8)';
         drawingContext.shadowBlur = 20;
         fill(0, 242, 254);
-        textSize(36);
+        textSize(34);
         stroke(0);
         strokeWeight(3);
-        text(activeRiddle.revealedAnswer.toUpperCase(), W/2, bannerCenterY + 28);
+        text(activeRiddle.revealedAnswer.toUpperCase(), W/2 + 30, bannerCenterY + 28);
     } else {
         // --- NORMĂLNĂŤ REĹ˝IM: HĂˇdanka + podtrĹľĂ­tka ---
         let cleanQuestion = activeRiddle.question.replace(/\s*\(\d+\)\s*$/, ""); // Odstraní (číslo) z konce
@@ -4257,141 +4313,217 @@ function updateTimers() {
 
 function drawResults() {
   push();
-  fill(0, 0); // PlnÄ› prĹŻhlednĂ© pozadĂ­ na konci kola
+  fill(0, 0, 0, 180);
   noStroke(); 
-  rect(0, 0, W, H);
+  rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
   pop();
   
   textAlign(CENTER, CENTER);
-  fill(0, 255, 255); textSize(30); textStyle(BOLD); text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 40);
+  
+  // --- TITUL ---
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = 'rgba(0, 255, 255, 0.8)';
+  fill(0, 255, 255); textSize(38); textStyle(BOLD);
+  stroke(0); strokeWeight(4);
+  text(T[currentLang].ROUND_END, W/2, ARENA_TOP + 50);
+  drawingContext.shadowBlur = 0;
+  noStroke();
   
   let sorted = [...players].sort((a,b) => b.hp - a.hp); let winner = sorted[0];
   
   if(winner && !winnerAnnounced) {
       winnerAnnounced = true;
-      // TTS na konci kola vypnuto na ĹľĂˇdost uĹľivatele
   }
 
-  let bY = ARENA_TOP + 300; 
+  let bY = ARENA_TOP + 340; 
   let anim = constrain(map(resultsTimer, maxResultsTimer, maxResultsTimer - 1, 0, 1), 0, 1);
 
+  // --- STUPÍNKY (větší a čitelnější) ---
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
       let p = sorted[i];
-      let px, ph, pcol;
-      if (i === 0) { px = W/2; ph = 100; pcol = color(255, 215, 0); }
-      else if (i === 1) { px = W/2 - 120; ph = 70; pcol = color(192, 192, 192); }
-      else { px = W/2 + 120; ph = 50; pcol = color(205, 127, 50); }
+      let px, ph, pcol, podW;
+      if (i === 0) { px = W/2; ph = 140; pcol = color(255, 215, 0); podW = 130; }
+      else if (i === 1) { px = W/2 - 155; ph = 100; pcol = color(192, 192, 192); podW = 120; }
+      else { px = W/2 + 155; ph = 70; pcol = color(205, 127, 50); podW = 120; }
 
       let curH = ph * anim;
       
       push();
-      fill(10, 15, 30, 200); stroke(pcol); strokeWeight(3);
-      rect(px - 45, bY - curH, 90, curH, 10, 10, 0, 0);
+      for (let g = 0; g < curH; g++) {
+          let alpha = map(g, 0, curH, 120, 220);
+          fill(red(pcol), green(pcol), blue(pcol), alpha * 0.3);
+          noStroke();
+          rect(px - podW/2, bY - g, podW, 1);
+      }
+      stroke(pcol); strokeWeight(3); noFill();
+      rect(px - podW/2, bY - curH, podW, curH, 12, 12, 0, 0);
       
-      fill(pcol); noStroke(); textSize(24); textAlign(CENTER, CENTER); textStyle(BOLD);
+      fill(pcol); noStroke(); textSize(i === 0 ? 42 : 32); textAlign(CENTER, CENTER); textStyle(BOLD);
+      drawingContext.shadowBlur = 15;
+      drawingContext.shadowColor = `rgba(${red(pcol)}, ${green(pcol)}, ${blue(pcol)}, 0.6)`;
       text(i+1, px, bY - curH/2);
+      drawingContext.shadowBlur = 0;
       pop();
 
       if (anim > 0.8) {
           push();
-          let imgSize = i === 0 ? 60 : 45;
-          let imgY = bY - curH - imgSize/2 - 10;
+          let ballR = i === 0 ? 40 : 30;
+          let imgY = bY - curH - ballR - 15;
+          
+          // Záře koule
+          let glowAlpha = 60 + sin(frameCount * 0.15) * 30;
+          fill(red(p.color), green(p.color), blue(p.color), glowAlpha);
+          noStroke();
+          ellipse(px, imgY, ballR * 2.6);
+          
+          // Herní koule s profilovkou
           if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(px, imgY, imgSize/2, 0, TWO_PI); drawingContext.clip();
-              imageMode(CENTER); image(userAvatars[p.name], px, imgY, imgSize, imgSize); drawingContext.restore();
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(px, imgY, ballR, 0, TWO_PI); drawingContext.clip();
+              imageMode(CENTER); image(userAvatars[p.name], px, imgY, ballR*2, ballR*2); drawingContext.restore();
           } else {
-              fill(p.color); noStroke(); ellipse(px, imgY, imgSize);
+              fill(p.color); noStroke(); ellipse(px, imgY, ballR * 2);
           }
-          noFill(); stroke(pcol); strokeWeight(3); ellipse(px, imgY, imgSize);
+          // Barevný obrys koule
+          noFill(); stroke(p.color); strokeWeight(3); ellipse(px, imgY, ballR * 2);
+          stroke(pcol); strokeWeight(2); ellipse(px, imgY, ballR * 2 + 6);
 
-          fill(p.color); noStroke(); textSize(i===0 ? 14 : 11); textStyle(BOLD); textAlign(CENTER, BOTTOM);
-          text(p.name.substring(0,10), px, imgY - imgSize/2 - 5);
-          fill(255); textSize(i===0 ? 12 : 10);
-          text(formatK(p.hp) + " HP", px, bY - curH - imgSize - 25);
+          drawingContext.shadowBlur = 10;
+          drawingContext.shadowColor = 'rgba(0,0,0,0.9)';
+          fill(255); noStroke(); textSize(i===0 ? 18 : 14); textStyle(BOLD); textAlign(CENTER, BOTTOM);
+          text(p.name.substring(0,12), px, imgY - ballR - 10);
+          fill(pcol); textSize(i===0 ? 15 : 12);
+          text(formatK(p.hp) + " HP", px, imgY - ballR - 30);
+          drawingContext.shadowBlur = 0;
           pop();
       }
   }
 
+  // --- TOP HÁDANKÁŘI + DÁRCI vedle sebe ---
+  let riddleArr = Object.entries(riddleWins).sort((a,b) => b[1] - a[1]).slice(0, 5);
   let mvpArr = Object.entries(roundGifts).sort((a,b)=>b[1].score - a[1].score);
-  if (mvpArr.length > 0 && anim > 0.8) {
+  
+  if (anim > 0.8) {
+    // HÁDANKÁŘI (levý panel)
+    if (riddleArr.length > 0) {
       push();
-      let donorY = bY + 60;
-      fill(20, 15, 30, 240); stroke(255, 215, 0); strokeWeight(3);
-      rect(20, donorY, W - 40, 130, 15);
+      let rY = bY + 30;
+      let panelW = mvpArr.length > 0 ? W/2 - 50 : W - 60;
+      fill(10, 15, 30, 230); stroke(0, 242, 254); strokeWeight(2);
+      rect(30, rY, panelW, 38 + riddleArr.length * 32, 12);
 
-      fill(255, 215, 0); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
-      text(currentLang === "CZ" ? "đź’Ž DĂRCI TOHOTO KOLA đź’Ž" : "đź’Ž ROUND GIFTERS đź’Ž", W/2, donorY + 15);
+      drawingContext.shadowBlur = 15;
+      drawingContext.shadowColor = 'rgba(0, 242, 254, 0.6)';
+      fill(0, 242, 254); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
+      text("\uD83E\uDDE0 TOP HÁDANKÁŘI", 30 + panelW/2, rY + 8);
+      drawingContext.shadowBlur = 0;
 
-      let cardW = 180;
-      let totalW = mvpArr.length * cardW;
-      let scrollX = 0;
-      if (totalW > W - 60) {
-          let availableFrames = maxResultsTimer * 60;
-          let neededSpeed = (totalW + W) / availableFrames;
-          let speed = Math.max(1.5, neededSpeed); 
-          scrollX = (frameCount * speed) % (totalW + W);
+      for (let j = 0; j < riddleArr.length; j++) {
+          let rName = riddleArr[j][0];
+          let rCount = riddleArr[j][1];
+          let ry = rY + 36 + j * 32;
+          let rankCol = j === 0 ? color(255, 215, 0) : (j === 1 ? color(192, 192, 192) : (j === 2 ? color(205, 127, 50) : color(180)));
+          
+          fill(255, 255, 255, 15); noStroke();
+          rect(40, ry - 12, panelW - 20, 28, 6);
+          
+          let ax = 60;
+          if (userAvatars[rName] && userAvatars[rName] !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, ry, 11, 0, TWO_PI); drawingContext.clip();
+              imageMode(CENTER); image(userAvatars[rName], ax, ry, 22, 22); drawingContext.restore();
+          } else {
+              fill(rankCol); noStroke(); ellipse(ax, ry, 22);
+          }
+          
+          fill(rankCol); noStroke(); textAlign(LEFT, CENTER); textSize(13); textStyle(BOLD);
+          text((j+1) + ". " + rName.substring(0, 10), 78, ry);
+          fill(0, 242, 254); textAlign(RIGHT, CENTER); textSize(13);
+          text(rCount + "x \uD83C\uDFAF", 30 + panelW - 15, ry);
       }
+      pop();
+    }
 
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.rect(25, donorY + 40, W - 50, 80);
-      drawingContext.clip();
+    // DÁRCI (pravý panel nebo celý pokud nejsou hádankáři)
+    if (mvpArr.length > 0) {
+      push();
+      let donorX = riddleArr.length > 0 ? W/2 + 10 : 30;
+      let donorW = riddleArr.length > 0 ? W/2 - 40 : W - 60;
+      let donorY = bY + 30;
+      let donorItemCount = Math.min(mvpArr.length, 5);
+      fill(10, 15, 30, 230); stroke(255, 215, 0); strokeWeight(2);
+      rect(donorX, donorY, donorW, 38 + donorItemCount * 32, 12);
 
-      for (let j = 0; j < mvpArr.length; j++) {
+      drawingContext.shadowBlur = 15;
+      drawingContext.shadowColor = 'rgba(255, 215, 0, 0.6)';
+      fill(255, 215, 0); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
+      text("\uD83D\uDC8E DÁRCI KOLA", donorX + donorW/2, donorY + 8);
+      drawingContext.shadowBlur = 0;
+
+      for (let j = 0; j < donorItemCount; j++) {
           let dData = mvpArr[j];
           let dName = dData[0];
           let dScore = dData[1].score;
           let dColor = dData[1].color;
           let dAv = dData[1].avatar;
-
-          let xPos = totalW > W - 60 ? W + (j * cardW) - scrollX : (W / 2) - (totalW / 2) + (j * cardW);
-
-          if (xPos > -cardW && xPos < W) {
-              fill(0, 0, 0, 150); stroke(dColor); strokeWeight(2);
-              rect(xPos, donorY + 45, cardW - 15, 65, 8);
-
-              let ax = xPos + 30;
-              let ay = donorY + 77;
-              if (dAv && dAv !== "loaded") {
-                  drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, ay, 18, 0, TWO_PI); drawingContext.clip();
-                  imageMode(CENTER); image(dAv, ax, ay, 36, 36); drawingContext.restore();
-              } else {
-                  fill(dColor); noStroke(); ellipse(ax, ay, 36, 36);
-              }
-              noFill(); stroke(dColor); strokeWeight(2); ellipse(ax, ay, 36, 36);
-
-              noStroke(); fill(dColor); textAlign(LEFT, CENTER); textSize(12); textStyle(BOLD);
-              text(dName.substring(0, 9), xPos + 55, ay - 10);
-              
-              fill(255, 215, 0); textSize(11);
-              let giftEmoji = dScore >= 1000 ? 'đźš€' : 'đź’Ž';
-              text(dScore.toLocaleString() + " " + giftEmoji, xPos + 55, ay + 10);
+          let dy = donorY + 36 + j * 32;
+          
+          fill(255, 255, 255, 15); noStroke();
+          rect(donorX + 10, dy - 12, donorW - 20, 28, 6);
+          
+          let ax = donorX + 30;
+          if (dAv && dAv !== "loaded") {
+              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, dy, 11, 0, TWO_PI); drawingContext.clip();
+              imageMode(CENTER); image(dAv, ax, dy, 22, 22); drawingContext.restore();
+          } else {
+              fill(dColor); noStroke(); ellipse(ax, dy, 22);
           }
+          
+          fill(dColor); noStroke(); textAlign(LEFT, CENTER); textSize(13); textStyle(BOLD);
+          text((j+1) + ". " + dName.substring(0, 10), ax + 18, dy);
+          fill(255, 215, 0); textAlign(RIGHT, CENTER); textSize(13);
+          text(dScore.toLocaleString() + " \uD83D\uDC8E", donorX + donorW - 15, dy);
       }
-      drawingContext.restore();
+      pop();
+    }
+  }
+
+  // --- SEZNAM DALŠÍCH HRÁČŮ ---
+  let panelMaxItems = Math.max(riddleArr.length, Math.min(mvpArr.length, 5));
+  let panelH = panelMaxItems > 0 ? 38 + panelMaxItems * 32 : 0;
+  let listStartY = bY + 30 + panelH + 20;
+  textAlign(LEFT, CENTER); 
+  let maxListItems = 10;
+  let listLimit = Math.min(sorted.length, maxListItems);
+  
+  if (listLimit > 3 && anim > 0.8) {
+      push();
+      let listH = (listLimit - 3) * 30 + 10;
+      fill(10, 15, 30, 200); stroke(100, 100, 120); strokeWeight(1);
+      rect(W/2 - 230, listStartY - 15, 460, listH, 10);
       pop();
   }
-
-  textAlign(LEFT, CENTER); 
-  let showDonors = (mvpArr.length > 0 && anim > 0.8);
-  let listStartY = showDonors ? bY + 210 : bY + 80; 
-  let maxListItems = showDonors ? 8 : 15;
-  let listLimit = Math.min(sorted.length, maxListItems);
+  
   for (let i = 3; i < listLimit; i++) {
-    let p = sorted[i]; let yPos = listStartY + (i-3) * 26;
-    fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 5)); noStroke(); rect(W/2 - 200, yPos - 12, 400, 24, 5);
-    fill(p.color); textSize(11); textStyle(BOLD); text((i + 1) + ".", W/2 - 180, yPos);
+    let p = sorted[i]; let yPos = listStartY + (i-3) * 30;
+    fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 8)); noStroke();
+    rect(W/2 - 220, yPos - 13, 440, 28, 6);
+    
+    fill(200); textSize(14); textStyle(BOLD); text((i + 1) + ".", W/2 - 200, yPos);
+    
     if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-        drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 140, yPos, 9, 0, TWO_PI); drawingContext.clip();
-        image(userAvatars[p.name], W/2 - 140, yPos, 18, 18); drawingContext.restore();
+        drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 165, yPos, 11, 0, TWO_PI); drawingContext.clip();
+        image(userAvatars[p.name], W/2 - 165, yPos, 22, 22); drawingContext.restore();
     }
-    fill(220); textStyle(NORMAL); textSize(11); text(p.name.substring(0, 12), W/2 - 120, yPos);
-    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); text(Math.floor(Math.max(0, p.hp)).toLocaleString(), W/2 + 180, yPos); textAlign(LEFT, CENTER); 
+    fill(255); textStyle(NORMAL); textSize(14); text(p.name.substring(0, 14), W/2 - 145, yPos);
+    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); textSize(14);
+    text(Math.floor(Math.max(0, p.hp)).toLocaleString() + " HP", W/2 + 210, yPos);
+    textAlign(LEFT, CENTER); 
   }
   
+  // --- TIMER ---
   let timerY = ARENA_BOT - 40; 
-  fill(0, 0, 0, 220); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 150, timerY - 20, 300, 40, 10);
-  noStroke(); fill(255); textSize(14); textAlign(CENTER, CENTER); textStyle(BOLD); text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
+  fill(0, 0, 0, 230); stroke(255, 50, 50); strokeWeight(2); rect(W/2 - 160, timerY - 22, 320, 44, 12);
+  noStroke(); fill(255); textSize(18); textAlign(CENTER, CENTER); textStyle(BOLD);
+  text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
   if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 4; resultsTimer = 4; startNewRound(); } } 
 }
@@ -5060,6 +5192,7 @@ function connectTikfinity() {
               createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), 100);
               
               let prevDisplayAnswer = activeRiddle.displayAnswer || activeRiddle.answer;
+              riddleWins[u] = (riddleWins[u] || 0) + 1; // Počítadlo hádanek
               speakTTS(currentLang === "CZ" ? `${u} uhodl, je to ${prevDisplayAnswer}!` : `${u} guessed correctly!`);
               
               // Aktivovat pilu (saw) po celou dobu bonusu
