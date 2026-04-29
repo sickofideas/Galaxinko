@@ -5144,7 +5144,7 @@ function connectTikfinity() {
     try {
       let d = JSON.parse(e.data); 
       let evt = d?.event || d?.type || ""; 
-      let n = d?.data?.uniqueId || d?.uniqueId || d?.data?.nickname || d?.nickname || "Anonym";
+      let n = d?.data?.nickname || d?.nickname || d?.data?.uniqueId || d?.uniqueId || "Anonym";
       if (n === "Anonym") return;
       
       // RESET IDLE TIMERU PĹI JAKĂ‰KOLIV AKCI ZE SOCKETU
