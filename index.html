@@ -1248,7 +1248,7 @@ const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch
 let lastRealInteractionTime = Date.now();
 let isIdleMode = false;
 let nextBotSpawnTime = 0;
-const MAX_IDLE_BOTS = 70;
+const MAX_IDLE_BOTS = 90;
 const BOT_ADJ = ["Dark", "Cosmic", "Neon", "Super", "Mega", "Cyber", "Ultra", "Space", "Star", "Void", "Galactic", "Epic", "Turbo", "Funny", "Crazy", "Cool", "Mighty", "Little", "Big", "Zany"];
 const BOT_NOUNS = ["Knight", "Doge", "Ranger", "Warrior", "Pilot", "Bot", "User", "Runner", "Hunter", "Ghost", "Titan", "Nova", "Player", "Friend", "Buddy", "Captain", "Ace", "Hero"];
 
@@ -1584,7 +1584,8 @@ function setupEvents() {
                   if (p) { p.immunityTimer = Math.max(p.immunityTimer, 5 * 60); p.hpBuffer += 250; } else handleAction(u, 250, false, 0, true);
               }
           addPopup(isUltraCode ? "ULTRA CODE CRACKED!" : "CODE CRACKED!", W/2, H/2, color(255, 215, 0), true);
-          speakTTS(currentLang === "CZ" ? `HrĂˇÄŤ ${u} prolomil ${isUltraCode ? "ultra" : "tajnĂ˝"} kĂłd!` : `Player ${u} cracked the ${isUltraCode ? "ultra" : "secret"} code!`, true);
+          let cleanU = cleanNameForTTS(u);
+          speakTTS(currentLang === "CZ" ? `HrĂˇÄŤ ${cleanU} prolomil ${isUltraCode ? "ultra" : "tajnĂ˝"} kĂłd!` : `Player ${cleanU} cracked the ${isUltraCode ? "ultra" : "secret"} code!`, true);
           createParticles(W/2, H/2, color(255, 215, 0), 100);
       } else {
           speakTTS(currentLang === "CZ" ? "Sputnik: ZprĂˇva pĹ™ijata!" : "Sputnik: Message received!", true); 
@@ -1839,7 +1840,8 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
             }
         }
         
-        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${p.name}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${p.name}! Shield up!`);
+        let cleanN = cleanNameForTTS(p.name);
+        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
         let popText = comboMult > 1 ? `${comboMult}X SHIELD COMBO!` : "SHIELD + PUSH!";
         addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
@@ -1875,7 +1877,7 @@ function reviveZombie(p) {
 function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true, comboMult = 1) {
   if(!audioStarted) { audioStarted = true; userStartAudio(); }
   
-  // RESET IDLE TIMERU PĹI REĂLNĂ‰ AKCI
+  // RESET IDLE TIMERU PĹ˜I REĂ LNĂ‰ AKCI
   lastRealInteractionTime = millis();
   
   let finalAmount = amount || 0;
@@ -2230,7 +2232,8 @@ function handleCombat(p1, p2) {
           activeEvent = null;
           bountyTarget = null;
           nextEventTime = millis() + random(60000, 150000);
-          speakTTS(currentLang === "CZ" ? `OdmÄ›na vybrĂˇna! ${winner.name} zniÄŤil cĂ­l!` : `Bounty claimed! ${winner.name} destroyed the target!`, true);
+          let cleanWinner = cleanNameForTTS(winner.name);
+          speakTTS(currentLang === "CZ" ? `OdmÄ›na vybrĂˇna! ${cleanWinner} zniÄŤil cĂ­l!` : `Bounty claimed! ${cleanWinner} destroyed the target!`, true);
           safePlaySound(pentatonic('high'), 0.08, 0.5); 
       }
   };
@@ -4768,7 +4771,7 @@ function draw() {
   let totalAlive = realPlayersCount + botCount;
 
   // 1. NeustĂˇlĂ© doplĹovĂˇnĂ­: UdrĹľujeme vĹľdy kolem 100 cĂ­lĹŻ
-  let targetTotal = 70;
+  let targetTotal = 90;
   if (totalAlive < targetTotal) {
       if (millis() > nextBotSpawnTime) {
           spawnIdleBot();
@@ -5193,13 +5196,15 @@ function connectTikfinity() {
               addPopup("REPOST BONUS!", p.body.position.x, p.body.position.y - p.r, color(255, 215, 0));
               createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), 50);
               safePlaySound(pentatonic('high'), 0.08, 0.4);
-          speakTTS(currentLang === "CZ" ? `HrĂˇÄŤ ${u} objevil skrytĂ˝ bonus!` : `Player ${u} found a hidden bonus!`);
+              let cleanU = cleanNameForTTS(u);
+              speakTTS(currentLang === "CZ" ? `HrĂˇÄŤ ${cleanU} objevil skrytĂ˝ bonus!` : `Player ${cleanU} found a hidden bonus!`);
               addNotification('BOOST', u, userAvatars[u], "REPOST"); 
           }
           else if (!p && (msgLower === "!join" || msgLower === "join")) {
               handleAction(u, 100, false, 0, true);
               addNotification('JOIN', u, userAvatars[u]);
-              speakTTS(currentLang === "CZ" ? `HrĂˇÄŤ ${u} se pĹ™ipojil s bonusem!` : `Player ${u} joined with a bonus!`);
+              let cleanU = cleanNameForTTS(u);
+              speakTTS(currentLang === "CZ" ? `HrĂˇÄŤ ${cleanU} se pĹ™ipojil s bonusem!` : `Player ${cleanU} joined with a bonus!`);
           }
           else if (p && (msgLower === "!join" || msgLower === "join")) {
               let now = millis();
@@ -5242,7 +5247,8 @@ function connectTikfinity() {
               
               let prevDisplayAnswer = activeRiddle.displayAnswer || activeRiddle.answer;
               riddleWins[u] = (riddleWins[u] || 0) + 1; // Počítadlo hádanek
-              speakTTS(currentLang === "CZ" ? `${u} uhodl, je to ${prevDisplayAnswer}!` : `${u} guessed correctly!`);
+              let cleanU = cleanNameForTTS(u);
+              speakTTS(currentLang === "CZ" ? `${cleanU} uhodl, je to ${prevDisplayAnswer}!` : `${cleanU} guessed correctly!`);
               
               // Aktivovat pilu (saw) po celou dobu bonusu
               if (winnerP) {
@@ -5414,19 +5420,6 @@ if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== un
     window.speechSynthesis.onvoiceschanged = nactiHlasy;
 }
 nactiHlasy();
-
-// Vyčistí nick pro TTS - odstraní emoji, speciální znaky, zkrátí
-function cleanNameForTTS(name) {
-    if (!name) return "";
-    // Odstraní všechny emoji a speciální Unicode symboly
-    let clean = name.replace(/[\u{0080}-\u{00FF}\u{0100}-\u{024F}\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}\u{200B}-\u{200F}\u{2028}-\u{202F}\u{2060}-\u{206F}\u{E000}-\u{F8FF}\u{D800}-\u{DFFF}]/gu, '');
-    // Odstraní všechny non-ASCII emoji (zachová české znaky)
-    clean = clean.replace(/[^\p{L}\p{N}\s._\-]/gu, '');
-    clean = clean.trim();
-    if (clean.length === 0) return name.substring(0, 8); // Fallback
-    if (clean.length > 15) clean = clean.substring(0, 15);
-    return clean;
-}
 
 function speakTTS(txt, force = false) {
   if (!('speechSynthesis' in window)) return;
