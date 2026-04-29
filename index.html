@@ -107,10 +107,24 @@ var giftThrottle = {}; // { username: { count: 0, lastTTS: 0 } }
 
 function cleanNameForTTS(name) {
     if (!name) return "BojovnĂ­k";
-    // OdstranĂ­ emoji a speciĂˇlnĂ­ znaky, ponechĂˇ pĂ­smena a ÄŤĂ­sla
-    let cleaned = name.replace(/[^\w\s\u00C0-\u017F]/gi, '').trim(); 
+    
+    // 1. Nahradit podtrĹľĂ­tka a teÄŤky mezerami (aby se to ÄŤetlo jako samostatnĂˇ slova)
+    let cleaned = name.replace(/[_\.]/g, ' ');
+    
+    // 2. Odstranit "user" a ÄŤĂ­sla na zaÄŤĂˇtku, pokud jde o defaultnĂ­ tiktok jmĂ©no
+    if (cleaned.toLowerCase().startsWith("user")) {
+        cleaned = cleaned.replace(/^user\s*[0-9]+/i, '').trim();
+    }
+    
+    // 3. Odstranit ÄŤĂ­sla na konci (TikTok ÄŤasto generuje random ÄŤĂ­sla na konec jmĂ©na)
+    cleaned = cleaned.replace(/[0-9]+$/, '').trim();
+    
+    // 4. Ponechat jen pĂ­smena a zĂˇkladnĂ­ znaky
+    cleaned = cleaned.replace(/[^\p{L}\p{N}\s]/gu, '').trim(); 
+    
     if (cleaned.length === 0) return "BojovnĂ­k";
-    // Vezmeme jen prvnĂ­ dvÄ› ÄŤĂˇsti jmĂ©na
+    
+    // 5. VzĂ­t jen prvnĂ­ dvÄ› ÄŤĂˇsti jmĂ©na (aby TTS neÄŤetlo dlouhĂ© nĂˇzvy profilĹŻ)
     let parts = cleaned.split(/\s+/);
     return parts.slice(0, 2).join(" ");
 }
