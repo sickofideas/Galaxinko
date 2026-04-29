@@ -54,7 +54,7 @@
       <button id="toggleBossBtn" style="background: #555;">EGO SMASH: VYP</button>
       <button id="resetBtn" class="reset-btn">RESET KOLA</button>
       <button id="toggleFomoBtn">ZOBRAZIT FOMO</button>
-      <button id="toggleRiddleBtn" style="background: #ff9800; color: #000;">HĂDANKY: VYP</button>
+      <button id="toggleRiddleBtn" style="background: #4caf50; color: #fff;">HÁDANKY: ZAP</button>
       <button id="tBlock" style="background: #000; color: #ff0000;">TEST BLOCK</button>
       <button id="tShare" style="background: #e91e63;">TEST SHARE</button>
     </div>
@@ -624,7 +624,7 @@ let isUltraCode = false;
 let usedCodesHistory = [];
 
 // --- MINIHRA: TÄšĹ˝KĂ‰ HĂDANKY A ÄŚĂŤSLA ---
-let isRiddleModeActive = false; // DEFAULTNÄš VYPNUTO
+let isRiddleModeActive = true; // DEFAULTNE ZAPNUTO
 let activeRiddle = { question: null, answer: null };
 let usedRiddles = [];
 let autoSkipRiddleTimer; // OdpoÄŤet 3 minut
@@ -1288,6 +1288,43 @@ function playDonateSound() {
     safePlaySound(base, 0.015, 0.3);
     setTimeout(() => safePlaySound(n2, 0.015, 0.4), 120);
     setTimeout(() => safePlaySound(n3, 0.012, 0.5), 250);
+}
+
+function playWhooshSound() {
+    // JemnĂ˝ svistivĂ˝ zvuk - rĹŻĹľnĂ© hlasitosti jako zvuk pily, ale jinĂ˝ charakter
+    if (!audioStarted) return;
+    try {
+        let ctx = getAudioContext(); // p5.sound internĂ­ kontext
+        if (!ctx) return;
+        
+        // BĂ­lĂ˝ Ĺˇum -> bandpass filtr = svistivĂ˝ vzduchový zvuk
+        let bufSize = ctx.sampleRate * 0.22; // 220ms
+        let buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        let data = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+        
+        let src = ctx.createBufferSource();
+        src.buffer = buf;
+        
+        // Bandpass: stĹ™ed 1200Hz, klesĂˇ na 400Hz -> whoosh charakter
+        let bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(1200, ctx.currentTime);
+        bp.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.18);
+        bp.Q.value = 3.5;
+        
+        // Gain obĂˇlka: rychlĂ˝ nĂˇbÄ›h, plynulĂ˝ fade-out
+        let gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.13, ctx.currentTime + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+        
+        src.connect(bp);
+        bp.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(ctx.currentTime);
+        src.stop(ctx.currentTime + 0.23);
+    } catch(e) {}
 }
 
 function playFollowSound() {
@@ -2916,27 +2953,23 @@ function handleCameraAndPlayers() {
       continue;
     }
 
-    // --- BLESKY OD GIGANTĹ® (OptimalizovĂˇno a vĂ˝raznÄ› oslabeno) ---
-    // frameCount % 120 znamenĂˇ, Ĺľe to stĹ™elĂ­ maximĂˇlnÄ› 1x za 2 sekundy
-    if (p.hp >= 1000 && !p.isZombie && currentTop10.includes(p.name) && frameCount % 120 === (i % 120)) {
-        let range = p.r + 150;
+    // --- BLESKY OD GIANT (1x za sekundu, -1 HP nejblizsi kouli) ---
+    if (p.hp >= 1000 && !p.isZombie && frameCount % 60 === (i % 60)) {
+        let closest = null;
+        let closestDist = Infinity;
         for (let other of players) {
-            // Ochrana: Blesk nesmĂ­ zasĂˇhnout hrĂˇÄŤe s aktivnĂ­m ĹˇtĂ­tem (imunitou)
-            if (other === p || other.hp <= 0 || other.immunityTimer > 0) continue;
-            
-            let d = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
-            if (d < range) {
-                let dmg = floor(random(1, 3)); // SnĂ­Ĺľeno damage na pouhĂ© 1 aĹľ 2
-                other.hp -= dmg;
-                
-                if (!isExtremeLoad) {
-                    lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: other.body.position.x, y2: other.body.position.y, life: 15, c: p.color});
-                }
-                if (!isHeavyLoad) createParticles(other.body.position.x, other.body.position.y, p.color, 3);
-                if (!isHeavyLoad) addPopup("-" + dmg, other.body.position.x, other.body.position.y, color(255, 100, 100));
-                safePlaySound(pentatonic('low'), 0.008, 0.25);
-                break; // UdeĹ™Ă­ stĂˇle jen jednoho nejbliĹľĹˇĂ­ho hrĂˇÄŤe
+            if (other === p || other.hp <= 0 || other.immunityTimer > 0 || !other.body) continue;
+            let ld = dist(p.body.position.x, p.body.position.y, other.body.position.x, other.body.position.y);
+            if (ld < closestDist) { closestDist = ld; closest = other; }
+        }
+        if (closest) {
+            closest.hp -= 1;
+            if (!isExtremeLoad) {
+                lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: closest.body.position.x, y2: closest.body.position.y, life: 15, c: p.color});
             }
+            if (!isHeavyLoad) createParticles(closest.body.position.x, closest.body.position.y, p.color, 3);
+            if (!isHeavyLoad) addPopup("-1", closest.body.position.x, closest.body.position.y, color(255, 100, 100));
+            safePlaySound(pentatonic('low'), 0.008, 0.25);
         }
     }
     
@@ -4268,7 +4301,7 @@ function updateTimers() {
 
           let p = players.find(x => x.name === u);
           if (p) {
-              p.likeBuffTimer = millis() + 5000;
+              p.likeBuffTimer = Math.max(p.likeBuffTimer || 0, millis() + 5000);
               if (players.length < 50) {
                   addPopup("+" + (amount * 2), p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
                   // MĂ©nÄ› ÄŤĂˇstic = mĂ©nÄ› lagĹŻ, typ ENERGY
@@ -5134,15 +5167,7 @@ function connectTikfinity() {
 
           playChatSound();
 
-          if (p && (msgLower.startsWith("!boost") || msgLower.startsWith("boost")) && p.boostCooldown <= 0) {
-              p.boostCooldown = 60 * 60; // 60 vteĹ™in cooldown
-              p.orbSpeedTimer = Math.max(p.orbSpeedTimer, 2.5 * 60); // 2.5 sekundy speed boost
-              createParticles(p.body.position.x, p.body.position.y, color(0,255,255), 20);
-              addPopup("BOOST!", p.body.position.x, p.body.position.y - p.r, color(0, 255, 255));
-              safePlaySound(pentatonic('mid'), 0.05, 0.15);
-              addNotification('BOOST', u, userAvatars[u]);
-          }
-          else if (p && (msgLower.startsWith("!shield") || msgLower.startsWith("shield")) && p.shieldCooldown <= 0) {
+          if (p && (msgLower.startsWith("!shield") || msgLower.startsWith("shield")) && p.shieldCooldown <= 0) {
               p.shieldCooldown = 60 * 60; // 60 vteĹ™in cooldown
               p.immunityTimer = Math.max(p.immunityTimer, 2.5 * 60); // 2.5 sekundy ĹˇtĂ­t
               addPopup("SHIELD!", p.body.position.x, p.body.position.y - p.r, color(100, 50, 255));
@@ -5246,6 +5271,7 @@ function connectTikfinity() {
       else if (evt === "gift") { 
           let diam = d?.data?.diamonds || d?.data?.coins || 1;
           playDonateSound();
+          playWhooshSound();
           
           // --- 1. FOMO PROGRESS (SÄŤĂ­tĂˇnĂ­ pro vĹˇechny) ---
           lastEnergyAddedTime = millis();
