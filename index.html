@@ -1246,7 +1246,7 @@ const TEST_NAMES = ["PixelKing", "RetroZ", "Void", "Nebula", "StarLord", "Glitch
 let lastRealInteractionTime = Date.now();
 let isIdleMode = false;
 let nextBotSpawnTime = 0;
-const MAX_IDLE_BOTS = 100;
+const MAX_IDLE_BOTS = 70;
 const BOT_ADJ = ["Dark", "Cosmic", "Neon", "Super", "Mega", "Cyber", "Ultra", "Space", "Star", "Void", "Galactic", "Epic", "Turbo", "Funny", "Crazy", "Cool", "Mighty", "Little", "Big", "Zany"];
 const BOT_NOUNS = ["Knight", "Doge", "Ranger", "Warrior", "Pilot", "Bot", "User", "Runner", "Hunter", "Ghost", "Titan", "Nova", "Player", "Friend", "Buddy", "Captain", "Ace", "Hero"];
 
@@ -4757,7 +4757,7 @@ function draw() {
   let totalAlive = realPlayersCount + botCount;
 
   // 1. NeustĂˇlĂ© doplĹovĂˇnĂ­: UdrĹľujeme vĹľdy kolem 100 cĂ­lĹŻ
-  let targetTotal = 100;
+  let targetTotal = 70;
   if (totalAlive < targetTotal) {
       if (millis() > nextBotSpawnTime) {
           spawnIdleBot();
