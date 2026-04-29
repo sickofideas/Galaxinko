@@ -604,6 +604,8 @@ let orbs = [];
 let combatQueue = []; 
 let deadPlayersQueue = []; // Fronta pro 20s cooldown zombĂ­kĹŻ
 let spawnModules = []; 
+let roundStartQueue = [];
+let initialQueueLength = 0;
 
 // Fronta pro infotainment
 let notifications = []; 
@@ -1106,8 +1108,8 @@ let bonusFrames = [];
 let explosionTimer = 0;
 let gameState = "PLAYING"; 
 let nukeEffectTimer = 0;
-let resultsTimer = 8;
-let maxResultsTimer = 8;
+let resultsTimer = 5;
+let maxResultsTimer = 5;
 let cameraScale = 1.6;
 let targetCameraScale = 1.6;
 let audioStarted = false;
@@ -1340,12 +1342,6 @@ function playChatSound() {
     safePlaySound(pentatonic('high'), 0.006, 0.1);
 }
 
-function getStartingHp(name) {
-    let idx = previousTop10.indexOf(name);
-    if (idx === 0) return 510; // Bonus 10 HP pro vĂ­tÄ›ze minulĂ©ho kola, aby okamĹľitÄ› pĹ™evzal Ego Smash
-    return 500;
-}
-
 function setup() {
   let cvs = createCanvas(W, H);
   cvs.parent('game-container');
@@ -1479,10 +1475,12 @@ function startNewRound() {
   roundGifts = {}; 
   egoQueue = []; // VyÄŤistit frontu pro novĂ© kolo
   
+  roundStartQueue = [];
+  
   // 1. Spawni aktivnĂ­ pĹ™eĹľivĹˇĂ­ z minulĂ©ho kola normĂˇlnÄ›
   survivors.forEach(s => {
       let hp = s.isBot ? 150 : getStartingHp(s.name);
-      spawnPlayer(s.name, hp, false, 0, false, 1, s.isBot, false); // survivors nejdou do fronty
+      roundStartQueue.push({name: s.name, hp: hp, isGift: false, diam: 0, isZombie: false, comboMult: 1, isBot: s.isBot, shouldQueue: false});
   }); 
 
   // Reset pil po spawnu - nové kolo začíná čistě bez aktivních pil
@@ -1505,8 +1503,10 @@ function startNewRound() {
   
   for (let i = 0; i < zombieCount; i++) {
       let zName = availableZombies[i];
-      spawnPlayer(zName, 50, false, 0, true, 1, false, false); // zombies nejdou do fronty
+      roundStartQueue.push({name: zName, hp: 50, isGift: false, diam: 0, isZombie: true, comboMult: 1, isBot: false, shouldQueue: false});
   }
+
+  initialQueueLength = roundStartQueue.length;
 
       // NĂˇhodnĂˇ dĂ©lka kola mezi 20 a 30 minutami
       roundTimer = floor(random(1200, 1801)); 
@@ -1769,7 +1769,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
             let forceMag = 1.5 * other.body.mass; 
             Matter.Body.applyForce(other.body, other.body.position, { x: (dx / dist) * forceMag, y: (dy / dist) * forceMag });
             
-            // Instakill pro vĹˇechny, co nemajĂ­ aspoĹ 5000 HP
+            // Instakill pro vĹˇechny, co nemajĂ­ aspoĹˆ 5000 HP
             if (other.hp < 5000) {
                 other.hp = 0;
                 other.hpBuffer = 0;
@@ -1905,7 +1905,7 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
     }
     
     // AKTUALIZOVANĂ LOGIKA TRVĂNĂŤ PILY: KaĹľdĂ˝ like resetuje pilu na 5 sekund
-    p.likeBuffTimer = millis() + 5000; 
+    p.likeBuffTimer = Math.max(p.likeBuffTimer || 0, millis() + 5000); 
     if (isGift) triggerGiftEffect(p, diam, comboMult);
   } else {
         if (allowSpawn) {
@@ -1953,6 +1953,17 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
       isBot: isBot, shouldQueue: shouldQueue
   });
       safePlaySound(pentatonic('high'), 0.008, 0.15);
+}
+
+function handleRoundStartQueue() {
+    if (roundStartQueue.length === 0) return;
+    
+    // PostupnĂ© spawnovĂˇnĂ­ bÄ›hem 10 sekund (600 framĹŻ)
+    let interval = Math.max(1, Math.floor(600 / Math.max(1, initialQueueLength)));
+    if (frameCount % interval === 0) {
+        let p = roundStartQueue.shift();
+        spawnPlayer(p.name, p.hp, p.isGift, p.diam, p.isZombie, p.comboMult, p.isBot, p.shouldQueue);
+    }
 }
 
 function handleSpawnModules() {
@@ -4281,8 +4292,8 @@ function updateTimers() {
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
           let donorCount = Object.keys(roundGifts).length;
-          maxResultsTimer = 4;
-          resultsTimer = 4; 
+          maxResultsTimer = 5;
+          resultsTimer = 5; 
           winnerAnnounced = false;
       } 
   }
@@ -4572,7 +4583,7 @@ function drawResults() {
   noStroke(); fill(255); textSize(18); textAlign(CENTER, CENTER); textStyle(BOLD);
   text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 4; resultsTimer = 4; startNewRound(); } } 
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 5; resultsTimer = 5; startNewRound(); } } 
 }
 
 function drawTopHUD() {
@@ -4917,11 +4928,10 @@ function draw() {
   processCombatQueue();
 
   if (gameState === "PLAYING" || gameState === "EXPLODING" || gameState === "RESULTS") {
-    if (gameState === "PLAYING") {
         handleSecretCode();
+        handleRoundStartQueue(); // PĹ˜IDĂ NO: PostupnĂ© spawnovĂˇnĂ­ na startu
         handleCameraAndPlayers(); 
         handleSpawnModules();
-    }
     
     // PlynulĂ© doznĂ­vĂˇnĂ­ tĹ™esu obrazovky
     if (screenShake > 0) {
