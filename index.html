@@ -2308,8 +2308,8 @@ function handleCombat(p1, p2) {
       Matter.Body.applyForce(p2.body, p2.body.position, { x: forceDir.x * forceMag * p2.body.mass, y: forceDir.y * forceMag * p2.body.mass });
   }
   
-  let isHeavyLoad = players.length > 40;
-  let isExtremeLoad = players.length > 60;
+  let isHeavyLoad = players.length > 80;
+  let isExtremeLoad = players.length > 120;
   
   if (!isExtremeLoad && (p1.hp >= 1000 || p2.hp >= 1000)) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
@@ -2944,8 +2944,8 @@ function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
-  let isHeavyLoad = players.length > 15;    // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
-  let isExtremeLoad = players.length > 30;  // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
+  let isHeavyLoad = players.length > 80;    // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
+  let isExtremeLoad = players.length > 120;  // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
   let maxV = 4; // SNĂŤĹ˝ENO (z 5)
   
   for (let i = players.length - 1; i >= 0; i--) {
@@ -4998,8 +4998,8 @@ function draw() {
     }
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
-    if(players.length < 50) { drawDeathShockwaves(); }
-    if(players.length < 60) { drawLightnings(); }
+    if(players.length < 150) { drawDeathShockwaves(); }
+    if(players.length < 150) { drawLightnings(); }
     
     if (gameState === "PLAYING" && activeEvent === "MAGNET") {
         let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
