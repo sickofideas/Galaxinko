@@ -4653,6 +4653,10 @@ function drawTopHUD() {
       
       for(let i=0; i<numExtra * 2; i++) { 
           let idx = 2 + (i % numExtra); let pName = allTimeSorted[idx][0]; let pData = allTimeSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 15;
+          
+          // OPTIMALIZACE: Pokud je prvek mimo vyĹ™Ă­znutou oblast (od scrollYBase - 2 do + 50), vĹŻbec ho nevykresluj (canvas clip je jinak mega pomalĂ˝)
+          if (y > scrollYBase + 50 || y + itemH < scrollYBase - 2) continue;
+
           let currAv = userAvatars[pName] || pData.avatar;
           
           drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
@@ -4700,6 +4704,10 @@ function drawTopHUD() {
       
       for(let i=0; i<numExtra * 2; i++) { 
           let idx = 3 + (i % numExtra); let gName = allGiftsSorted[idx][0]; let gData = allGiftsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 265;
+          
+          // OPTIMALIZACE: Pokud je prvek mimo vyĹ™Ă­znutou oblast
+          if (y > scrollYBase + 28 || y + itemH < scrollYBase - 2) continue;
+
           let currAv = userAvatars[gName] || gData.avatar;
           
           drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
@@ -4746,6 +4754,10 @@ function drawTopHUD() {
       
       for(let i=0; i<numExtra * 2; i++) { 
           let idx = 2 + (i % numExtra); let pName = allKillsSorted[idx][0]; let pData = allKillsSorted[idx][1]; let y = scrollYBase + (i * itemH) - scrollPos; let xBase = 515;
+          
+          // OPTIMALIZACE: Pokud je prvek mimo vyĹ™Ă­znutou oblast
+          if (y > scrollYBase + 50 || y + itemH < scrollYBase - 2) continue;
+
           let currAv = userAvatars[pName] || pData.avatar;
           
           drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
