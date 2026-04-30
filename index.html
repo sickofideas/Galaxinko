@@ -624,6 +624,11 @@ let initialQueueLength = 0;
 // Fronta pro infotainment
 let notifications = []; 
 
+// Globální proměnné pro optimalizace (Před-vykreslené částice a pole pro pilu)
+let cachedHeart;
+let cachedEnergy;
+let sawAngles = [];
+
 // Variables for Secret Code Minigame (legacy)
 let secretCode = "";
 let codeType = "HP";
@@ -1364,6 +1369,44 @@ function setup() {
   
   synth = new p5.PolySynth();
   synth.setADSR(0.08, 0.3, 0.15, 0.4); // MÄ›kkĂ˝ attack, dlouhĂ˝ decay a release = warm ambient tĂłny
+  
+  // --- OPTIMALIZACE: PĹ™ed-vykreslenĂ© ÄŤĂˇstice a Ăşhly pily ---
+  cachedHeart = createGraphics(40, 40);
+  cachedHeart.translate(20, 20);
+  cachedHeart.fill(255);
+  cachedHeart.noStroke();
+  cachedHeart.beginShape();
+  let partS = 20;
+  cachedHeart.vertex(0, -partS/4);
+  cachedHeart.bezierVertex(-partS/2, -partS*0.75, -partS, -partS/4, 0, partS/2);
+  cachedHeart.bezierVertex(partS, -partS/4, partS/2, -partS*0.75, 0, -partS/4);
+  cachedHeart.endShape(CLOSE);
+
+  cachedEnergy = createGraphics(40, 40);
+  cachedEnergy.translate(20, 20);
+  cachedEnergy.fill(255);
+  cachedEnergy.noStroke();
+  cachedEnergy.beginShape();
+  let eS = 20;
+  cachedEnergy.vertex(eS * 0.2, -eS * 0.6);
+  cachedEnergy.vertex(-eS * 0.4, eS * 0.1);
+  cachedEnergy.vertex(-eS * 0.1, eS * 0.1);
+  cachedEnergy.vertex(-eS * 0.3, eS * 0.6);
+  cachedEnergy.vertex(eS * 0.4, -eS * 0.1);
+  cachedEnergy.vertex(eS * 0.1, -eS * 0.1);
+  cachedEnergy.endShape(CLOSE);
+  
+  for(let i = 0; i < 64; i++) {
+      sawAngles.push({
+          a1_cos: Math.cos(i * TWO_PI / 64),
+          a1_sin: Math.sin(i * TWO_PI / 64),
+          a2_cos: Math.cos((i + 0.6) * TWO_PI / 64),
+          a2_sin: Math.sin((i + 0.6) * TWO_PI / 64),
+          a3_cos: Math.cos((i + 0.7) * TWO_PI / 64),
+          a3_sin: Math.sin((i + 0.7) * TWO_PI / 64)
+      });
+  }
+  // --------------------------------------------------------
   
   let savedHp = localStorage.getItem('galaxinko_alltime_hp');
   if (savedHp) {
@@ -2953,10 +2996,12 @@ function handleCameraAndPlayers() {
               if (other === p || !other.body) continue;
               let dx = other.body.position.x - px;
               let dy = other.body.position.y - py;
-              let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+              let distSq = dx*dx + dy*dy;
               let effectRadius = p.r + 150; // Dosah exploze zvĂ˝Ĺˇen pro vÄ›tĹˇĂ­ dopad
+              let effectRadiusSq = effectRadius * effectRadius;
               
-              if (dist < effectRadius) {
+              if (distSq < effectRadiusSq && distSq > 0) {
+                  let dist = Math.sqrt(distSq); // PotĹ™ebujeme pro vĂ˝poÄŤet sĂ­ly
                   let forceMag = 0.012 * other.body.mass * (effectRadius / dist); // SĂ­la zvĂ˝Ĺˇena
                   forceMag = Math.min(forceMag, 0.12 * other.body.mass); // Max odhoz zvĂ˝Ĺˇen
                   Matter.Body.applyForce(other.body, other.body.position, {
@@ -3406,13 +3451,14 @@ function handleBossPlanet() {
             else if (bp.targetPoint) {
                 let dx = bp.targetPoint.x - bp.x;
                 let dy = bp.targetPoint.y - bp.y;
-                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                let distSq = dx*dx + dy*dy;
+                let dist = Math.sqrt(distSq) || 1;
                 
                 let speed = 6; // PomalĂ˝ pĹ™Ă­let
                 bp.vx = (dx / dist) * speed;
                 bp.vy = (dy / dist) * speed;
 
-                if (dist < 15) {
+                if (distSq < 225) {
                     bp.hasSmashed = true; // Dorazila na svĂ© mĂ­sto doprostĹ™ed arĂ©ny
                     bp.vx = random(-0.5, 0.5); bp.vy = random(-0.5, 0.5);
                 }
@@ -3488,15 +3534,12 @@ function handleBossPlanet() {
 
         let img = userAvatars[bp.name]; 
         if (img && img !== "loaded") {
-            drawingContext.save();
-            drawingContext.beginPath();
-            drawingContext.arc(0, 0, pSize / 2, 0, TWO_PI);
-            drawingContext.clip();
             imageMode(CENTER);
             tint(255, bp.isKnockedOut ? 40 : 180); 
             image(img, 0, 0, pSize, pSize);
             noTint();
             
+            drawingContext.save();
             let gradient = drawingContext.createRadialGradient(0, 0, pSize * 0.3, 0, 0, pSize * 0.5);
             gradient.addColorStop(0, "rgba(0,0,0,0)");
             gradient.addColorStop(1, "rgba(0,0,0,0.8)");
@@ -3790,13 +3833,13 @@ function drawPlayer(p) {
       fill(red(actualColor), green(actualColor), blue(actualColor), sawAlpha * 0.8);
       beginShape();
       for(let i = 0; i < teeth; i++) {
-          let a1 = i * TWO_PI / teeth;
-          let a2 = (i + 1) * TWO_PI / teeth;
+          let idx = Math.floor(i * (64 / teeth)); // 64 je velikost cache pole
+          let ang = sawAngles[idx];
           
-          // AgresivnĂ­, ale krĂˇtkĂ© prĹŻmyslovĂ© zuby
-          vertex(cos(a1) * rInner, sin(a1) * rInner); 
-          vertex(cos(a1 + (TWO_PI / teeth) * 0.6) * rOuter, sin(a1 + (TWO_PI / teeth) * 0.6) * rOuter); 
-          vertex(cos(a1 + (TWO_PI / teeth) * 0.7) * rInner, sin(a1 + (TWO_PI / teeth) * 0.7) * rInner);
+          // AgresivnĂ­, ale krĂˇtkĂ© prĹŻmyslovĂ© zuby - cache optimalizace
+          vertex(ang.a1_cos * rInner, ang.a1_sin * rInner); 
+          vertex(ang.a2_cos * rOuter, ang.a2_sin * rOuter); 
+          vertex(ang.a3_cos * rInner, ang.a3_sin * rInner);
       }
       endShape(CLOSE);
 
@@ -3908,18 +3951,10 @@ function drawPlayer(p) {
   ellipse(0, 0, imgSize); 
 
   if (!p.isBot && p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-      drawingContext.save();
-      drawingContext.beginPath();
-      drawingContext.arc(0, 0, imgSize / 2, 0, TWO_PI); 
-      drawingContext.clip();
-      
-      // if (p.isZombie) drawingContext.filter = 'grayscale(100%)'; // OPTIMALIZACE VĂťKONU
       tint(255, p.avatarAlpha);
       imageMode(CENTER); 
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
       noTint(); 
-      // drawingContext.filter = 'none';
-      drawingContext.restore();
   }
 
   noFill(); 
@@ -4066,28 +4101,15 @@ function drawParticles() {
     fill(red(p.c), green(p.c), blue(p.c), p.life);
         
         if (p.type === 'HEART') {
-            push();
-            translate(p.x, p.y);
-            let s = p.size;
-            beginShape();
-            vertex(0, -s/4);
-            bezierVertex(-s/2, -s*0.75, -s, -s/4, 0, s/2);
-            bezierVertex(s, -s/4, s/2, -s*0.75, 0, -s/4);
-            endShape(CLOSE);
-            pop();
+            imageMode(CENTER);
+            tint(red(p.c), green(p.c), blue(p.c), p.life);
+            image(cachedHeart, p.x, p.y, p.size * 2.5, p.size * 2.5);
+            noTint();
         } else if (p.type === 'ENERGY') {
-            push();
-            translate(p.x, p.y);
-            let s = p.size;
-            beginShape();
-            vertex(s * 0.2, -s * 0.6);
-            vertex(-s * 0.4, s * 0.1);
-            vertex(-s * 0.1, s * 0.1);
-            vertex(-s * 0.3, s * 0.6);
-            vertex(s * 0.4, -s * 0.1);
-            vertex(s * 0.1, -s * 0.1);
-            endShape(CLOSE);
-            pop();
+            imageMode(CENTER);
+            tint(red(p.c), green(p.c), blue(p.c), p.life);
+            image(cachedEnergy, p.x, p.y, p.size * 2.5, p.size * 2.5);
+            noTint();
         } else {
             ellipse(p.x, p.y, p.size);
         }
@@ -4454,8 +4476,7 @@ function drawResults() {
           
           // Herní koule s profilovkou
           if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(px, imgY, ballR, 0, TWO_PI); drawingContext.clip();
-              imageMode(CENTER); image(userAvatars[p.name], px, imgY, ballR*2, ballR*2); drawingContext.restore();
+              imageMode(CENTER); image(userAvatars[p.name], px, imgY, ballR*2, ballR*2);
           } else {
               fill(p.color); noStroke(); ellipse(px, imgY, ballR * 2);
           }
@@ -4504,8 +4525,7 @@ function drawResults() {
           
           let ax = 60;
           if (userAvatars[rName] && userAvatars[rName] !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, ry, 11, 0, TWO_PI); drawingContext.clip();
-              imageMode(CENTER); image(userAvatars[rName], ax, ry, 22, 22); drawingContext.restore();
+              imageMode(CENTER); image(userAvatars[rName], ax, ry, 22, 22);
           } else {
               fill(rankCol); noStroke(); ellipse(ax, ry, 22);
           }
@@ -4547,8 +4567,7 @@ function drawResults() {
           
           let ax = donorX + 30;
           if (dAv && dAv !== "loaded") {
-              drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(ax, dy, 11, 0, TWO_PI); drawingContext.clip();
-              imageMode(CENTER); image(dAv, ax, dy, 22, 22); drawingContext.restore();
+              imageMode(CENTER); image(dAv, ax, dy, 22, 22);
           } else {
               fill(dColor); noStroke(); ellipse(ax, dy, 22);
           }
@@ -5180,7 +5199,19 @@ function connectTikfinity() {
       let u = n.substring(0, 15);
       
       let imgUrl = d?.data?.profilePictureUrl || d?.profilePictureUrl || "";
-      if (imgUrl && !userAvatars[u]) loadImage(imgUrl, img => { userAvatars[u] = img; }, () => {});
+      if (imgUrl && !userAvatars[u]) {
+          userAvatars[u] = "loaded";
+          loadImage(imgUrl, img => { 
+              let g = createGraphics(100, 100);
+              g.clear();
+              g.noStroke();
+              g.fill(255);
+              g.circle(50, 50, 100);
+              g.drawingContext.globalCompositeOperation = 'source-in';
+              g.image(img, 0, 0, 100, 100);
+              userAvatars[u] = g; 
+          }, () => { delete userAvatars[u]; });
+      }
       
       if (evt === "follow") {
           playFollowSound();
