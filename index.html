@@ -79,7 +79,7 @@ var roundThemeColorDark;
 var currentLang = "CZ";
 var T = {
   CZ: {
-    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALĹ ĂŤ KOLO ZA: ",
+    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALĹ ĂŤ KOLO ZA: ",
     WINNER: "VĂŤTÄšZ KOLA!", HP: "HP", NEW: "NOVĂť BOJOVNĂŤK: ",
     DAYZ_SPACE: "[ PROSTOR PRO DAYZ STREAM ]", TIME: "ÄŚAS KOLA:"
   },
@@ -129,7 +129,7 @@ function cleanNameForTTS(name) {
     return parts.slice(0, 2).join(" ");
 }
 
-// --- 2. ROZĹ ĂŤĹENĂ‰ KNIHOVNY HLĂĹ EK ---
+// --- 2. ROZĹ ĂŤĹENĂ‰ KNIHOVNY HLĂĹ EK ---
 var COMMENTARY_TAP = {
   CZ: [
     "Senzory hlĂˇsĂ­ zvĂ˝Ĺˇenou aktivitu v sektoru!",
@@ -953,236 +953,7 @@ const RIDDLES = [
     { q: "Koníček (7)", a: "plavani" },
     { q: "Činnost venku (6)", a: "behani" },
     { q: "Druh tance (5)", a: "salsa" },
-    { q: "Svátek (6)", a: "vanoce" },
-    { q: "Zvíře žijící v lese (5)", a: "zajic" },
-    { q: "Mořský savec (6)", a: "delfin" },
-    { q: "Dravý pták (4)", a: "orel" },
-    { q: "Hospodářské zvíře (4)", a: "ovca" },
-    { q: "Hospodářské zvíře (5)", a: "prase" },
-    { q: "Domácí pták (6)", a: "krocan" },
-    { q: "Kočkovitá šelma (4)", a: "rys" },
-    { q: "Psovitá šelma (3)", a: "vlk" },
-    { q: "Plaz bez nohou (3)", a: "had" },
-    { q: "Obojživelník (4)", a: "mlok" },
-    { q: "Sladkovodní ryba (5)", a: "okoun" },
-    { q: "Mořská ryba (5)", a: "tunak" },
-    { q: "Hmyz tvořící med (5)", a: "vcela" },
-    { q: "Bodavý hmyz (4)", a: "osa" },
-    { q: "Hlodavec (3)", a: "mys" },
-    { q: "Zvíře nosící dům (4)", a: "snek" },
-    { q: "Mýtické zvíře (4)", a: "drak" },
-    { q: "Ovoce (5)", a: "visen" },
-    { q: "Ovoce (6)", a: "tresne" },
-    { q: "Ovoce (5)", a: "angrest" },
-    { q: "Zelenina (4)", a: "porek" },
-    { q: "Zelenina (5)", a: "hrach" },
-    { q: "Druh ořechu (4)", a: "kese" },
-    { q: "Luštěnina (5)", a: "cocka" },
-    { q: "Druh pečiva (5)", a: "zavin" },
-    { q: "Mléčný výrobek (3)", a: "syr" },
-    { q: "Mléčný výrobek (6)", a: "tvaroh" },
-    { q: "Typ masa (7)", a: "veprove" },
-    { q: "Koření (5)", a: "kmin" },
-    { q: "Byklinka (6)", a: "mata" },
-    { q: "Sladidlo (4)", a: "cukr" },
-    { q: "Druh polévky (8)", a: "rajcatova" },
-    { q: "Nápoj (4)", a: "voda" },
-    { q: "Teplý nápoj (3)", a: "caj" },
-    { q: "Alkoholický nápoj (3)", a: "rum" },
-    { q: "Značka piva (6)", a: "krusovice" },
-    { q: "Značka piva (7)", a: "gambrinus" },
-    { q: "Nealko nápoj (5)", a: "fanta" },
-    { q: "Druh těstovin (6)", a: "vrtule" },
-    { q: "Český dezert (6)", a: "vetrnik" },
-    { q: "Květina (6)", a: "fialka" },
-    { q: "Květina (5)", a: "orfej" },
-    { q: "Jarní květina (8)", a: "narcis" },
-    { q: "Listnatý strom (4)", a: "buk" },
-    { q: "Jehličnatý strom (6)", a: "modrin" },
-    { q: "Keř (4)", a: "bez" },
-    { q: "Jedlá houba (6)", a: "bedla" },
-    { q: "Jedovatá houba (10)", a: "muchomurka" },
-    { q: "Evropský stát (6)", a: "polsko" },
-    { q: "Evropský stát (8)", a: "italie" },
-    { q: "Asijský stát (7)", a: "japonsko" },
-    { q: "Africký stát (5)", a: "egypt" },
-    { q: "Americký stát (6)", a: "kanada" },
-    { q: "Evropské město (6)", a: "berlin" },
-    { q: "Město v ČR (7)", a: "olomouc" },
-    { q: "Město v ČR (5)", a: "plzen" },
-    { q: "Město v USA (8)", a: "newyork" },
-    { q: "Česká řeka (5)", a: "ohre" },
-    { q: "Evropská řeka (4)", a: "ryna" },
-    { q: "Oceán (5)", a: "tichy" },
-    { q: "Pohoří v ČR (8)", a: "jeseniky" },
-    { q: "Evropské pohoří (5)", a: "tatry" },
-    { q: "Kontinent (7)", a: "amerika" },
-    { q: "Ostrov (6)", a: "korsika" },
-    { q: "Barva (5)", a: "hneda" },
-    { q: "Barva (4)", a: "seda" },
-    { q: "Roční období (4)", a: "leto" },
-    { q: "Roční období (6)", a: "podzim" },
-    { q: "Měsíc v roce (6)", a: "kveten" },
-    { q: "Měsíc v roce (5)", a: "srpen" },
-    { q: "Den v týdnu (6)", a: "streda" },
-    { q: "Přírodní jev (4)", a: "mlha" },
-    { q: "Přírodní katastrofa (6)", a: "povoden" },
-    { q: "Hudební žánr (4)", a: "jazz" },
-    { q: "Hudební nástroj (6)", a: "klaves" },
-    { q: "Filmový žánr (7)", a: "komedie" },
-    { q: "Sport (6)", a: "florbal" },
-    { q: "Zimní sport (10)", a: "krasobrusleni" },
-    { q: "Olympijský sport (8)", a: "cyklistika" },
-    { q: "Karetní hra (4)", a: "prsi" },
-    { q: "Desková hra (6)", a: "sachy" },
-    { q: "Koníček/Hobby (4)", a: "siti" },
-    { q: "Povolání (6)", a: "pekar" },
-    { q: "Povolání (5)", a: "hasic" },
-    { q: "Lékařský obor (6)", a: "zubar" },
-    { q: "Vojenská hodnost (7)", a: "general" },
-    { q: "Místnost v domě (7)", a: "predsien" },
-    { q: "Nábytek (5)", a: "skrin" },
-    { q: "Nábytek (6)", a: "stolek" },
-    { q: "Věc v kuchyni (6)", a: "panvic" },
-    { q: "Věc v koupelně (5)", a: "vana" },
-    { q: "Domácí spotřebič (7)", a: "sporak" },
-    { q: "Zahradní nářadí (6)", a: "lopata" },
-    { q: "Nářadí (4)", a: "pila" },
-    { q: "Dopravní prostředek (6)", a: "skutr" },
-    { q: "Značka auta (4)", a: "ford" },
-    { q: "Značka auta (6)", a: "toyota" },
-    { q: "Značka mobilu (6)", a: "xiaomi" },
-    { q: "Značka oblečení (6)", a: "adidas" },
-    { q: "Značka bot (4)", a: "vans" },
-    { q: "Součást auta (4)", a: "kolo" },
-    { q: "Oblečení (6)", a: "bunda" },
-    { q: "Oblečení na hlavu (6)", a: "klobouk" },
-    { q: "Typ bot (6)", a: "kozacky" },
-    { q: "Druh látky (4)", a: "len" },
-    { q: "Školní potřeba (5)", a: "sesit" },
-    { q: "Školní předmět (5)", a: "chemie" },
-    { q: "Hudební interpret (4)", a: "gott" },
-    { q: "Cizí měna (4)", a: "jen" },
-    { q: "Část lidského těla (4)", a: "noha" },
-    { q: "Část lidského těla (3)", a: "krk" },
-    { q: "Vnitřní orgán (6)", a: "ledvina" },
-    { q: "Kov (5)", a: "zinek" },
-    { q: "Drahokam (6)", a: "safir" },
-    { q: "Vesmírné těleso (6)", a: "slunce" },
-    { q: "Znamení zvěrokruhu (5)", a: "beran" },
-    { q: "Geometrický tvar (4)", a: "kruh" },
-    { q: "Sociální síť (7)", a: "twitter" },
-    { q: "Počítačová hra (6)", a: "roblox" },
-    { q: "Část počítače (7)", a: "monitor" },
-    { q: "Nemoc (7)", a: "chripka" },
-    { q: "Typ léku (5)", a: "kapky" },
-    { q: "Zbraň (3)", a: "mec" },
-    { q: "Věc v letadle (6)", a: "sedadlo" },
-    { q: "Pohádková postava (7)", a: "princezna" },
-    { q: "Superhrdina (9)", a: "spiderman" },
-    { q: "Vybavení na kempování (6)", a: "spacak" },
-    { q: "Věc na pláži (6)", a: "pisek" },
-    { q: "Zvíře v rybníku (4)", a: "zabak" },
-    { q: "Lesní plod (7)", a: "brusinka" },
-    { q: "Živočich se skořápkou (3)", a: "rak" },
-    { q: "Druh ořechu (6)", a: "liskovy" },
-    { q: "Součást vlaku (5)", a: "vagon" },
-    { q: "Druh polévky (6)", a: "cibula" },
-    { q: "Věc na stole (7)", a: "pocitac" },
-    { q: "Věc v kapse (5)", a: "klice" },
-    { q: "Hygienická potřeba (6)", a: "kartac" },
-    { q: "Kov na šperky (8)", a: "stribro" },
-    { q: "Část domu (5)", a: "dvere" },
-    { q: "Hračka pro děti (5)", a: "panenka" },
-    { q: "Typ lodi (8)", a: "plachetnice" },
-    { q: "Povolání ve škole (7)", a: "ucitel" },
-    { q: "Značka elektra (5)", a: "bosch" },
-    { q: "Přírodní útvar (6)", a: "kanyon" },
-    { q: "Ovoce, ze kterého je víno (6)", a: "hrozen" },
-    { q: "Město ve Španělsku (6)", a: "madrid" },
-    { q: "Dopravní prostředek na sněhu (4)", a: "sane" },
-    { q: "Typ školy (9)", a: "gymnazium" },
-    { q: "Psací potřeba (4)", a: "pero" },
-    { q: "Věc v kanceláři (8)", a: "tiskarna" },
-    { q: "Druh papíru (6)", a: "balici" },
-    { q: "Slavnostní jídlo (4)", a: "krocan" },
-    { q: "Zimní aktivita (8)", a: "brusleni" },
-    { q: "Kouzelná bytost (5)", a: "vila" },
-    { q: "Známý panovník (6)", a: "karel" },
-    { q: "Nádobí na polévku (5)", a: "miska" },
-    { q: "Letecký pojem (5)", a: "pilot" },
-    { q: "Surovina pro výrobu chleba (6)", a: "kvasnice" },
-    { q: "Hmyz na louce (7)", a: "beruska" },
-    { q: "Typ hodin (8)", a: "naramkove" },
-    { q: "Věc, kterou se platí (6)", a: "penize" },
-    { q: "Místnost v domě (6)", a: "sklep" },
-    { q: "Lékařská specializace (7)", a: "chirurg" },
-    { q: "Druh sladkosti (6)", a: "bonbon" },
-    { q: "Prvek v přírodě (4)", a: "klen" },
-    { q: "Zvíře, které dělá vlny (6)", a: "krokodyl" },
-    { q: "Nápoj v kavárně (10)", a: "cappuccino" },
-    { q: "Věc k ohřevu (7)", a: "topeni" },
-    { q: "Typ dveří (8)", a: "sklenene" },
-    { q: "Značka sportovního oblečení (4)", a: "puma" },
-    { q: "Filmová postava (7)", a: "dracula" },
-    { q: "Pták s velkým zobákem (6)", a: "tukan" },
-    { q: "Květina darovaná na Valentýna (8)", a: "snezenka" },
-    { q: "Surovina pro pečení (8)", a: "margarin" },
-    { q: "Zvíře žijící v norách (5)", a: "krtek" },
-    { q: "Kus nábytku v ložnici (8)", a: "komoda" },
-    { q: "Věc pro miminko (6)", a: "plenka" },
-    { q: "Nápoj z ovoce (5)", a: "most" },
-    { q: "Typ papíru (7)", a: "kreslici" },
-    { q: "Druh obuvi na podzim (7)", a: "polobotky" },
-    { q: "Aplikace pro zprávy (9)", a: "messenger" },
-    { q: "Typ brýlí (9)", a: "slunecni" },
-    { q: "Měna v Anglii (5)", a: "libra" },
-    { q: "Zvíře v mytologii (8)", a: "jednorozec" },
-    { q: "Výraz pro štěstí (6)", a: "radost" },
-    { q: "Oblečení na hlavu (6)", a: "klobouk" },
-    { q: "Stát ve Střední Americe (4)", a: "kuba" },
-    { q: "Sportovní disciplína (5)", a: "skok" },
-    { q: "Hudební interpret (6)", a: "zpevak" },
-    { q: "Druh čaje (6)", a: "zeleny" },
-    { q: "Lékařský nástroj (7)", a: "skalpel" },
-    { q: "Stavba ve městě (7)", a: "nadrazi" },
-    { q: "Část stromu (4)", a: "list" },
-    { q: "Pracovní pomůcka v kanceláři (9)", a: "kalkulacka" },
-    { q: "Cestovní doklad (3)", a: "pas" },
-    { q: "Typ kávy (8)", a: "espresso" },
-    { q: "Ovocný nápoj (4)", a: "dzus" },
-    { q: "Počasí v zimě (4)", a: "mraz" },
-    { q: "Slovo označující strach (5)", a: "fobie" },
-    { q: "Dopravní prostředek bez motoru (4)", a: "kolo" },
-    { q: "Místo ve škole (7)", a: "telocvicna" },
-    { q: "Druh ptáka (5)", a: "orlik" },
-    { q: "Věc v koupelně (6)", a: "prasek" },
-    { q: "Věc na grilování (4)", a: "maso" },
-    { q: "Česká televizní stanice (4)", a: "nova" },
-    { q: "Kapesní svítidlo (8)", a: "baterka" },
-    { q: "Součást kola (5)", a: "retez" },
-    { q: "Mořská potvora (9)", a: "meduza" },
-    { q: "Zvíře v teráriu (8)", a: "tarantule" },
-    { q: "Látka na trička (6)", a: "bavlna" },
-    { q: "Český státní symbol (3)", a: "lev" },
-    { q: "Živelná katastrofa (9)", a: "zemetreseni" },
-    { q: "Druh sýra (6)", a: "hermelin" },
-    { q: "Pracovní pozice (7)", a: "pravnik" },
-    { q: "Měsíc v létě (8)", a: "cervenec" },
-    { q: "Ovoce na podzim (7)", a: "sveska" },
-    { q: "Ženské jméno (6)", a: "monika" },
-    { q: "Velikonoční tradice (8)", a: "koleda" },
-    { q: "Pták symbolizující mír (8)", a: "holubice" },
-    { q: "Hygienická pomůcka (6)", a: "kartac" },
-    { q: "Věc v autě (5)", a: "brzda" },
-    { q: "Domácí hlodavec (5)", a: "krecek" },
-    { q: "Ovoce, co je vlastně zelenina (8)", a: "rajce" },
-    { q: "Nádobí na kávu (5)", a: "salek" },
-    { q: "Jídlo do kina (7)", a: "popcorn" },
-    { q: "Školní pomůcka na kreslení (6)", a: "pastel" },
-    { q: "Obuv do vody (6)", a: "zabky" },
-    { q: "Hmyz co dělá med (5)", a: "vcela" },
-    { q: "Pták, který umí mluvit (7)", a: "papousek" }
+    { q: "Svátek (6)", a: "vanoce" }
 ];
 
 // Mapa pro zobrazení odpovědí se správnou českou diakritikou
@@ -1270,65 +1041,7 @@ const RIDDLE_DISPLAY = {
     "paralen": "Paralen", "panna": "panna", "leden": "leden", "patek": "pátek",
     "balici": "balicí", "tiskarna": "tiskárna", "pero": "pero",
     "gymnazium": "gymnázium", "zemepis": "zeměpis", "anglictina": "angličtina",
-    "plavani": "plavání", "behani": "běhání", "salsa": "salsa", "vanoce": "Vánoce",
-    "zajic": "zajíc", "delfin": "delfín", "orel": "orel", "ovca": "ovce",
-    "prase": "prase", "krocan": "krocan", "rys": "rys", "vlk": "vlk", "had": "had",
-    "mlok": "mlok", "okoun": "okoun", "tunak": "tuňák", "vcela": "včela", "osa": "osa",
-    "mys": "myš", "snek": "šnek", "drak": "drak", "visen": "višeň", "tresne": "třešně",
-    "angrest": "angrešt", "porek": "pórek", "hrach": "hrách", "kese": "kešu",
-    "cocka": "čočka", "zavin": "závin", "syr": "sýr", "tvaroh": "tvaroh",
-    "veprove": "vepřové", "kmin": "kmín", "mata": "máta", "cukr": "cukr",
-    "rajcatova": "rajčatová", "voda": "voda", "caj": "čaj", "rum": "rum",
-    "krusovice": "Krušovice", "gambrinus": "Gambrinus", "fanta": "Fanta",
-    "vrtule": "vrtule", "vetrnik": "větrník", "fialka": "fialka", "orfej": "orfej",
-    "narcis": "narcis", "buk": "buk", "modrin": "modřín", "bez": "bez",
-    "bedla": "bedla", "muchomurka": "muchomůrka", "polsko": "Polsko", "italie": "Itálie",
-    "japonsko": "Japonsko", "egypt": "Egypt", "kanada": "Kanada", "berlin": "Berlín",
-    "olomouc": "Olomouc", "plzen": "Plzeň", "newyork": "New York", "ohre": "Ohře",
-    "ryna": "Rýn", "tichy": "Tichý", "jeseniky": "Jeseníky", "tatry": "Tatry",
-    "amerika": "Amerika", "korsika": "Korsika", "hneda": "hnědá", "seda": "šedá",
-    "leto": "léto", "podzim": "podzim", "kveten": "květen", "srpen": "srpen",
-    "streda": "středa", "mlha": "mlha", "povoden": "povodeň", "jazz": "jazz",
-    "klaves": "klávesy", "komedie": "komedie", "florbal": "florbal",
-    "krasobrusleni": "krasobruslení", "cyklistika": "cyklistika", "prsi": "prší",
-    "sachy": "šachy", "siti": "šití", "pekar": "pekař", "hasic": "hasič",
-    "zubar": "zubař", "general": "generál", "predsien": "předsíň", "skrin": "skříň",
-    "stolek": "stolek", "panvic": "pánev", "vana": "vana", "sporak": "sporák",
-    "lopata": "lopata", "pila": "pila", "skutr": "skútr", "ford": "Ford",
-    "toyota": "Toyota", "xiaomi": "Xiaomi", "adidas": "Adidas", "vans": "Vans",
-    "kolo": "kolo", "bunda": "bunda", "klobouk": "klobouk", "kozacky": "kozačky",
-    "len": "len", "sesit": "sešit", "chemie": "chemie", "gott": "Gott",
-    "jen": "jen", "noha": "noha", "krk": "krk", "ledvina": "ledvina",
-    "zinek": "zinek", "safir": "safír", "slunce": "slunce", "beran": "beran",
-    "kruh": "kruh", "twitter": "Twitter", "roblox": "Roblox", "monitor": "monitor",
-    "chripka": "chřipka", "kapky": "kapky", "mec": "meč", "sedadlo": "sedadlo",
-    "princezna": "princezna", "spiderman": "Spiderman", "spacak": "spacák",
-    "pisek": "písek", "zabak": "žabák", "brusinka": "brusinka", "rak": "rak",
-    "liskovy": "lískový", "vagon": "vagón", "cibula": "cibule", "pocitac": "počítač",
-    "klice": "klíče", "kartac": "kartáč", "stribro": "stříbro", "dvere": "dveře",
-    "panenka": "panenka", "plachetnice": "plachetnice", "ucitel": "učitel",
-    "bosch": "Bosch", "kanyon": "kaňon", "hrozen": "hrozen", "madrid": "Madrid",
-    "sane": "saně", "gymnazium": "gymnázium", "pero": "pero", "tiskarna": "tiskárna",
-    "balici": "balicí", "brusleni": "bruslení", "vila": "víla", "karel": "Karel",
-    "miska": "miska", "pilot": "pilot", "kvasnice": "kvasnice", "beruska": "beruška",
-    "naramkove": "náramkové", "penize": "peníze", "sklep": "sklep", "chirurg": "chirurg",
-    "bonbon": "bonbón", "klen": "klen", "krokodyl": "krokodýl", "cappuccino": "cappuccino",
-    "topeni": "topení", "sklenene": "skleněné", "puma": "Puma", "dracula": "Dracula",
-    "tukan": "tukan", "snezenka": "sněženka", "margarin": "margarín", "krtek": "krtek",
-    "komoda": "komoda", "plenka": "plenka", "most": "mošt", "kreslici": "kreslicí",
-    "polobotky": "polobotky", "messenger": "Messenger", "slunecni": "sluneční",
-    "libra": "libra", "jednorozec": "jednorožec", "radost": "radost", "kuba": "Kuba",
-    "skok": "skok", "zpevak": "zpěvák", "zeleny": "zelený", "skalpel": "skalpel",
-    "nadrazi": "nádraží", "list": "list", "kalkulacka": "kalkulačka", "pas": "pas",
-    "espresso": "espresso", "dzus": "džus", "mraz": "mráz", "fobie": "fobie",
-    "telocvicna": "tělocvična", "orlik": "orlík", "prasek": "prášek", "maso": "maso",
-    "nova": "Nova", "baterka": "baterka", "retez": "řetěz", "meduza": "medúza",
-    "tarantule": "tarantule", "bavlna": "bavlna", "lev": "lev",
-    "zemetreseni": "zemětřesení", "hermelin": "hermelín", "pravnik": "právník",
-    "cervenec": "červenec", "sveska": "švestka", "monika": "Monika",
-    "koleda": "koleda", "holubice": "holubice", "brzda": "brzda", "krecek": "křeček",
-    "rajce": "rajče", "salek": "šálek", "popcorn": "popcorn", "pastel": "pastel",
-    "zabky": "žabky", "papousek": "papoušek"
+    "plavani": "plavání", "behani": "běhání", "salsa": "salsa", "vanoce": "Vánoce"
 };
 
 function generateNewRiddle() {
@@ -2090,7 +1803,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
     if (diam >= 1000) {
         let tts = currentLang === "CZ" ? `Mega dĂˇrek od ${p.name}! RĂˇzovĂˇ vlna!` : `Mega gift incoming from ${p.name}! Shockwave!`;
         let txt = currentLang === "CZ" ? "MEGA DĂREK!" : "MEGA GIFT INCOMING!";
-        if (diam >= 10000) { tts = currentLang === "CZ" ? `BĹ®H VSTOUPIL DO ARĂ‰NY! ${p.name} NIÄŚĂŤ VĹ E Ĺ˝IVĂ‰!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
+        if (diam >= 10000) { tts = currentLang === "CZ" ? `BĹ®H VSTOUPIL DO ARĂ‰NY! ${p.name} NIÄŚĂŤ VĹ E Ĺ˝IVĂ‰!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
         else if (diam >= 5000) { tts = currentLang === "CZ" ? `GALAXY GIFT! ${p.name} VYSĂVĂ ARĂ‰NU!` : `GALAXY GIFT! ${p.name} IS SUCKING THE ARENA!`; txt = "GALAXY GIFT!"; }
         triggerMegaAnnouncement(p.name, diam, tts, txt);
     }
@@ -2167,7 +1880,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
         safePlaySound(pentatonic('low'), 0.10, 1.2);
     }
     
-    // TIER 2: Ĺ ikana a obrana (Shield + Knockback - 100+ mincĂ­)
+    // TIER 2: Ĺ ikana a obrana (Shield + Knockback - 100+ mincĂ­)
     else if (diam >= 100) {
         p.immunityTimer += 50 * 60; // 50s imunita
         screenShake = 3;
@@ -2186,7 +1899,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
         }
         
         let cleanN = cleanNameForTTS(p.name);
-        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
+        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
         let popText = comboMult > 1 ? `${comboMult}X SHIELD COMBO!` : "SHIELD + PUSH!";
         addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
@@ -2210,7 +1923,7 @@ function reviveZombie(p) {
     p.hp = 150;
     colorMode(HSB, 360, 100, 100);
     let hueVal = random(360);
-    if (hueVal > 70 && hueVal < 170) hueVal = (hueVal + 100) % 360; // Zpřísněná ochrana proti zelenĂ© (chroma key)
+    if (hueVal > 80 && hueVal < 160) hueVal = (hueVal + 100) % 360; // Ochrana proti zelenĂ© (chroma key)
     p.color = color(hueVal, random(80, 100), random(90, 100));
     colorMode(RGB, 255);
     p.auraFlash = 30;
@@ -2289,7 +2002,7 @@ function spawnPlayer(name, hp, isGift = false, diam = 0, isZombie = false, combo
   
   colorMode(HSB, 360, 100, 100);
   let hueVal = random(360);
-  if (hueVal > 70 && hueVal < 170) hueVal = (hueVal + 100) % 360; // Zpřísněná ochrana proti zelenĂ© (chroma key)
+  if (hueVal > 80 && hueVal < 160) hueVal = (hueVal + 100) % 360; // Ochrana proti zelenĂ© (chroma key)
   let pColor = isZombie ? color(0, 0, 40) : color(hueVal, random(80, 100), random(90, 100));
   colorMode(RGB, 255);
   
@@ -2316,7 +2029,7 @@ function handleRoundStartQueue() {
 function handleSpawnModules() {
     for (let i = spawnModules.length - 1; i >= 0; i--) {
         let m = spawnModules[i];
-        // ODSTRANÄšN KOUĹ (trail) PRO ZVĂťĹ ENĂŤ FPS
+        // ODSTRANÄšN KOUĹ (trail) PRO ZVĂťĹ ENĂŤ FPS
         m.x += m.vx; m.y += m.vy; m.life--;
         
         push(); translate(m.x, m.y); rotate(atan2(m.vy, m.vx));
@@ -2595,8 +2308,8 @@ function handleCombat(p1, p2) {
       Matter.Body.applyForce(p2.body, p2.body.position, { x: forceDir.x * forceMag * p2.body.mass, y: forceDir.y * forceMag * p2.body.mass });
   }
   
-  let isHeavyLoad = players.length > 80;
-  let isExtremeLoad = players.length > 120;
+  let isHeavyLoad = players.length > 40;
+  let isExtremeLoad = players.length > 60;
   
   if (!isExtremeLoad && (p1.hp >= 1000 || p2.hp >= 1000)) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
@@ -3075,8 +2788,6 @@ function drawNotifications() {
   noStroke();
   rect(0, ARENA_BOT, W, H - ARENA_BOT);
 
-  if (!showBottomNotifications) return;
-
   // ZvĂ˝ĹˇĂ­me vÄ›k aktuĂˇlnÄ› zobrazenĂ˝m notifikacĂ­m
   for (let n of notifications) {
       if (n.state === 'DISPLAY') n.age++;
@@ -3150,7 +2861,7 @@ function drawNotifications() {
       else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Radar lock" : "Radar lock"; icon = "đź“ˇ"; }
       else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? `Energie +${n.extra}` : `Energy +${n.extra}`; icon = "âšˇ"; }
       else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Pohon!" : "Thrusters!"; icon = "â„ď¸Ź"; }
-      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Ĺ tĂ­ty!" : "Shields!"; icon = "đź›ˇď¸Ź"; }
+      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Ĺ tĂ­ty!" : "Shields!"; icon = "đź›ˇď¸Ź"; }
       else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Hack" : "Hack"; icon = "đź’»"; }
       else if (n.type === 'GIFT') { 
           colorMode(HSB);
@@ -3231,8 +2942,8 @@ function handleCameraAndPlayers() {
   if (players.length === 0) { cameraScale = lerp(cameraScale, 1.0, 0.05); return; }
   
   let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
-  let isHeavyLoad = players.length > 80;    // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
-  let isExtremeLoad = players.length > 120;  // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
+  let isHeavyLoad = players.length > 15;    // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
+  let isExtremeLoad = players.length > 30;  // DĹ™Ă­vÄ›jĹˇĂ­ Ăşleva pro grafiku
   let maxV = 4; // SNĂŤĹ˝ENO (z 5)
   
   for (let i = players.length - 1; i >= 0; i--) {
@@ -3298,7 +3009,7 @@ function handleCameraAndPlayers() {
                       y: (dy / dist) * forceMag
                   });
 
-                  // --- ODSTRANÄšNO: POĹ KOZENĂŤ OKOLĂŤ (ZpĹŻsobovalo Ĺ™etÄ›zovou reakci a "pĂˇd" arĂ©ny) ---
+                  // --- ODSTRANÄšNO: POĹ KOZENĂŤ OKOLĂŤ (ZpĹŻsobovalo Ĺ™etÄ›zovou reakci a "pĂˇd" arĂ©ny) ---
               }
           }
 
@@ -3357,7 +3068,7 @@ function handleCameraAndPlayers() {
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
 
-    // ZESĂŤLENĂť Ĺ UM A CHAOS pro rozbitĂ­ "zaseknutĂ˝ch" hlouÄŤkĹŻ
+    // ZESĂŤLENĂť Ĺ UM A CHAOS pro rozbitĂ­ "zaseknutĂ˝ch" hlouÄŤkĹŻ
     finalFx += Math.sin(p.noiseOffsetX) * 0.00015 * p.body.mass;
     finalFy += Math.cos(p.noiseOffsetY) * 0.00015 * p.body.mass;
     
@@ -3396,7 +3107,7 @@ function handleCameraAndPlayers() {
         currentMaxV *= 0.4;
     }
 
-    // BOTI JSOU POMALEJĹ ĂŤ (-40% rychlost oproti hrĂˇÄŤĹŻm)
+    // BOTI JSOU POMALEJĹ ĂŤ (-40% rychlost oproti hrĂˇÄŤĹŻm)
     if (p.isBot) {
         tSpd *= 0.3; // Zpomaleno ze 0.6 pro "plouĹľenĂ­"
         currentMaxV *= 0.3;
@@ -3793,7 +3504,7 @@ function handleBossPlanet() {
             // ObnovenĂ˝ duhovĂ˝ efekt
             if (livePlayer.giftSpeedTimer > 0 || livePlayer.immunityTimer > 0 || livePlayer.isGodMode || livePlayer.hasRainbowCrown) {
                 colorMode(HSB);
-                outlineColor = color(getSafeHue(frameCount * 5), 100, 100);
+                outlineColor = color((frameCount * 5) % 360, 100, 100);
                 colorMode(RGB);
             }
         }
@@ -4087,7 +3798,7 @@ function drawPlayer(p) {
   let outlineColor = actualColor;
   if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
       colorMode(HSB);
-      outlineColor = color(getSafeHue(frameCount * 8), 100, 100); 
+      outlineColor = color((frameCount * 8) % 360, 100, 100); 
       colorMode(RGB);
   }
   if (p.isZombie) outlineColor = color(50, 255, 50);
@@ -4211,7 +3922,7 @@ function drawPlayer(p) {
       push();
       translate(0, -p.r - 25);
       colorMode(HSB);
-      fill(getSafeHue(frameCount * 6), 100, 100);
+      fill((frameCount * 6) % 360, 100, 100);
       colorMode(RGB);
       stroke(255); strokeWeight(2);
       beginShape();
@@ -4258,7 +3969,7 @@ function drawPlayer(p) {
   let nameCol = isLeader ? color(255, 215, 0) : color(230); // ZlatĂ© jmĂ©no pro lĂ­dra
   if (p.immunityTimer > 0) {
       colorMode(HSB);
-      nameCol = color(getSafeHue(frameCount * 8), 80, 100);
+      nameCol = color((frameCount * 8) % 360, 80, 100);
       colorMode(RGB);
   }
 
@@ -5177,7 +4888,7 @@ function draw() {
 
   drawTopHUD();
 
-  // --- TOP GIFTER DOÄŚASNĂ LIĹ TA ---
+  // --- TOP GIFTER DOÄŚASNĂ LIĹ TA ---
   if (topGifterBannerTimer > 0) {
       topGifterBannerTimer--;
       
@@ -5285,8 +4996,8 @@ function draw() {
     }
     translate(-W/2, -(ARENA_TOP + ARENA_BOT)/2);
     
-    if(players.length < 150) { drawDeathShockwaves(); }
-    if(players.length < 150) { drawLightnings(); }
+    if(players.length < 50) { drawDeathShockwaves(); }
+    if(players.length < 60) { drawLightnings(); }
     
     if (gameState === "PLAYING" && activeEvent === "MAGNET") {
         let cx = W/2; let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -5345,7 +5056,7 @@ function draw() {
         let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
         let minPbW = 350;
         let maxPbW = W * 0.85;
-        let pbW = lerp(minPbW, maxPbW, progress); // Ĺ Ă­Ĺ™ka postupnÄ› roste
+        let pbW = lerp(minPbW, maxPbW, progress); // Ĺ Ă­Ĺ™ka postupnÄ› roste
         let pbH = 36; // Trochu vyĹˇĹˇĂ­ pro profilovku
         let pbX = W / 2 - pbW / 2;
         let pbY = ARENA_TOP + 15; // UmĂ­stÄ›nĂ­ tÄ›snÄ› pod hornĂ­ okraj arĂ©ny
@@ -5842,3 +5553,5 @@ function mousePressed() {
 </script>
 </body>
 </html>
+
+
