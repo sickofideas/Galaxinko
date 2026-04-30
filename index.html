@@ -1674,8 +1674,9 @@ function setupEvents() {
   Matter.Events.on(engine, 'collisionActive', (event) => {
     if (activeEvent === "MAGNET") return; // OCHRANA: V ÄŤernĂ© dĂ­Ĺ™e se kuliÄŤky nedrtĂ­ o sebe
     // VrĂˇceno: V chumlu se damage udÄ›luje 1x za vteĹ™inu (aby to bylo pomalĂ©)
-    if (frameCount % 60 !== 0) return; 
+    // OPRAVA CUKÁNÍ: Výpočty se naráz neprovedou 1x za vteřinu, ale rozprostřou se plynule mezi všechny framy
     event.pairs.forEach(pair => {
+      if ((pair.bodyA.id + pair.bodyB.id) % 60 !== frameCount % 60) return;
       // EXTRĂ‰MNĂŤ OPTIMALIZACE: O(1) vyhledĂˇvĂˇnĂ­ mĂ­sto iterace pĹ™es celĂ© pole
       let p1 = pair.bodyA.playerData;
       let p2 = pair.bodyB.playerData;
