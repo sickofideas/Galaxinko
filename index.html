@@ -3057,6 +3057,7 @@ function drawSpaceshipTimer() {
 }
 
 function addNotification(type, name, img, extra = "", isMegaLike = false) {
+    if (!showBottomNotifications) return;
     notifications.push({
         type: type,
         name: name,
@@ -3252,12 +3253,11 @@ function handleCameraAndPlayers() {
     if (p.attackCooldown > 0) p.attackCooldown--;
 
     let targetR = getRadius(p.hp);
-    if (Math.abs(targetR - p.r) > 0.1 && p.body && p.hp > 0) {
-        let newR = lerp(p.r, targetR, 0.1); 
-        let s = newR / p.r;
+    if (Math.abs(targetR - p.r) > 1.0 && p.body && p.hp > 0) {
+        let s = targetR / p.r;
         if (isFinite(s) && s > 0) {
             Matter.Body.scale(p.body, s, s);
-            p.r = newR;
+            p.r = targetR;
             Matter.Body.setDensity(p.body, 0.001 + (p.r * 0.0001));
             // DynamickĂ˝ odpor: VÄ›tĹˇĂ­ koule majĂ­ niĹľĹˇĂ­ frictionAir pro lepĹˇĂ­ "prĹŻraznost"
             p.body.frictionAir = 0.06 - Math.min(0.04, Math.sqrt(p.hp) * 0.0004);
