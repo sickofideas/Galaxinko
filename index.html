@@ -67,11 +67,6 @@
 var GAME_TITLE = "GALAXINKO WARS";
 var GAME_VERSION = "v19.59.0"; // MelodickĂ˝ zvukovĂ˝ systĂ©m (pentatonickĂˇ stupnice) + zpomalenĂ­ kuliÄŤek + auto-dismiss notifikacĂ­
 p5.disableFriendlyErrors = true;   // VĂ˝raznĂ© zvĂ˝ĹˇenĂ­ vĂ˝konu (vypne kontrolu chyb v draw loopu)
-var audioStarted = false;          // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
-var synth;                         // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
-var engine, world;                 // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
-var accumulator = 0;               // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
-const FIXED_DT = 1000 / 60;
 var W = 1080;
 var H = 1920;
 var HUD_TOP = 75;  
@@ -617,16 +612,9 @@ function getSafeHue(h) {
     return (h % 360 + 360) % 360;
 }
 
-// STABILNĂŤ FYZIKA (Fixed Timestep Accumulator) logic moved up
-function updatePhysics() {
-  let delta = Math.min(deltaTime, 50);   // Ochrana proti "skoku smrti" pĹ™i velkĂ©m lagu
-  accumulator += delta;
-
-  while (accumulator >= FIXED_DT) {
-    Matter.Engine.update(engine, FIXED_DT);
-    accumulator -= FIXED_DT;
-  }
-}
+var audioStarted = false; 
+var synth;
+var engine, world;
 let players = [];
 let particles = [];
 let floatingTexts = [];
@@ -1750,6 +1738,13 @@ function setup() {
   world = engine.world;
   world.gravity.y = 0; 
   world.gravity.x = 0;
+
+  // VytvoĹ™enĂ­ a spuĹˇtÄ›nĂ­ vlastnĂ­ho bÄ›Ĺľce fyziky (OddÄ›lenĂ­ od draw loopu)
+  let runner = Matter.Runner.create({
+      isFixed: true, // ZĂˇsadnĂ­: zajiĹˇĹĄuje stabilnĂ­ krok
+      delta: 1000 / 60 // PevnĂ˝ch 60 FPS pro fyziku
+  });
+  Matter.Runner.run(runner, engine);
   
   let cx = W/2;
   let cy = (ARENA_TOP+ARENA_BOT)/2;
@@ -5083,12 +5078,7 @@ function draw() {
       pop();
   }
 
-  // Stabilní iterace zabrání skokům ve výpočtech při změně počtu hráčů
-  engine.positionIterations = 6;
-  engine.velocityIterations = 4;
-
-  // STABILNĂŤ FYZIKA: OdpojenĂ­ vĂ˝poÄŤtĹŻ od FPS prohlĂ­ĹľeÄŤe (Konec cukanĂ­)
-  updatePhysics();
+  // FYZIKA JE NYNĂŤ Ĺ˜ĂŤZENA EXTERNĂŤM MATTER.RUNNEREM (Konec cukanĂ­)
   
   processCombatQueue();
 
