@@ -66,6 +66,8 @@
 // ==========================================
 var GAME_TITLE = "GALAXINKO WARS";
 var GAME_VERSION = "v19.59.0"; // MelodickĂ˝ zvukovĂ˝ systĂ©m (pentatonickĂˇ stupnice) + zpomalenĂ­ kuliÄŤek + auto-dismiss notifikacĂ­
+p5.disableFriendlyErrors = true;   // VĂ˝raznĂ© zvĂ˝ĹˇenĂ­ vĂ˝konu (vypne kontrolu chyb v draw loopu)
+pixelDensity(1);                   // KLĂŤÄŚOVĂ‰: VynutĂ­ 1:1 pixely (zabrĂˇnĂ­ pĹ™etÄ›ĹľovĂˇnĂ­ na 4K/Retina)
 var W = 1080;
 var H = 1920;
 var HUD_TOP = 75;  
@@ -609,6 +611,20 @@ var COMMENTARY_GENERAL = {
 
 function getSafeHue(h) {
     return (h % 360 + 360) % 360;
+}
+
+// STABILNĂŤ FYZIKA (Fixed Timestep Accumulator)
+let accumulator = 0;
+const FIXED_DT = 1000 / 60;
+
+function updatePhysics() {
+  let delta = Math.min(deltaTime, 50);   // Ochrana proti "skoku smrti" pĹ™i velkĂ©m lagu
+  accumulator += delta;
+
+  while (accumulator >= FIXED_DT) {
+    Matter.Engine.update(engine, FIXED_DT);
+    accumulator -= FIXED_DT;
+  }
 }
 
 let engine, world;
@@ -5073,11 +5089,8 @@ function draw() {
   engine.positionIterations = 6;
   engine.velocityIterations = 4;
 
-  // DYNAMICKÝ TIMESTEP: Fyzika se přesně srovná s vykreslováním obrazovky a přestane cukat
-  try { 
-      // Zastropujeme na 33ms, aby kuličky při lagu prohlížeče neproletěly zdí
-      Matter.Engine.update(engine, Math.min(deltaTime, 33)); 
-  } catch(e) {} 
+  // STABILNĂŤ FYZIKA: OdpojenĂ­ vĂ˝poÄŤtĹŻ od FPS prohlĂ­ĹľeÄŤe (Konec cukanĂ­)
+  updatePhysics();
   
   processCombatQueue();
 
