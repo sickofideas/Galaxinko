@@ -2297,9 +2297,9 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   let r = getRadius(safeHp);
   // ZABITĂŤ PINBALL EFEKTU: TĂ©mÄ›Ĺ™ nulovĂ˝ odraz a hustĂ˝ odpor prostĹ™edĂ­
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
-      restitution: 0.2,    // Výrazně SNÍŽENO z 0.8. Zabrání to nekonečnému "poskakování" v chumlu.
-      frictionAir: 0.015,  // Ponecháno nízké, aby se kuličky nezastavovaly příliš rychle.
-      friction: 0.05,      // Přidáno malé tření (z 0 na 0.05), aby kuličky po sobě klouzaly, ale ne nekonečně.
+      restitution: 0.1,    // Sníženo, aby neposkakovaly jak ping-pong míčky
+      frictionAir: 0.04,   // Zvýšeno zpět, aby se pohyb krásně táhl a "plaval"
+      friction: 0,         // TOTO MUSÍ BÝT 0! Zabrání zadrhávání kuliček o sebe
       density: 0.001 
   });
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
@@ -3323,8 +3323,9 @@ function handleCameraAndPlayers() {
     finalFy += noiseValY * 0.00015 * p.body.mass;
 
     // Pomalejší posun šumu = plynulejší změny pohybu
-    p.noiseOffsetX += 0.02; 
-    p.noiseOffsetY += 0.02;
+    // POMALEJŠÍ ZMĚNA: Pohyb bude plynulejší a táhlejší
+    p.noiseOffsetX += 0.005; 
+    p.noiseOffsetY += 0.005;
 
     // Občasné silnější pošťouchnutí (ponecháno, ale mírně oslabeno)
     if (Math.random() < 0.02) { // Méně často
@@ -5068,22 +5069,12 @@ function draw() {
       pop();
   }
 
-  // Plynulá fyzika pevným krokem (s dynamickým snížením zátěže)
-  // EXTRĂ‰MNĂŤ OPTIMALIZACE FYZIKY PĹ˜I ZĂ TÄšĹ˝I
-  if (players.length > 100) {
-      engine.positionIterations = 2;
-      engine.velocityIterations = 1;
-  } else if (players.length > 50) {
-      engine.positionIterations = 4;
-      engine.velocityIterations = 2;
-  } else {
-      engine.positionIterations = 8;
-      engine.velocityIterations = 6;
-  }
-  // FIXNĂŤ TIMESTEP PRO FYZIKU (ZabrĂˇnĂ­ cukanĂ­ / micro-stutteringu)
-  // Matter.js funguje nejlĂ©pe, kdyĹľ dostĂˇvĂˇ vĹľdy pĹ™esnÄ› stejNĂť ÄŤasovĂ˝ Ăşsek
-  let physicsStep = 1000 / 60; 
-  try { Matter.Engine.update(engine, physicsStep); } catch(e) {} 
+  // Stabilní iterace zabrání skokům ve výpočtech při změně počtu hráčů
+  engine.positionIterations = 6;
+  engine.velocityIterations = 4;
+
+  // ABSOLUTNĚ FIXNÍ TIMESTEP: Tímto kuličkám sebereme možnost se třepat kvůli fps dropům
+  try { Matter.Engine.update(engine, 1000 / 60); } catch(e) {} 
   
   processCombatQueue();
 
