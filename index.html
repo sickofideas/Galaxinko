@@ -2886,8 +2886,7 @@ function drawSecretCodeUI() {
             
             // Koule s profilovkou
             if (userAvatars[winP.name] && userAvatars[winP.name] !== "loaded") {
-                drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(0, 0, ballR, 0, TWO_PI); drawingContext.clip();
-                imageMode(CENTER); image(userAvatars[winP.name], 0, 0, ballR*2, ballR*2); drawingContext.restore();
+                imageMode(CENTER); image(userAvatars[winP.name], 0, 0, ballR*2, ballR*2);
             } else {
                 fill(winP.color); noStroke(); ellipse(0, 0, ballR * 2);
             }
@@ -3195,11 +3194,8 @@ function drawNotifications() {
       let currentAvatar = userAvatars[n.name] || n.img;
       let avSize = 28;
       if (currentAvatar && currentAvatar !== "loaded") {
-          drawingContext.save(); drawingContext.beginPath();
-          drawingContext.arc(22, 22, avSize/2, 0, TWO_PI);
-          drawingContext.clip();
-          image(currentAvatar, 22 - avSize/2, 22 - avSize/2, avSize, avSize);
-          drawingContext.restore();
+          imageMode(CENTER);
+          image(currentAvatar, 22, 22, avSize, avSize);
       } else {
           fill(80); noStroke(); ellipse(22, 22, avSize, avSize);
       }
@@ -4948,10 +4944,8 @@ function drawTopHUD() {
       let pName = allTimeSorted[i][0]; let pData = allTimeSorted[i][1]; let y = HUD_TOP + 28 + i*26; let xBase = 15;
       let currAv = userAvatars[pName] || pData.avatar;
       
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
       if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
       else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-      drawingContext.restore();
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
       textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
@@ -4972,10 +4966,8 @@ function drawTopHUD() {
 
           let currAv = userAvatars[pName] || pData.avatar;
           
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
           if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
           else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-          drawingContext.restore();
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
           textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
@@ -4998,10 +4990,8 @@ function drawTopHUD() {
       let xBase = 265; let y = HUD_TOP + 28 + i * 26; 
       
       let currAv = userAvatars[gName] || gData.avatar;
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
       if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
       else { fill(gData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-      drawingContext.restore();
       noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
       textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${i+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
@@ -5023,10 +5013,8 @@ function drawTopHUD() {
 
           let currAv = userAvatars[gName] || gData.avatar;
           
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
           if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
           else { fill(gData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-          drawingContext.restore();
           noFill(); stroke(gData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
           textAlign(LEFT, TOP); fill(gData.color); textStyle(BOLD); text(`${idx+1}. ${gName.substring(0, 6)}`, xBase + 26, y + 2);
@@ -5050,10 +5038,8 @@ function drawTopHUD() {
       let pName = allKillsSorted[i][0]; let pData = allKillsSorted[i][1]; let y = HUD_TOP + 28 + i*26; let xBase = 515;
       let currAv = userAvatars[pName] || pData.avatar;
 
-      drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
       if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
       else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-      drawingContext.restore();
       noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
       textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${i+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
@@ -5073,10 +5059,8 @@ function drawTopHUD() {
 
           let currAv = userAvatars[pName] || pData.avatar;
           
-          drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(xBase + 10, y + 10, 10, 0, TWO_PI); drawingContext.clip();
           if (currAv && currAv !== "loaded") { imageMode(CENTER); image(currAv, xBase + 10, y + 10, 20, 20); } 
           else { fill(pData.color); ellipse(xBase + 10, y + 10, 20, 20); }
-          drawingContext.restore();
           noFill(); stroke(pData.color); strokeWeight(2); ellipse(xBase + 10, y + 10, 20, 20); noStroke();
 
           textAlign(LEFT, TOP); fill(pData.color); textStyle(BOLD); text(`${idx+1}. ${pName.substring(0,7)}`, xBase + 26, y + 2);
@@ -5266,7 +5250,9 @@ function draw() {
       engine.positionIterations = 6;
       engine.velocityIterations = 4;
   }
-  try { Matter.Engine.update(engine, 1000/60); } catch(e) {} 
+  // Stabilizace fyziky: navázání na reálný frame time s maximem 50ms pro zábranu propadů
+  let dt = constrain(deltaTime || (1000/60), 16, 50);
+  try { Matter.Engine.update(engine, dt); } catch(e) {} 
   
   processCombatQueue();
 
@@ -5395,13 +5381,8 @@ function draw() {
             push();
             tint(255, (gifterFadeAlpha / 255) * pbAlpha);
             if (currentLastGifter.img && currentLastGifter.img !== "loaded") {
-                drawingContext.save();
-                drawingContext.beginPath();
-                drawingContext.arc(avX, avY, avSize / 2, 0, TWO_PI);
-                drawingContext.clip();
                 imageMode(CENTER);
                 image(currentLastGifter.img, avX, avY, avSize, avSize);
-                drawingContext.restore();
             } else {
                 fill(100, (gifterFadeAlpha / 255) * pbAlpha);
                 ellipse(avX, avY, avSize, avSize);
