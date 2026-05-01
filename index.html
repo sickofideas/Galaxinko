@@ -2565,7 +2565,7 @@ function handleCombat(p1, p2) {
   let isHeavyLoad = players.length > 80;
   let isExtremeLoad = players.length > 120;
   
-  if (!isExtremeLoad && (p1.hp >= 1000 || p2.hp >= 1000)) {
+  if (!isExtremeLoad && ((currentTop10.includes(p1.name) && p1.hp >= 1000) || (currentTop10.includes(p2.name) && p2.hp >= 1000))) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
       let cy = (p1.body.position.y + p2.body.position.y)/2;
       let dominantColor = finalDmgTo2 > finalDmgTo1 ? p1.color : p2.color;
@@ -2825,7 +2825,7 @@ function drawSecretCodeUI() {
             translate(ballX, ballY);
             
             // Pila (saw) kolem koule
-            let sawTeeth = 48;
+            let sawTeeth = 24;
             let rOuter = ballR * 1.35;
             let rInner = ballR * 1.15;
             push();
@@ -3281,8 +3281,8 @@ function handleCameraAndPlayers() {
       continue;
     }
 
-    // --- BLESKY OD GIANT (1x za sekundu, -1 HP nejblizsi kouli) ---
-    if (p.hp >= 1000 && !p.isZombie && frameCount % 60 === (i % 60)) {
+    // --- BLESKY OD TOP 10 S HP > 1000 (1x za sekundu, -1 HP nejblizsi kouli) ---
+    if (currentTop10.includes(p.name) && p.hp >= 1000 && !p.isZombie && frameCount % 60 === (i % 60)) {
         let closest = null;
         let closestDist = Infinity;
         for (let other of players) {
@@ -3976,7 +3976,7 @@ function drawPlayer(p) {
   }
 
   if (p.sawFade > 0.01) {
-      let teeth = isEpic ? 64 : 48; // Mnohem vĂ­ce zubĹŻ pro industriĂˇlnĂ­ vzhled
+      let teeth = isEpic ? 32 : 24; // Sníženo pro výkon
       let rOuter = p.r * 1.30; // KratĹˇĂ­, ale o to nebezpeÄŤnÄ›jĹˇĂ­ hroty
       let rInner = p.r * 1.15;
       let sawAlpha = p.sawFade * 255;
