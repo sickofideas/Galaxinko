@@ -1726,11 +1726,11 @@ function setup() {
       } catch(e){}
   }
   
-  // OptimalizovanĂˇ fyzika pro maximĂˇlnĂ­ FPS
+  // Optimalizovaná fyzika pro maximální FPS a plynulost
   engine = Matter.Engine.create({ 
       enableSleeping: false,
-      positionIterations: 6,  // ZpÄ›t na rychlĂ˝ standard
-      velocityIterations: 4   // ZpÄ›t na rychlĂ˝ standard
+      positionIterations: 8,  // Zvýšeno z 6 pro přesnější řešení překryvů
+      velocityIterations: 6   // Zvýšeno z 4 pro plynulejší odrazy
   });
   world = engine.world;
   world.gravity.y = 0; 
@@ -2344,9 +2344,9 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   let r = getRadius(safeHp);
   // ZABITĂŤ PINBALL EFEKTU: TĂ©mÄ›Ĺ™ nulovĂ˝ odraz a hustĂ˝ odpor prostĹ™edĂ­
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
-      restitution: 0.4,    // ZvĂ˝Ĺˇeno z 0.1, aby se od sebe lehce odrĂˇĹľely a nezasekĂˇvaly
-      frictionAir: 0.06,   // SnĂ­Ĺľeno pro plynulejĹˇĂ­ pohyb
-      friction: 0, 
+      restitution: 0.2,    // Výrazně SNÍŽENO z 0.8. Zabrání to nekonečnému "poskakování" v chumlu.
+      frictionAir: 0.015,  // Ponecháno nízké, aby se kuličky nezastavovaly příliš rychle.
+      friction: 0.05,      // Přidáno malé tření (z 0 na 0.05), aby kuličky po sobě klouzaly, ale ne nekonečně.
       density: 0.001 
   });
   Matter.Body.setVelocity(body, { x: random(-1.0, 1.0), y: random(-1.0, 1.0) });
@@ -3351,25 +3351,31 @@ function handleCameraAndPlayers() {
     let dirX = dx / distToCenter;
     let dirY = dy / distToCenter;
     
-    // MIXĂ‰R EFEKT: VĂ˝raznÄ› slabĹˇĂ­ tah doprostĹ™ed, masivnĂ­ rotace okolo
-    let pullForce = 0.00002 * p.body.mass;  // Tah do stĹ™edu zmenĹˇen na tĹ™etinu
-    let vortexForce = 0.00008 * p.body.mass * p.baseRotDir; // Rotace zesĂ­lena 8x
+    // MIXÉR EFEKT: Plynulejší a vyváženější síly
+    let pullForce = 0.00003 * p.body.mass;  // Mírně sníženo pro méně agresivní tah do středu
+    let vortexForce = 0.0001 * p.body.mass * p.baseRotDir; // Mírně sníženo pro hladší rotaci
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
 
-    // ZESĂŤLENĂť Ĺ UM A CHAOS pro rozbitĂ­ "zaseknutĂ˝ch" hlouÄŤkĹŻ
-    finalFx += Math.sin(p.noiseOffsetX) * 0.00015 * p.body.mass;
-    finalFy += Math.cos(p.noiseOffsetY) * 0.00015 * p.body.mass;
-    
-    // ObÄŤasnĂ© silnÄ›jĹˇĂ­ poĹˇĹĄouchnutĂ­ pro udrĹľenĂ­ neustĂˇlĂ©ho hemĹľenĂ­
-    if (Math.random() < 0.05) {
-        finalFx += (Math.random() - 0.5) * 0.001 * p.body.mass;
-        finalFy += (Math.random() - 0.5) * 0.001 * p.body.mass;
-    }
+    // ZJEMNĚNÝ ŠUM A CHAOS:
+    // Použijeme p5.js noise() místo Math.sin() pro mnohem plynulejší a přirozenější "organický" pohyb
+    // noiseOffsetX/Y se musí posouvat pomaleji
+    let noiseValX = noise(p.noiseOffsetX) - 0.5;
+    let noiseValY = noise(p.noiseOffsetY) - 0.5;
 
-    p.noiseOffsetX += random(0.05, 0.15);
-    p.noiseOffsetY += random(0.05, 0.15);
+    finalFx += noiseValX * 0.00015 * p.body.mass; // Plynulejší náhodná síla
+    finalFy += noiseValY * 0.00015 * p.body.mass;
+
+    // Pomalejší posun šumu = plynulejší změny pohybu
+    p.noiseOffsetX += 0.02; 
+    p.noiseOffsetY += 0.02;
+
+    // Občasné silnější pošťouchnutí (ponecháno, ale mírně oslabeno)
+    if (Math.random() < 0.02) { // Méně často
+        finalFx += (Math.random() - 0.5) * 0.0005 * p.body.mass;
+        finalFy += (Math.random() - 0.5) * 0.0005 * p.body.mass;
+    }
 
     // --- BOT BEHAVIOR (Chaos movement) ---
     if (p.isBot && frameCount % 60 === (i % 60)) {
@@ -5242,13 +5248,13 @@ function draw() {
       pop();
   }
 
-  // PlynulĂˇ fyzika pevnĂ˝m krokem (s dynamickĂ˝m snĂ­ĹľenĂ­m zĂˇtÄ›Ĺľe)
-  if (players.length > 30) {
-      engine.positionIterations = 3;
-      engine.velocityIterations = 2;
+  // Plynulá fyzika pevným krokem (s dynamickým snížením zátěže)
+  if (players.length > 50) { // Zvýšen limit pro přepnutí
+      engine.positionIterations = 4; // Zvýšeno z 3
+      engine.velocityIterations = 3; // Zvýšeno z 2
   } else {
-      engine.positionIterations = 6;
-      engine.velocityIterations = 4;
+      engine.positionIterations = 8; // Odpovídá novému základu
+      engine.velocityIterations = 6; // Odpovídá novému základu
   }
   // Stabilizace fyziky: navázání na reálný frame time s maximem 50ms pro zábranu propadů
   let dt = constrain(deltaTime || (1000/60), 16, 50);
