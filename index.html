@@ -1656,6 +1656,7 @@ function playChatSound() {
 function setup() {
   let cvs = createCanvas(W, H);
   cvs.parent('game-container');
+  pixelDensity(1); // ZabrĂˇnĂ­ pĹ™etÄ›ĹľovĂˇnĂ­ na 4K/Retina monitorech (vynutĂ­ 1:1 pixely)
   smooth();
   noCursor();
   
@@ -1748,7 +1749,7 @@ function setup() {
 
   document.getElementById('version-display').innerText = GAME_TITLE + " " + GAME_VERSION;
 
-  frameRate(60); // OCHRANA: Fixuje dĂ©lku kola (20-30 min) i na monitorech s vysokou obnovovacĂ­ frekvencĂ­
+  // frameRate(60); // ODSTRANÄšNO: NechĂˇme prohlĂ­ĹľeÄŤ pouĹľĂ­t nativnĂ­ VSync pro maximĂˇlnĂ­ plynulost
   startNewRound();
   setupEvents();
   connectTikfinity();
@@ -5079,9 +5080,10 @@ function draw() {
       engine.positionIterations = 8;
       engine.velocityIterations = 6;
   }
-  // Stabilizace fyziky: navázání na reálný frame time s maximem 50ms pro zábranu propadů
-  let dt = constrain(deltaTime || (1000/60), 16, 50);
-  try { Matter.Engine.update(engine, dt); } catch(e) {} 
+  // FIXNĂŤ TIMESTEP PRO FYZIKU (ZabrĂˇnĂ­ cukanĂ­ / micro-stutteringu)
+  // Matter.js funguje nejlĂ©pe, kdyĹľ dostĂˇvĂˇ vĹľdy pĹ™esnÄ› stejNĂť ÄŤasovĂ˝ Ăşsek
+  let physicsStep = 1000 / 60; 
+  try { Matter.Engine.update(engine, physicsStep); } catch(e) {} 
   
   processCombatQueue();
 
