@@ -1749,7 +1749,7 @@ function setup() {
 
   document.getElementById('version-display').innerText = GAME_TITLE + " " + GAME_VERSION;
 
-  // frameRate(60); // ODSTRANÄšNO: NechĂˇme prohlĂ­ĹľeÄŤ pouĹľĂ­t nativnĂ­ VSync pro maximĂˇlnĂ­ plynulost
+  frameRate(60); // OCHRANA: Fixuje dĂ©lku kola (20-30 min) i na monitorech s vysokou obnovovacĂ­ frekvencĂ­
   startNewRound();
   setupEvents();
   connectTikfinity();
@@ -5073,8 +5073,11 @@ function draw() {
   engine.positionIterations = 6;
   engine.velocityIterations = 4;
 
-  // ABSOLUTNĚ FIXNÍ TIMESTEP: Tímto kuličkám sebereme možnost se třepat kvůli fps dropům
-  try { Matter.Engine.update(engine, 1000 / 60); } catch(e) {} 
+  // DYNAMICKÝ TIMESTEP: Fyzika se přesně srovná s vykreslováním obrazovky a přestane cukat
+  try { 
+      // Zastropujeme na 33ms, aby kuličky při lagu prohlížeče neproletěly zdí
+      Matter.Engine.update(engine, Math.min(deltaTime, 33)); 
+  } catch(e) {} 
   
   processCombatQueue();
 
