@@ -2388,34 +2388,44 @@ function removePlayerCompletely(name) {
 }
 
 function saveLeaderboards() {
-    let hpToSave = {};
-    for(let k in allTimeHpLeaderboard) {
-        hpToSave[k] = { score: allTimeHpLeaderboard[k].score, color: allTimeHpLeaderboard[k].color.toString('#rrggbb') };
-    }
-    localStorage.setItem('galaxinko_alltime_hp', JSON.stringify(hpToSave));
+    try {
+        // 1. HP LEADERBOARD - Prune to top 100
+        let hpArr = Object.entries(allTimeHpLeaderboard)
+            .sort((a, b) => b[1].score - a[1].score)
+            .slice(0, 100);
+        let hpToSave = {};
+        hpArr.forEach(([name, data]) => {
+            hpToSave[name] = { score: data.score, color: data.color.toString('#rrggbb') };
+        });
+        localStorage.setItem('galaxinko_alltime_hp', JSON.stringify(hpToSave));
 
-    let giftToSave = {};
-    for(let k in allTimeGifts) {
-        giftToSave[k] = { score: allTimeGifts[k].score, lastGiftDiam: allTimeGifts[k].lastGiftDiam, color: allTimeGifts[k].color.toString('#rrggbb') };
-    }
-    localStorage.setItem('galaxinko_alltime_gifts', JSON.stringify(giftToSave));
+        // 2. GIFT LEADERBOARD - Prune to top 100
+        let giftArr = Object.entries(allTimeGifts)
+            .sort((a, b) => b[1].score - a[1].score)
+            .slice(0, 100);
+        let giftToSave = {};
+        giftArr.forEach(([name, data]) => {
+            giftToSave[name] = { score: data.score, lastGiftDiam: data.lastGiftDiam, color: data.color.toString('#rrggbb') };
+        });
+        localStorage.setItem('galaxinko_alltime_gifts', JSON.stringify(giftToSave));
 
-    let killToSave = {};
-    for(let k in allTimeKills) {
-        killToSave[k] = { score: allTimeKills[k].score, color: allTimeKills[k].color.toString('#rrggbb') };
+        // 3. KILLS LEADERBOARD - Prune to top 100
+        let killArr = Object.entries(allTimeKills)
+            .sort((a, b) => b[1].score - a[1].score)
+            .slice(0, 100);
+        let killToSave = {};
+        killArr.forEach(([name, data]) => {
+            killToSave[name] = { score: data.score, color: data.color.toString('#rrggbb') };
+        });
+        localStorage.setItem('galaxinko_alltime_kills', JSON.stringify(killToSave));
+    } catch (e) {
+        console.warn("Leaderboard save failed (Quota likely exceeded):", e);
     }
-    localStorage.setItem('galaxinko_alltime_kills', JSON.stringify(killToSave));
 }
 
 function updateHpLB(name, hp, col) {
     if (!allTimeHpLeaderboard[name] || hp > allTimeHpLeaderboard[name].score) {
         allTimeHpLeaderboard[name] = { score: hp, color: col, avatar: userAvatars[name] || allTimeHpLeaderboard[name]?.avatar };
-        
-        let toSave = {};
-        for(let k in allTimeHpLeaderboard) {
-            toSave[k] = { score: allTimeHpLeaderboard[k].score, color: allTimeHpLeaderboard[k].color.toString('#rrggbb') };
-        }
-        localStorage.setItem('galaxinko_alltime_hp', JSON.stringify(toSave));
     }
 }
 
@@ -2427,12 +2437,6 @@ function updateGiftLB(name, diam, col) {
     }
     allTimeGifts[name].score += diam;
     if (userAvatars[name]) allTimeGifts[name].avatar = userAvatars[name];
-    
-    let toSave = {};
-    for(let k in allTimeGifts) {
-        toSave[k] = { score: allTimeGifts[k].score, lastGiftDiam: allTimeGifts[k].lastGiftDiam, color: allTimeGifts[k].color.toString('#rrggbb') };
-    }
-    localStorage.setItem('galaxinko_alltime_gifts', JSON.stringify(toSave));
 }
 
 function addKill(name, col) {
@@ -2441,12 +2445,6 @@ function addKill(name, col) {
     }
     allTimeKills[name].score += 1;
     if (userAvatars[name]) allTimeKills[name].avatar = userAvatars[name];
-    
-    let toSave = {};
-    for(let k in allTimeKills) {
-        toSave[k] = { score: allTimeKills[k].score, color: allTimeKills[k].color.toString('#rrggbb') };
-    }
-    localStorage.setItem('galaxinko_alltime_kills', JSON.stringify(toSave));
 }
 
 function processCombatQueue() {
@@ -4361,6 +4359,9 @@ function triggerRandomEvent() {
 }
 
 function updateTimers() {
+  if (frameCount % 300 === 0) {
+      saveLeaderboards();
+  }
   // --- ANTI-DUPLIKĂT SYSTĂ‰M (KaĹľdĂ˝ch 10 vteĹ™in / 600 framĹŻ) ---
   if (frameCount % 600 === 0) {
       let nameGroups = {};
