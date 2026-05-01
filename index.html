@@ -3254,8 +3254,8 @@ function handleCameraAndPlayers() {
               
               if (distSq < effectRadiusSq && distSq > 0) {
                   let dist = Math.sqrt(distSq); // PotĹ™ebujeme pro vĂ˝poÄŤet sĂ­ly
-                  let forceMag = 0.012 * other.body.mass * (effectRadius / dist); // SĂ­la zvĂ˝Ĺˇena
-                  forceMag = Math.min(forceMag, 0.12 * other.body.mass); // Max odhoz zvĂ˝Ĺˇen
+                  let forceMag = 0.008 * other.body.mass * (effectRadius / dist); // Sníženo o 1/3
+                  forceMag = Math.min(forceMag, 0.08 * other.body.mass); // Max odhoz snížen o 1/3
                   Matter.Body.applyForce(other.body, other.body.position, {
                       x: (dx / dist) * forceMag,
                       y: (dy / dist) * forceMag
@@ -3313,9 +3313,9 @@ function handleCameraAndPlayers() {
     let dirX = dx / distToCenter;
     let dirY = dy / distToCenter;
     
-    // MIXÉR EFEKT: Plynulejší a vyváženější síly
-    let pullForce = 0.00003 * p.body.mass;  // Mírně sníženo pro méně agresivní tah do středu
-    let vortexForce = 0.0001 * p.body.mass * p.baseRotDir; // Mírně sníženo pro hladší rotaci
+    // --- VÝPOČET SIL (Sníženo o 15% pro pomalejší tempo + posílení rotace) ---
+    let pullForce = 0.00002 * p.body.mass;  // Sníženo pro více "dokola" efekt
+    let vortexForce = 0.00009 * p.body.mass * p.baseRotDir; // Posíleno relativně k tahu do středu
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
@@ -3328,8 +3328,14 @@ function handleCameraAndPlayers() {
     let noiseValX = p.lastNoiseX;
     let noiseValY = p.lastNoiseY;
 
-    finalFx += noiseValX * 0.00015 * p.body.mass; // Plynulejší náhodná síla
-    finalFy += noiseValY * 0.00015 * p.body.mass;
+    finalFx += noiseValX * 0.00012 * p.body.mass; // Snížený šum o 15%
+    finalFy += noiseValY * 0.00012 * p.body.mass;
+
+    // Hráči mají o 15% větší sílu, aby pomalu přetlačili boty
+    if (!p.isBot) {
+        finalFx *= 1.15;
+        finalFy *= 1.15;
+    }
 
     // Pomalejší posun šumu = plynulejší změny pohybu
     // POMALEJŠÍ ZMĚNA: Pohyb bude plynulejší a táhlejší
@@ -3949,12 +3955,18 @@ function drawPlayer(p) {
       ellipse(0, 0, p.r * 2.4 + sin(frameCount * 0.2) * 15);
   }
 
-  // Buff zĂˇĹ™e (Vypnuto pro boty)
-      if (isBuffed && !p.isBot) { 
-          fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); noStroke();
-          ellipse(0, 0, p.r * 2.0);
-          // OranĹľovĂ© jiskry smazĂˇny
+  // Buff záře (Duhová pro korunku, bílá pro běžný buff)
+  if (isBuffed && !p.isBot) { 
+      if (p.hasCrown || p.immunityTimer > 0) {
+          colorMode(HSB);
+          fill(getSafeHue(frameCount * 5), 70, 100, 100 + sin(frameCount * 0.4) * 60);
+          colorMode(RGB);
+      } else {
+          fill(255, 255, 255, 80 + sin(frameCount * 0.5) * 80); 
       }
+      noStroke();
+      ellipse(0, 0, p.r * 2.0);
+  }
 
   let outlineColor = actualColor;
   if (p.giftSpeedTimer > 0 || p.immunityTimer > 0 || p.isGodMode || p.hasRainbowCrown) {
@@ -4182,6 +4194,14 @@ function drawPlayer(p) {
   let txtCol = color(255);
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
+
+  // --- TOP 3 JMÉNA NA KOULI ---
+  let rank = currentTop10.indexOf(p.name);
+  if (rank >= 0 && rank < 3 && !p.isZombie) {
+      fill(255); stroke(0); strokeWeight(isExtremeLoad ? 3 : 6);
+      textSize(Math.floor(Math.max(12, p.r * 0.22)));
+      text(p.name, 0, p.r > 20 ? -p.r * 0.25 : -12);
+  }
 
   stroke(0); strokeWeight(isExtremeLoad ? 4 : 10); // MenĹˇĂ­ obrys pĹ™i zĂˇtÄ›Ĺľi
   fill(txtCol); textStyle(BOLD);
