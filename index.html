@@ -5474,8 +5474,6 @@ function draw() {
   let flyX = (noise(frameCount * 0.03) * W * 2) % W;
   let flyY = (noise(frameCount * 0.03 + 1000) * H * 2) % H;
   rect(flyX, flyY, 2, 2);
-  
-  pop(); // UkonÄŤenĂ­ global push()
 }
 
 function connectTikfinity() {
