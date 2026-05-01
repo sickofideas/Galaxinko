@@ -607,6 +607,10 @@ var COMMENTARY_GENERAL = {
   ]
 };
 
+function getSafeHue(h) {
+    return (h % 360 + 360) % 360;
+}
+
 let engine, world;
 let players = [];
 let particles = [];
