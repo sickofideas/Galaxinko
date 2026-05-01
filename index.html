@@ -67,7 +67,11 @@
 var GAME_TITLE = "GALAXINKO WARS";
 var GAME_VERSION = "v19.59.0"; // MelodickĂ˝ zvukovĂ˝ systĂ©m (pentatonickĂˇ stupnice) + zpomalenĂ­ kuliÄŤek + auto-dismiss notifikacĂ­
 p5.disableFriendlyErrors = true;   // VĂ˝raznĂ© zvĂ˝ĹˇenĂ­ vĂ˝konu (vypne kontrolu chyb v draw loopu)
-pixelDensity(1);                   // KLĂŤÄŚOVĂ‰: VynutĂ­ 1:1 pixely (zabrĂˇnĂ­ pĹ™etÄ›ĹľovĂˇnĂ­ na 4K/Retina)
+var audioStarted = false;          // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
+var synth;                         // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
+var engine, world;                 // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
+var accumulator = 0;               // PĹ˜ESUNUTO NAHORU: Ochrana proti ReferenceError
+const FIXED_DT = 1000 / 60;
 var W = 1080;
 var H = 1920;
 var HUD_TOP = 75;  
@@ -613,10 +617,7 @@ function getSafeHue(h) {
     return (h % 360 + 360) % 360;
 }
 
-// STABILNĂŤ FYZIKA (Fixed Timestep Accumulator)
-let accumulator = 0;
-const FIXED_DT = 1000 / 60;
-
+// STABILNĂŤ FYZIKA (Fixed Timestep Accumulator) logic moved up
 function updatePhysics() {
   let delta = Math.min(deltaTime, 50);   // Ochrana proti "skoku smrti" pĹ™i velkĂ©m lagu
   accumulator += delta;
@@ -626,8 +627,6 @@ function updatePhysics() {
     accumulator -= FIXED_DT;
   }
 }
-
-let engine, world;
 let players = [];
 let particles = [];
 let floatingTexts = [];
@@ -1438,8 +1437,7 @@ let resultsTimer = 5;
 let maxResultsTimer = 5;
 let cameraScale = 1.6;
 let targetCameraScale = 1.6;
-let audioStarted = false;
-let synth;
+// audioStarted a synth pĹ™esunuty nahoru
 let sawHumCtx = null;
 let sawHumOsc = null;
 let sawHumGain = null;
