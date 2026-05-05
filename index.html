@@ -3360,21 +3360,29 @@ function handleCameraAndPlayers() {
 
     let isBuffed = p.likeBuffTimer && millis() < p.likeBuffTimer;
     let isTop10 = currentTop10.includes(p.name);
-    let tSpd = isTop10 ? 1.6 : 1.3; // SNĂŤĹ˝ENO (z 2.2 / 1.8) pro klidnÄ›jĹˇĂ­ arĂ©nu
+    let tSpd = isTop10 ? 1.6 : 1.3; // SNÍŽENO (z 2.2 / 1.8) pro klidnější arénu
     
-    // SĂŤLA PODLE HP: ÄŚĂ­m vÄ›tĹˇĂ­ koule, tĂ­m lehce vyĹˇĹˇĂ­ tah na brĂˇnu
+    // SÍLA PODLE HP: Čím větší koule, tím lehce vyšší tah na bránu
     tSpd *= (1.0 + Math.sqrt(p.hp) * 0.0015);
     let currentMaxV = maxV;
     
-    // ZOMBĂŤCI SE PLOUĹ˝ĂŤ (-60% rychlost)
+    // --- POMALÝ ZÁKLAD PRO PASIVNÍ ---
+    // Pokud hráč/bot nelajkuje, nedal gift v tomto kole nebo neuhodl hádanku, je o 30% pomalejší
+    let hasBonus = isBuffed || (sessionLikes[p.name] > 0) || (roundGifts[p.name] && roundGifts[p.name].score > 0) || (riddleWins[p.name] > 0);
+    if (!hasBonus) {
+        tSpd *= 0.7;
+        currentMaxV *= 0.7;
+    }
+
+    // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
     if (p.isZombie) {
         tSpd *= 0.4;
         currentMaxV *= 0.4;
     }
 
-    // BOTI JSOU POMALEJĹ ĂŤ (-40% rychlost oproti hrĂˇÄŤĹŻm)
+    // BOTI JSOU POMALEJŠÍ (-40% rychlost oproti hráčům)
     if (p.isBot) {
-        tSpd *= 0.3; // Zpomaleno ze 0.6 pro "plouĹľenĂ­"
+        tSpd *= 0.3; // Zpomaleno ze 0.6 pro "ploužení"
         currentMaxV *= 0.3;
     }
 
