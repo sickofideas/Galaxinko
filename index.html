@@ -1433,19 +1433,21 @@ let sawMetalOsc = null;
 let sawMetalGain = null;
 let sawNoiseSource = null;
 let sawNoiseBuffer = null;
-let sawBellSource = null;
+let sawBellSources = [];
 let sawBellBuffer = null;
-let sawBellGain = null;
+let sawBellGains = [];
 let sawHumActive = false;
 
-function updateSawHum(anyPlayerBuffed) {
+function updateSawHum(likersCount) {
     if (!audioStarted) return;
-    if (anyPlayerBuffed && !sawHumActive) {
+    
+    let targetClinkers = Math.min(10, likersCount);
+    
+    if (targetClinkers > 0 && !sawHumActive) {
         try {
             if (!sawHumCtx) sawHumCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (sawHumCtx.state === 'suspended') sawHumCtx.resume();
 
-            // 1. ZĂKLADNĂŤ HUKOT (Bass)
             sawHumOsc = sawHumCtx.createOscillator();
             sawHumGain = sawHumCtx.createGain();
             sawHumOsc.type = 'sine';
@@ -1456,61 +1458,83 @@ function updateSawHum(anyPlayerBuffed) {
             sawHumGain.connect(sawHumCtx.destination);
             sawHumOsc.start();
 
-            // 2. KOVOVĂ‰ CINKĂNĂŤ (Realistic Clink with Decay)
             let clinkRate = 10; 
             let bufferLen = Math.floor(sawHumCtx.sampleRate / clinkRate); 
             
-            sawBellBuffer = sawHumCtx.createBuffer(1, bufferLen, sawHumCtx.sampleRate);
-            let data = sawBellBuffer.getChannelData(0);
-            let freqs = [1500, 2500, 3500]; // StĹ™ednĂ­, ÄŤistĹˇĂ­ frekvence
-            
-            for (let i = 0; i < bufferLen; i++) {
-                let t = i / sawHumCtx.sampleRate;
-                let envelope = Math.exp(-t * 15); // JeĹˇtÄ› rychlejĹˇĂ­ dozvuk pro ÄŤistĹˇĂ­ zvuk
-                let sample = 0;
-                for (let f of freqs) {
-                    sample += Math.sin(TWO_PI * f * t) * (f === freqs[0] ? 0.5 : 0.25);
+            if (!sawBellBuffer) {
+                sawBellBuffer = sawHumCtx.createBuffer(1, bufferLen, sawHumCtx.sampleRate);
+                let data = sawBellBuffer.getChannelData(0);
+                let freqs = [1500, 2500, 3500];
+                
+                for (let i = 0; i < bufferLen; i++) {
+                    let t = i / sawHumCtx.sampleRate;
+                    let envelope = Math.exp(-t * 15);
+                    let sample = 0;
+                    for (let f of freqs) {
+                        sample += Math.sin(Math.PI * 2 * f * t) * (f === freqs[0] ? 0.5 : 0.25);
+                    }
+                    data[i] = sample * envelope * 0.22; 
                 }
-                data[i] = sample * envelope * 0.22; 
             }
-
-            sawBellSource = sawHumCtx.createBufferSource();
-            sawBellSource.buffer = sawBellBuffer;
-            sawBellSource.loop = true;
-            
-            sawBellGain = sawHumCtx.createGain();
-            sawBellGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            // VYVĂĹ˝ENĂ HLASITOST (0.03)
-            sawBellGain.gain.linearRampToValueAtTime(0.03, sawHumCtx.currentTime + 0.2); 
-            
-            sawBellSource.connect(sawBellGain);
-            sawBellGain.connect(sawHumCtx.destination);
-            sawBellSource.start();
 
             sawHumActive = true;
         } catch(e) {}
-    } else if (!anyPlayerBuffed && sawHumActive) {
+    } else if (targetClinkers === 0 && sawHumActive) {
         try {
             if (sawHumCtx) {
                 if (sawHumGain) sawHumGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
-                if (sawBellGain) sawBellGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
                 
                 let oRef = sawHumOsc;
-                let bSrcRef = sawBellSource;
+                setTimeout(() => { try { if(oRef) oRef.stop(); } catch(e){} }, 600);
                 
-                setTimeout(() => { 
-                    try { 
-                        if(oRef) oRef.stop(); 
-                        if(bSrcRef) bSrcRef.stop();
-                    } catch(e){} 
-                }, 600);
+                if (sawBellGains) {
+                    for (let i = 0; i < sawBellGains.length; i++) {
+                        let g = sawBellGains[i];
+                        let s = sawBellSources[i];
+                        if (g) g.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
+                        setTimeout(() => { try { if(s) s.stop(); } catch(e){} }, 600);
+                    }
+                }
             }
             sawHumActive = false;
             sawHumOsc = null;
             sawHumGain = null;
-            sawBellSource = null;
-            sawBellGain = null;
+            sawBellSources = [];
+            sawBellGains = [];
         } catch(e) { sawHumActive = false; }
+    }
+    
+    if (sawHumActive && sawHumCtx) {
+        if (!sawBellSources) sawBellSources = [];
+        if (!sawBellGains) sawBellGains = [];
+        
+        while (sawBellSources.length < targetClinkers) {
+            let idx = sawBellSources.length;
+            let newSource = sawHumCtx.createBufferSource();
+            newSource.buffer = sawBellBuffer;
+            newSource.loop = true;
+            
+            let ratios = [1.0, 1.125, 1.25, 1.5, 1.666, 2.0, 2.25, 2.5, 3.0, 4.0];
+            newSource.playbackRate.value = ratios[idx];
+            
+            let newGain = sawHumCtx.createGain();
+            newGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
+            newGain.gain.linearRampToValueAtTime(0.02, sawHumCtx.currentTime + 0.2); 
+            
+            newSource.connect(newGain);
+            newGain.connect(sawHumCtx.destination);
+            newSource.start();
+            
+            sawBellSources.push(newSource);
+            sawBellGains.push(newGain);
+        }
+        
+        while (sawBellSources.length > targetClinkers) {
+            let lastSource = sawBellSources.pop();
+            let lastGain = sawBellGains.pop();
+            if (lastGain) lastGain.gain.linearRampToValueAtTime(0, sawHumCtx.currentTime + 0.5);
+            setTimeout(() => { try { if(lastSource) lastSource.stop(); } catch(e){} }, 600);
+        }
     }
 }
 
@@ -5176,9 +5200,9 @@ function draw() {
     });
     sortedToDraw.forEach(p => drawPlayer(p));
     
-    // Aktualizace zvuku cirkulĂˇrky (jemnĂ˝ hukot pĹ™i lajkovĂˇnĂ­)
-    let anyBuffed = players.some(p => p.likeBuffTimer && millis() < p.likeBuffTimer);
-    updateSawHum(anyBuffed);
+    // Aktualizace zvuku cirkulĂˇrky (jemnĂ˝ hukot pĹ™i lajkovĂˇnĂ­ a cinkĂˇnĂ­)
+    let activeLikersCount = players.filter(p => p.likeBuffTimer && millis() < p.likeBuffTimer).length;
+    updateSawHum(activeLikersCount);
     
     if (particles.length > 80) particles.splice(0, particles.length - 80);
     if (floatingTexts.length > 25) floatingTexts.splice(0, floatingTexts.length - 25);
