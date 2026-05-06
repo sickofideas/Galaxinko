@@ -80,7 +80,7 @@ var roundThemeColorDark;
 var currentLang = "CZ";
 var T = {
   CZ: {
-    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALĹ ĂŤ KOLO ZA: ",
+    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALĹ ĂŤ KOLO ZA: ",
     WINNER: "VĂŤTÄšZ KOLA!", HP: "HP", NEW: "NOVĂť BOJOVNĂŤK: ",
     DAYZ_SPACE: "[ PROSTOR PRO DAYZ STREAM ]", TIME: "ÄŚAS KOLA:"
   },
@@ -130,7 +130,7 @@ function cleanNameForTTS(name) {
     return parts.slice(0, 2).join(" ");
 }
 
-// --- 2. ROZĹ ĂŤĹENĂ‰ KNIHOVNY HLĂĹ EK ---
+// --- 2. ROZĹ ĂŤĹENĂ‰ KNIHOVNY HLĂĹ EK ---
 var COMMENTARY_TAP = {
   CZ: [
     "Senzory hlĂˇsĂ­ zvĂ˝Ĺˇenou aktivitu v sektoru!",
@@ -1453,7 +1453,7 @@ function updateSawHum(likersCount) {
             sawHumOsc.type = 'sine';
             sawHumOsc.frequency.setValueAtTime(180, sawHumCtx.currentTime);
             sawHumGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            sawHumGain.gain.linearRampToValueAtTime(0.015, sawHumCtx.currentTime + 0.5);
+            sawHumGain.gain.linearRampToValueAtTime(0.01875, sawHumCtx.currentTime + 0.5);
             sawHumOsc.connect(sawHumGain);
             sawHumGain.connect(sawHumCtx.destination);
             sawHumOsc.start();
@@ -1473,7 +1473,7 @@ function updateSawHum(likersCount) {
                     for (let f of freqs) {
                         sample += Math.sin(Math.PI * 2 * f * t) * (f === freqs[0] ? 0.5 : 0.25);
                     }
-                    data[i] = sample * envelope * 0.22; 
+                    data[i] = sample * envelope * 0.275; 
                 }
             }
 
@@ -1519,7 +1519,7 @@ function updateSawHum(likersCount) {
             
             let newGain = sawHumCtx.createGain();
             newGain.gain.setValueAtTime(0, sawHumCtx.currentTime);
-            newGain.gain.linearRampToValueAtTime(0.02, sawHumCtx.currentTime + 0.2); 
+            newGain.gain.linearRampToValueAtTime(0.025, sawHumCtx.currentTime + 0.2); 
             
             newSource.connect(newGain);
             newGain.connect(sawHumCtx.destination);
@@ -2081,7 +2081,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
     if (diam >= 1000) {
         let tts = currentLang === "CZ" ? `Mega dĂˇrek od ${p.name}! RĂˇzovĂˇ vlna!` : `Mega gift incoming from ${p.name}! Shockwave!`;
         let txt = currentLang === "CZ" ? "MEGA DĂREK!" : "MEGA GIFT INCOMING!";
-        if (diam >= 10000) { tts = currentLang === "CZ" ? `BĹ®H VSTOUPIL DO ARĂ‰NY! ${p.name} NIÄŚĂŤ VĹ E Ĺ˝IVĂ‰!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
+        if (diam >= 10000) { tts = currentLang === "CZ" ? `BĹ®H VSTOUPIL DO ARĂ‰NY! ${p.name} NIÄŚĂŤ VĹ E Ĺ˝IVĂ‰!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
         else if (diam >= 5000) { tts = currentLang === "CZ" ? `GALAXY GIFT! ${p.name} VYSĂVĂ ARĂ‰NU!` : `GALAXY GIFT! ${p.name} IS SUCKING THE ARENA!`; txt = "GALAXY GIFT!"; }
         triggerMegaAnnouncement(p.name, diam, tts, txt);
     }
@@ -2158,7 +2158,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
         safePlaySound(pentatonic('low'), 0.10, 1.2);
     }
     
-    // TIER 2: Ĺ ikana a obrana (Shield + Knockback - 100+ mincĂ­)
+    // TIER 2: Ĺ ikana a obrana (Shield + Knockback - 100+ mincĂ­)
     else if (diam >= 100) {
         p.immunityTimer += 50 * 60; // 50s imunita
         screenShake = 3;
@@ -2177,7 +2177,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
         }
         
         let cleanN = cleanNameForTTS(p.name);
-        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
+        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
         let popText = comboMult > 1 ? `${comboMult}X SHIELD COMBO!` : "SHIELD + PUSH!";
         addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
@@ -2228,6 +2228,8 @@ function handleAction(name, amount, isGift = false, diam = 0, allowSpawn = true,
 
   if (p) {
     if (p.isZombie) reviveZombie(p); // OkamĹľitĂ© oĹľivenĂ­!
+    p.lastActionTime = Date.now();
+    if (p.isFrozen) { p.isFrozen = false; Matter.Body.set(p.body, 'frictionAir', 0.08); }
     if (finalAmount !== 0) {
         p.hp += finalAmount;
         p.auraFlash = 30; // ZĂˇblesk pĹ™i zmÄ›nÄ› HP
@@ -2307,7 +2309,7 @@ function handleRoundStartQueue() {
 function handleSpawnModules() {
     for (let i = spawnModules.length - 1; i >= 0; i--) {
         let m = spawnModules[i];
-        // ODSTRANÄšN KOUĹ (trail) PRO ZVĂťĹ ENĂŤ FPS
+        // ODSTRANÄšN KOUĹ (trail) PRO ZVĂťĹ ENĂŤ FPS
         m.x += m.vx; m.y += m.vy; m.life--;
         
         push(); translate(m.x, m.y); rotate(atan2(m.vy, m.vx));
@@ -2349,7 +2351,8 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     shareBuffTimer: 0, shareCooldown: 0,
     hpBuffer: 0, // OPRAVA: Inicializace hpBuffer, aby fungoval Share/Repost bonus
     dmgDisplayValue: 0, dmgDisplayTimer: 0,
-    healDisplayValue: 0, healDisplayTimer: 0
+    healDisplayValue: 0, healDisplayTimer: 0,
+    lastActionTime: Date.now(), isFrozen: false
   };
   
   body.playerData = player;
@@ -3139,7 +3142,7 @@ function drawNotifications() {
       else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Radar lock" : "Radar lock"; icon = "đź“ˇ"; }
       else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? `Energie +${n.extra}` : `Energy +${n.extra}`; icon = "âšˇ"; }
       else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Pohon!" : "Thrusters!"; icon = "â„ď¸Ź"; }
-      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Ĺ tĂ­ty!" : "Shields!"; icon = "đź›ˇď¸Ź"; }
+      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Ĺ tĂ­ty!" : "Shields!"; icon = "đź›ˇď¸Ź"; }
       else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Hack" : "Hack"; icon = "đź’»"; }
       else if (n.type === 'GIFT') { 
           colorMode(HSB);
@@ -3283,7 +3286,7 @@ function handleCameraAndPlayers() {
                       y: (dy / dist) * forceMag
                   });
 
-                  // --- ODSTRANÄšNO: POĹ KOZENĂŤ OKOLĂŤ (ZpĹŻsobovalo Ĺ™etÄ›zovou reakci a "pĂˇd" arĂ©ny) ---
+                  // --- ODSTRANÄšNO: POĹ KOZENĂŤ OKOLĂŤ (ZpĹŻsobovalo Ĺ™etÄ›zovou reakci a "pĂˇd" arĂ©ny) ---
               }
           }
 
@@ -3328,6 +3331,13 @@ function handleCameraAndPlayers() {
     let cx = W/2 + Math.sin(frameCount * 0.005) * (W * 0.40); 
     let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.40);
     
+    // AFK: zmrazeni po 60s neaktivity (jen realni hrac)
+    if (!p.isBot && !p.isZombie && !p.isFrozen && p.lastActionTime && Date.now() - p.lastActionTime > 60000) {
+        p.isFrozen = true;
+        Matter.Body.set(p.body, 'frictionAir', 0.4);
+    }
+    let afkMult = (p.isFrozen) ? 0.05 : 1.0;
+    
     let dx = cx - p.body.position.x;
     let dy = cy - p.body.position.y;
     let distToCenter = Math.sqrt(dx*dx + dy*dy) || 1;
@@ -3336,8 +3346,8 @@ function handleCameraAndPlayers() {
     let dirY = dy / distToCenter;
     
     // --- VÝPOČET SIL (Sníženo o 15% pro pomalejší tempo + posílení rotace) ---
-    let pullForce = 0.00002 * p.body.mass;  // Sníženo pro více "dokola" efekt
-    let vortexForce = 0.00009 * p.body.mass * p.baseRotDir; // Posíleno relativně k tahu do středu
+    let pullForce = 0.00002 * p.body.mass * afkMult;  // Sníženo pro více "dokola" efekt
+    let vortexForce = 0.00009 * p.body.mass * p.baseRotDir * afkMult; // Posíleno relativně k tahu do středu
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
@@ -4030,6 +4040,24 @@ function drawPlayer(p) {
       fill(255, 215, 0, 50 + sin(frameCount * 0.15) * 30);
       noStroke();
       ellipse(0, 0, p.r * 2.4 + sin(frameCount * 0.2) * 15);
+
+      // --- DUHOVÝ KRUHOVÝ OBRYS PRO TOP 1 ---
+      push();
+      noFill();
+      let rainbowR = p.r * 1.25 + sin(frameCount * 0.18) * (p.r * 0.06);
+      let rainbowSegs = 36;
+      let rainbowThick = Math.max(3, p.r * 0.12);
+      strokeWeight(rainbowThick);
+      colorMode(HSB, 360, 100, 100, 255);
+      for (let i = 0; i < rainbowSegs; i++) {
+          let a1 = (TWO_PI / rainbowSegs) * i;
+          let a2 = (TWO_PI / rainbowSegs) * (i + 1.3);
+          let hue = (frameCount * 1.5 + i * (360 / rainbowSegs)) % 360;
+          stroke(hue, 90, 100, 230);
+          arc(0, 0, rainbowR * 2, rainbowR * 2, a1, a2);
+      }
+      colorMode(RGB, 255);
+      pop();
   }
 
   // Buff záře (Duhová pro korunku, bílá pro běžný buff)
@@ -4331,6 +4359,25 @@ function drawPlayer(p) {
       }
       p.healDisplayTimer--;
       if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
+  }
+
+  // AFK vizual: modry ledovy obrys + napis
+  if (p.isFrozen) {
+      push();
+      noFill();
+      stroke(0, 150, 255, 200);
+      strokeWeight(4);
+      circle(0, 0, visualR * 2.2);
+      fill(0, 150, 255, 120);
+      noStroke();
+      circle(0, 0, visualR * 2.2);
+      fill(255);
+      noStroke();
+      textSize(Math.max(12, visualR * 0.45));
+      textStyle(BOLD);
+      textAlign(CENTER, CENTER);
+      text('AFK', 0, 0);
+      pop();
   }
 
   noStroke(); pop();
@@ -5121,7 +5168,7 @@ function draw() {
 
   drawTopHUD();
 
-  // --- TOP GIFTER DOÄŚASNĂ LIĹ TA ---
+  // --- TOP GIFTER DOÄŚASNĂ LIĹ TA ---
   if (topGifterBannerTimer > 0) {
       topGifterBannerTimer--;
       
@@ -5281,7 +5328,7 @@ function draw() {
         let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
         let minPbW = 350;
         let maxPbW = W * 0.85;
-        let pbW = lerp(minPbW, maxPbW, progress); // Ĺ Ă­Ĺ™ka postupnÄ› roste
+        let pbW = lerp(minPbW, maxPbW, progress); // Ĺ Ă­Ĺ™ka postupnÄ› roste
         let pbH = 36; // Trochu vyĹˇĹˇĂ­ pro profilovku
         let pbX = W / 2 - pbW / 2;
         let pbY = ARENA_TOP + 15; // UmĂ­stÄ›nĂ­ tÄ›snÄ› pod hornĂ­ okraj arĂ©ny
@@ -5771,3 +5818,4 @@ function mousePressed() {
 </script>
 </body>
 </html>
+
