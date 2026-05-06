@@ -3331,22 +3331,27 @@ function handleCameraAndPlayers() {
     let cx = W/2 + Math.sin(frameCount * 0.005) * (W * 0.40); 
     let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.40);
     
-    // AFK: zmrazeni po 60s neaktivity, rozmrazeni po 15s → cyklus
+    // AFK: zmrazeni po nahodnem casu 45-60s neaktivity, rozmrazeni po nahodnem casu 5-15s → cyklus
     if (!p.isBot && !p.isZombie && p.lastActionTime) {
-        if (!p.isFrozen && Date.now() - p.lastActionTime > 60000) {
-            // Zmrazit
+        // Nastavit nahodny prah klidu pri prvnim volani nebo po rozmrazeni
+        if (!p.afkDelay) p.afkDelay = 45000 + Math.random() * 15000; // 45-60s
+        if (!p.isFrozen && Date.now() - p.lastActionTime > p.afkDelay) {
+            // Zmrazit + nahodna doba zmrazeni 5-15s
             p.isFrozen = true;
             p.frozenSince = Date.now();
+            p.frozenDuration = 5000 + Math.random() * 10000; // 5-15s
             Matter.Body.set(p.body, 'frictionAir', 0.4);
-        } else if (p.isFrozen && p.frozenSince && Date.now() - p.frozenSince > 15000) {
-            // Auto-rozmrazit po 15s a dat novy 60s cas
+        } else if (p.isFrozen && p.frozenSince && Date.now() - p.frozenSince > (p.frozenDuration || 10000)) {
+            // Auto-rozmrazit a dat novy nahodny cas klidu
             p.isFrozen = false;
             p.frozenSince = null;
-            p.lastActionTime = Date.now(); // reset: bude poletovat 60s
+            p.frozenDuration = null;
+            p.afkDelay = 45000 + Math.random() * 15000; // novy nahodny prah 45-60s
+            p.lastActionTime = Date.now(); // reset: bude poletovat dalsi cyklus
             Matter.Body.set(p.body, 'frictionAir', 0.08);
         }
     }
-    let afkMult = (p.isFrozen) ? 0.05 : 1.0;
+    let afkMult = (p.isFrozen) ? 0.02 : 1.0;
     
     let dx = cx - p.body.position.x;
     let dy = cy - p.body.position.y;
@@ -4353,39 +4358,22 @@ function drawPlayer(p) {
       if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
   }
 
-  // AFK vizual: led/mraz dovnitr (jako zmrzle sklo)
+  // AFK vizual: led/mraz dovnitr - jen vnitrni bodaky, profilovka zustava cira
   if (p.isFrozen) {
       push();
 
-      // 1. Jemna studena aura vne
-      noStroke();
-      fill(180, 220, 255, 22 + sin(frameCount * 0.04) * 10);
-      circle(0, 0, visualR * 2.45);
-
-      // 2. Ledovy overlay pres kouli (zmrzle sklo)
-      fill(160, 210, 255, 70 + sin(frameCount * 0.07) * 18);
-      noStroke();
-      circle(0, 0, visualR * 2.0);
-
-      // 3. Prusvitny bily "zamlzeny" vnitrni kruh
-      fill(230, 245, 255, 40);
-      noStroke();
-      circle(0, 0, visualR * 1.6);
-
-      // 4. Ledove praskliny / hroty z obvodu DOVNITR
-      let edgeR = visualR * 0.98; // zacatek hrotů je tésně uvnitr obvodu
+      // Pouze vnitrni ledove hroty (bodaky) z obvodu DOVNITR
+      // Avatar a barva koule zustavaji viditelne (zadny overlay)
+      let edgeR = visualR * 0.98; // zacatek hrotů tésně uvnitr obvodu
       let numSpikes = 18;
       colorMode(HSB, 360, 100, 100, 255);
       noStroke();
       for (let i = 0; i < numSpikes; i++) {
           let angle = (TWO_PI / numSpikes) * i + frameCount * 0.003;
           // ruzne delky - deterministicke pres index
-          let lenMult = 0.12 + 0.16 * abs(sin(i * 1.9 + 0.8));
-          let spikeLen = visualR * lenMult; // kratke hroty dovnitr
+          let lenMult = 0.15 + 0.18 * abs(sin(i * 1.9 + 0.8));
+          let spikeLen = visualR * lenMult; // hroty smeruji DOVNITR
 
-          // hrot smeruje ke stredu (od edgeR smerem k 0)
-          let outerX = cos(angle) * edgeR;
-          let outerY = sin(angle) * edgeR;
           let innerX = cos(angle) * (edgeR - spikeLen);
           let innerY = sin(angle) * (edgeR - spikeLen);
           let lX = cos(angle + 0.15) * (edgeR - spikeLen * 0.1);
@@ -4393,35 +4381,26 @@ function drawPlayer(p) {
           let rX = cos(angle - 0.15) * (edgeR - spikeLen * 0.1);
           let rY = sin(angle - 0.15) * (edgeR - spikeLen * 0.1);
 
-          let alpha = 160 + sin(frameCount * 0.06 + i * 0.7) * 50;
+          let alpha = 180 + sin(frameCount * 0.06 + i * 0.7) * 60;
           fill(200, 55, 100, alpha);
           beginShape();
           vertex(lX, lY);
-          vertex(innerX, innerY); // spicka smeruje DOVNITR
+          vertex(innerX, innerY); // spicka DOVNITR
           vertex(rX, rY);
           endShape(CLOSE);
       }
       colorMode(RGB, 255);
 
-      // 5. Tenky ledovy obrys (pevny kruh kolem)
+      // Tenky ledovy obrys (ciry, jen jemna linka)
       noFill();
-      stroke(190, 235, 255, 210 + sin(frameCount * 0.1) * 30);
-      strokeWeight(Math.max(2.5, visualR * 0.07));
+      stroke(190, 235, 255, 120 + sin(frameCount * 0.1) * 30);
+      strokeWeight(Math.max(1.5, visualR * 0.04));
       circle(0, 0, visualR * 2.0);
-
-      // 6. Odlesky uvnitr (ledove skvrny na povrchu)
-      noStroke();
-      for (let i = 0; i < 4; i++) {
-          let sx = sin(i * 1.6 + 0.9) * visualR * 0.38;
-          let sy = cos(i * 2.3 + 0.4) * visualR * 0.30;
-          fill(230, 248, 255, 55 + sin(frameCount * 0.09 + i * 1.1) * 20);
-          ellipse(sx, sy, visualR * 0.20, visualR * 0.09);
-      }
 
       pop();
   }
 
-  // --- DUHOVY OBRYS TOP 1 (vzdy posledni, vzdy viditelny) ---
+  // --- DUHOVY OBRYS TOP 1 (vzdy posledni, vzdy viditelny) - BEZ ZELENE ---
   if (isLeader && !p.isBot) {
       push();
       noFill();
@@ -4433,7 +4412,12 @@ function drawPlayer(p) {
       for (let i = 0; i < rainbowSegs; i++) {
           let a1 = (TWO_PI / rainbowSegs) * i;
           let a2 = (TWO_PI / rainbowSegs) * (i + 1.3);
-          let hue = (frameCount * 1.5 + i * (360 / rainbowSegs)) % 360;
+          let rawHue = (frameCount * 1.5 + i * (360 / rainbowSegs)) % 360;
+          // Preskocit zelene odstiny (hue 70-165 = zelena/zlutozele/tyrkysove)
+          let hue = rawHue;
+          if (hue >= 70 && hue < 165) {
+              hue = (hue + 100) % 360; // Posun mimo zelenou oblast
+          }
           stroke(hue, 90, 100, 240);
           arc(0, 0, rainbowR * 2, rainbowR * 2, a1, a2);
       }
@@ -5659,7 +5643,7 @@ function connectTikfinity() {
           pendingLikes[u].lastUpdate = millis();
 
           // PlynulĂ© pĹ™idĂˇvĂˇnĂ­ HP pĹ™es handleAction (aby fungovala pila a dalĹˇĂ­ efekty)
-          handleAction(u, likesCount * 0.5, false, 0, true); // 1 HP za 2 lajky (0.5 HP za lajk)
+          handleAction(u, likesCount * 0.75, false, 0, true); // 0.75 HP za lajk
       }
       else if (evt === "share") {
           let p = players.find(x => x.name === u);
