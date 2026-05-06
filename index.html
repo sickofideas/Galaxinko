@@ -2567,9 +2567,9 @@ function handleCombat(p1, p2) {
       let cx = (p1.body.position.x + p2.body.position.x)/2;
       let cy = (p1.body.position.y + p2.body.position.y)/2;
       let dominantColor = finalDmgTo2 > finalDmgTo1 ? p1.color : p2.color;
-      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 15, c: dominantColor});
+      lightnings.push({x1: p1.body.position.x, y1: p1.body.position.y, x2: p2.body.position.x, y2: p2.body.position.y, life: 25, c: dominantColor});
       createParticles(cx, cy, dominantColor, 6); 
-      safePlaySound(pentatonic('low'), 0.008, 0.3); // JemnĂ˝ basovĂ˝ tĂłn pĹ™i nĂˇrazu
+      safePlaySound(pentatonic('low'), 0.008, 0.3); // Jemný basový tón při nárazu
   }
   
   // PĹ™Ă­mĂ© popupy pro damage a zvuky critu smazĂˇny (nynĂ­ bÄ›ĹľĂ­ plynule po -1)
@@ -2824,8 +2824,8 @@ function drawSecretCodeUI() {
             
             // Pila (saw) kolem koule
             let sawTeeth = 24;
-            let rOuter = ballR * 1.35;
-            let rInner = ballR * 1.15;
+            let rOuter = ballR * 1.50;
+            let rInner = ballR * 1.25;
             push();
             rotate(frameCount * 0.3);
             noStroke();
@@ -2841,7 +2841,7 @@ function drawSecretCodeUI() {
             }
             endShape(CLOSE);
             fill(180, 100);
-            ellipse(0, 0, ballR * 2.2);
+            ellipse(0, 0, ballR * 2.4);
             pop();
             
             // Koule s profilovkou
@@ -3291,7 +3291,7 @@ function handleCameraAndPlayers() {
         if (closest) {
             closest.hp -= 1;
             if (!isExtremeLoad) {
-                lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: closest.body.position.x, y2: closest.body.position.y, life: 15, c: p.color});
+                lightnings.push({x1: p.body.position.x, y1: p.body.position.y, x2: closest.body.position.x, y2: closest.body.position.y, life: 25, c: p.color});
             }
             if (!isHeavyLoad) createParticles(closest.body.position.x, closest.body.position.y, p.color, 3);
             if (!isHeavyLoad) addPopup("-1", closest.body.position.x, closest.body.position.y, color(255, 100, 100));
@@ -3370,8 +3370,8 @@ function handleCameraAndPlayers() {
     // Pokud hráč/bot nelajkuje, nedal gift v tomto kole nebo neuhodl hádanku, je o 30% pomalejší
     let hasBonus = isBuffed || (sessionLikes[p.name] > 0) || (roundGifts[p.name] && roundGifts[p.name].score > 0) || (riddleWins[p.name] > 0);
     if (!hasBonus) {
-        tSpd *= 0.7;
-        currentMaxV *= 0.7;
+        tSpd *= 0.4;
+        currentMaxV *= 0.4;
     }
 
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
@@ -3852,7 +3852,7 @@ function drawDeathShockwaves() {
       noFill();
       stroke(red(sw.color), green(sw.color), blue(sw.color), sw.life);
           strokeWeight(map(sw.life, 255, 0, sw.isNuke ? 50 : 8, 1)); // ZjednoduĹˇenĂˇ tlouĹˇĹĄka
-      ellipse(sw.x, sw.y, sw.r * 2);
+      ellipse(sw.x, sw.y, sw.r); // Výsledná exploze je nyní poloviční (sw.r místo sw.r * 2)
           sw.r += sw.isNuke ? 25 : 8; // RychlejĹˇĂ­ rozpĂ­nĂˇnĂ­ rĂˇzovĂ© vlny
           sw.life -= sw.isNuke ? 4 : 25; // Mnohem rychlejĹˇĂ­ zmizenĂ­ (ÄŤistĹˇĂ­ animace)
       if (sw.life <= 0) deathShockwaves.splice(i, 1);
@@ -3862,27 +3862,29 @@ function drawDeathShockwaves() {
 function drawLightnings() {
   for(let i = lightnings.length - 1; i >= 0; i--) {
     let l = lightnings[i];
-    let a = l.life * 25; 
-    let segs = 3;
+    let a = Math.min(255, l.life * 20); 
+    let segs = 4; // Více segmentů pro rozeklanější vzhled
     let pts = [{x: l.x1, y: l.y1}];
     
     for(let j = 1; j < segs; j++) {
         pts.push({
-            x: lerp(l.x1, l.x2, j/segs) + random(-15, 15), 
-            y: lerp(l.y1, l.y2, j/segs) + random(-15, 15)
+            x: lerp(l.x1, l.x2, j/segs) + random(-20, 20), 
+            y: lerp(l.y1, l.y2, j/segs) + random(-20, 20)
         });
     }
     pts.push({x: l.x2, y: l.y2});
 
+    // Zvýrazněná vnější záře
     stroke(red(l.c), green(l.c), blue(l.c), a);
-    strokeWeight(l.life * 0.8 + 2);
+    strokeWeight(l.life * 1.2 + 4);
     noFill();
     beginShape();
     for(let p of pts) vertex(p.x, p.y);
     endShape();
 
-    stroke(255, a);
-    strokeWeight(l.life * 0.3 + 1);
+    // Silnější světlé jádro
+    stroke(255, a + 50);
+    strokeWeight(l.life * 0.5 + 2);
     beginShape();
     for(let p of pts) vertex(p.x, p.y);
     endShape();
@@ -3995,8 +3997,8 @@ function drawPlayer(p) {
 
   if (p.sawFade > 0.01) {
       let teeth = isEpic ? 32 : 24; // Sníženo pro výkon
-      let rOuter = p.r * 1.30; // KratĹˇĂ­, ale o to nebezpeÄŤnÄ›jĹˇĂ­ hroty
-      let rInner = p.r * 1.15;
+      let rOuter = p.r * 1.45; // Vetsi hroty pro lepsi viditelnost
+      let rInner = p.r * 1.25;
       let sawAlpha = p.sawFade * 255;
 
       push();
@@ -4024,12 +4026,12 @@ function drawPlayer(p) {
 
       // 2. VNITĹNĂŤ MECHANIKA (BrouĹˇenĂ˝ kov s odlesky)
       fill(180, sawAlpha * 0.4);
-      ellipse(0, 0, p.r * 2.2);
+      ellipse(0, 0, p.r * 2.4);
       
       stroke(255, sawAlpha * 0.5);
       strokeWeight(1);
       noFill();
-      ellipse(0, 0, p.r * 2.1); // DetailnĂ­ krouĹľek uvnitĹ™
+      ellipse(0, 0, p.r * 2.3); // DetailnĂ­ krouĹľek uvnitĹ™
       
       // DynamickĂ© odlesky na ÄŤepeli smazĂˇny
       drawingContext.shadowBlur = 0;
@@ -4201,10 +4203,15 @@ function drawPlayer(p) {
   if (p.hp > 50000) txtCol = color(100, 255, 100);
   else if (p.hp > 10000) txtCol = color(255, 255, 0);
 
-  // --- TOP 3 JMÉNA NA KOULI ---
-  let rank = currentTop10.indexOf(p.name);
-  if (rank >= 0 && rank < 3 && !p.isZombie) {
-      fill(255); stroke(0); strokeWeight(isExtremeLoad ? 3 : 6);
+  if (p.nameAlpha === undefined) p.nameAlpha = 0;
+  if (isBuffed) p.nameAlpha = Math.min(255, p.nameAlpha + 15);
+  else p.nameAlpha = Math.max(0, p.nameAlpha - 10);
+
+  // --- JMÉNA NA KOULI PŘI LAJKOVÁNÍ ---
+  if (!p.isZombie && p.nameAlpha > 0) {
+      fill(255, 255, 255, p.nameAlpha); 
+      stroke(0, 0, 0, p.nameAlpha); 
+      strokeWeight(isExtremeLoad ? 2 : 4);
       textSize(Math.floor(Math.max(12, p.r * 0.22)));
       text(p.name, 0, p.r > 20 ? -p.r * 0.25 : -12);
   }
@@ -4551,12 +4558,20 @@ function updateTimers() {
                   createParticles(p.body.position.x, p.body.position.y, color(255, 215, 0), isMega ? 8 : 3, 'ENERGY');
               }
               
-              if (p.hp >= 200) {
-                  // Zvuk pily (jemnĂ˝, hlubĹˇĂ­, mechanickĂ˝ rachtavĂ˝ zvuk)
-                  safePlaySound(pentatonic('low'), 0.004, 0.1);
-              } else {
-                  safePlaySound(pentatonic('mid'), 0.008, 0.1);
-              }
+              let activeLikers = players.filter(pl => pl.likeBuffTimer && pl.likeBuffTimer > millis());
+              let myIdx = activeLikers.findIndex(pl => pl.name === u);
+              let harmonyShift = Math.max(0, myIdx); // Každý hráč dostane svůj vlastní tón v harmonii!
+              
+              let baseIdx = (p.hp >= 200) ? floor(random(0, 5)) : floor(random(3, 10));
+              let vol = (p.hp >= 200) ? 0.004 : 0.008;
+              
+              let newIdx = baseIdx + harmonyShift;
+              let octaves = Math.floor(newIdx / 5);
+              let noteInOctave = newIdx % 5;
+              let baseNotes = [261.63, 293.66, 329.63, 392.00, 440.00];
+              let finalFreq = baseNotes[noteInOctave] * Math.pow(2, octaves);
+              
+              safePlaySound(finalFreq, vol, 0.1);
           }
 
           if (amount >= 5) {
@@ -4623,16 +4638,16 @@ function drawResults() {
       winnerAnnounced = true;
   }
 
-  let bY = ARENA_TOP + 340; 
+  let bY = ARENA_TOP + 480; 
   let anim = constrain(map(resultsTimer, maxResultsTimer, maxResultsTimer - 1, 0, 1), 0, 1);
 
   // --- STUPÍNKY (větší a čitelnější) ---
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
       let p = sorted[i];
       let px, ph, pcol, podW;
-      if (i === 0) { px = W/2; ph = 140; pcol = color(255, 215, 0); podW = 130; }
-      else if (i === 1) { px = W/2 - 155; ph = 100; pcol = color(192, 192, 192); podW = 120; }
-      else { px = W/2 + 155; ph = 70; pcol = color(205, 127, 50); podW = 120; }
+      if (i === 0) { px = W/2; ph = 240; pcol = color(255, 215, 0); podW = 220; }
+      else if (i === 1) { px = W/2 - 270; ph = 170; pcol = color(192, 192, 192); podW = 200; }
+      else { px = W/2 + 270; ph = 110; pcol = color(205, 127, 50); podW = 200; }
 
       let curH = ph * anim;
       
@@ -4646,7 +4661,7 @@ function drawResults() {
       stroke(pcol); strokeWeight(3); noFill();
       rect(px - podW/2, bY - curH, podW, curH, 12, 12, 0, 0);
       
-      fill(pcol); noStroke(); textSize(i === 0 ? 42 : 32); textAlign(CENTER, CENTER); textStyle(BOLD);
+      fill(pcol); noStroke(); textSize(i === 0 ? 64 : 48); textAlign(CENTER, CENTER); textStyle(BOLD);
       drawingContext.shadowBlur = 15;
       drawingContext.shadowColor = `rgba(${red(pcol)}, ${green(pcol)}, ${blue(pcol)}, 0.6)`;
       text(i+1, px, bY - curH/2);
@@ -4655,7 +4670,7 @@ function drawResults() {
 
       if (anim > 0.8) {
           push();
-          let ballR = i === 0 ? 40 : 30;
+          let ballR = i === 0 ? 65 : 50;
           let imgY = bY - curH - ballR - 15;
           
           // Záře koule
@@ -4676,10 +4691,10 @@ function drawResults() {
 
           // drawingContext.shadowBlur = 10;
           drawingContext.shadowColor = 'rgba(0,0,0,0.9)';
-          fill(255); noStroke(); textSize(i===0 ? 18 : 14); textStyle(BOLD); textAlign(CENTER, BOTTOM);
-          text(p.name.substring(0,12), px, imgY - ballR - 10);
-          fill(pcol); textSize(i===0 ? 15 : 12);
-          text(formatK(p.hp) + " HP", px, imgY - ballR - 30);
+          fill(255); noStroke(); textSize(i===0 ? 26 : 20); textStyle(BOLD); textAlign(CENTER, BOTTOM);
+          text(p.name.substring(0,12), px, imgY - ballR - 15);
+          fill(pcol); textSize(i===0 ? 22 : 18);
+          text(formatK(p.hp) + " HP", px, imgY - ballR - 40);
           drawingContext.shadowBlur = 0;
           pop();
       }
@@ -4693,36 +4708,36 @@ function drawResults() {
     // HÁDANKÁŘI (levý panel)
     if (riddleArr.length > 0) {
       push();
-      let rY = bY + 30;
+      let rY = bY + 60;
       let panelW = mvpArr.length > 0 ? W/2 - 50 : W - 60;
       fill(10, 15, 30, 230); stroke(0, 242, 254); strokeWeight(2);
-      rect(30, rY, panelW, 38 + riddleArr.length * 32, 12);
+      rect(30, rY, panelW, 55 + riddleArr.length * 45, 12);
 
       drawingContext.shadowBlur = 15;
       drawingContext.shadowColor = 'rgba(0, 242, 254, 0.6)';
-      fill(0, 242, 254); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
-      text("\uD83E\uDDE0 TOP HÁDANKÁŘI", 30 + panelW/2, rY + 8);
+      fill(0, 242, 254); noStroke(); textSize(20); textAlign(CENTER, TOP); textStyle(BOLD);
+      text("\uD83E\uDDE0 TOP HÁDANKÁŘI", 30 + panelW/2, rY + 12);
       drawingContext.shadowBlur = 0;
 
       for (let j = 0; j < riddleArr.length; j++) {
           let rName = riddleArr[j][0];
           let rCount = riddleArr[j][1];
-          let ry = rY + 36 + j * 32;
+          let ry = rY + 50 + j * 45;
           let rankCol = j === 0 ? color(255, 215, 0) : (j === 1 ? color(192, 192, 192) : (j === 2 ? color(205, 127, 50) : color(180)));
           
           fill(255, 255, 255, 15); noStroke();
-          rect(40, ry - 12, panelW - 20, 28, 6);
+          rect(40, ry - 18, panelW - 20, 36, 6);
           
-          let ax = 60;
+          let ax = 65;
           if (userAvatars[rName] && userAvatars[rName] !== "loaded") {
-              imageMode(CENTER); image(userAvatars[rName], ax, ry, 22, 22);
+              imageMode(CENTER); image(userAvatars[rName], ax, ry, 28, 28);
           } else {
-              fill(rankCol); noStroke(); ellipse(ax, ry, 22);
+              fill(rankCol); noStroke(); ellipse(ax, ry, 28);
           }
           
-          fill(rankCol); noStroke(); textAlign(LEFT, CENTER); textSize(13); textStyle(BOLD);
-          text((j+1) + ". " + rName.substring(0, 10), 78, ry);
-          fill(0, 242, 254); textAlign(RIGHT, CENTER); textSize(13);
+          fill(rankCol); noStroke(); textAlign(LEFT, CENTER); textSize(18); textStyle(BOLD);
+          text((j+1) + ". " + rName.substring(0, 10), 85, ry);
+          fill(0, 242, 254); textAlign(RIGHT, CENTER); textSize(18);
           text(rCount + "x \uD83C\uDFAF", 30 + panelW - 15, ry);
       }
       pop();
@@ -4733,15 +4748,15 @@ function drawResults() {
       push();
       let donorX = riddleArr.length > 0 ? W/2 + 10 : 30;
       let donorW = riddleArr.length > 0 ? W/2 - 40 : W - 60;
-      let donorY = bY + 30;
+      let donorY = bY + 60;
       let donorItemCount = Math.min(mvpArr.length, 5);
       fill(10, 15, 30, 230); stroke(255, 215, 0); strokeWeight(2);
-      rect(donorX, donorY, donorW, 38 + donorItemCount * 32, 12);
+      rect(donorX, donorY, donorW, 55 + donorItemCount * 45, 12);
 
       drawingContext.shadowBlur = 15;
       drawingContext.shadowColor = 'rgba(255, 215, 0, 0.6)';
-      fill(255, 215, 0); noStroke(); textSize(15); textAlign(CENTER, TOP); textStyle(BOLD);
-      text("\uD83D\uDC8E DÁRCI KOLA", donorX + donorW/2, donorY + 8);
+      fill(255, 215, 0); noStroke(); textSize(20); textAlign(CENTER, TOP); textStyle(BOLD);
+      text("\uD83D\uDC8E DÁRCI KOLA", donorX + donorW/2, donorY + 12);
       drawingContext.shadowBlur = 0;
 
       for (let j = 0; j < donorItemCount; j++) {
@@ -4750,21 +4765,21 @@ function drawResults() {
           let dScore = dData[1].score;
           let dColor = dData[1].color;
           let dAv = dData[1].avatar;
-          let dy = donorY + 36 + j * 32;
+          let dy = donorY + 50 + j * 45;
           
           fill(255, 255, 255, 15); noStroke();
-          rect(donorX + 10, dy - 12, donorW - 20, 28, 6);
+          rect(donorX + 10, dy - 18, donorW - 20, 36, 6);
           
-          let ax = donorX + 30;
+          let ax = donorX + 35;
           if (dAv && dAv !== "loaded") {
-              imageMode(CENTER); image(dAv, ax, dy, 22, 22);
+              imageMode(CENTER); image(dAv, ax, dy, 28, 28);
           } else {
-              fill(dColor); noStroke(); ellipse(ax, dy, 22);
+              fill(dColor); noStroke(); ellipse(ax, dy, 28);
           }
           
-          fill(dColor); noStroke(); textAlign(LEFT, CENTER); textSize(13); textStyle(BOLD);
-          text((j+1) + ". " + dName.substring(0, 10), ax + 18, dy);
-          fill(255, 215, 0); textAlign(RIGHT, CENTER); textSize(13);
+          fill(dColor); noStroke(); textAlign(LEFT, CENTER); textSize(18); textStyle(BOLD);
+          text((j+1) + ". " + dName.substring(0, 10), ax + 25, dy);
+          fill(255, 215, 0); textAlign(RIGHT, CENTER); textSize(18);
           text(dScore.toLocaleString() + " \uD83D\uDC8E", donorX + donorW - 15, dy);
       }
       pop();
@@ -4773,34 +4788,34 @@ function drawResults() {
 
   // --- SEZNAM DALŠÍCH HRÁČŮ ---
   let panelMaxItems = Math.max(riddleArr.length, Math.min(mvpArr.length, 5));
-  let panelH = panelMaxItems > 0 ? 38 + panelMaxItems * 32 : 0;
-  let listStartY = bY + 30 + panelH + 20;
+  let panelH = panelMaxItems > 0 ? 55 + panelMaxItems * 45 : 0;
+  let listStartY = bY + 60 + panelH + 30;
   textAlign(LEFT, CENTER); 
   let maxListItems = 10;
   let listLimit = Math.min(sorted.length, maxListItems);
   
   if (listLimit > 3 && anim > 0.8) {
       push();
-      let listH = (listLimit - 3) * 30 + 10;
+      let listH = (listLimit - 3) * 45 + 15;
       fill(10, 15, 30, 200); stroke(100, 100, 120); strokeWeight(1);
-      rect(W/2 - 230, listStartY - 15, 460, listH, 10);
+      rect(W/2 - 280, listStartY - 20, 560, listH, 10);
       pop();
   }
   
   for (let i = 3; i < listLimit; i++) {
-    let p = sorted[i]; let yPos = listStartY + (i-3) * 30;
+    let p = sorted[i]; let yPos = listStartY + (i-3) * 45;
     fill(i % 2 === 0 ? color(255, 255, 255, 20) : color(255, 255, 255, 8)); noStroke();
-    rect(W/2 - 220, yPos - 13, 440, 28, 6);
+    rect(W/2 - 270, yPos - 18, 540, 36, 6);
     
-    fill(200); textSize(14); textStyle(BOLD); text((i + 1) + ".", W/2 - 200, yPos);
+    fill(200); textSize(18); textStyle(BOLD); text((i + 1) + ".", W/2 - 250, yPos);
     
     if (userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-        drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 165, yPos, 11, 0, TWO_PI); drawingContext.clip();
-        image(userAvatars[p.name], W/2 - 165, yPos, 22, 22); drawingContext.restore();
+        drawingContext.save(); drawingContext.beginPath(); drawingContext.arc(W/2 - 210, yPos, 15, 0, TWO_PI); drawingContext.clip();
+        image(userAvatars[p.name], W/2 - 210, yPos, 30, 30); drawingContext.restore();
     }
-    fill(255); textStyle(NORMAL); textSize(14); text(p.name.substring(0, 14), W/2 - 145, yPos);
-    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); textSize(14);
-    text(Math.floor(Math.max(0, p.hp)).toLocaleString() + " HP", W/2 + 210, yPos);
+    fill(255); textStyle(NORMAL); textSize(18); text(p.name.substring(0, 14), W/2 - 180, yPos);
+    textAlign(RIGHT, CENTER); fill(255); textStyle(BOLD); textSize(18);
+    text(Math.floor(Math.max(0, p.hp)).toLocaleString() + " HP", W/2 + 250, yPos);
     textAlign(LEFT, CENTER); 
   }
   
@@ -5461,7 +5476,7 @@ function connectTikfinity() {
           pendingLikes[u].lastUpdate = millis();
 
           // PlynulĂ© pĹ™idĂˇvĂˇnĂ­ HP pĹ™es handleAction (aby fungovala pila a dalĹˇĂ­ efekty)
-          handleAction(u, likesCount * 2, false, 0, true);
+          handleAction(u, likesCount * 0.5, false, 0, true); // 1 HP za 2 lajky (0.5 HP za lajk)
       }
       else if (evt === "share") {
           let p = players.find(x => x.name === u);
