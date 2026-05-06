@@ -4361,22 +4361,84 @@ function drawPlayer(p) {
       if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
   }
 
-  // AFK vizual: modry ledovy obrys + napis
+  // AFK vizual: ledova namraza (bez textu)
   if (p.isFrozen) {
       push();
+      
+      // 1. Jemna modra zamlzena aura (namraza "pach")
+      noStroke();
+      fill(180, 220, 255, 30 + sin(frameCount * 0.05) * 15);
+      circle(0, 0, visualR * 2.8);
+      
+      // 2. Ledovy overlay na kouli - pruhledny modrobilocerny
+      fill(140, 200, 255, 80 + sin(frameCount * 0.08) * 20);
+      noStroke();
+      circle(0, 0, visualR * 2.05);
+      
+      // 3. Ledove krystaly / hroty okolo kruhu (namraza)
+      let numSpikes = 14;
+      let baseR = visualR * 1.08;
+      colorMode(HSB, 360, 100, 100, 255);
+      for (let i = 0; i < numSpikes; i++) {
+          let angle = (TWO_PI / numSpikes) * i + frameCount * 0.004;
+          // Kazdy hrot ma jinou delku (nahodna ale deterministicka pres seed)
+          let lenMult = 0.55 + 0.45 * abs(sin(i * 2.3 + 1.7));
+          let spikeLen = visualR * lenMult;
+          let spikeW = Math.max(2, visualR * 0.07);
+          
+          // Hlavni hrot - trojuhelnik
+          let tipX = cos(angle) * (baseR + spikeLen);
+          let tipY = sin(angle) * (baseR + spikeLen);
+          let lX = cos(angle + 0.18) * (baseR + spikeLen * 0.15);
+          let lY = sin(angle + 0.18) * (baseR + spikeLen * 0.15);
+          let rX = cos(angle - 0.18) * (baseR + spikeLen * 0.15);
+          let rY = sin(angle - 0.18) * (baseR + spikeLen * 0.15);
+          
+          // Ledovy gradient: svetlejsi pri zakladu, belsi na spici
+          let alpha = 180 + sin(frameCount * 0.07 + i) * 40;
+          fill(200, 60, 100, alpha);
+          noStroke();
+          beginShape();
+          vertex(lX, lY);
+          vertex(tipX, tipY);
+          vertex(rX, rY);
+          endShape(CLOSE);
+          
+          // Vedlejsi mensi hrot (namraza ma vicenasobne krystaly)
+          if (i % 2 === 0) {
+              let a2 = angle + (TWO_PI / numSpikes) * 0.5;
+              let len2 = visualR * 0.25;
+              let tip2X = cos(a2) * (baseR + len2);
+              let tip2Y = sin(a2) * (baseR + len2);
+              let l2X = cos(a2 + 0.22) * (baseR + len2 * 0.1);
+              let l2Y = sin(a2 + 0.22) * (baseR + len2 * 0.1);
+              let r2X = cos(a2 - 0.22) * (baseR + len2 * 0.1);
+              let r2Y = sin(a2 - 0.22) * (baseR + len2 * 0.1);
+              fill(195, 50, 100, alpha * 0.7);
+              beginShape();
+              vertex(l2X, l2Y);
+              vertex(tip2X, tip2Y);
+              vertex(r2X, r2Y);
+              endShape(CLOSE);
+          }
+      }
+      colorMode(RGB, 255);
+      
+      // 4. Ledovy obrys kruhu
       noFill();
-      stroke(0, 150, 255, 200);
-      strokeWeight(4);
-      circle(0, 0, visualR * 2.2);
-      fill(0, 150, 255, 120);
+      stroke(180, 230, 255, 200);
+      strokeWeight(Math.max(2, visualR * 0.06));
+      circle(0, 0, visualR * 2.1);
+      
+      // 5. Odlesky uvnitr (ledove skvrny)
       noStroke();
-      circle(0, 0, visualR * 2.2);
-      fill(255);
-      noStroke();
-      textSize(Math.max(12, visualR * 0.45));
-      textStyle(BOLD);
-      textAlign(CENTER, CENTER);
-      text('AFK', 0, 0);
+      for (let i = 0; i < 5; i++) {
+          let sx = sin(i * 1.8 + 0.5) * visualR * 0.45;
+          let sy = cos(i * 2.1 + 1.2) * visualR * 0.35;
+          fill(220, 240, 255, 60 + sin(frameCount * 0.1 + i) * 25);
+          ellipse(sx, sy, visualR * 0.22, visualR * 0.10);
+      }
+      
       pop();
   }
 
