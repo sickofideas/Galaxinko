@@ -3331,10 +3331,20 @@ function handleCameraAndPlayers() {
     let cx = W/2 + Math.sin(frameCount * 0.005) * (W * 0.40); 
     let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.40);
     
-    // AFK: zmrazeni po 60s neaktivity (jen realni hrac)
-    if (!p.isBot && !p.isZombie && !p.isFrozen && p.lastActionTime && Date.now() - p.lastActionTime > 60000) {
-        p.isFrozen = true;
-        Matter.Body.set(p.body, 'frictionAir', 0.4);
+    // AFK: zmrazeni po 60s neaktivity, rozmrazeni po 15s → cyklus
+    if (!p.isBot && !p.isZombie && p.lastActionTime) {
+        if (!p.isFrozen && Date.now() - p.lastActionTime > 60000) {
+            // Zmrazit
+            p.isFrozen = true;
+            p.frozenSince = Date.now();
+            Matter.Body.set(p.body, 'frictionAir', 0.4);
+        } else if (p.isFrozen && p.frozenSince && Date.now() - p.frozenSince > 15000) {
+            // Auto-rozmrazit po 15s a dat novy 60s cas
+            p.isFrozen = false;
+            p.frozenSince = null;
+            p.lastActionTime = Date.now(); // reset: bude poletovat 60s
+            Matter.Body.set(p.body, 'frictionAir', 0.08);
+        }
     }
     let afkMult = (p.isFrozen) ? 0.05 : 1.0;
     
