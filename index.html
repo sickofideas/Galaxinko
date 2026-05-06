@@ -3963,6 +3963,51 @@ function drawPlayer(p) {
   scale(isBuffed ? 1.05 : 1.0);
   rotate(p.rot);
 
+
+  let r = p.body.circleRadius;
+  let visualR = r;
+
+  if (p.hp >= 2000 && p.hp < 5000) {
+      visualR = r + sin(frameCount * 0.1 + p.body.id) * (r * 0.1);
+      noStroke();
+      fill(255, 50, 0, 80);
+      circle(0, 0, visualR * 2.8 + random(-2, 2));
+      fill(255, 150, 0, 120);
+      circle(0, 0, visualR * 2.3);
+  }
+  else if (p.hp >= 5000 && p.hp < 10000) {
+      let t = frameCount * 0.08 + p.body.id;
+      for(let i = 0; i < 3; i++) {
+          let angle = t + (i * TWO_PI / 3);
+          let orbX = cos(angle) * (r * 1.8);
+          let orbY = sin(angle) * (r * 1.8);
+          noStroke();
+          fill(0, 242, 254, 200);
+          circle(orbX, orbY, r * 0.5);
+          fill(255);
+          circle(orbX, orbY, r * 0.2);
+      }
+  }
+  else if (p.hp >= 10000) {
+      noStroke();
+      fill(50, 0, 80, 150);
+      circle(0, 0, r * 3.5);
+      stroke(200, 50, 255, 200);
+      strokeWeight(2);
+      for(let i = 0; i < 3; i++) {
+          if (random() > 0.4) {
+              let angle = random(TWO_PI);
+              let l1 = r * random(1.2, 1.8);
+              let l2 = r * random(2.0, 3.5);
+              let a2 = angle + random(-0.3, 0.3);
+              let x1 = cos(angle) * l1, y1 = sin(angle) * l1;
+              let x2 = cos(a2) * l2, y2 = sin(a2) * l2;
+              line(0, 0, x1, y1);
+              line(x1, y1, x2, y2);
+          }
+      }
+  }
+
   // 3. BOT FACE (Vypnuto - boti nynĂ­ majĂ­ profilovky jako reĂˇlnĂ­ hrĂˇÄŤi)
   /*
   if (p.isBot) {
@@ -4137,7 +4182,7 @@ function drawPlayer(p) {
       pop();
   }
 
-  let imgSize = p.r * 1.93;
+  let imgSize = visualR * 1.93;
   let isTop10 = currentTop10.includes(p.name);
   let shouldDrawAvatar = true; 
   // VypnutĂ­ profilovek pro obyÄŤejnĂ© hrĂˇÄŤe pĹ™i zĂˇtÄ›Ĺľi bylo odstranÄ›no na ĹľĂˇdost uĹľivatele (profilovky musĂ­ bĂ˝t vidÄ›t vĹľdy)
@@ -4161,6 +4206,12 @@ function drawPlayer(p) {
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
       noTint(); 
   }
+  if (p.hp >= 10000) {
+      noStroke();
+      fill(20, 0, 40, 180);
+      circle(0, 0, visualR * 2);
+  }
+
 
   noFill(); 
   stroke(0, 255); // SolidnĂ­ okraj pro vĹˇechny
