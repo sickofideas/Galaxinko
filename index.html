@@ -4040,24 +4040,6 @@ function drawPlayer(p) {
       fill(255, 215, 0, 50 + sin(frameCount * 0.15) * 30);
       noStroke();
       ellipse(0, 0, p.r * 2.4 + sin(frameCount * 0.2) * 15);
-
-      // --- DUHOVÝ KRUHOVÝ OBRYS PRO TOP 1 ---
-      push();
-      noFill();
-      let rainbowR = p.r * 1.25 + sin(frameCount * 0.18) * (p.r * 0.06);
-      let rainbowSegs = 36;
-      let rainbowThick = Math.max(3, p.r * 0.12);
-      strokeWeight(rainbowThick);
-      colorMode(HSB, 360, 100, 100, 255);
-      for (let i = 0; i < rainbowSegs; i++) {
-          let a1 = (TWO_PI / rainbowSegs) * i;
-          let a2 = (TWO_PI / rainbowSegs) * (i + 1.3);
-          let hue = (frameCount * 1.5 + i * (360 / rainbowSegs)) % 360;
-          stroke(hue, 90, 100, 230);
-          arc(0, 0, rainbowR * 2, rainbowR * 2, a1, a2);
-      }
-      colorMode(RGB, 255);
-      pop();
   }
 
   // Buff záře (Duhová pro korunku, bílá pro běžný buff)
@@ -4361,84 +4343,91 @@ function drawPlayer(p) {
       if (p.healDisplayTimer === 0) p.healDisplayValue = 0;
   }
 
-  // AFK vizual: ledova namraza (bez textu)
+  // AFK vizual: led/mraz dovnitr (jako zmrzle sklo)
   if (p.isFrozen) {
       push();
-      
-      // 1. Jemna modra zamlzena aura (namraza "pach")
+
+      // 1. Jemna studena aura vne
       noStroke();
-      fill(180, 220, 255, 30 + sin(frameCount * 0.05) * 15);
-      circle(0, 0, visualR * 2.8);
-      
-      // 2. Ledovy overlay na kouli - pruhledny modrobilocerny
-      fill(140, 200, 255, 80 + sin(frameCount * 0.08) * 20);
+      fill(180, 220, 255, 22 + sin(frameCount * 0.04) * 10);
+      circle(0, 0, visualR * 2.45);
+
+      // 2. Ledovy overlay pres kouli (zmrzle sklo)
+      fill(160, 210, 255, 70 + sin(frameCount * 0.07) * 18);
       noStroke();
-      circle(0, 0, visualR * 2.05);
-      
-      // 3. Ledove krystaly / hroty okolo kruhu (namraza)
-      let numSpikes = 14;
-      let baseR = visualR * 1.08;
+      circle(0, 0, visualR * 2.0);
+
+      // 3. Prusvitny bily "zamlzeny" vnitrni kruh
+      fill(230, 245, 255, 40);
+      noStroke();
+      circle(0, 0, visualR * 1.6);
+
+      // 4. Ledove praskliny / hroty z obvodu DOVNITR
+      let edgeR = visualR * 0.98; // zacatek hrotů je tésně uvnitr obvodu
+      let numSpikes = 18;
       colorMode(HSB, 360, 100, 100, 255);
+      noStroke();
       for (let i = 0; i < numSpikes; i++) {
-          let angle = (TWO_PI / numSpikes) * i + frameCount * 0.004;
-          // Kazdy hrot ma jinou delku (nahodna ale deterministicka pres seed)
-          let lenMult = 0.55 + 0.45 * abs(sin(i * 2.3 + 1.7));
-          let spikeLen = visualR * lenMult;
-          let spikeW = Math.max(2, visualR * 0.07);
-          
-          // Hlavni hrot - trojuhelnik
-          let tipX = cos(angle) * (baseR + spikeLen);
-          let tipY = sin(angle) * (baseR + spikeLen);
-          let lX = cos(angle + 0.18) * (baseR + spikeLen * 0.15);
-          let lY = sin(angle + 0.18) * (baseR + spikeLen * 0.15);
-          let rX = cos(angle - 0.18) * (baseR + spikeLen * 0.15);
-          let rY = sin(angle - 0.18) * (baseR + spikeLen * 0.15);
-          
-          // Ledovy gradient: svetlejsi pri zakladu, belsi na spici
-          let alpha = 180 + sin(frameCount * 0.07 + i) * 40;
-          fill(200, 60, 100, alpha);
-          noStroke();
+          let angle = (TWO_PI / numSpikes) * i + frameCount * 0.003;
+          // ruzne delky - deterministicke pres index
+          let lenMult = 0.12 + 0.16 * abs(sin(i * 1.9 + 0.8));
+          let spikeLen = visualR * lenMult; // kratke hroty dovnitr
+
+          // hrot smeruje ke stredu (od edgeR smerem k 0)
+          let outerX = cos(angle) * edgeR;
+          let outerY = sin(angle) * edgeR;
+          let innerX = cos(angle) * (edgeR - spikeLen);
+          let innerY = sin(angle) * (edgeR - spikeLen);
+          let lX = cos(angle + 0.15) * (edgeR - spikeLen * 0.1);
+          let lY = sin(angle + 0.15) * (edgeR - spikeLen * 0.1);
+          let rX = cos(angle - 0.15) * (edgeR - spikeLen * 0.1);
+          let rY = sin(angle - 0.15) * (edgeR - spikeLen * 0.1);
+
+          let alpha = 160 + sin(frameCount * 0.06 + i * 0.7) * 50;
+          fill(200, 55, 100, alpha);
           beginShape();
           vertex(lX, lY);
-          vertex(tipX, tipY);
+          vertex(innerX, innerY); // spicka smeruje DOVNITR
           vertex(rX, rY);
           endShape(CLOSE);
-          
-          // Vedlejsi mensi hrot (namraza ma vicenasobne krystaly)
-          if (i % 2 === 0) {
-              let a2 = angle + (TWO_PI / numSpikes) * 0.5;
-              let len2 = visualR * 0.25;
-              let tip2X = cos(a2) * (baseR + len2);
-              let tip2Y = sin(a2) * (baseR + len2);
-              let l2X = cos(a2 + 0.22) * (baseR + len2 * 0.1);
-              let l2Y = sin(a2 + 0.22) * (baseR + len2 * 0.1);
-              let r2X = cos(a2 - 0.22) * (baseR + len2 * 0.1);
-              let r2Y = sin(a2 - 0.22) * (baseR + len2 * 0.1);
-              fill(195, 50, 100, alpha * 0.7);
-              beginShape();
-              vertex(l2X, l2Y);
-              vertex(tip2X, tip2Y);
-              vertex(r2X, r2Y);
-              endShape(CLOSE);
-          }
       }
       colorMode(RGB, 255);
-      
-      // 4. Ledovy obrys kruhu
+
+      // 5. Tenky ledovy obrys (pevny kruh kolem)
       noFill();
-      stroke(180, 230, 255, 200);
-      strokeWeight(Math.max(2, visualR * 0.06));
-      circle(0, 0, visualR * 2.1);
-      
-      // 5. Odlesky uvnitr (ledove skvrny)
+      stroke(190, 235, 255, 210 + sin(frameCount * 0.1) * 30);
+      strokeWeight(Math.max(2.5, visualR * 0.07));
+      circle(0, 0, visualR * 2.0);
+
+      // 6. Odlesky uvnitr (ledove skvrny na povrchu)
       noStroke();
-      for (let i = 0; i < 5; i++) {
-          let sx = sin(i * 1.8 + 0.5) * visualR * 0.45;
-          let sy = cos(i * 2.1 + 1.2) * visualR * 0.35;
-          fill(220, 240, 255, 60 + sin(frameCount * 0.1 + i) * 25);
-          ellipse(sx, sy, visualR * 0.22, visualR * 0.10);
+      for (let i = 0; i < 4; i++) {
+          let sx = sin(i * 1.6 + 0.9) * visualR * 0.38;
+          let sy = cos(i * 2.3 + 0.4) * visualR * 0.30;
+          fill(230, 248, 255, 55 + sin(frameCount * 0.09 + i * 1.1) * 20);
+          ellipse(sx, sy, visualR * 0.20, visualR * 0.09);
       }
-      
+
+      pop();
+  }
+
+  // --- DUHOVY OBRYS TOP 1 (vzdy posledni, vzdy viditelny) ---
+  if (isLeader && !p.isBot) {
+      push();
+      noFill();
+      let rainbowR = visualR * 1.18 + sin(frameCount * 0.18) * (visualR * 0.05);
+      let rainbowSegs = 36;
+      let rainbowThick = Math.max(3, visualR * 0.12);
+      strokeWeight(rainbowThick);
+      colorMode(HSB, 360, 100, 100, 255);
+      for (let i = 0; i < rainbowSegs; i++) {
+          let a1 = (TWO_PI / rainbowSegs) * i;
+          let a2 = (TWO_PI / rainbowSegs) * (i + 1.3);
+          let hue = (frameCount * 1.5 + i * (360 / rainbowSegs)) % 360;
+          stroke(hue, 90, 100, 240);
+          arc(0, 0, rainbowR * 2, rainbowR * 2, a1, a2);
+      }
+      colorMode(RGB, 255);
       pop();
   }
 
