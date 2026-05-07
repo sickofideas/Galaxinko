@@ -5250,9 +5250,10 @@ function draw() {
   if (totalAlive < targetTotal) {
       if (millis() > nextBotSpawnTime) {
           spawnIdleBot();
-          // Pokud je aktivní Bot Crusher bonus, boti se spawnují výrazně pomaleji (3-5s)
-          let spawnInterval = isAnyBotCrusherActive ? 3500 : (totalAlive < 50 ? 400 : 800);
-          nextBotSpawnTime = millis() + random(spawnInterval, spawnInterval * 1.5);
+          // Pokud je aktivní Bot Crusher bonus, boti se spawnují výrazně pomaleji (3.5 - 5.2s)
+          let minInt = isAnyBotCrusherActive ? 3500 : 1000;
+          let maxInt = isAnyBotCrusherActive ? 5250 : (totalAlive < 50 ? 2000 : 3000);
+          nextBotSpawnTime = millis() + random(minInt, maxInt);
       }
   }
 
