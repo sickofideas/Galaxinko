@@ -3332,15 +3332,20 @@ function handleCameraAndPlayers() {
     let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.40);
     
     // AFK: zmrazeni po nahodnem casu 45-60s neaktivity, rozmrazeni po nahodnem casu 5-15s → cyklus
+    // MAX 3 hracu muzou byt zmrazeni najednou (vizual + fyzika), vypocty bezi dal pro vsechny
     if (!p.isBot && !p.isZombie && p.lastActionTime) {
         // Nastavit nahodny prah klidu pri prvnim volani nebo po rozmrazeni
         if (!p.afkDelay) p.afkDelay = 45000 + Math.random() * 15000; // 45-60s
         if (!p.isFrozen && Date.now() - p.lastActionTime > p.afkDelay) {
-            // Zmrazit + nahodna doba zmrazeni 5-15s
-            p.isFrozen = true;
-            p.frozenSince = Date.now();
-            p.frozenDuration = 5000 + Math.random() * 10000; // 5-15s
-            Matter.Body.set(p.body, 'frictionAir', 0.4);
+            // Zmrazit jen pokud je mene nez 3 hracu jiz zmrazenych
+            let currentlyFrozen = players.filter(x => x.isFrozen).length;
+            if (currentlyFrozen < 3) {
+                p.isFrozen = true;
+                p.frozenSince = Date.now();
+                p.frozenDuration = 5000 + Math.random() * 10000; // 5-15s
+                Matter.Body.set(p.body, 'frictionAir', 0.4);
+            }
+            // Pokud je uz 3 zmrazenych, timer AFK bezi dal, jen vizualne nerozmrazujeme
         } else if (p.isFrozen && p.frozenSince && Date.now() - p.frozenSince > (p.frozenDuration || 10000)) {
             // Auto-rozmrazit a dat novy nahodny cas klidu
             p.isFrozen = false;
