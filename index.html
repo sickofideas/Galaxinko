@@ -2333,6 +2333,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   }
   let safeHp = Math.max(0, hp || 500); 
   let r = getRadius(safeHp);
+  if (isBot) r *= 0.85; // Zmenšení botů o 15%
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
   let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
       restitution: 0.1,    // Sníženo, aby neposkakovaly jak ping-pong míčky
