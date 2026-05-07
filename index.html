@@ -2351,6 +2351,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot, botDmgTimer: 0,
+    riddleVisualTimer: 0, giftVisualTimer: 0, giftVisualEmoji: '🎁',
     shareBuffTimer: 0, shareCooldown: 0,
     hpBuffer: 0, // OPRAVA: Inicializace hpBuffer, aby fungoval Share/Repost bonus
     dmgDisplayValue: 0, dmgDisplayTimer: 0,
@@ -4489,6 +4490,63 @@ function drawPlayer(p) {
       pop();
   }
 
+  // ==========================================
+  // VIZUÁLNÍ EFEKTY AKCÍ (Dárky a Hádanky)
+  // ==========================================
+
+  // 1. EFEKT UHODNUTÉ HÁDANKY (200 IQ Žárovka)
+  if (p.riddleVisualTimer > 0) {
+      push();
+      let popScale = map(p.riddleVisualTimer, 180, 0, 1.5, 0); // Zmenšování v čase
+      let bounceY = sin(frameCount * 0.2) * 15; // Skákání nahoru a dolů
+      
+      translate(0, -visualR * 1.8 + bounceY); // Umístění NAD kuličku
+      scale(popScale);
+      
+      // Zářivá aura pod emoji
+      drawingContext.shadowColor = 'rgba(255, 255, 0, 1)';
+      drawingContext.shadowBlur = 20;
+      
+      textAlign(CENTER, CENTER);
+      textSize(visualR * 1.2); 
+      text('💡', 0, 0); 
+      
+      drawingContext.shadowBlur = 0;
+      
+      // Text 200 IQ
+      fill(255, 255, 0);
+      stroke(0);
+      strokeWeight(3);
+      textSize(visualR * 0.5);
+      text('200 IQ!', 0, -visualR * 0.8);
+      
+      pop();
+      p.riddleVisualTimer--;
+  }
+
+  // 2. EFEKT DÁRKU / RŮŽE (Rotující exploze ikony)
+  if (p.giftVisualTimer > 0) {
+      push();
+      let pulseScale = 1 + sin(frameCount * 0.3) * 0.5;
+      let rot = frameCount * 0.1;
+      
+      rotate(rot);
+      scale(pulseScale);
+      
+      let alpha = map(p.giftVisualTimer, 120, 0, 255, 0);
+      
+      textAlign(CENTER, CENTER);
+      textSize(visualR * 1.8);
+      
+      drawingContext.globalAlpha = alpha / 255;
+      text(p.giftVisualEmoji || '🎁', 0, 0);
+      drawingContext.globalAlpha = 1.0; 
+      
+      pop();
+      p.giftVisualTimer--;
+  }
+  // ==========================================
+
   noStroke(); pop();
 }
 
@@ -5671,6 +5729,7 @@ function connectTikfinity() {
                   winnerP.hp += 500;
                   winnerP.orbSpeedTimer = Math.max(winnerP.orbSpeedTimer, 10 * 60); 
                   winnerP.botDmgTimer = Math.max(winnerP.botDmgTimer, 900); // 15 sekund Bot Crusher
+                  winnerP.riddleVisualTimer = 180; // Efekt potrvá 3 vteřiny
               } else {
                   handleAction(u, 500, false, 0, true);
                   setTimeout(() => {
@@ -5678,6 +5737,7 @@ function connectTikfinity() {
                       if (newP) {
                           newP.orbSpeedTimer = 10 * 60;
                           newP.botDmgTimer = 900;
+                          newP.riddleVisualTimer = 180;
                       }
                   }, 500);
               }
@@ -5785,9 +5845,14 @@ function connectTikfinity() {
 
           // Tohle zajistí spawn i provedení fyzických efektů (Armagedon, Nuke, Black Hole...)
           handleAction(u, 0, true, diam, true, comboMult); 
+
+          // --- VIZUÁLNÍ EMOJI EFEKT ---
           let p = players.find(x => x.name === u);
-          
           if (p) {
+              p.giftVisualTimer = 120;
+              let gName = (d?.data?.giftName || "").toLowerCase();
+              p.giftVisualEmoji = gName.includes("rose") ? '🌹' : '🎁';
+              
               // Legenda status
               if (comboMult >= 3 && !p.isLegendary) {
                   p.isLegendary = true;
