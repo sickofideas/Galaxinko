@@ -3383,10 +3383,10 @@ function handleCameraAndPlayers() {
     finalFx += noiseValX * 0.00012 * p.body.mass; // Snížený šum o 15%
     finalFy += noiseValY * 0.00012 * p.body.mass;
 
-    // Hráči mají o 15% větší sílu, aby pomalu přetlačili boty
+    // Hracu maji o 45% vetsi silu, aby snaze proplouvali a odtlacili boty
     if (!p.isBot) {
-        finalFx *= 1.15;
-        finalFy *= 1.15;
+        finalFx *= 1.45;
+        finalFy *= 1.45;
     }
 
     // Pomalejší posun šumu = plynulejší změny pohybu
@@ -3428,6 +3428,12 @@ function handleCameraAndPlayers() {
         currentMaxV *= 0.4;
     }
 
+
+    // BONUS ZA LIKOVANI: Hracici kteri nekdy lajkli jsou o 25% rychlejsi nez ostatni hrace
+    if (!p.isBot && !p.isZombie && sessionLikes[p.name] > 0) {
+        tSpd *= 1.25;
+        currentMaxV *= 1.25;
+    }
     // ZOMBÍCI SE PLOUŽÍ (-60% rychlost)
     if (p.isZombie) {
         tSpd *= 0.4;
@@ -3443,7 +3449,7 @@ function handleCameraAndPlayers() {
     // --- ZRYCHLENĂŤ ZA TAPOVĂNĂŤ (LIKE BUFF) ---
     // Pokud hrĂˇÄŤ aktivnÄ› posĂ­lĂˇ liky, zĂ­skĂˇ doÄŤasnÄ› o 100 % vyĹˇĹˇĂ­ rychlost (kompenzace za pomalejĹˇĂ­ zĂˇklad)
     if (isBuffed) {
-        tSpd *= 1.25; 
+        tSpd *= 1.35; 
         currentMaxV *= 2.0;
         
         // VizuĂˇlnĂ­ jiskry smazĂˇny
@@ -3525,13 +3531,13 @@ function handleCameraAndPlayers() {
   let coverageRatio = totalArea / screenArea;
   
   if (coverageRatio > 0) {
-      // Koule nechĂˇme natÄ›snat vĂ­ce (aĹľ na 65 % obrazovky) neĹľ oddĂˇlĂ­me kameru
-      targetCameraScale = Math.sqrt(0.65 / coverageRatio);
+      // Koule nechĂˇme natÄ›snat vĂ­ce (aĹľ na 80 % obrazovky) neĹľ oddĂˇlĂ­me kameru
+      targetCameraScale = Math.sqrt(0.85 / coverageRatio);
   } else {
-      targetCameraScale = 1.6;
+      targetCameraScale = 1.8;
   }
   // Limity pĹ™iblĂ­ĹľenĂ­/oddĂˇlenĂ­
-  targetCameraScale = Math.min(1.6, Math.max(0.35, targetCameraScale));
+  targetCameraScale = Math.min(2.0, Math.max(0.45, targetCameraScale));
 
   cameraScale = lerp(cameraScale, targetCameraScale, 0.015); // Velmi pomalĂ© a plynulĂ© oddalovĂˇnĂ­
   
@@ -3955,6 +3961,8 @@ function drawPlayer(p) {
   // p.likeBuffTimer--; // JiĹľ nenĂ­ potĹ™eba, pouĹľĂ­vĂˇme millis()
   
   let isLeader = (currentTop10[0] === p.name && !p.isZombie);
+  let isSecond = (currentTop10[1] === p.name && !p.isZombie);
+  let isThird = (currentTop10[2] === p.name && !p.isZombie);
   
   // 1. FIRE TRAIL smazĂˇn
 
@@ -4402,6 +4410,30 @@ function drawPlayer(p) {
       strokeWeight(Math.max(1.5, visualR * 0.04));
       circle(0, 0, visualR * 2.0);
 
+      pop();
+  }
+
+  // --- STRIBRNY OBRYS TOP 2 ---
+  if (isSecond && !p.isBot) {
+      push();
+      noFill();
+      let silverR = visualR * 1.15 + sin(frameCount * 0.15) * (visualR * 0.04);
+      let silverThick = Math.max(2.5, visualR * 0.1);
+      strokeWeight(silverThick);
+      stroke(200, 200, 220, 200 + sin(frameCount * 0.1) * 55); 
+      circle(0, 0, silverR * 2);
+      pop();
+  }
+
+  // --- BRONZOVY OBRYS TOP 3 ---
+  if (isThird && !p.isBot) {
+      push();
+      noFill();
+      let bronzeR = visualR * 1.12 + sin(frameCount * 0.12) * (visualR * 0.03);
+      let bronzeThick = Math.max(2, visualR * 0.08);
+      strokeWeight(bronzeThick);
+      stroke(205, 127, 50, 180 + sin(frameCount * 0.08) * 40);
+      circle(0, 0, bronzeR * 2);
       pop();
   }
 
