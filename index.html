@@ -658,6 +658,7 @@ let usedRiddles = [];
 let autoSkipRiddleTimer; // Odpoďet 3 minut
 let riddleHintTimer1; // Odpoďet 1 minuty pro nápovědu 1
 let riddleHintTimer2; // Odpoďet 2 minut pro nápovědu 2
+let riddleHintTimer3; // Odpoďet 3 minut pro nápovědu 3
 let riddleRevealedLetters = []; // Indexy odhalench písmen
 let riddleWins = {}; // Počítadlo uhodnutých hádanek { jméno: počet }
 
@@ -1407,6 +1408,7 @@ function generateNewRiddle() {
     clearTimeout(autoSkipRiddleTimer);
     clearTimeout(riddleHintTimer1);
     clearTimeout(riddleHintTimer2);
+    clearTimeout(riddleHintTimer3);
     riddleRevealedLetters = [];
 
     // PŘEDNOST MAJÍ HÁDANKY - ďíslo až když dojdou
@@ -1417,11 +1419,11 @@ function generateNewRiddle() {
         let picked = random(available);
         usedRiddles.push(picked.a);
         let displayAns = RIDDLE_DISPLAY[picked.a] || picked.a;
-        activeRiddle = { question: picked.q, answer: picked.a, displayAnswer: displayAns };
+        activeRiddle = { question: picked.q, answer: picked.a, displayAnswer: displayAns, startTime: Date.now() };
     } else {
         // Všechny hádanky byly použity â†’ jednou ďíslo, pak reset poolu
         let num = Math.floor(random(1, 1000));
-        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999`, answer: num.toString(), displayAnswer: num.toString() };
+        activeRiddle = { question: `Uhodni ČÍSLO od 1 do 999`, answer: num.toString(), displayAnswer: num.toString(), startTime: Date.now() };
         usedRiddles = []; // Reset pro další kolo hádanek
     }
 
@@ -1443,6 +1445,11 @@ function generateNewRiddle() {
 
     // NÁPOVčDA PO 2 MINUTÁCH: Odhalí další náhodné písmenko
     riddleHintTimer2 = setTimeout(revealLetter, 120000);
+
+    // NÁPOVčDA PO 3 MINUTÁCH: Odhalí třetí písmenko (pokud má slovo více než 6 písmen)
+    if (activeRiddle.answer && activeRiddle.answer.length > 6) {
+        riddleHintTimer3 = setTimeout(revealLetter, 180000);
+    }
 
     // AUTOMATICKÝ SKIP PO 4 MINUTÁCH (240 000 ms)
     autoSkipRiddleTimer = setTimeout(() => {
@@ -2991,15 +2998,28 @@ function drawSecretCodeUI() {
     } else {
         // --- NORMÁLNÍ REŽIM: Hádanka + podtržítka ---
         let cleanQuestion = activeRiddle.question.replace(/\s*\(\d+\)\s*$/, ""); // Odstraní (číslo) z konce
-        let riddleText = cleanQuestion.toUpperCase() + " (+500 HP)";
+        let riddleText = cleanQuestion.toUpperCase() + " (+200 HP)";
         let txtLen = riddleText.length;
         let riddleSize = txtLen > 70 ? 17 : (txtLen > 55 ? 20 : (txtLen > 40 ? 24 : 28));
         textSize(riddleSize);
         
         // drawingContext.shadowBlur = 30;
-        drawingContext.shadowColor = 'rgba(255, 0, 80, 1)';
+        let elapsed = Date.now() - (activeRiddle.startTime || 0);
+        let textColor = color(255);
+        let shadowColor = 'rgba(255, 0, 80, 1)';
         
-        fill(255);
+        if (elapsed > 180000) { // Poslední minuta (3-4 min)
+            let t = (elapsed - 180000) / 60000;
+            t = constrain(t, 0, 1);
+            let g = lerp(255, 0, t);
+            let b = lerp(255, 0, t);
+            textColor = color(255, g, b);
+            shadowColor = `rgba(255, ${255 * (1-t)}, 0, 1)`; // Mění se i stín
+        }
+        
+        drawingContext.shadowColor = shadowColor;
+        
+        fill(textColor);
         stroke(0);
         strokeWeight(5);
         text(riddleText, W/2, bannerCenterY - 18);
@@ -5796,12 +5816,12 @@ function connectTikfinity() {
           if (isRiddleModeActive && activeRiddle.answer && guess === activeRiddle.answer) {
               let winnerP = players.find(x => x.name === u);
               if (winnerP) {
-                  winnerP.hp += 500;
+                  winnerP.hp += 200;
                   winnerP.orbSpeedTimer = Math.max(winnerP.orbSpeedTimer, 10 * 60); 
                   winnerP.botDmgTimer = Math.max(winnerP.botDmgTimer, 900); // 15 sekund Bot Crusher
                   winnerP.riddleVisualTimer = 180; // Efekt potrvá 3 vteřiny
               } else {
-                  handleAction(u, 500, false, 0, true);
+                  handleAction(u, 200, false, 0, true);
                   setTimeout(() => {
                       let newP = players.find(x => x.name === u);
                       if (newP) {
@@ -5815,6 +5835,7 @@ function connectTikfinity() {
               clearTimeout(autoSkipRiddleTimer); // Zastavit odpoďet
               clearTimeout(riddleHintTimer1);
               clearTimeout(riddleHintTimer2);
+              clearTimeout(riddleHintTimer3);
               addPopup("UHODL!", W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), true);
               createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), 100);
               
