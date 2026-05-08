@@ -656,7 +656,8 @@ let isRiddleModeActive = true; // DEFAULTNE ZAPNUTO
 let activeRiddle = { question: null, answer: null };
 let usedRiddles = [];
 let autoSkipRiddleTimer; // Odpoďet 3 minut
-let riddleHintTimer; // Odpoďet 2 minut pro nápovědu
+let riddleHintTimer1; // Odpoďet 1 minuty pro nápovědu 1
+let riddleHintTimer2; // Odpoďet 2 minut pro nápovědu 2
 let riddleRevealedLetters = []; // Indexy odhalench písmen
 let riddleWins = {}; // Počítadlo uhodnutých hádanek { jméno: počet }
 
@@ -1189,7 +1190,57 @@ const RIDDLES = [
     { q: "Školní pomůcka na kreslení (6)", a: "pastel" },
     { q: "Obuv do vody (6)", a: "zabky" },
     { q: "Hmyz co dělá med (5)", a: "vcela" },
-    { q: "Pták, který umí mluvit (7)", a: "papousek" }
+    { q: "Pták, který umí mluvit (7)", a: "papousek" },
+    { q: "Celosvětová počítačová síť (8)", a: "internet" },
+    { q: "Přístroj na sledování filmů (9)", a: "televizor" },
+    { q: "Místo u domu plné květin (7)", a: "zahrada" },
+    { q: "Stroj, který létá v oblacích (7)", a: "letadlo" },
+    { q: "Pomůcka na rýsování (8)", a: "pravitko" },
+    { q: "Přenosný počítač (8)", a: "notebook" },
+    { q: "Zařízení k psaní na PC (10)", a: "klavesnice" },
+    { q: "Plavidlo pod vodou (7)", a: "ponorka" },
+    { q: "Největší mořský savec (7)", a: "velryba" },
+    { q: "Přístroj na ohřev jídla (10)", a: "mikrovlnka" },
+    { q: "Řemeslník, co čistí komíny (7)", a: "kominik" },
+    { q: "Strážce zákona (9)", a: "policista" },
+    { q: "Žlutá květina točící se za světlem (10)", a: "slunecnice" },
+    { q: "Místo, kde se léčí lidé (9)", a: "nemocnice" },
+    { q: "Velmi vysoká budova (9)", a: "mrakodrap" },
+    { q: "Místo, kde se kříží cesty (10)", a: "krizovatka" },
+    { q: "Přístroj na pozorování hvězd (10)", a: "dalekohled" },
+    { q: "Přístroj na zkoumání buněk (9)", a: "mikroskop" },
+    { q: "Budova pro pozorování vesmíru (9)", a: "hvezdarna" },
+    { q: "Člověk hrající na kytaru (9)", a: "kytarista" },
+    { q: "Člověk udávající rytmus v kapele (7)", a: "bubenik" },
+    { q: "Budova, kde se hrají představení (7)", a: "divadlo" },
+    { q: "Ukazatel času na ruce (7)", a: "hodinky" },
+    { q: "Ozdoba na krk (8)", a: "privesek" },
+    { q: "Malý lesní hmyz (8)", a: "mravenec" },
+    { q: "Hmyz s mnoha nohami (8)", a: "stonozka" },
+    { q: "Rychlý plaz s ocáskem (8)", a: "jesterka" },
+    { q: "Jednostopé motorové vozidlo (7)", a: "motorka" },
+    { q: "Vozidlo pro hromadnou dopravu (7)", a: "autobus" },
+    { q: "Autobus jezdící na elektřinu (9)", a: "trolejbus" },
+    { q: "Létající stroj s rotorem (8)", a: "vrtulnik" },
+    { q: "Místo, kde se peče chleba (7)", a: "pekarna" },
+    { q: "Místo, kde se prodávají dorty (8)", a: "cukrarna" },
+    { q: "Místo, kam se chodí půjčovat knihy (8)", a: "knihovna" },
+    { q: "Školní předmět plný pohybu (8)", a: "telocvik" },
+    { q: "Stroj na úpravu trávníku (7)", a: "sekacka" },
+    { q: "Zemědělský stroj na poli (7)", a: "traktor" },
+    { q: "Stroj na sklizeň obilí (7)", a: "kombajn" },
+    { q: "Běžná příloha k jídlu z pole (8)", a: "brambory" },
+    { q: "Bílá hlávková zelenina (6)", a: "kvetak" },
+    { q: "Zelená zelenina podobná květáku (9)", a: "brokolice" },
+    { q: "Zelená listová zelenina (Pepek námořník) (6)", a: "spenat" },
+    { q: "Kořenová zelenina světle zelené barvy (8)", a: "kedluben" },
+    { q: "Červený lesní plod rostoucí na keři (6)", a: "malina" },
+    { q: "Šťavnaté ovoce s velkou peckou a chloupky (7)", a: "broskev" },
+    { q: "Hustá mléčná tekutina (7)", a: "smetana" },
+    { q: "Ledová letní pochoutka (8)", a: "zmrzlina" },
+    { q: "Teplý předkrm v hlubokém talíři (7)", a: "polevka" },
+    { q: "Masová pomazánka (7)", a: "pastika" },
+    { q: "Zařízení na poslech hudby na uších (9)", a: "sluchatka" }
 ];
 
 // Mapa pro zobrazení odpovědí se správnou českou diakritikou
@@ -1335,13 +1386,27 @@ const RIDDLE_DISPLAY = {
     "cervenec": "červenec", "sveska": "švestka", "monika": "Monika",
     "koleda": "koleda", "holubice": "holubice", "brzda": "brzda", "krecek": "křeček",
     "rajce": "rajče", "salek": "šálek", "popcorn": "popcorn", "pastel": "pastel",
-    "zabky": "žabky", "papousek": "papoušek"
+    "zabky": "žabky", "papousek": "papoušek",
+    "internet": "internet", "televizor": "televizor", "zahrada": "zahrada", "letadlo": "letadlo", 
+    "pravitko": "pravítko", "notebook": "notebook", "klavesnice": "klávesnice", "ponorka": "ponorka", 
+    "velryba": "velryba", "mikrovlnka": "mikrovlnka", "kominik": "kominík", "policista": "policista", 
+    "slunecnice": "slunečnice", "nemocnice": "nemocnice", "mrakodrap": "mrakodrap", "krizovatka": "křižovatka", 
+    "dalekohled": "dalekohled", "mikroskop": "mikroskop", "hvezdarna": "hvězdárna", "kytarista": "kytarista", 
+    "bubenik": "bubeník", "divadlo": "divadlo", "hodinky": "hodinky", "privesek": "přívěsek", 
+    "mravenec": "mravenec", "stonozka": "stonožka", "jesterka": "ještěrka", "motorka": "motorka", 
+    "autobus": "autobus", "trolejbus": "trolejbus", "vrtulnik": "vrtulník", "pekarna": "pekárna", 
+    "cukrarna": "cukrárna", "knihovna": "knihovna", "telocvik": "tělocvik", "sekacka": "sekačka", 
+    "traktor": "traktor", "kombajn": "kombajn", "brambory": "brambory", "kvetak": "květák", 
+    "brokolice": "brokolice", "spenat": "špenát", "kedluben": "kedluben", "malina": "malina", 
+    "broskev": "broskev", "smetana": "smetana", "zmrzlina": "zmrzlina", "polevka": "polévka", 
+    "pastika": "paštika", "sluchatka": "sluchátka"
 };
 
 function generateNewRiddle() {
     if (!isRiddleModeActive) return;
     clearTimeout(autoSkipRiddleTimer);
-    clearTimeout(riddleHintTimer);
+    clearTimeout(riddleHintTimer1);
+    clearTimeout(riddleHintTimer2);
     riddleRevealedLetters = [];
 
     // PŘEDNOST MAJÍ HÁDANKY - ďíslo až když dojdou
@@ -1360,8 +1425,7 @@ function generateNewRiddle() {
         usedRiddles = []; // Reset pro další kolo hádanek
     }
 
-    // NÁPOVčDA PO 2 MINUTÁCH: Odhalí náhodné písmenko
-    riddleHintTimer = setTimeout(() => {
+    function revealLetter() {
         if (isRiddleModeActive && activeRiddle.answer && activeRiddle.answer.length > 1) {
             let unrevealed = [];
             for (let i = 0; i < activeRiddle.answer.length; i++) {
@@ -1372,16 +1436,22 @@ function generateNewRiddle() {
                 riddleRevealedLetters.push(idx);
             }
         }
-    }, 120000);
+    }
 
-    // AUTOMATICKÝ SKIP PO 3 MINUTÁCH (180 000 ms)
+    // NÁPOVčDA PO 1 MINUTč: Odhalí náhodné písmenko
+    riddleHintTimer1 = setTimeout(revealLetter, 60000);
+
+    // NÁPOVčDA PO 2 MINUTÁCH: Odhalí další náhodné písmenko
+    riddleHintTimer2 = setTimeout(revealLetter, 120000);
+
+    // AUTOMATICKÝ SKIP PO 4 MINUTÁCH (240 000 ms)
     autoSkipRiddleTimer = setTimeout(() => {
         if (isRiddleModeActive && activeRiddle.answer) {
             activeRiddle = { question: null, answer: null }; // Skryj banner
-            // Náhodná pauza 5-30s před další hádankou
+            // Náhodná pauza do 30s před další hádankou
             setTimeout(generateNewRiddle, random(5000, 30000));
         }
-    }, 180000);
+    }, 240000);
 }
 
 let wallTop, wallBot, wallLeft, wallRight;
@@ -2517,7 +2587,6 @@ function handleCombat(p1, p2) {
       if (player.botDmgTimer > 0) {
           bot.hp -= 30; // 30 dmg na jeden hit (collisionActive se pouští 1x za vteřinu pro konkrétní dvojici)
           createParticles(bot.body.position.x, bot.body.position.y, color(255, 255, 0), 10);
-          addPopup("BOT CRUSH!", bot.body.position.x, bot.body.position.y, color(255, 255, 0));
       }
 
       let drain = 0.2; // Sníženo z 1.0 na 0.2 HP/s
@@ -5744,7 +5813,8 @@ function connectTikfinity() {
               }
               
               clearTimeout(autoSkipRiddleTimer); // Zastavit odpoďet
-              clearTimeout(riddleHintTimer);
+              clearTimeout(riddleHintTimer1);
+              clearTimeout(riddleHintTimer2);
               addPopup("UHODL!", W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), true);
               createParticles(W/2, (ARENA_TOP+ARENA_BOT)/2, color(255, 215, 0), 100);
               
