@@ -5560,73 +5560,88 @@ function draw() {
         return a.r - b.r;
     });
     // ==========================================
-    // 5. VYKRESLENÍ HRÁČŮ A VIP SPOTLIGHT EFEKT
+    // 5. VYKRESLENÍ HRÁČŮ A VIP SPOTLIGHT (BOTI ZMIZÍ)
     // ==========================================
     let vips = [];
-    let others = [];
+    let realPlayers = [];
+    let bots = [];
 
-    // Rozdělení hráčů (zachováme pořadí vykreslování pro obyčejné hráče)
+    // Rozdělení hráčů (zachováme pořadí vykreslování)
     for (let p of sortedToDraw) {
         if (p.vipTimer > 0) {
             vips.push(p);
-            p.vipTimer--; // Odpočet slávy
+            p.vipTimer--; 
+        } else if (p.isBot) { 
+            bots.push(p);
         } else {
-            others.push(p);
+            realPlayers.push(p);
         }
     }
 
-    // 1. Vykreslíme obyčejné hráče a AFK kostky (budou v pozadí)
-    for (let p of others) {
-        drawPlayer(p);
+    // Výpočet časovačů pro fade efekty
+    let maxTimer = 0;
+    if (vips.length > 0) {
+        maxTimer = Math.max(...vips.map(p => p.vipTimer));
+    }
+    
+    // Tma pro reálné hráče (Chroma key safe)
+    let darkAlpha = 0;
+    if (maxTimer > 270) darkAlpha = map(maxTimer, 300, 270, 0, 210, true); 
+    else if (maxTimer < 30) darkAlpha = map(maxTimer, 30, 0, 210, 0, true); 
+    else darkAlpha = 210; 
+
+    // Neviditelnost pro boty
+    let botAlpha = 1.0;
+    if (vips.length > 0) {
+        if (maxTimer > 270) botAlpha = map(maxTimer, 300, 270, 1.0, 0.0, true); 
+        else if (maxTimer < 30) botAlpha = map(maxTimer, 30, 0, 0.0, 1.0, true); 
+        else botAlpha = 0.0; 
     }
 
-    // 2. Pokud je někdo VIP, zatmíme arénu a nasvítíme ho
-    if (vips.length > 0) {
-        // Zjistíme, kdo má nejdelší čas, abychom udělali plynulý fade
-        let maxTimer = Math.max(...vips.map(p => p.vipTimer));
-        
-        let darkAlpha = 0;
-        // Plynulý náběh tmy (zabrání bliknutí jako stroboskop)
-        if (maxTimer > 270) darkAlpha = map(maxTimer, 300, 270, 0, 180, true); 
-        // Plynulý odjezd tmy
-        else if (maxTimer < 30) darkAlpha = map(maxTimer, 30, 0, 180, 0, true); 
-        // Plná tma
-        else darkAlpha = 180; 
-
-        // Zatáhneme oponu přes celou herní plochu (ale pod UIčkem)
+    // 1. Vykreslení BOTŮ (zmizí do neviditelna, ale fyzicky zůstávají)
+    if (botAlpha > 0) {
         push();
-        rectMode(CORNER);
-        fill(0, 0, 15, darkAlpha); // Temně modro-černá
-        noStroke();
-        rect(0, 0, W, H); 
-        pop();
-
-        // 3. Vykreslíme VIP hráče na úplný vršek (Main Character Mode)
-        for (let p of vips) {
-            let pos = p.body.position;
-            let r = p.body.circleRadius;
-
-            push();
-            translate(pos.x, pos.y);
-            
-            // Zlatá "Božská" záře rozrážející tmu
-            drawingContext.shadowColor = `rgba(255, 215, 0, ${darkAlpha / 255})`;
-            drawingContext.shadowBlur = 50;
-            fill(255, 215, 0, darkAlpha * 0.15);
-            noStroke();
-            circle(0, 0, r * 7); // Velký osvětlený flek pod hráčem
-            
-            // Bílý střed záře
-            drawingContext.shadowBlur = 20;
-            fill(255, 255, 255, darkAlpha * 0.3);
-            circle(0, 0, r * 4);
-            
-            drawingContext.shadowBlur = 0;
-            pop();
-
-            // A konečně nakreslíme samotného hráče hezky ostře a jasně
+        drawingContext.globalAlpha = botAlpha;
+        for (let p of bots) {
             drawPlayer(p);
         }
+        pop();
+    }
+
+    // 2. Vykreslení REÁLNÝCH HRÁČŮ (zůstanou vidět, ale dostanou tmu přes sebe)
+    for (let p of realPlayers) {
+        drawPlayer(p);
+        
+        if (vips.length > 0) {
+            push();
+            translate(p.body.position.x, p.body.position.y);
+            fill(0, 0, 15, darkAlpha);
+            noStroke();
+            circle(0, 0, p.body.circleRadius * 2.5); // Tma jen přes kuličku
+            pop();
+        }
+    }
+
+    // 3. Nasvícení VIP hráčů (Zlatá aura)
+    for (let p of vips) {
+        let pos = p.body.position;
+        let r = p.body.circleRadius;
+
+        push();
+        translate(pos.x, pos.y);
+        
+        drawingContext.shadowColor = 'rgba(255, 215, 0, 1)';
+        drawingContext.shadowBlur = 40;
+        fill(255, 215, 0, 60);
+        noStroke();
+        circle(0, 0, r * 6); 
+        fill(255, 255, 255, 100);
+        circle(0, 0, r * 3); 
+        
+        drawingContext.shadowBlur = 0;
+        pop();
+
+        drawPlayer(p);
     }
     
     // Aktualizace zvuku cirkulárky (jemný hukot při lajkování a cinkání)
