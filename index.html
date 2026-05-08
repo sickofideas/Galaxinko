@@ -2429,7 +2429,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot, botDmgTimer: 0,
-    riddleVisualTimer: 0, giftVisualTimer: 0, giftVisualEmoji: '🎁',
+    riddleVisualTimer: 0, giftVisualTimer: 0, giftVisualEmoji: '🎁', vipTimer: 0,
     shareBuffTimer: 0, shareCooldown: 0,
     hpBuffer: 0, // OPRAVA: Inicializace hpBuffer, aby fungoval Share/Repost bonus
     dmgDisplayValue: 0, dmgDisplayTimer: 0,
@@ -5559,7 +5559,75 @@ function draw() {
         if (aActive !== bActive) return aActive - bActive;
         return a.r - b.r;
     });
-    sortedToDraw.forEach(p => drawPlayer(p));
+    // ==========================================
+    // 5. VYKRESLENÍ HRÁČŮ A VIP SPOTLIGHT EFEKT
+    // ==========================================
+    let vips = [];
+    let others = [];
+
+    // Rozdělení hráčů (zachováme pořadí vykreslování pro obyčejné hráče)
+    for (let p of sortedToDraw) {
+        if (p.vipTimer > 0) {
+            vips.push(p);
+            p.vipTimer--; // Odpočet slávy
+        } else {
+            others.push(p);
+        }
+    }
+
+    // 1. Vykreslíme obyčejné hráče a AFK kostky (budou v pozadí)
+    for (let p of others) {
+        drawPlayer(p);
+    }
+
+    // 2. Pokud je někdo VIP, zatmíme arénu a nasvítíme ho
+    if (vips.length > 0) {
+        // Zjistíme, kdo má nejdelší čas, abychom udělali plynulý fade
+        let maxTimer = Math.max(...vips.map(p => p.vipTimer));
+        
+        let darkAlpha = 0;
+        // Plynulý náběh tmy (zabrání bliknutí jako stroboskop)
+        if (maxTimer > 270) darkAlpha = map(maxTimer, 300, 270, 0, 180, true); 
+        // Plynulý odjezd tmy
+        else if (maxTimer < 30) darkAlpha = map(maxTimer, 30, 0, 180, 0, true); 
+        // Plná tma
+        else darkAlpha = 180; 
+
+        // Zatáhneme oponu přes celou herní plochu (ale pod UIčkem)
+        push();
+        rectMode(CORNER);
+        fill(0, 0, 15, darkAlpha); // Temně modro-černá
+        noStroke();
+        rect(0, 0, W, H); 
+        pop();
+
+        // 3. Vykreslíme VIP hráče na úplný vršek (Main Character Mode)
+        for (let p of vips) {
+            let pos = p.body.position;
+            let r = p.body.circleRadius;
+
+            push();
+            translate(pos.x, pos.y);
+            
+            // Zlatá "Božská" záře rozrážející tmu
+            drawingContext.shadowColor = `rgba(255, 215, 0, ${darkAlpha / 255})`;
+            drawingContext.shadowBlur = 50;
+            fill(255, 215, 0, darkAlpha * 0.15);
+            noStroke();
+            circle(0, 0, r * 7); // Velký osvětlený flek pod hráčem
+            
+            // Bílý střed záře
+            drawingContext.shadowBlur = 20;
+            fill(255, 255, 255, darkAlpha * 0.3);
+            circle(0, 0, r * 4);
+            
+            drawingContext.shadowBlur = 0;
+            pop();
+
+            // A konečně nakreslíme samotného hráče hezky ostře a jasně
+            drawPlayer(p);
+        }
+    }
     
     // Aktualizace zvuku cirkulárky (jemný hukot při lajkování a cinkání)
     let activeLikersCount = players.filter(p => p.likeBuffTimer && millis() < p.likeBuffTimer).length;
@@ -5944,6 +6012,7 @@ function connectTikfinity() {
               p.giftVisualTimer = 120;
               let gName = (d?.data?.giftName || "").toLowerCase();
               p.giftVisualEmoji = gName.includes("rose") ? '🌹' : '🎁';
+              p.vipTimer = 300; // 5 sekund filmového nasvícení (při 60 FPS)
               
               // Legenda status
               if (comboMult >= 3 && !p.isLegendary) {
