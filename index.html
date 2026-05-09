@@ -2412,7 +2412,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
   let r = getRadius(safeHp);
   if (isBot) r *= 0.85; // Zmenšení botů o 15%
   // ZABITÍ PINBALL EFEKTU: Téměř nulový odraz a hustý odpor prostředí
-  let body = Matter.Bodies.circle(spawnX, spawnY, r, { 
+  let body = Matter.Bodies.circle(spawnX, spawnY, r * 0.8, { // Zmenšení hitboxu o 20%
       restitution: 0.1,    // Sníženo, aby neposkakovaly jak ping-pong míčky
       frictionAir: 0.04,   // Zvýšeno zpět, aby se pohyb krásně táhl a "plaval"
       friction: 0,         // TOTO MUSÍ BÝT 0! Zabrání zadrhávání kuliček o sebe
@@ -3470,27 +3470,27 @@ function handleCameraAndPlayers() {
     let afkMult = (p.isFrozen) ? 0.02 : 1.0;
     
     // ==========================================
-    // PLYNULÉ MÍCHÁNÍ (Efekt lžičky v hrnku)
+    // OKO HURIKÁNU (Tah pouze z dálky + odtlačování ve středu)
     // ==========================================
-    
-    // 1. Vytvoříme falešný střed, který plynule krouží kolem opravdového středu
-    let stirRadius = 250; // Jak moc široce se to má míchat
-    let stirSpeed = 0.02; // Rychlost míchání
-    
-    let targetX = (W / 2) + Math.cos(frameCount * stirSpeed) * stirRadius;
-    let targetY = ((ARENA_TOP + ARENA_BOT) / 2) + Math.sin(frameCount * stirSpeed) * stirRadius;
-
-    // 2. Definice plynulé síly
-    let pullForce = 0.00005 * p.body.mass * afkMult;  
-    let vortexForce = 0.00007 * p.body.mass * p.baseRotDir * afkMult; 
-
-    // 3. Tahá je to k našemu pohyblivému středu
-    let distVec = Matter.Vector.sub({x: targetX, y: targetY}, p.body.position);
-    let distVal = Matter.Vector.magnitude(distVec) || 1;
-    let dirToCenter = { x: distVec.x / distVal, y: distVec.y / distVal };
-    
-    // 4. Rotační síla
+    let center = { x: W/2, y: (ARENA_TOP + ARENA_BOT) / 2 };
+    let distVec = Matter.Vector.sub(center, p.body.position);
+    let distToCenter = Matter.Vector.magnitude(distVec) || 1;
+    let dirToCenter = { x: distVec.x / distToCenter, y: distVec.y / distToCenter };
     let tangent = { x: -dirToCenter.y, y: dirToCenter.x };
+
+    let pullForce = 0;
+    
+    // Tah do středu funguje JEN když jsou kuličky daleko (na kraji obrazovky)
+    if (distToCenter > 300) {
+        pullForce = 0.00008 * p.body.mass * afkMult;
+    } 
+    // Pokud jsou moc blízko úplnému středu, lehce je to naopak odtlačí, ať mají místo
+    else if (distToCenter < 150) {
+        pullForce = -0.00002 * p.body.mass * afkMult;
+    }
+    // Pokud jsou mezi 150 a 300, působí na ně jen rotace (pullForce je 0)
+
+    let vortexForce = 0.00006 * p.body.mass * p.baseRotDir * afkMult; 
 
     let finalFx = (dirToCenter.x * pullForce) + (tangent.x * vortexForce);
     let finalFy = (dirToCenter.y * pullForce) + (tangent.y * vortexForce);
@@ -4157,7 +4157,7 @@ function drawPlayer(p) {
   rotate(p.rot);
 
 
-  let r = p.body.circleRadius;
+  let r = p.r; // Použijeme vizuální rádius (100 %) místo fyzického hitboxu (80 %)
   let visualR = r;
 
   if (p.hp >= 2000 && p.hp < 5000) {
@@ -5454,47 +5454,23 @@ function draw() {
   let totalAlive = realPlayersCount + botCount;
 
   // ==========================================
-  // AGRESIVNÍ ANTI-ZÁSEK (DESPAWN BOTŮ)
+  // TVRDÝ LIMIT A SPAWN BOTŮ
   // ==========================================
-  let totalBallsArea = 0;
-  for (let p of players) {
-      totalBallsArea += Math.PI * (p.body.circleRadius * p.body.circleRadius);
-  }
-  
-  let arenaArea = W * (ARENA_BOT - ARENA_TOP);
-  let arenaFillRatio = totalBallsArea / arenaArea;
-
   let currentBots = players.filter(p => p.isBot);
 
-  // 1. OCHRANA PŘED PŘEPLNĚNÍM (Kritická hranice je už 55 %, ne 75 %!)
-  if (arenaFillRatio > 0.55 && currentBots.length > 0) {
-      // Seřadíme boty od nejslabšího
-      currentBots.sort((a, b) => a.hp - b.hp);
-      
-      // Pokud je to extrémně ucpané (> 65 %), smažeme 3 boty naráz, jinak 1 bota
-      let botsToRemove = arenaFillRatio > 0.65 ? 3 : 1;
-      
-      for (let i = 0; i < botsToRemove; i++) {
-          if (currentBots[i]) {
-              Matter.World.remove(world, currentBots[i].body);
-              players = players.filter(p => p !== currentBots[i]);
-          }
-      }
-  }
-
-  // 2. CHYTRÝ SPAWN BOTŮ (S velkou rezervou)
-  let updatedBotCount = players.filter(p => p.isBot).length; 
-  let maxTotalPlayers = 80; 
+  let maxTotalPlayers = 50; // Absolutní maximum koulí na obrazovce
   let allowedBots = Math.max(0, maxTotalPlayers - realPlayersCount);
 
-  if (typeof window.lastBotSpawnFrame === 'undefined') {
-      window.lastBotSpawnFrame = 0;
+  // 1. POJISTKA: Pokud je botů víc než má být, okamžitě mažeme přebytek
+  if (currentBots.length > allowedBots && currentBots.length > 0) {
+      let botToRemove = currentBots[0];
+      Matter.World.remove(world, botToRemove.body);
+      players = players.filter(p => p !== botToRemove);
   }
 
-  // Spawn povolen POUZE pokud je aréna zaplněná z MÉNĚ NEŽ 45 %!
-  if (updatedBotCount < allowedBots && arenaFillRatio < 0.45 && frameCount - window.lastBotSpawnFrame > 15) {
+  // 2. BEZPEČNÝ SPAWN: Max 2 boti za vteřinu (každých 30 framů), jen když je místo
+  if (currentBots.length < allowedBots && frameCount % 30 === 0) {
       spawnIdleBot();
-      window.lastBotSpawnFrame = frameCount; 
   }
   // ==========================================
   
@@ -5697,7 +5673,7 @@ function draw() {
             translate(p.body.position.x, p.body.position.y);
             fill(0, 0, 15, darkAlpha);
             noStroke();
-            circle(0, 0, p.body.circleRadius * 2.5); // Tma jen přes kuličku
+            circle(0, 0, p.r * 2.5); // Tma jen přes kuličku
             pop();
         }
     }
@@ -5705,7 +5681,7 @@ function draw() {
     // 3. Nasvícení VIP hráčů (Zlatá aura)
     for (let p of vips) {
         let pos = p.body.position;
-        let r = p.body.circleRadius;
+        let r = p.r;
 
         push();
         translate(pos.x, pos.y);
@@ -6108,6 +6084,37 @@ function connectTikfinity() {
               let gName = (d?.data?.giftName || "").toLowerCase();
               p.giftVisualEmoji = gName.includes("rose") ? '🌹' : '🎁';
               p.vipTimer = 300; // 5 sekund filmového nasvícení (při 60 FPS)
+              
+              // --- EXPLOZE PŘI DONATU (ODHOZENÍ OSTATNÍCH A VÝSTŘEL DO STŘEDU) ---
+              // 1. Silný výstřel dárce do středu arény, aby se vyrval z rohu
+              let centerPt = { x: W / 2, y: (ARENA_TOP + ARENA_BOT) / 2 };
+              let dashDir = Matter.Vector.normalise(Matter.Vector.sub(centerPt, p.body.position));
+              
+              Matter.Body.applyForce(p.body, p.body.position, { 
+                  x: dashDir.x * 0.05 * p.body.mass, 
+                  y: dashDir.y * 0.05 * p.body.mass 
+              });
+
+              // 2. Tlaková vlna, která brutálně odhodí všechny překážky v okolí
+              for (let other of players) {
+                  if (other !== p && other.body) {
+                      let diff = Matter.Vector.sub(other.body.position, p.body.position);
+                      let dist = Matter.Vector.magnitude(diff);
+                      
+                      // Dosah rázové vlny (400 pixelů)
+                      if (dist < 400 && dist > 0) { 
+                          let pushDir = Matter.Vector.normalise(diff);
+                          // Čím blíž je překážka, tím větší ránu dostane
+                          let pushForce = (400 - dist) * 0.0005 * other.body.mass; 
+                          
+                          Matter.Body.applyForce(other.body, other.body.position, { 
+                              x: pushDir.x * pushForce, 
+                              y: pushDir.y * pushForce 
+                          });
+                      }
+                  }
+              }
+              // ------------------------------------------------------------------
               
               // Legenda status
               if (comboMult >= 3 && !p.isLegendary) {
