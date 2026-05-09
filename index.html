@@ -2814,10 +2814,24 @@ function handleCameraAndPlayers() {
         pullForce = -0.00003 * p.body.mass * afkMult; // ZvĂ˝Ĺˇeno z -0.00002
     }
 
-    // 3. PLYNULĂť GLOBĂ LNĂŤ VORTEX (VĹˇichni stejnĂ˝m smÄ›rem, sĂ­la se pĹ™elĂ©vĂˇ)
-    // Vlna plynule mÄ›nĂ­ sĂ­lu vĂ­ru (a zhruba kaĹľdĂ˝ch 35 vteĹ™in ho hladce otoÄŤĂ­)
-    let globalVortex = Math.sin(frameCount * 0.0015) * 0.00025;
-    let vortexForce = globalVortex * p.body.mass * afkMult;
+    // ==========================================
+    // 3. ORGANIČTĚJŠÍ A CHAOTICKÝ VORTEX
+    // ==========================================
+    // A: Pomalá hlavní síla (otočí směr zhruba každé 3 až 4 minuty)
+    let mainWave = Math.sin(frameCount * 0.00015); 
+
+    // B: Kolísání rychlosti (plynulé poryvy, které přidávají a ubírají sílu)
+    let wobble = Math.sin(frameCount * 0.001) * 0.35;
+
+    // C: Zónový chaos (každá část arény má trochu jiný tah, rozbíjí to geometrické tvary)
+    // Přidáním frameCount se tyto "víry uvnitř víru" neustále přesouvají v prostoru
+    let localChaos = (Math.sin(p.body.position.x * 0.005 + frameCount * 0.01) + 
+                      Math.cos(p.body.position.y * 0.005 - frameCount * 0.008)) * 0.25;
+
+    // Sečtení všech vlivů do jednoho organického pohybu
+    let globalVortex = (mainWave + wobble + localChaos) * 0.00022;
+    let vortexForce = globalVortex * p.body.mass * afkMult; 
+    // ==========================================
 
     let finalFx = (dirToCenter.x * pullForce) + (tangent.x * vortexForce);
     let finalFy = (dirToCenter.y * pullForce) + (tangent.y * vortexForce);
