@@ -5442,32 +5442,36 @@ function draw() {
   let totalAlive = realPlayersCount + botCount;
 
   // ==========================================
-  // ANTI-ZÁSEK: KONTROLA FYZICKÉ KAPACITY ARÉNY
+  // AGRESIVNÍ ANTI-ZÁSEK (DESPAWN BOTŮ)
   // ==========================================
-  let arenaArea = W * (ARENA_BOT - ARENA_TOP);
   let totalBallsArea = 0;
-  
   for (let p of players) {
       totalBallsArea += Math.PI * (p.body.circleRadius * p.body.circleRadius);
   }
   
+  let arenaArea = W * (ARENA_BOT - ARENA_TOP);
   let arenaFillRatio = totalBallsArea / arenaArea;
 
-  // 1. OCHRANA PŘED PŘEPLNĚNÍM (Pokud je zabráno více než 75 % plochy)
-  if (arenaFillRatio > 0.75) {
-      let currentBots = players.filter(p => p.isBot);
-      if (currentBots.length > 0) {
-          // Najdeme bota s nejmenším HP
-          currentBots.sort((a, b) => a.hp - b.hp);
-          let weakestBot = currentBots[0];
-          
-          // Okamžitě ho vymažeme z fyzikálního světa i ze hry
-          Matter.World.remove(world, weakestBot.body);
-          players = players.filter(p => p !== weakestBot);
+  let currentBots = players.filter(p => p.isBot);
+
+  // 1. OCHRANA PŘED PŘEPLNĚNÍM (Kritická hranice je už 55 %, ne 75 %!)
+  if (arenaFillRatio > 0.55 && currentBots.length > 0) {
+      // Seřadíme boty od nejslabšího
+      currentBots.sort((a, b) => a.hp - b.hp);
+      
+      // Pokud je to extrémně ucpané (> 65 %), smažeme 3 boty naráz, jinak 1 bota
+      let botsToRemove = arenaFillRatio > 0.65 ? 3 : 1;
+      
+      for (let i = 0; i < botsToRemove; i++) {
+          if (currentBots[i]) {
+              Matter.World.remove(world, currentBots[i].body);
+              players = players.filter(p => p !== currentBots[i]);
+          }
       }
   }
 
-  // 2. CHYTRÝ SPAWN BOTŮ (Bere v úvahu místo i limit)
+  // 2. CHYTRÝ SPAWN BOTŮ (S velkou rezervou)
+  let updatedBotCount = players.filter(p => p.isBot).length; 
   let maxTotalPlayers = 80; 
   let allowedBots = Math.max(0, maxTotalPlayers - realPlayersCount);
 
@@ -5475,8 +5479,8 @@ function draw() {
       window.lastBotSpawnFrame = 0;
   }
 
-  // Spawn povolen POUZE pokud je aréna zaplněná z méně než 70 % a nechybí boti
-  if (botCount < allowedBots && arenaFillRatio < 0.70 && frameCount - window.lastBotSpawnFrame > 15) {
+  // Spawn povolen POUZE pokud je aréna zaplněná z MÉNĚ NEŽ 45 %!
+  if (updatedBotCount < allowedBots && arenaFillRatio < 0.45 && frameCount - window.lastBotSpawnFrame > 15) {
       spawnIdleBot();
       window.lastBotSpawnFrame = frameCount; 
   }
