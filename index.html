@@ -1754,7 +1754,7 @@ function finalizeSpawnPlayer(name, hp, spawnX, spawnY, playerColor, isGift = fal
     isZombie: isZombie, hasUsedRepost: false,
     hasRainbowCrown: false, hasFireTrail: false, isGodMode: false, isLegendary: false, godModeTimer: 0,
     avatarAlpha: 255, isBot: isBot, botDmgTimer: 0,
-    riddleVisualTimer: 0, giftVisualTimer: 0, giftVisualEmoji: 'đźŽ', vipTimer: 0,
+    riddleVisualTimer: 0, giftVisualTimer: 0, giftVisualEmoji: '\uD83C\uDF81', vipTimer: 0,
     shareBuffTimer: 0, shareCooldown: 0,
     hpBuffer: 0, // OPRAVA: Inicializace hpBuffer, aby fungoval Share/Repost bonus
     dmgDisplayValue: 0, dmgDisplayTimer: 0,
@@ -3983,61 +3983,59 @@ function drawPlayer(p) {
       pop();
   }
 
-  // ==========================================
-  // VIZUĂLNĂŤ EFEKTY AKCĂŤ (DĂˇrky a HĂˇdanky)
-  // ==========================================
+    // ==========================================
+    // VIZUÁLNÍ EFEKTY AKCÍ (Dárky a Hádanky)
+    // ==========================================
+    // 1. EFEKT UHODNUTÉ HÁDANKY (200 IQ Žárovka)
+    if (p.riddleVisualTimer > 0) {
+        push();
+        let popScale = map(p.riddleVisualTimer, 180, 0, 1.5, 0); // Zmenšování v čase
+        let bounceY = sin(frameCount * 0.2) * 15; // Skákání nahoru a dolů
+        translate(0, -visualR * 1.8 + bounceY); // Umístění NAD kuličku
+        scale(popScale);
 
-  // 1. EFEKT UHODNUTĂ‰ HĂDANKY (200 IQ Ĺ˝Ăˇrovka)
-  if (p.riddleVisualTimer > 0) {
-      push();
-      let popScale = map(p.riddleVisualTimer, 180, 0, 1.5, 0); // ZmenĹˇovĂˇnĂ­ v ÄŤase
-      let bounceY = sin(frameCount * 0.2) * 15; // SkĂˇkĂˇnĂ­ nahoru a dolĹŻ
-      
-      translate(0, -visualR * 1.8 + bounceY); // UmĂ­stÄ›nĂ­ NAD kuliÄŤku
-      scale(popScale);
-      
-      // ZĂˇĹ™ivĂˇ aura pod emoji
-      drawingContext.shadowColor = 'rgba(255, 255, 0, 1)';
-      drawingContext.shadowBlur = 20;
-      
-      textAlign(CENTER, CENTER);
-      textSize(visualR * 1.2); 
-      text('đź’ˇ', 0, 0); 
-      
-      drawingContext.shadowBlur = 0;
-      
-      // Text 200 IQ
-      fill(255, 255, 0);
-      stroke(0);
-      strokeWeight(3);
-      textSize(visualR * 0.5);
-      text('200 IQ!', 0, -visualR * 0.8);
-      
-      pop();
-      p.riddleVisualTimer--;
-  }
+        // Zářivá aura pod emoji
+        drawingContext.shadowColor = 'rgba(255, 255, 0, 1)';
+        drawingContext.shadowBlur = 20;
+        textAlign(CENTER, CENTER);
+        textSize(visualR * 1.2);
+        
+        // OPRAVA TADY: Bezpečný kód pro emoji žárovky (💡)
+        text('\uD83D\uDCA1', 0, 0); 
+        
+        drawingContext.shadowBlur = 0;
+        
+        // Text 200 IQ
+        fill(255, 255, 0);
+        stroke(0);
+        strokeWeight(3);
+        textSize(visualR * 0.5);
+        text('200 IQ!', 0, -visualR * 0.8);
+        pop();
+        
+        p.riddleVisualTimer--;
+    }
 
-  // 2. EFEKT DĂRKU / RĹ®Ĺ˝E (RotujĂ­cĂ­ exploze ikony)
-  if (p.giftVisualTimer > 0) {
-      push();
-      let pulseScale = 1 + sin(frameCount * 0.3) * 0.5;
-      let rot = frameCount * 0.1;
-      
-      rotate(rot);
-      scale(pulseScale);
-      
-      let alpha = map(p.giftVisualTimer, 120, 0, 255, 0);
-      
-      textAlign(CENTER, CENTER);
-      textSize(visualR * 1.8);
-      
-      drawingContext.globalAlpha = alpha / 255;
-      text(p.giftVisualEmoji || 'đźŽ', 0, 0);
-      drawingContext.globalAlpha = 1.0; 
-      
-      pop();
-      p.giftVisualTimer--;
-  }
+    // 2. EFEKT DÁRKU / RŮŽE (Rotující exploze ikony)
+    if (p.giftVisualTimer > 0) {
+        push();
+        let pulseScale = 1 + sin(frameCount * 0.3) * 0.5;
+        let rot = frameCount * 0.1;
+        rotate(rot);
+        scale(pulseScale);
+        let alpha = map(p.giftVisualTimer, 120, 0, 255, 0);
+        textAlign(CENTER, CENTER);
+        textSize(visualR * 1.8);
+        drawingContext.globalAlpha = alpha / 255;
+        
+        // OPRAVA TADY: Bezpečný kód pro emoji dárku (🎁)
+        text(p.giftVisualEmoji || '\uD83C\uDF81', 0, 0); 
+        
+        drawingContext.globalAlpha = 1.0;
+        pop();
+        
+        p.giftVisualTimer--;
+    }
   // ==========================================
 
   noStroke(); pop();
