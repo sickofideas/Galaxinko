@@ -3469,19 +3469,31 @@ function handleCameraAndPlayers() {
     }
     let afkMult = (p.isFrozen) ? 0.02 : 1.0;
     
-    let dx = cx - p.body.position.x;
-    let dy = cy - p.body.position.y;
-    let distToCenter = Math.sqrt(dx*dx + dy*dy) || 1;
-
-    let dirX = dx / distToCenter;
-    let dirY = dy / distToCenter;
+    // ==========================================
+    // PLYNULÉ MÍCHÁNÍ (Efekt lžičky v hrnku)
+    // ==========================================
     
-    // --- VÝPOČET SIL (Sníženo o 15% pro pomalejší tempo + posílení rotace) ---
-    let pullForce = 0.00002 * p.body.mass * afkMult;  // Sníženo pro více "dokola" efekt
-    let vortexForce = 0.00015 * p.body.mass * p.baseRotDir * afkMult; // Posíleno relativně k tahu do středu
+    // 1. Vytvoříme falešný střed, který plynule krouží kolem opravdového středu
+    let stirRadius = 250; // Jak moc široce se to má míchat
+    let stirSpeed = 0.02; // Rychlost míchání
+    
+    let targetX = (W / 2) + Math.cos(frameCount * stirSpeed) * stirRadius;
+    let targetY = ((ARENA_TOP + ARENA_BOT) / 2) + Math.sin(frameCount * stirSpeed) * stirRadius;
 
-    let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
-    let finalFy = (dirY * pullForce) + (dirX * vortexForce);
+    // 2. Definice plynulé síly
+    let pullForce = 0.00005 * p.body.mass * afkMult;  
+    let vortexForce = 0.00007 * p.body.mass * p.baseRotDir * afkMult; 
+
+    // 3. Tahá je to k našemu pohyblivému středu
+    let distVec = Matter.Vector.sub({x: targetX, y: targetY}, p.body.position);
+    let distVal = Matter.Vector.magnitude(distVec) || 1;
+    let dirToCenter = { x: distVec.x / distVal, y: distVec.y / distVal };
+    
+    // 4. Rotační síla
+    let tangent = { x: -dirToCenter.y, y: dirToCenter.x };
+
+    let finalFx = (dirToCenter.x * pullForce) + (tangent.x * vortexForce);
+    let finalFy = (dirToCenter.y * pullForce) + (tangent.y * vortexForce);
 
     // OPTIMALIZACE: Noise poďítáme jen každý 3. frame při zátěži
     if (!p.lastNoiseX || frameCount % (players.length > 60 ? 3 : 1) === 0) {
