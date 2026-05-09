@@ -1498,8 +1498,8 @@ let bonusFrames = [];
 let explosionTimer = 0;
 let gameState = "PLAYING"; 
 let nukeEffectTimer = 0;
-let resultsTimer = 5;
-let maxResultsTimer = 5;
+let resultsTimer = 10;
+let maxResultsTimer = 10;
 let cameraScale = 1.6;
 let targetCameraScale = 1.6;
 // audioStarted a synth přesunuty nahoru
@@ -4911,8 +4911,8 @@ function updateTimers() {
       if (explosionTimer <= 0) { 
           gameState = "RESULTS"; 
           let donorCount = Object.keys(roundGifts).length;
-          maxResultsTimer = 5;
-          resultsTimer = 5; 
+          maxResultsTimer = 10;
+          resultsTimer = 10; 
           winnerAnnounced = false;
       } 
   }
@@ -5207,7 +5207,7 @@ function drawResults() {
   noStroke(); fill(255); textSize(18); textAlign(CENTER, CENTER); textStyle(BOLD);
   text(T[currentLang].NEXT + " " + resultsTimer + "s", W/2, timerY); textStyle(NORMAL);
   
-  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 5; resultsTimer = 5; startNewRound(); } } 
+  if (frameCount % 60 === 0) { resultsTimer--; if (resultsTimer <= 0) { maxResultsTimer = 10; resultsTimer = 10; startNewRound(); } } 
 }
 
 function drawTopHUD() {
@@ -5391,18 +5391,16 @@ function draw() {
   let botCount = players.filter(p => p.isBot).length;
   let totalAlive = realPlayersCount + botCount;
 
-  // 1. Neustálé doplňování: Udržujeme vždy kolem 100 cílů
-  let targetTotal = MAX_IDLE_BOTS;
-  let isAnyBotCrusherActive = players.some(p => p.botDmgTimer > 0);
+  // 1. Neustálé doplňování: Udržujeme vždy kolem 80 cílů (pomalé doplňování proti explozi fyziky)
+  let maxBots = 80; 
 
-  if (totalAlive < targetTotal) {
-      if (millis() > nextBotSpawnTime) {
-          spawnIdleBot();
-          // Pokud je aktivní Bot Crusher bonus, boti se spawnují výrazně pomaleji (3.5 - 5.2s)
-          let minInt = isAnyBotCrusherActive ? 3500 : 1000;
-          let maxInt = isAnyBotCrusherActive ? 5250 : (totalAlive < 50 ? 2000 : 3000);
-          nextBotSpawnTime = millis() + random(minInt, maxInt);
-      }
+  if (typeof window.lastBotSpawnFrame === 'undefined') {
+      window.lastBotSpawnFrame = 0;
+  }
+
+  if (botCount < maxBots && frameCount - window.lastBotSpawnFrame > 15) {
+      spawnIdleBot();
+      window.lastBotSpawnFrame = frameCount; 
   }
 
   // 2. Postupné mizení: Pouze pokud celkový poďet výrazně překroďí limit nebo je v aréně hromada lidí (50+)
@@ -5411,7 +5409,7 @@ function draw() {
           let botToKill = players.find(p => p.isBot);
           if (botToKill) botToKill.hp = 0;
       }
-  } else if (totalAlive > targetTotal + 10 && botCount > 0) {
+  } else if (totalAlive > maxBots + 10 && botCount > 0) {
       if (frameCount % 120 === 0) { // Pomalejší ďistění nadbyteďných botů nad limit
           let botToKill = players.find(p => p.isBot);
           if (botToKill) botToKill.hp = 0;
