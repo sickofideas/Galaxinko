@@ -2814,8 +2814,10 @@ function handleCameraAndPlayers() {
         pullForce = -0.00003 * p.body.mass * afkMult; // ZvĂ˝Ĺˇeno z -0.00002
     }
 
-    // 3. MNOHEM SILNÄšJĹ ĂŤ ROTACE VORTEXU PRO VĹ ECHNY
-    let vortexForce = 0.00018 * p.body.mass * p.baseRotDir * afkMult; // ZvĂ˝Ĺˇeno z 0.00006
+    // 3. PLYNULĂť GLOBĂ LNĂŤ VORTEX (VĹˇichni stejnĂ˝m smÄ›rem, sĂ­la se pĹ™elĂ©vĂˇ)
+    // Vlna plynule mÄ›nĂ­ sĂ­lu vĂ­ru (a zhruba kaĹľdĂ˝ch 35 vteĹ™in ho hladce otoÄŤĂ­)
+    let globalVortex = Math.sin(frameCount * 0.0015) * 0.00025;
+    let vortexForce = globalVortex * p.body.mass * afkMult;
 
     let finalFx = (dirToCenter.x * pullForce) + (tangent.x * vortexForce);
     let finalFy = (dirToCenter.y * pullForce) + (tangent.y * vortexForce);
