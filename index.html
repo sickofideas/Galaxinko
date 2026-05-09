@@ -2576,6 +2576,15 @@ function handleCombat(p1, p2) {
   p1.attackCooldown = 12;
   p2.attackCooldown = 12;
 
+  // --- BOOST OD LEDU (Odrážení od zmrazených hráčů) ---
+  if (p1.isFrozen && !p2.isBot && !p2.isFrozen) {
+      p2.orbSpeedTimer = Math.max(p2.orbSpeedTimer, 60); // 1 vteřina (60 FPS)
+  }
+  if (p2.isFrozen && !p1.isBot && !p1.isFrozen) {
+      p1.orbSpeedTimer = Math.max(p1.orbSpeedTimer, 60); // 1 vteřina (60 FPS)
+  }
+  // ----------------------------------------------------
+
   let distVec = Matter.Vector.sub(p2.body.position, p1.body.position);
   if (distVec.x === 0 && distVec.y === 0) distVec.x = 1;
   let distVal = Matter.Vector.magnitude(distVec);
@@ -3469,7 +3478,7 @@ function handleCameraAndPlayers() {
     
     // --- VÝPOČET SIL (Sníženo o 15% pro pomalejší tempo + posílení rotace) ---
     let pullForce = 0.00002 * p.body.mass * afkMult;  // Sníženo pro více "dokola" efekt
-    let vortexForce = 0.00009 * p.body.mass * p.baseRotDir * afkMult; // Posíleno relativně k tahu do středu
+    let vortexForce = 0.00015 * p.body.mass * p.baseRotDir * afkMult; // Posíleno relativně k tahu do středu
 
     let finalFx = (dirX * pullForce) + (-dirY * vortexForce);
     let finalFy = (dirY * pullForce) + (dirX * vortexForce);
@@ -4100,6 +4109,38 @@ function drawPlayer(p) {
 
   push(); 
   translate(pos.x, pos.y);
+
+  // === ELASTICKÝ ŽELATINOVÝ EFEKT (POUZE PRO BOTY) ===
+  if (p.isBot) {
+      // Inicializace proměnných pro plynulý dojezd (pokud ještě neexistují)
+      if (typeof p.visualStretch === 'undefined') {
+          p.visualStretch = 0;
+          p.stretchAngle = 0;
+      }
+
+      let vel = p.body.velocity;
+      let speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y); // Aktuální rychlost
+      
+      // Vypočítáme, jak moc by se měla kulička natáhnout (max o 35 %)
+      let targetStretch = Math.min(speed * 0.015, 0.35); 
+      
+      // Úhel letu měníme, jen když se reálně hýbe (aby se guma nekroutila při zastavení)
+      if (speed > 0.5) {
+          p.stretchAngle = Math.atan2(vel.y, vel.x);
+      }
+
+      // Plynulá interpolace - tohle vytvoří ten gumový dojezd po nárazu
+      p.visualStretch = lerp(p.visualStretch, targetStretch, 0.2);
+
+      // Aplikace gumového efektu na plátno
+      if (p.visualStretch > 0.01) {
+          rotate(p.stretchAngle); // Natočíme plátno po směru letu
+          scale(1 + p.visualStretch, 1 - p.visualStretch); // Natáhneme do délky a splácneme do šířky
+          rotate(-p.stretchAngle); // Vrátíme rotaci zpět, aby se profilovka neprotáčela vzhůru nohama
+      }
+  }
+  // ==================================================
+
   scale(isBuffed ? 1.05 : 1.0);
   rotate(p.rot);
 
@@ -4356,10 +4397,19 @@ function drawPlayer(p) {
   noStroke();
   ellipse(0, 0, imgSize); 
 
-  if (!p.isBot && p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") {
-      tint(255, p.avatarAlpha);
-      imageMode(CENTER); 
+  if (!p.isBot && p.avatarAlpha > 0 && userAvatars[p.name] && userAvatars[p.name] !== "loaded") { 
+      tint(255, p.avatarAlpha); 
+      imageMode(CENTER);
+      
+      // --- ROTACE PROFILOVKY JEN PŘI ZMRAZENÍ ---
+      push();
+      if (p.isFrozen) {
+          rotate(frameCount * 0.05); // Plynulé točení fotky dokola
+      }
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
+      pop();
+      // -----------------------------------------
+      
       noTint(); 
   }
   if (p.hp >= 10000) {
@@ -5391,30 +5441,46 @@ function draw() {
   let botCount = players.filter(p => p.isBot).length;
   let totalAlive = realPlayersCount + botCount;
 
-  // 1. Neustálé doplňování: Udržujeme vždy kolem 80 cílů (pomalé doplňování proti explozi fyziky)
-  let maxBots = 80; 
+  // ==========================================
+  // ANTI-ZÁSEK: KONTROLA FYZICKÉ KAPACITY ARÉNY
+  // ==========================================
+  let arenaArea = W * (ARENA_BOT - ARENA_TOP);
+  let totalBallsArea = 0;
+  
+  for (let p of players) {
+      totalBallsArea += Math.PI * (p.body.circleRadius * p.body.circleRadius);
+  }
+  
+  let arenaFillRatio = totalBallsArea / arenaArea;
+
+  // 1. OCHRANA PŘED PŘEPLNĚNÍM (Pokud je zabráno více než 75 % plochy)
+  if (arenaFillRatio > 0.75) {
+      let currentBots = players.filter(p => p.isBot);
+      if (currentBots.length > 0) {
+          // Najdeme bota s nejmenším HP
+          currentBots.sort((a, b) => a.hp - b.hp);
+          let weakestBot = currentBots[0];
+          
+          // Okamžitě ho vymažeme z fyzikálního světa i ze hry
+          Matter.World.remove(world, weakestBot.body);
+          players = players.filter(p => p !== weakestBot);
+      }
+  }
+
+  // 2. CHYTRÝ SPAWN BOTŮ (Bere v úvahu místo i limit)
+  let maxTotalPlayers = 80; 
+  let allowedBots = Math.max(0, maxTotalPlayers - realPlayersCount);
 
   if (typeof window.lastBotSpawnFrame === 'undefined') {
       window.lastBotSpawnFrame = 0;
   }
 
-  if (botCount < maxBots && frameCount - window.lastBotSpawnFrame > 15) {
+  // Spawn povolen POUZE pokud je aréna zaplněná z méně než 70 % a nechybí boti
+  if (botCount < allowedBots && arenaFillRatio < 0.70 && frameCount - window.lastBotSpawnFrame > 15) {
       spawnIdleBot();
       window.lastBotSpawnFrame = frameCount; 
   }
-
-  // 2. Postupné mizení: Pouze pokud celkový poďet výrazně překroďí limit nebo je v aréně hromada lidí (50+)
-  if (realPlayersCount > 50 && botCount > 20) {
-      if (frameCount % 60 === 0) { // 1x za vteřinu uvolnit místo pro reálné lidi
-          let botToKill = players.find(p => p.isBot);
-          if (botToKill) botToKill.hp = 0;
-      }
-  } else if (totalAlive > maxBots + 10 && botCount > 0) {
-      if (frameCount % 120 === 0) { // Pomalejší ďistění nadbyteďných botů nad limit
-          let botToKill = players.find(p => p.isBot);
-          if (botToKill) botToKill.hp = 0;
-      }
-  }
+  // ==========================================
   
   // --- ČISTÝ CHROMA KEY PRO DAYZ POZADÍ ---
   background(0, 255, 0); // Dokonale ďistá zelená pro OBS klíďování
