@@ -26,7 +26,7 @@
 
 <script>
 // ==========================================
-// GALAXINKO SNAKE - PLNA VERZE
+// GALAXINKO SNAKE - PLNA VERZE S HADANKAMI
 // ==========================================
 p5.disableFriendlyErrors = true;
 var W = 1080;
@@ -47,7 +47,7 @@ let apples = [];
 let gridSize = 40; 
 let cols, rows;
 let gridOffsetY;
-let snakeSpeed = 2; // Zrychleno (aktualizace kazdy 2. frame)
+let snakeSpeed = 2; 
 let mistakeChance = 0.001; 
 let score = 0;
 let roundComplete = false;
@@ -88,14 +88,210 @@ function speakTTS(text, force = false) {
 let isRiddleModeActive = true;
 let activeRiddle = { question: null, answer: null };
 let autoSkipRiddleTimer; 
+let riddleHintTimer1, riddleHintTimer2, riddleHintTimer3;
 let riddleRevealedLetters = [];
 
 const vsechnyHadanky = [
-    { q: "Pada to, ale nikdy se to nerozbije. Co je to?", a: "noc" },
-    { q: "Ma to zuby, ale nekouse to.", a: "hreben" },
-    { q: "Ma to krk, ale nema hlavu.", a: "lahev" },
-    { q: "Mluvi bez ust a slysi bez usi.", a: "ozvena" },
-    { q: "Co se da chytit, ale neda se to hodit?", a: "ryma" }
+    { q: "Padá to, ale nikdy se to nerozbije. Co je to?", a: "noc" },
+    { q: "Má to zuby, ale nekouše to.", a: "hřeben" },
+    { q: "Čím víc toho je, tím méně vidíš.", a: "tma" },
+    { q: "Má to krk, ale nemá hlavu.", a: "láhev" },
+    { q: "Běží to, ale nemá to nohy.", a: "voda" },
+    { q: "Má to uši, ale neslyší.", a: "hrnec" },
+    { q: "Patří to tobě, ale ostatní to používají víc.", a: "jméno" },
+    { q: "Co se vždy zvětšuje a nikdy nezmenšuje?", a: "věk" },
+    { q: "Shodíš to, když to potřebuješ, a vytáhneš, když ne.", a: "kotva" },
+    { q: "Má to oči, ale nevidí.", a: "brambora" },
+    { q: "Je to plné děr, ale udrží to vodu.", a: "houba" },
+    { q: "Jde to nahoru a dolů, ale nehýbe se to.", a: "schody" },
+    { q: "Má to listy, ale není to strom.", a: "kniha" },
+    { q: "Mluví bez úst a slyší bez uší.", a: "ozvěna" },
+    { q: "Co se dá chytit, ale nedá se to hodit?", a: "rýma" },
+    { q: "Nemá to barvu, ale je to všude kolem nás.", a: "vzduch" },
+    { q: "Má to města, ale žádné lidi.", a: "mapa" },
+    { q: "Můžeš to zlomit, aniž by ses toho dotkl.", a: "slib" },
+    { q: "Dá se to udělat, ale nedá se to chytit.", a: "krok" },
+    { q: "Zemře to, když to dostane napít.", a: "oheň" },
+    { q: "Čím víc z toho vezmeš, tím je to větší.", a: "díra" },
+    { q: "Ráno to má 4 nohy, v poledne 2 a večer 3.", a: "člověk" },
+    { q: "Každý to má, nikdo to nemůže ztratit.", a: "stín" },
+    { q: "Když to máš, chceš to sdílet. Když to sdílíš, už to nemáš.", a: "tajemství" },
+    { q: "Co se musí rozbít před použitím?", a: "vejce" },
+    { q: "Nemá to ruce, ale dokáže to udeřit.", a: "hodiny" },
+    { q: "Má to palec a čtyři prsty, ale není to živé.", a: "rukavice" },
+    { q: "Má to čtyři nohy, ale nechodí to.", a: "stůl" },
+    { q: "Co přijde vždy zítra, ale nikdy dnes?", a: "zítřek" },
+    { q: "Je to bílé, padá to z nebe a v ruce to zmizí.", a: "sníh" },
+    { q: "Hřeje to, ale není to oheň. Svítí to, ale není to lampa.", a: "slunce" },
+    { q: "Má to korunu, ale není to král.", a: "strom" },
+    { q: "Zrodí se to v lese, ale shoří to doma.", a: "dřevo" },
+    { q: "Vidíš to v zrcadle, ale nemůžeš se toho dotknout.", a: "odraz" },
+    { q: "Je to ostré a přesto to nekrájí, spojuje to věci dohromady.", a: "jehla" },
+    { q: "Co má hlavu a ocas, ale nemá tělo?", a: "mince" },
+    { q: "Může s to běžet, ale neumí to chodit.", a: "řeka" },
+    { q: "Který měsíc má 28 dní?", a: "každý" },
+    { q: "Co roste kořeny nahoru?", a: "rampouch" },
+    { q: "Cestuje to po celém světě, ale zůstává to v rohu.", a: "známka" },
+    { q: "Kdo spí v botách?", a: "kůň" },
+    { q: "Kdo má dům na zádech?", a: "šnek" },
+    { q: "Má to peří, ale nelétá to.", a: "polštář" },
+    { q: "Co má klávesy, ale neotevře žádné dveře?", a: "klavír" },
+    { q: "Ukazuje to tvář, kterou mu ukážeš ty.", a: "zrcadlo" },
+    { q: "Má to srdce z kamene.", a: "broskev" },
+    { q: "Když je to černé, kupuješ to. Když je to červené, používáš to.", a: "uhlí" },
+    { q: "Které slovo je ve slovníku vždy napsáno špatně?", a: "špatně" },
+    { q: "Čím víc schne, tím je mokřejší.", a: "ručník" },
+    { q: "Nemá to plíce, ale bez vzduchu to zemře.", a: "plamen" },
+    { q: "Který pes nikdy neštěká?", a: "mořský" },
+    { q: "Co má ručičky, ale netleská?", a: "hodinky" },
+    { q: "Co jde nahoru, ale nikdy dolů?", a: "věk" },
+    { q: "Které kolo se při zatáčení netočí?", a: "rezervní" },
+    { q: "Který pták nenosí peří?", a: "papírový" },
+    { q: "Kde je čtvrtek před středou?", a: "slovník" },
+    { q: "Co je těžší: kilo železa nebo kilo peří?", a: "stejně" },
+    { q: "Čím víc to myješ, tím je to špinavější.", a: "voda" },
+    { q: "Který hrad nemá ani jeden kámen?", a: "pískový" },
+    { q: "Co udržíš v pravé ruce, ale v levé nikdy?", a: "loket" },
+    { q: "Můžeš to držet, i když máš prázdnou ruku.", a: "pěst" },
+    { q: "Co je plné děr, a přesto to udrží vodu?", a: "houba" },
+    { q: "Která kočka nenosí kožich?", a: "pletená" },
+    { q: "Který roh nikdy nezatroubí?", a: "tvaroh" },
+    { q: "Jaký klíč neotevře žádné dveře?", a: "houslový" },
+    { q: "Co nemůžeš nikdy sníst k snídani?", a: "oběd" },
+    { q: "Co přijde, hned odejde, a přece to tu je?", a: "přítomnost" },
+    { q: "Zasype tě to, a přesto můžeš dýchat.", a: "světlo" },
+    { q: "Co má žebra, ale nemá páteř?", a: "radiátor" },
+    { q: "Co jde do vody černé a vyleze červené?", a: "rak" },
+    { q: "Čím větší to je, tím méně to váží.", a: "bublina" },
+    { q: "Čím je to sušší, tím je to lehčí.", a: "houba" },
+    { q: "Která ryba zpívá?", a: "žádná" },
+    { q: "Který kůň nepotřebuje pít?", a: "houpací" },
+    { q: "Co pláče bez slz?", a: "vrba" },
+    { q: "Čím hlouběji kopeš, tím je to větší.", a: "jáma" },
+    { q: "Zvedne to člověka, aniž to použije svaly.", a: "výtah" },
+    { q: "Co se neustále mění, ale zůstává stejné?", a: "čas" },
+    { q: "Roste to, ale nepotřebuje slunce ani déšť.", a: "dluh" },
+    { q: "Co nemá začátek, konec, ani prostředek?", a: "kruh" },
+    { q: "Můžeš to dát, i když to nemáš.", a: "radu" },
+    { q: "Otevřeš okno, ono uteče.", a: "teplo" },
+    { q: "Zavřeš oči a přijde. Otevřeš je a zmizí.", a: "sen" },
+    { q: "Zastaví to čas mrknutím oka.", a: "fotka" },
+    { q: "Má to líc i rub, ale není to mince.", a: "látka" },
+    { q: "Ve vodě se to narodí, na suchu to umře.", a: "led" },
+    { q: "Co kráčí vždy před tebou?", a: "budoucnost" },
+    { q: "Nemá to tělo, ale rozbije to sklo.", a: "hlas" },
+    { q: "Dvě sestry se na sebe dívají, ale nedotknou se.", a: "oči" },
+    { q: "Čím je to širší, tím je to mělčí.", a: "louže" },
+    { q: "Každý to chce, ale nikdo to nechce ztratit.", a: "život" },
+    { q: "Když se usmíváš, ukážu se, ale zvuk nevydám.", a: "ďolíček" },
+    { q: "Přes den plné, v noci prázdné.", a: "boty" },
+    { q: "Který had nemá zuby?", a: "hadice" },
+    { q: "Co musíš udělat, abys otevřel oči?", a: "probudit se" },
+    { q: "Má to hřbet, ale žádné tělo.", a: "kniha" },
+    { q: "Hledáš to a nevidíš. Najdeš a ztratíš.", a: "tajemství" },
+    { q: "Stojí nad vodou, do vody nepadne.", a: "most" },
+    { q: "Jedna noha, klobouk na ní.", a: "houba" },
+    { q: "V noci plný hvězd, ve dne prázdný.", a: "rybník" },
+    { q: "Má to postel, ale nespí to.", a: "řeka" },
+    { q: "Leží to na zemi a nevrhá to stín.", a: "stín" },
+    { q: "Hladké jako sklo, studené jako led.", a: "led" },
+    { q: "Čím je to starší, tím je to kratší.", a: "svíčka" },
+    { q: "Pět bratrů v jednom domě.", a: "rukavice" },
+    { q: "Zavírá to dveře i bez rukou.", a: "průvan" },
+    { q: "Co se narodí, když hodíš kámen do vody?", a: "kruhy" },
+    { q: "Nosí dům s sebou a neplatí nájem.", a: "šnek" },
+    { q: "Který hrnec se nikdy neuvaří?", a: "nočník" },
+    { q: "Má to ústa, ale nemluví.", a: "řeka" },
+    { q: "Smaže všechno, dokud samo nezmizí.", a: "guma" },
+    { q: "Stojí nad hlavou, ale nespadne.", a: "nebe" },
+    { q: "Čím je to čistší, tím hůře to vidíš.", a: "sklo" },
+    { q: "Kdo má uši a nic neslyší?", a: "klas" },
+    { q: "Kapsa s tím zůstane prázdná.", a: "díra" },
+    { q: "Spojí dvě věci, i když je neviditelné.", a: "lepidlo" },
+    { q: "Kdo pije nohama?", a: "strom" },
+    { q: "Je to větší než dům a schováš to do dlaně.", a: "oko" },
+    { q: "Nejí, nepije a přece roste.", a: "dluh" },
+    { q: "Sedí to na střeše a kouří.", a: "komín" },
+    { q: "Koho bijí po hlavě, aby k něčemu byl?", a: "hřebík" },
+    { q: "Co pláče, když se to svléká?", a: "cibule" },
+    { q: "Zvenku chlupaté, zevnitř sladké.", a: "broskev" },
+    { q: "Co udělá slunce, když prší?", a: "duhu" },
+    { q: "Kdo mluví všemi jazyky světa?", a: "ozvěna" },
+    { q: "Co se zlomí, i když to nedržíš?", a: "slib" },
+    { q: "Kdo má uši na břiše?", a: "hrnec" },
+    { q: "Co má zuby, ale nic neřeže?", a: "hřeben" },
+    { q: "Můžeš to natáhnout přesně o tolik, kolik slíbíš.", a: "slib" },
+    { q: "Tři muži ve vodě, jen dva mají mokré vlasy. Proč?", a: "plešatý" },
+    { q: "Letí to vzduchem bez křídel.", a: "mrak" },
+    { q: "Má to sto očí, a přesto nic nevidí.", a: "síto" },
+    { q: "Visí to venku, a když to schne, zmenšuje se to.", a: "mýdlo" },
+    { q: "Stojí to na jedné noze, nosí to klobouk, nemá hlavu.", a: "hřib" },
+    { q: "Spadne z výšky and nerozbije se. Ve vodě umře.", a: "papír" },
+    { q: "Čím to je ostřejší, tím lépe to vidí.", a: "oko" },
+    { q: "Pětkrát to zvětšíš a pořád je to jedna.", a: "rukavice" },
+    { q: "Co ukáže všechno kromě sebe?", a: "zrcadlo" },
+    { q: "Čtyři nohy, co neumí chodit.", a: "židle" },
+    { q: "Roste bez země, pije bez úst.", a: "mrak" },
+    { q: "Čím hlouběji kopeš, tím víc to roste.", a: "jáma" },
+    { q: "Zlaté zrnko v bílém domku.", a: "vejce" },
+    { q: "Letí to, letí, křídla nemá.", a: "vítr" },
+    { q: "Má to dvě nohy, ale neumí chodit.", a: "kružítko" },
+    { q: "Která květina je nejvíce na očích?", a: "čočka" },
+    { q: "Které oko nepláče?", a: "kuří" },
+    { q: "Nemá to kosti, ale má to žebra.", a: "deštník" },
+    { q: "Má to jazyk, ale nemluví.", a: "bota" },
+    { q: "Které zvíře se nikdy nezpotí?", a: "prase" },
+    { q: "Smaže to, na čem to sedí.", a: "guma" },
+    { q: "Je to černé, a dává to světlo.", a: "uhlí" },
+    { q: "Zvedne to člověka beze svalů.", a: "výtah" },
+    { q: "Dokáže rozsvítit svět bez baterky.", a: "slunce" },
+    { q: "Zastaví to auto na krok.", a: "brzda" },
+    { q: "Jedna noha, žádné tělo, přece máš v ní hlavu.", a: "čepice" },
+    { q: "Skočí do vody červené, vyletí černé.", a: "uhlí" },
+    { q: "Má to plno zubů a nesní to nic.", a: "zip" },
+    { q: "Dívá se z výšky, prší z ní, ale mrak to není.", a: "sprcha" },
+    { q: "Které zvíře nikdy nespí?", a: "mravenec" },
+    { q: "Slepec to vidí, hluchý slyší.", a: "nic" },
+    { q: "Může to jít ven jen když je mokro.", a: "deštník" },
+    { q: "Ztratí to hlavu jen aby něco spojilo.", a: "hřebík" },
+    { q: "Dá se do toho nalít moře, ale vodu to neudrží.", a: "síto" },
+    { q: "Má to krk, hlavu ne. Nosíš to v zimě.", a: "rolák" },
+    { q: "Zpívá bez hlasu, tančí bez nohou.", a: "vítr" },
+    { q: "Malé jako zrnko, srazí k zemi loď.", a: "útes" },
+    { q: "Co nesmíš říct před tajemstvím?", a: "jméno" },
+    { q: "Dvě bříška, čtyři uši.", a: "polštář" },
+    { q: "Nemá to pusu, ale polyká to tebe.", a: "voda" },
+    { q: "Ráno tě opustí, večer se k tobě vrátí.", a: "postel" },
+    { q: "Může být v kalendáři, ale den to není.", a: "jméno" },
+    { q: "Nemá nohy, ale uteče.", a: "čas" },
+    { q: "Má to rohy, netrká to.", a: "měsíc" },
+    { q: "Na jaký strom pták nesedne?", a: "rodokmen" },
+    { q: "Zvíře, co má oči nejblíže u sebe.", a: "nejmenší" },
+    { q: "Co nemá začátek, konec, ani prostředek?", a: "prsten" },
+    { q: "Má mnoho klíčů, neodemkne žádný zámek.", a: "klavír" },
+    { q: "Narodí se velké, umírá malé.", a: "tužka" },
+    { q: "Ztratíš to, i když to nikdo neukradne.", a: "rozum" },
+    { q: "Jí oheň, pije vodu.", a: "drak" },
+    { q: "Který dům nic neváží?", a: "vzdušný" },
+    { q: "Co je na konci duhy?", a: "á" },
+    { q: "Létá potichu, nepije, neseje, pták to je.", a: "netopýr" },
+    { q: "Šlapeš na to od rána do večera, nepláče to.", a: "podlaha" },
+    { q: "Čím víc se plní, tím je lehčí.", a: "balónek" },
+    { q: "Stojí na jedné noze, srdce má z kamene.", a: "broskev" },
+    { q: "Nemá nohy, ale skáče. Nemá plíce, ale píská.", a: "míč" },
+    { q: "Stokrát otočíš, a je to to samé.", a: "kolo" },
+    { q: "Tři oči, jedna noha, každý ho poslouchá.", a: "semafor" },
+    { q: "Panenka v koutě, slzy jí tečou.", a: "svíčka" },
+    { q: "Malé, kulaté, do nebe to volá.", a: "zvonek" },
+    { q: "Má jedno ucho, nic neslyší.", a: "džbán" },
+    { q: "Obejme tě, nemá ruce.", a: "kabát" },
+    { q: "Stojí, a nikdy si nesedne.", a: "strom" },
+    { q: "Běhá to bez nohou po lese.", a: "hlas" },
+    { q: "Kdo nejí, nepije and přece roste?", a: "kopec" },
+    { q: "Co spojí lidi bez provazu?", a: "láska" },
+    { q: "Pije to krev, ale nemá to žíly.", a: "komár" },
+    { q: "Běží to, ale nemá to plíce.", a: "řeka" },
+    { q: "Když to padá, neudělá to hluk.", a: "sníh" }
 ];
 
 let dostupneHadanky = [];
@@ -104,9 +300,7 @@ function dejDalsiHadanku() {
         dostupneHadanky = [...vsechnyHadanky];
         for (let i = dostupneHadanky.length - 1; i > 0; i--) {
             let j = Math.floor(Math.random() * (i + 1));
-            let temp = dostupneHadanky[i];
-            dostupneHadanky[i] = dostupneHadanky[j];
-            dostupneHadanky[j] = temp;
+            [dostupneHadanky[i], dostupneHadanky[j]] = [dostupneHadanky[j], dostupneHadanky[i]];
         }
     }
     return dostupneHadanky.pop();
@@ -121,14 +315,37 @@ function zkontrolujOdpoved(hracovaZprava, spravnaOdpoved) {
 function generateNewRiddle() {
     if (!isRiddleModeActive) return;
     clearTimeout(autoSkipRiddleTimer);
+    clearTimeout(riddleHintTimer1);
+    clearTimeout(riddleHintTimer2);
+    clearTimeout(riddleHintTimer3);
     riddleRevealedLetters = [];
-    let picked = dostupneHadanky.length > 0 ? dostupneHadanky.pop() : dejDalsiHadanku();
+
+    let picked = dejDalsiHadanku();
     activeRiddle = { question: picked.q, answer: picked.a, displayAnswer: picked.a, startTime: Date.now() };
+
+    function revealLetter() {
+        if (isRiddleModeActive && activeRiddle.answer && activeRiddle.answer.length > 1) {
+            let unrevealed = [];
+            for (let i = 0; i < activeRiddle.answer.length; i++) {
+                if (!riddleRevealedLetters.includes(i)) unrevealed.push(i);
+            }
+            if (unrevealed.length > 0) {
+                let idx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+                riddleRevealedLetters.push(idx);
+            }
+        }
+    }
+
+    riddleHintTimer1 = setTimeout(revealLetter, 60000);
+    riddleHintTimer2 = setTimeout(revealLetter, 120000);
+    if (activeRiddle.answer && activeRiddle.answer.length > 6) {
+        riddleHintTimer3 = setTimeout(revealLetter, 180000);
+    }
 
     autoSkipRiddleTimer = setTimeout(() => {
         if (isRiddleModeActive && activeRiddle.answer) {
             activeRiddle = { question: null, answer: null }; 
-            setTimeout(generateNewRiddle, Math.floor(Math.random() * 25000) + 5000);
+            setTimeout(generateNewRiddle, random(5000, 30000));
         }
     }, 240000);
 }
@@ -144,7 +361,7 @@ function setup() {
     noCursor();
     
     synth = new p5.PolySynth();
-    synth.setADSR(0.08, 0.3, 0.15, 0.4); 
+    synth.setADSR(0.01, 0.1, 0.1, 0.1); 
 
     setupEvents();
     generateNewRiddle();
@@ -185,12 +402,10 @@ function handleAction(name, amount, isGift = false) {
 function draw() {
     background(0, 255, 0); 
 
-    // Arena je nyni take zelena pro Chromakey
     fill(0, 255, 0);
     noStroke();
     rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
 
-    // Vykresleni okraju areny pro lepsi orientaci
     stroke(255, 255, 255, 50);
     strokeWeight(2);
     noFill();
@@ -214,10 +429,6 @@ function draw() {
     if (gameOver) {
         fill(255, 0, 0, 150);
         rect(0, ARENA_TOP, W, ARENA_BOT - ARENA_TOP);
-        fill(255);
-        textSize(50);
-        textAlign(CENTER, CENTER);
-        text("NABOURAL JSI!\nRESTART ZA " + Math.ceil(deathTimer / 60), W/2, (ARENA_TOP + ARENA_BOT)/2);
     }
 }
 
@@ -245,84 +456,17 @@ function drawSecretCodeUI() {
     if (activeRiddle.answer) {
         let ansLen = activeRiddle.answer.length;
         let blanks = "";
-        for (let i = 0; i < ansLen; i++) blanks += "_ ";
+        for (let i = 0; i < ansLen; i++) {
+            if (riddleRevealedLetters.includes(i)) {
+                blanks += activeRiddle.answer[i].toUpperCase() + " ";
+            } else {
+                blanks += "_ ";
+            }
+        }
         blanks += "(" + ansLen + ")";
         fill(0, 242, 254); stroke(0); strokeWeight(3);
         text(blanks, W/2, bannerCenterY + 32);
     }
-    pop();
-}
-
-function drawGamepad() {
-    push();
-    translate(W/2, 1750); 
-    
-    // Shoulder buttons
-    fill(80);
-    stroke(50);
-    strokeWeight(2);
-    rectMode(CENTER);
-    rect(-100, -70, 60, 20, 5); // L
-    rect(100, -70, 60, 20, 5);  // R
-    
-    // Zakladni telo gamepadu
-    fill(40);
-    stroke(80);
-    strokeWeight(4);
-    rect(0, -10, 320, 120, 40); 
-    
-    // Rukojeti
-    ellipse(-130, 20, 90, 130);
-    ellipse(130, 20, 90, 130);
-    
-    // Analogove packy
-    fill(20);
-    ellipse(-40, 20, 50, 50);
-    ellipse(40, 20, 50, 50);
-    fill(60);
-    let stickX = 0, stickY = 0;
-    if (snakeDir.x === -1) stickX = -5;
-    if (snakeDir.x === 1) stickX = 5;
-    if (snakeDir.y === -1) stickY = -5;
-    if (snakeDir.y === 1) stickY = 5;
-    ellipse(-40 + stickX, 20 + stickY, 30, 30);
-    ellipse(40 + stickX, 20 + stickY, 30, 30);
-    
-    // D-Pad zakladna
-    fill(20);
-    rect(-90, -20, 60, 60, 10);
-    
-    // D-Pad tlacitka
-    noStroke();
-    // Nahoru
-    if (snakeDir.x === 0 && snakeDir.y === -1) fill(0, 255, 255); else fill(70);
-    rect(-90, -35, 15, 20, 2);
-    // Dolu
-    if (snakeDir.x === 0 && snakeDir.y === 1) fill(0, 255, 255); else fill(70);
-    rect(-90, -5, 15, 20, 2);
-    // Doleva
-    if (snakeDir.x === -1 && snakeDir.y === 0) fill(0, 255, 255); else fill(70);
-    rect(-105, -20, 20, 15, 2);
-    // Doprava
-    if (snakeDir.x === 1 && snakeDir.y === 0) fill(0, 255, 255); else fill(70);
-    rect(-75, -20, 20, 15, 2);
-    
-    // Akcni tlacitka
-    fill(20);
-    ellipse(90, -20, 60, 60);
-    fill(255, 0, 128); 
-    ellipse(90, -35, 15, 15);
-    fill(0, 255, 128); 
-    ellipse(90, -5, 15, 15);
-    fill(0, 128, 255); 
-    ellipse(75, -20, 15, 15);
-    fill(255, 255, 0); 
-    ellipse(105, -20, 15, 15);
-    
-    // Stredove svetlo
-    fill(0, 255, 255, 150);
-    ellipse(0, -30, 20, 10);
-    
     pop();
 }
 
@@ -486,8 +630,15 @@ function updateSnake() {
             ateApple = true;
             apples.splice(i, 1);
             
-            // Efekt jidla
             createParticles(nextX * gridSize + gridSize/2, gridOffsetY + nextY * gridSize + gridSize/2, apple.type === 'donate' ? {r:0, g:255, b:255} : {r:255, g:0, b:0});
+            
+            if (audioStarted && synth) {
+                if (apple.type === 'donate') {
+                    synth.play('G5', 0.3, 0, 0.05); 
+                } else {
+                    synth.play('E5', 0.2, 0, 0.05); 
+                }
+            }
             
             if (apple.type === 'donate' && apple.donor) {
                 let cleanDonor = cleanNameForTTS(apple.donor);
@@ -507,7 +658,7 @@ function updateSnake() {
 
     if (snake.length === cols * rows) {
         roundComplete = true;
-        speakTTS("Hra dokoncena! Arena je plna.");
+        speakTTS("Kolo dokonceno!");
         setTimeout(() => { resetSnake(); }, 5000);
     }
 }
@@ -526,7 +677,6 @@ function drawSnake() {
         if (minDist <= 2) isNearApple = true;
     }
 
-    // Vykresleni tela (Neonove ruzova s bilym okrajem pro kontrast na zelene)
     fill(255, 0, 128); 
     stroke(255);
     strokeWeight(2);
@@ -535,11 +685,9 @@ function drawSnake() {
         rect(part.x * gridSize, gridOffsetY + part.y * gridSize, gridSize - 2, gridSize - 2, 8);
     }
     
-    // Vykresleni hlavy
     let hx = head.x * gridSize + gridSize/2;
     let hy = gridOffsetY + head.y * gridSize + gridSize/2;
     
-    // Aura kolem hlavy
     noStroke();
     fill(255, 0, 128, 50);
     ellipse(hx, hy, gridSize * 1.5, gridSize * 1.5);
@@ -549,7 +697,6 @@ function drawSnake() {
     strokeWeight(3);
     ellipse(hx, hy, gridSize + 5, gridSize + 5);
     
-    // Oci
     fill(255);
     noStroke();
     let eyeOffsetX = snakeDir.x * 10;
@@ -561,25 +708,24 @@ function drawSnake() {
     ellipse(hx - 10 + eyeOffsetX * 1.5, hy - 10 + eyeOffsetY * 1.5, 6, 6);
     ellipse(hx + 10 + eyeOffsetX * 1.5, hy - 10 + eyeOffsetY * 1.5, 6, 6);
     
-    // Pusa (animace otevreni pred jablkem)
     if (isNearApple) {
         fill(0);
-        ellipse(hx + snakeDir.x * 15, hy + snakeDir.y * 15, 20, 20); // Otevrena pusa
+        ellipse(hx + snakeDir.x * 15, hy + snakeDir.y * 15, 20, 20); 
         fill(255, 0, 0);
-        ellipse(hx + snakeDir.x * 15, hy + snakeDir.y * 15, 10, 10); // Jazyk
+        ellipse(hx + snakeDir.x * 15, hy + snakeDir.y * 15, 10, 10); 
     } else {
         fill(0);
         rectMode(CENTER);
-        rect(hx + snakeDir.x * 12, hy + snakeDir.y * 12, 12, 4, 2); // Zavrena pusa
+        rect(hx + snakeDir.x * 12, hy + snakeDir.y * 12, 12, 4, 2); 
         rectMode(CORNER);
     }
 }
 
 function drawApples() {
     for (let apple of apples) {
-        let appleEmoji = "\uD83C\uDF4E"; // Cervene jablko
+        let appleEmoji = "\uD83C\uDF4E"; 
         if (apple.type === 'donate') {
-            appleEmoji = "\uD83D\uDC8E"; // Diamant pro dary
+            appleEmoji = "\uD83D\uDC8E"; 
         }
         fill(255);
         textSize(gridSize);
@@ -625,6 +771,66 @@ function drawParticles() {
         noStroke();
         ellipse(p.x, p.y, 6, 6);
     }
+}
+function drawGamepad() {
+    push();
+    translate(W/2, 1750); 
+    
+    fill(80);
+    stroke(50);
+    strokeWeight(2);
+    rectMode(CENTER);
+    rect(-100, -70, 60, 20, 5); 
+    rect(100, -70, 60, 20, 5);  
+    
+    fill(40);
+    stroke(80);
+    strokeWeight(4);
+    rect(0, -10, 320, 120, 40); 
+    
+    ellipse(-130, 20, 90, 130);
+    ellipse(130, 20, 90, 130);
+    
+    fill(20);
+    ellipse(-40, 20, 50, 50);
+    ellipse(40, 20, 50, 50);
+    fill(60);
+    let stickX = 0, stickY = 0;
+    if (snakeDir.x === -1) stickX = -5;
+    if (snakeDir.x === 1) stickX = 5;
+    if (snakeDir.y === -1) stickY = -5;
+    if (snakeDir.y === 1) stickY = 5;
+    ellipse(-40 + stickX, 20 + stickY, 30, 30);
+    ellipse(40 + stickX, 20 + stickY, 30, 30);
+    
+    fill(20);
+    rect(-90, -20, 60, 60, 10);
+    
+    noStroke();
+    if (snakeDir.x === 0 && snakeDir.y === -1) fill(0, 255, 255); else fill(70);
+    rect(-90, -35, 15, 20, 2);
+    if (snakeDir.x === 0 && snakeDir.y === 1) fill(0, 255, 255); else fill(70);
+    rect(-90, -5, 15, 20, 2);
+    if (snakeDir.x === -1 && snakeDir.y === 0) fill(0, 255, 255); else fill(70);
+    rect(-105, -20, 20, 15, 2);
+    if (snakeDir.x === 1 && snakeDir.y === 0) fill(0, 255, 255); else fill(70);
+    rect(-75, -20, 20, 15, 2);
+    
+    fill(20);
+    ellipse(90, -20, 60, 60);
+    fill(255, 0, 128); 
+    ellipse(90, -35, 15, 15);
+    fill(0, 255, 128); 
+    ellipse(90, -5, 15, 15);
+    fill(0, 128, 255); 
+    ellipse(75, -20, 15, 15);
+    fill(255, 255, 0); 
+    ellipse(105, -20, 15, 15);
+    
+    fill(0, 255, 255, 150);
+    ellipse(0, -30, 20, 10);
+    
+    pop();
 }
 </script>
 </body>
