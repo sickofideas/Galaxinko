@@ -832,6 +832,197 @@ function drawGamepad() {
     
     pop();
 }
+function findShortestPath(startX, startY, targetX, targetY) {
+    let queue = [[startX, startY, []]];
+    let visited = new Set();
+    visited.add(startX + "," + startY);
+    
+    while (queue.length > 0) {
+        let [cx, cy, path] = queue.shift();
+        if (cx === targetX && cy === targetY) return path;
+        
+        let dirs = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
+        for (let dir of dirs) {
+            let nx = cx + dir.x;
+            let ny = cy + dir.y;
+            let key = nx + "," + ny;
+            
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && !visited.has(key)) {
+                let occupied = false;
+                for (let part of snake) {
+                    if (part.x === nx && part.y === ny) { occupied = true; break; }
+                }
+                if (!occupied) {
+                    visited.add(key);
+                    queue.push([nx, ny, [...path, dir]]);
+                }
+            }
+        }
+    }
+    return null; 
+}
+
+function getAvailableSpace(startX, startY) {
+    let queue = [[startX, startY]];
+    let visited = new Set();
+    visited.add(startX + "," + startY);
+    let count = 0;
+    
+    while (queue.length > 0) {
+        let [cx, cy] = queue.shift();
+        count++;
+        
+        let dirs = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
+        for (let dir of dirs) {
+            let nx = cx + dir.x;
+            let ny = cy + dir.y;
+            let key = nx + "," + ny;
+            
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && !visited.has(key)) {
+                let occupied = false;
+                for (let part of snake) {
+                    if (part.x === nx && part.y === ny) { occupied = true; break; }
+                }
+                if (!occupied) {
+                    visited.add(key);
+                    queue.push([nx, ny]);
+                }
+            }
+        }
+    }
+    return count;
+}
+
+function updateSnake() {
+    if (roundComplete) return;
+
+    if (gameOver) {
+        deathTimer--;
+        if (deathTimer <= 0) {
+            resetSnake();
+        }
+        return;
+    }
+
+    if (frameCount % snakeSpeed !== 0) return; 
+
+    let head = snake[0];
+    let bestDir = null;
+
+    if (apples.length > 0) {
+        let nearestApple = apples[0];
+        let minDist = dist(head.x, head.y, nearestApple.x, nearestApple.y);
+        for (let apple of apples) {
+            let d = dist(head.x, head.y, apple.x, apple.y);
+            if (d < minDist) { minDist = d; nearestApple = apple; }
+        }
+
+        let path = findShortestPath(head.x, head.y, nearestApple.x, nearestApple.y);
+        if (path && path.length > 0) {
+            let candidateDir = path[0];
+            let nextX = head.x + candidateDir.x;
+            let nextY = head.y + candidateDir.y;
+            
+            let space = getAvailableSpace(nextX, nextY);
+            if (space >= snake.length) {
+                bestDir = candidateDir;
+            } else {
+                let tail = snake[snake.length - 1];
+                let pathToTail = findShortestPath(head.x, head.y, tail.x, tail.y);
+                if (pathToTail && pathToTail.length > 0) {
+                    bestDir = pathToTail[0];
+                }
+            }
+        } else {
+            let tail = snake[snake.length - 1];
+            let pathToTail = findShortestPath(head.x, head.y, tail.x, tail.y);
+            if (pathToTail && pathToTail.length > 0) {
+                bestDir = pathToTail[0];
+            }
+        }
+    }
+
+    if (!bestDir) {
+        let dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+        for (let dir of dirs) {
+            let nx = head.x + dir.x;
+            let ny = head.y + dir.y;
+            let occupied = false;
+            if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) occupied = true;
+            for (let part of snake) {
+                if (part.x === nx && part.y === ny) { occupied = true; break; }
+            }
+            if (!occupied) { bestDir = dir; break; }
+        }
+    }
+
+    if (random() < mistakeChance) {
+        let dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+        bestDir = dirs[Math.floor(random(dirs.length))];
+    }
+
+    if (bestDir && (bestDir.x !== -snakeDir.x || bestDir.y !== -snakeDir.y)) {
+        nextSnakeDir = bestDir;
+    }
+
+    snakeDir = nextSnakeDir;
+    let nextX = head.x + snakeDir.x;
+    let nextY = head.y + snakeDir.y;
+
+    if (nextX < 0 || nextX >= cols || nextY < 0 || nextY >= rows) {
+        snakeDie();
+        return;
+    }
+
+    for (let part of snake) {
+        if (part.x === nextX && part.y === nextY) {
+            snakeDie();
+            return;
+        }
+    }
+
+    let newHead = { x: nextX, y: nextY };
+    snake.unshift(newHead);
+
+    let ateApple = false;
+    for (let i = apples.length - 1; i >= 0; i--) {
+        let apple = apples[i];
+        if (apple.x === nextX && apple.y === nextY) {
+            ateApple = true;
+            apples.splice(i, 1);
+            
+            createParticles(nextX * gridSize + gridSize/2, gridOffsetY + nextY * gridSize + gridSize/2, apple.type === 'donate' ? {r:0, g:255, b:255} : {r:255, g:0, b:0});
+            
+            if (audioStarted && synth) {
+                if (apple.type === 'donate') {
+                    synth.play('G5', 0.3, 0, 0.05); 
+                } else {
+                    synth.play('E5', 0.2, 0, 0.05); 
+                }
+            }
+            
+            if (apple.type === 'donate' && apple.donor) {
+                let cleanDonor = cleanNameForTTS(apple.donor);
+                speakTTS("Had sezral darek od " + cleanDonor);
+            } else {
+                speakTTS("Mnam");
+            }
+            break;
+        }
+    }
+
+    if (!ateApple) {
+        snake.pop();
+    } else {
+        spawnApple('normal');
+    }
+
+    if (snake.length === cols * rows) {
+        roundComplete = true;
+        speakTTS("Kolo dokonceno!");
+        setTimeout(() => { resetSnake(); }, 5000);
+    }
+}
 </script>
 </body>
 </html>
