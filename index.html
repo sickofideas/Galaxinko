@@ -371,6 +371,7 @@ function setup() {
     gridOffsetY = ARENA_TOP;
 
     resetSnake();
+    connectTikfinity(); // Pripojeni k Tikfinity
 }
 
 function setupEvents() {
@@ -1022,6 +1023,55 @@ function updateSnake() {
         speakTTS("Kolo dokonceno!");
         setTimeout(() => { resetSnake(); }, 5000);
     }
+}
+
+// ==========================
+// TIKFINITY PRIPOJENI
+// ==========================
+var TIKFINITY_URL = "ws://localhost:21213"; 
+let socket;
+
+function connectTikfinity() {
+    if (!("WebSocket" in window)) return;
+    
+    socket = new WebSocket(TIKFINITY_URL);
+    
+    socket.onmessage = (e) => {
+        try {
+            let d = JSON.parse(e.data);
+            let evt = d?.event || d?.type || "";
+            let n = d?.data?.nickname || d?.nickname || d?.data?.uniqueId || d?.uniqueId || "Anonym";
+            if (n === "Anonym") return;
+            
+            let u = n.substring(0, 15);
+            
+            if (evt === "gift") {
+                let diam = d?.data?.diamonds || d?.data?.coins || 1;
+                handleAction(u, diam, true); 
+            }
+            else if (evt === "chat") {
+                let msg = (d?.data?.comment || "").trim();
+                if (isRiddleModeActive && activeRiddle.answer && zkontrolujOdpoved(msg, activeRiddle.answer)) {
+                    let cleanU = cleanNameForTTS(u);
+                    speakTTS(cleanU + " uhodl spravnou odpoved!");
+                    activeRiddle = { question: null, answer: null };
+                    clearTimeout(autoSkipRiddleTimer);
+                    setTimeout(generateNewRiddle, random(5000, 30000));
+                }
+            }
+        } catch (err) {
+            console.error("Chyba při zpracování zprávy z Tikfinity:", err);
+        }
+    };
+    
+    socket.onclose = () => {
+        console.log("Připojení k Tikfinity ztraceno, zkouším znovu za 5s...");
+        setTimeout(connectTikfinity, 5000);
+    };
+    
+    socket.onerror = (err) => {
+        console.error("Chyba WebSocketu Tikfinity:", err);
+    };
 }
 </script>
 </body>
