@@ -4989,7 +4989,7 @@ function draw() {
   let currentBots = players.filter(p => p.isBot);
   let realPlayers = players.filter(p => !p.isBot);
 
-  let maxTotalPlayers = 70; // <-- ZDE JE ZMÄšNÄšNĂť LIMIT NA 70
+  let maxTotalPlayers = 50; // <-- ZDE JE ZMÄšNÄšNĂť LIMIT NA 50
   let allowedBots = Math.max(0, maxTotalPlayers - realPlayers.length);
 
   // 1. POJISTKA: Pokud je botĹŻ vĂ­c neĹľ mĂˇ bĂ˝t, okamĹľitÄ› maĹľeme pĹ™ebytek
