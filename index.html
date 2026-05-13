@@ -80,7 +80,7 @@ var roundThemeColorDark;
 var currentLang = "CZ";
 var T = {
   CZ: {
-    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALĹ ĂŤ KOLO ZA: ",
+    TOP: "TOP 5 ELITA (HP)", ROUND_END: "KONEC KOLA!", NEXT: "DALĹ ĂŤ KOLO ZA: ",
     WINNER: "VĂŤTÄŤZ KOLA!", HP: "HP", NEW: "NOVĂť BOJOVNĂŤK: ",
     DAYZ_SPACE: "[ PROSTOR PRO DAYZ STREAM ]", TIME: "ÄŚAS KOLA:"
   },
@@ -130,7 +130,7 @@ function cleanNameForTTS(name) {
     return parts.slice(0, 2).join(" ");
 }
 
-// --- 2. ROZĹ ĂŤĹENĂ‰ KNIHOVNY HLĂĹ EK ---
+// --- 2. ROZĹ ĂŤĹENĂ‰ KNIHOVNY HLĂĹ EK ---
 var COMMENTARY_TAP = {
   CZ: [
     "Senzory hlĂˇsĂ­ zvĂ˝Ĺˇenou aktivitu v sektoru!",
@@ -1635,7 +1635,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
     if (diam >= 1000) {
         let tts = currentLang === "CZ" ? `Mega dĂˇrek od ${p.name}! RĂˇzovĂˇ vlna!` : `Mega gift incoming from ${p.name}! Shockwave!`;
         let txt = currentLang === "CZ" ? "MEGA DĂREK!" : "MEGA GIFT INCOMING!";
-        if (diam >= 10000) { tts = currentLang === "CZ" ? `BĹ®H VSTOUPIL DO ARĂ‰NY! ${p.name} NIÄŚĂŤ VĹ E Ĺ˝IVĂ‰!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
+        if (diam >= 10000) { tts = currentLang === "CZ" ? `BĹ®H VSTOUPIL DO ARĂ‰NY! ${p.name} NIÄŚĂŤ VĹ E Ĺ˝IVĂ‰!` : `A GOD HAS ENTERED! ${p.name} DESTROYS EVERYTHING!`; txt = "ARMAGEDON!"; }
         else if (diam >= 5000) { tts = currentLang === "CZ" ? `GALAXY GIFT! ${p.name} VYSĂVĂ ARĂ‰NU!` : `GALAXY GIFT! ${p.name} IS SUCKING THE ARENA!`; txt = "GALAXY GIFT!"; }
         triggerMegaAnnouncement(p.name, diam, tts, txt);
     }
@@ -1712,7 +1712,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
         safePlaySound(pentatonic('low'), 0.10, 1.2);
     }
     
-    // TIER 2: Ĺ ikana a obrana (Shield + Knockback - 100+ mincĂ­)
+    // TIER 2: Ĺ ikana a obrana (Shield + Knockback - 100+ mincĂ­)
     else if (diam >= 100) {
         p.immunityTimer += 50 * 60; // 50s imunita
         screenShake = 3;
@@ -1731,7 +1731,7 @@ function triggerGiftEffect(p, diam, comboMult = 1) {
         }
         
         let cleanN = cleanNameForTTS(p.name);
-        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
+        speakTTS(currentLang === "CZ" ? `NĂˇdhernĂ˝ dĂˇrek od ${cleanN}! Ĺ tĂ­t aktivovĂˇn!` : `Beautiful gift from ${cleanN}! Shield up!`);
         let popText = comboMult > 1 ? `${comboMult}X SHIELD COMBO!` : "SHIELD + PUSH!";
         addPopup(popText, p.body.position.x, p.body.position.y - p.r - 20, color(0, 255, 255), true);
         createParticles(p.body.position.x, p.body.position.y, color(0, 255, 255), 30);
@@ -1866,7 +1866,7 @@ function handleRoundStartQueue() {
 function handleSpawnModules() {
     for (let i = spawnModules.length - 1; i >= 0; i--) {
         let m = spawnModules[i];
-        // ODSTRANÄŤN KOUĹ (trail) PRO ZVĂťĹ ENĂŤ FPS
+        // ODSTRANÄŤN KOUĹ (trail) PRO ZVĂťĹ ENĂŤ FPS
         m.x += m.vx; m.y += m.vy; m.life--;
         
         push(); translate(m.x, m.y); rotate(atan2(m.vy, m.vx));
@@ -2730,7 +2730,7 @@ function drawNotifications() {
       else if (n.type === 'FOLLOW') { borderColor = color((300 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Radar lock" : "Radar lock"; icon = "Ä‘Ĺşâ€śË‡"; }
       else if (n.type === 'LIKE') { borderColor = color((0 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? `Energie +${n.extra}` : `Energy +${n.extra}`; icon = "Ă˘ĹˇË‡"; }
       else if (n.type === 'BOOST') { borderColor = color((180 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Pohon!" : "Thrusters!"; icon = "Ă˘Ââ€žÄŹÂ¸Ĺą"; }
-      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Ĺ tĂ­ty!" : "Shields!"; icon = "Ä‘Ĺşâ€şË‡ÄŹÂ¸Ĺą"; }
+      else if (n.type === 'SHIELD') { borderColor = color((270 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Ĺ tĂ­ty!" : "Shields!"; icon = "Ä‘Ĺşâ€şË‡ÄŹÂ¸Ĺą"; }
       else if (n.type === 'CODE') { borderColor = color((50 + hueShift + 360) % 360, 80, 100); actionText = currentLang === "CZ" ? "Hack" : "Hack"; icon = "Ä‘Ĺşâ€™Â»"; }
       else if (n.type === 'GIFT') { 
           colorMode(HSB);
@@ -2874,7 +2874,7 @@ function handleCameraAndPlayers() {
                       y: (dy / dist) * forceMag
                   });
 
-                  // --- ODSTRANÄŤNO: POĹ KOZENĂŤ OKOLĂŤ (ZpĹŻsobovalo Ĺ™etÄ›zovou reakci a "pĂˇd" arĂ©ny) ---
+                  // --- ODSTRANÄŤNO: POĹ KOZENĂŤ OKOLĂŤ (ZpĹŻsobovalo Ĺ™etÄ›zovou reakci a "pĂˇd" arĂ©ny) ---
               }
           }
 
@@ -2914,11 +2914,6 @@ function handleCameraAndPlayers() {
         }
     }
     
-    // GALAKTICKĂť VORTEX (PohyblivĂ˝ stĹ™ed, aby nevznikla statickĂˇ zĂˇcpa)
-    // StĹ™ed gravitace nynĂ­ neustĂˇle pomalu cestuje po arĂ©nÄ›
-    let cx = W/2 + Math.sin(frameCount * 0.005) * (W * 0.40); 
-    let cy = (ARENA_TOP+ARENA_BOT)/2 + Math.cos(frameCount * 0.007) * ((ARENA_BOT-ARENA_TOP) * 0.40);
-    
     // AFK: zmrazeni po nahodnem casu 45-60s neaktivity, rozmrazeni po nahodnem casu 5-15s â†’ cyklus
     // MAX 3 hracu muzou byt zmrazeni najednou (vizual + fyzika), vypocty bezi dal pro vsechny
     if (!p.isBot && !p.isZombie && p.lastActionTime) {
@@ -2947,91 +2942,60 @@ function handleCameraAndPlayers() {
     let afkMult = (p.isFrozen) ? 0.02 : 1.0;
     
     // ==========================================
-    // OKO HURIKĂNU (Tah pouze z dĂˇlky + odtlaÄŤovĂˇnĂ­ ve stĹ™edu)
+    // NÁHODNÝ CHAOTICKÝ POHYB (Random drift bez vortexu)
     // ==========================================
-    let center = { x: W/2, y: (ARENA_TOP + ARENA_BOT) / 2 };
-    let distVec = Matter.Vector.sub(center, p.body.position);
-    let distToCenter = Matter.Vector.magnitude(distVec) || 1;
-    let dirToCenter = { x: distVec.x / distToCenter, y: distVec.y / distToCenter };
-    let tangent = { x: -dirToCenter.y, y: dirToCenter.x };
+    let px = p.body.position.x || W/2;
+    let py = p.body.position.y || (ARENA_TOP + ARENA_BOT) / 2;
 
-    let pullForce = 0;
+    // 1. Unikátní náhodný směr pro každou kuličku (mění se plynule v čase)
+    let time = frameCount * 0.015;
+    let idOffset = p.body.id * 12.34; 
     
-    // 1. ZNATELNÄš SILNÄšJĹ ĂŤ TAH OD KRAJĹ® DO STĹ˜EDU (zabrĂˇnĂ­ zĂˇsekĹŻm u stÄ›n)
-    if (distToCenter > 300) {
-        pullForce = 0.00025 * p.body.mass * afkMult; // ZvĂ˝Ĺˇeno z 0.00008
-    } 
-    // 2. LehkĂ© odtlaÄŤovĂˇnĂ­ od ĂşplnĂ©ho stĹ™edu, aby se neslisovaly
-    else if (distToCenter < 150) {
-        pullForce = -0.00003 * p.body.mass * afkMult; // ZvĂ˝Ĺˇeno z -0.00002
+    let dirX = Math.sin(time + idOffset) + Math.cos(time * 0.7 + py * 0.01);
+    let dirY = Math.cos(time + idOffset) + Math.sin(time * 0.8 + px * 0.01);
+
+    let len = Math.sqrt(dirX * dirX + dirY * dirY);
+    if (len === 0 || isNaN(len)) len = 1; // ANTI-FREEZE
+
+    // Základní síla náhodného pohybu
+    let forceMag = 0.00018 * p.body.mass * afkMult; 
+    let randomFx = (dirX / len) * forceMag;
+    let randomFy = (dirY / len) * forceMag;
+
+    // 2. Odtlačování od stěn (Zabrání lepení do rohů a na okraje arény)
+    let edgeFx = 0;
+    let edgeFy = 0;
+    let edgeMargin = 250;
+    let pushStrength = 0.00025 * p.body.mass * afkMult;
+
+    if (px < edgeMargin) edgeFx = pushStrength;
+    if (px > W - edgeMargin) edgeFx = -pushStrength;
+    if (py < ARENA_TOP + edgeMargin) edgeFy = pushStrength;
+    if (py > ARENA_BOT - edgeMargin) edgeFy = -pushStrength;
+
+    // 3. Zabrání ucpání úplného středu (lehké odtlačení, pokud se jich tam potká moc)
+    let dx = cx - px;
+    let dy = cy - py;
+    let distToCenter = Math.sqrt(dx * dx + dy * dy);
+    if (distToCenter === 0 || isNaN(distToCenter)) distToCenter = 1; // ANTI-FREEZE
+
+    let centerFx = 0;
+    let centerFy = 0;
+    if (distToCenter < 120) {
+        centerFx = -(dx / distToCenter) * 0.00008 * p.body.mass;
+        centerFy = -(dy / distToCenter) * 0.00008 * p.body.mass;
     }
 
-    // ==========================================
-    // 3. ORGANIČTĚJŠÍ A CHAOTICKÝ VORTEX
-    // ==========================================
-    // A: Pomalá hlavní síla (otočí směr zhruba každé 3 až 4 minuty)
-    let mainWave = Math.sin(frameCount * 0.00015); 
+    // 4. Finální součet sil
+    let finalFx = randomFx + edgeFx + centerFx;
+    let finalFy = randomFy + edgeFy + centerFy;
 
-    // B: Kolísání rychlosti (plynulé poryvy, které přidávají a ubírají sílu)
-    let wobble = Math.sin(frameCount * 0.001) * 0.35;
-
-    // C: Zónový chaos (každá část arény má trochu jiný tah, rozbíjí to geometrické tvary)
-    // Přidáním frameCount se tyto "víry uvnitř víru" neustále přesouvají v prostoru
-    let localChaos = (Math.sin(p.body.position.x * 0.005 + frameCount * 0.01) + 
-                      Math.cos(p.body.position.y * 0.005 - frameCount * 0.008)) * 0.25;
-
-    // Sečtení všech vlivů do jednoho organického pohybu
-    let globalVortex = (mainWave + wobble + localChaos) * 0.00022;
-
-    // --- 2 VTEŘINOVÝ BUFF PŘI UHODNUTÍ HÁDANKY ---
-    if (typeof globalVortexBuffEndFrame !== 'undefined' && frameCount < globalVortexBuffEndFrame) {
-        globalVortex *= 5; // 5x rychlejší roztočení celé arény
+    // 5. ABSOLUTNÍ ANTI-FREEZE POJISTKA (ochrana proti pádům)
+    if (!isFinite(finalFx) || !isFinite(finalFy) || isNaN(finalFx) || isNaN(finalFy)) {
+        finalFx = 0; finalFy = 0;
     }
-
-    let vortexForce = globalVortex * p.body.mass * afkMult; 
-    // ==========================================
-
-    let finalFx = (dirToCenter.x * pullForce) + (tangent.x * vortexForce);
-    let finalFy = (dirToCenter.y * pullForce) + (tangent.y * vortexForce);
-
-    // OPTIMALIZACE: Noise poÄŹĂ­tĂˇme jen kaĹľdĂ˝ 3. frame pĹ™i zĂˇtÄ›Ĺľi
-    if (!p.lastNoiseX || frameCount % (players.length > 60 ? 3 : 1) === 0) {
-        p.lastNoiseX = noise(p.noiseOffsetX) - 0.5;
-        p.lastNoiseY = noise(p.noiseOffsetY) - 0.5;
-    }
-    let noiseValX = p.lastNoiseX;
-    let noiseValY = p.lastNoiseY;
-
-    finalFx += noiseValX * 0.00012 * p.body.mass; // SnĂ­ĹľenĂ˝ Ĺˇum o 15%
-    finalFy += noiseValY * 0.00012 * p.body.mass;
-
-    // Hracu maji o 45% vetsi silu, aby snaze proplouvali a odtlacili boty
-    if (!p.isBot) {
-        finalFx *= 1.45;
-        finalFy *= 1.45;
-    }
-
-    // PomalejĹˇĂ­ posun Ĺˇumu = plynulejĹˇĂ­ zmÄ›ny pohybu
-    // POMALEJĹ ĂŤ ZMÄšNA: Pohyb bude plynulejĹˇĂ­ a tĂˇhlejĹˇĂ­
-    p.noiseOffsetX += 0.005; 
-    p.noiseOffsetY += 0.005;
-
-    // ObÄŤasnĂ© silnÄ›jĹˇĂ­ poĹˇĹĄouchnutĂ­ (ponechĂˇno, ale mĂ­rnÄ› oslabeno)
-    if (Math.random() < 0.02) { // MĂ©nÄ› ÄŤasto
-        finalFx += (Math.random() - 0.5) * 0.0005 * p.body.mass;
-        finalFy += (Math.random() - 0.5) * 0.0005 * p.body.mass;
-    }
-
-    // --- BOT BEHAVIOR (Chaos movement) ---
-    if (p.isBot && frameCount % 60 === (i % 60)) {
-        let chaosForce = 0.0002 * p.body.mass; // SnĂ­Ĺľeno pro pomalĂ© plouĹľenĂ­
-        Matter.Body.applyForce(p.body, p.body.position, {
-            x: (random() - 0.5) * chaosForce,
-            y: (random() - 0.5) * chaosForce
-        });
-    }
-
-    // Ĺ˝ĂˇdnĂˇ ochrannĂˇ zĂłna - vĹˇichni se rurou do jednoho bodu!
+    
+    // 6. Aplikace síly na kuličku
     Matter.Body.applyForce(p.body, p.body.position, { x: finalFx, y: finalFy });
 
     let isBuffed = p.likeBuffTimer && millis() < p.likeBuffTimer;
@@ -3062,7 +3026,7 @@ function handleCameraAndPlayers() {
         currentMaxV *= 0.4;
     }
 
-    // BOTI JSOU POMALEJĹ ĂŤ (-40% rychlost oproti hrĂˇÄŤĹŻm)
+    // BOTI JSOU POMALEJĹ ĂŤ (-40% rychlost oproti hrĂˇÄŤĹŻm)
     if (p.isBot) {
         tSpd *= 0.3; // Zpomaleno ze 0.6 pro "plouĹľenĂ­"
         currentMaxV *= 0.3;
@@ -4760,7 +4724,7 @@ function drawResults() {
     }
   }
 
-  // --- SEZNAM DALĹ ĂŤCH HRĂÄŚĹ® ---
+  // --- SEZNAM DALĹ ĂŤCH HRĂÄŚĹ® ---
   let panelMaxItems = Math.max(riddleArr.length, Math.min(mvpArr.length, 5));
   let panelH = panelMaxItems > 0 ? 55 + panelMaxItems * 45 : 0;
   let listStartY = bY + 60 + panelH + 30;
@@ -5018,7 +4982,7 @@ function draw() {
 
   drawTopHUD();
 
-  // --- TOP GIFTER DOÄŚASNĂ LIĹ TA ---
+  // --- TOP GIFTER DOÄŚASNĂ LIĹ TA ---
   if (topGifterBannerTimer > 0) {
       topGifterBannerTimer--;
       
@@ -5261,7 +5225,7 @@ function draw() {
         let progress = constrain(roundTotalCoins / ARMAGEDDON_GOAL, 0, 1);
         let minPbW = 350;
         let maxPbW = W * 0.85;
-        let pbW = lerp(minPbW, maxPbW, progress); // Ĺ Ă­Ĺ™ka postupnÄ› roste
+        let pbW = lerp(minPbW, maxPbW, progress); // Ĺ Ă­Ĺ™ka postupnÄ› roste
         let pbH = 36; // Trochu vyĹˇĹˇĂ­ pro profilovku
         let pbX = W / 2 - pbW / 2;
         let pbY = ARENA_TOP + 15; // UmĂ­stÄ›nĂ­ tÄ›snÄ› pod hornĂ­ okraj arĂ©ny
@@ -5798,4 +5762,3 @@ function mousePressed() {
 </script>
 </body>
 </html>
-
