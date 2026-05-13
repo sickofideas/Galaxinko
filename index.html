@@ -3743,7 +3743,8 @@ function drawPlayer(p) {
       let sawAlpha = p.sawFade * 255;
 
       push();
-      // RychlĂˇ rotace cirkulĂˇrky (zpomaleno z 0.6 na 0.3 pro lepĹˇĂ­ viditelnost pohybu)
+      scale(1.0 + p.sawFade * 0.25); // Zvetseni pily o 25% pri lajkovani
+      // Rychl rotace cirkulrky (zpomaleno z 0.6 na 0.3 pro lepĹˇĂ­ viditelnost pohybu)
       rotate(frameCount * 0.3 * p.baseRotDir); 
 
       // INDUSTRIĂLNĂŤ VZHLED: TmavĂ˝ kov s brouĹˇenĂ˝m ostĹ™Ă­m
