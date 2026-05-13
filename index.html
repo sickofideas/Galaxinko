@@ -3879,7 +3879,7 @@ function drawPlayer(p) {
       // --- ROTACE PROFILOVKY JEN PĹI ZMRAZENĂŤ ---
       push();
       if (p.isFrozen) {
-          rotate(frameCount * 0.05); // PlynulĂ© toÄŤenĂ­ fotky dokola
+          rotate(frameCount * 0.10); // Plynulé točení fotky dokola (2x zrychleno)
       }
       image(userAvatars[p.name], 0, 0, imgSize, imgSize); 
       pop();
