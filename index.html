@@ -7,7 +7,7 @@
 */
 (function(root) {
   'use strict';
-  const VERSION='5.0 NEBULA', ROUND_MS=90000, BREAK_MS=10000, ACTIVE_MS=300000, MAX_PLAYERS=500;
+  const VERSION='5.1 PULSE', ROUND_MS=90000, BREAK_MS=10000, ACTIVE_MS=300000, MAX_PLAYERS=500;
   let LANG='cs';
   const L=(cs,en)=>LANG==='en'?en:cs;
   const setLanguage=lang=>{LANG=lang==='en'?'en':'cs';TEAM[0]=L(L("MODŘÍ","BLUE"),'BLUE');TEAM[1]=L(L("ČERVENÍ","RED"),'RED');};
@@ -46,6 +46,7 @@
       this.raiders=[];this.wave=0;this.started=0;this.result=null;this.final=false;this.shots=[];this.feed=[];this.ack=null;
       this.nextBotThink=0;this.nextSweep=0;this.lastLead=-1;this.lastLeadNotice=-Infinity;
       this.social=new Map();this.supportAt=[-Infinity,-Infinity];this.rally=[0,0];this.rallyAt=[-Infinity,-Infinity];this.quest=[0,0];this.questDone=[false,false];this.totalSupport=0;
+      this.likeCharge=[0,0];this.likeGoal=[10,10];this.likeUntil=[0,0];this.likeReady=[0,0];this.lastLike=null;
       this.stats={events:0,gifts:0,rounds:0,commands:0,rejected:0};
     }
     notice(text,team=-1,kind='info') {
@@ -63,7 +64,7 @@
       const p={id,name:clean(name),team,bot,target:h%3,hp:100,x:base.x,y:base.y,
         last:this.now,angle:(h%628)/100,shootAt:this.now+900+(h%600),respawn:0,
         turboUntil:0,shieldUntil:0,goldUntil:0,cool:{turbo:0,stit:0,oprav:0},
-        buildAt:-Infinity,routeAt:-Infinity,tapAt:-Infinity,lastChat:-Infinity,contribution:0,kills:0,
+        likeFxAt:-Infinity,buildAt:-Infinity,routeAt:-Infinity,tapAt:-Infinity,lastChat:-Infinity,contribution:0,kills:0,
         rank:0,career:0,played:0,joinedRound:this.round,teamLocked:false,recent:this.now};
       this.players.set(id,p);return p;
     }
@@ -71,6 +72,8 @@
     start(now) {
       this.now=now;this.phase='playing';this.round++;this.ends=now+ROUND_MS;this.final=false;
       this.quest=[0,0];this.questDone=[false,false];this.started=now;this.wave=0;this.raiders=[];this.scores=[0,0];this.result=null;this.shots=[];this.lastLead=-1;
+      this.likeCharge=[0,0];this.likeUntil=[0,0];this.likeReady=[0,0];this.lastLike=null;
+      this.likeGoal=[0,1].map(team=>Math.min(120,Math.max(10,this.humans().filter(p=>p.team===team).length*2)));
       this.nodes.forEach(n=>{n.control=0;n.owner=-1;n.level=1;n.build=0;n.armor=100;n.fireAt=0;});
       for(const [id,p] of this.players) {
         if(!p.bot && now-p.last>=ACTIVE_MS){this.players.delete(id);continue;}
@@ -144,8 +147,17 @@
       }
       if(this.phase!=='playing')return true;
       if(e.type==='like') {
-        if(now-p.tapAt<5000)return true;p.tapAt=now;
-        if(p.hp>0){p.turboUntil=Math.max(p.turboUntil,now+1800);this.acknowledge(p,L("IMPULS • RYCHLEJŠÍ OBSAZOVÁNÍ","IMPULSE • FASTER CAPTURE"));}
+        let power=0;
+        if(now-p.tapAt>=5000){
+          p.tapAt=now;power=Math.min(5,Math.max(1,Math.floor(numeric(e.likeCount,1))));
+          const available=this.likeGoal[p.team]-this.likeCharge[p.team];power=Math.min(power,available);this.likeCharge[p.team]+=power;
+          if(p.hp>0)p.turboUntil=Math.max(p.turboUntil,now+1800);
+          this.pulseTeam(p.team,now);
+        }
+        if(now-p.likeFxAt>=500){
+          p.likeFxAt=now;p.recent=now;this.lastLike={id:p.id,name:p.name,team:p.team,at:now,power};
+          this.emit({kind:'like',id:p.id,name:p.name,team:p.team,x:p.x,y:p.y,power});
+        }
         return true;
       }
       if(now-p.lastChat<700)return true;p.lastChat=now;
@@ -175,6 +187,14 @@
         this.acknowledge(p,skill==='turbo'?L("TURBO 4 s • DVOJNÁSOBNÝ VÝKON","TURBO 4 s • DOUBLE CAPTURE POWER"):skill==='stit'?L("ŠTÍT 5 s • BLOKUJE ZÁSAHY","SHIELD 5 s • BLOCKS HITS"):L("OPRAVENO • ","REPAIRED • ")+Math.ceil(p.hp)+' HP');
       }
       return true;
+    }
+    pulseTeam(team,now){
+      if(this.phase!=='playing'||now>=this.ends||this.likeCharge[team]<this.likeGoal[team]||now<this.likeReady[team])return;
+      this.likeCharge[team]=0;this.likeUntil[team]=now+5000;this.likeReady[team]=now+20000;
+      this.likeGoal[team]=Math.min(120,Math.max(10,this.humans().filter(p=>p.team===team).length*2));
+      for(const p of this.players.values())if(p.team===team&&p.hp>0)p.turboUntil=Math.max(p.turboUntil,this.likeUntil[team]);
+      this.emit({kind:'teamlike',team});
+      this.notice(TEAM[team]+L(' • SRDÍČKA SPUSTILA TÝMOVÉ TURBO!',' • HEARTS ACTIVATED TEAM TURBO!'),team);
     }
     balanceBots() {
       const humans=this.humans(),counts=[0,0];humans.forEach(p=>counts[p.team]++);
@@ -254,6 +274,7 @@
       if(this.phase!=='playing')return;
       if(now>=this.ends){this.finish();return;}
       dt=clamp(dt,0,.1);
+      for(let team=0;team<2;team++)this.pulseTeam(team,now);
       if(!this.final&&this.ends-now<=15000){this.final=true;this.notice(L("FINÁLE • MAJÁKY VYRÁBĚJÍ 2× ENERGII","FINALE • TOWERS GENERATE 2× ENERGY"));this.emit({kind:'final'});}
       if(now>=this.nextBotThink){
         this.nextBotThink=now+2200;this.balanceBots();
@@ -266,6 +287,7 @@
       const counts=this.nodes.map(()=>[[],[]]);
       for(const p of live){
         if(p.hp<=0){if(now>=p.respawn){p.hp=100;p.x=p.team===0?165:915;p.y=585;p.shieldUntil=now+2000;this.emit({kind:'respawn',x:p.x,y:p.y,team:p.team});}else continue;}
+        if(this.likeUntil[p.team]>now)p.turboUntil=Math.max(p.turboUntil,this.likeUntil[p.team]);
         const n=this.nodes[p.target],angle=p.angle+now*.00019*(p.team===0?1:-1);
         const radius=85+(hash(p.id)%65),tx=n.x+Math.cos(angle)*radius,ty=n.y+Math.sin(angle)*radius*.75;
         const speed=1-Math.exp(-dt*(p.turboUntil>now?3.8:2));p.x+=(tx-p.x)*speed;p.y+=(ty-p.y)*speed;
@@ -334,7 +356,7 @@
     let chroma=query.has('chroma')?query.get('chroma')!=='0':saved.chroma!==false;
     let names=saved.names!==false,sound=false,voice=false,audio=null,lastTone=0,lastSpeech=-Infinity;
     let mode=query.get('test')==='1'?'test':'attract';
-    let gifts=[],giftCurrent=null,drawShips=[],drawLabels=new Set(),nextRoster=0,lastRender=0,renderCost=0;
+    let gifts=[],giftCurrent=null,drawShips=[],drawLabels=new Set(),nextRoster=0,lastRender=0,renderCost=0,likeFX=[],likeFlash=[-Infinity,-Infinity];
     let fx=[],cometAt=-Infinity,banner=null;let socket=null,retryTimer,handshakeTimer,attempt=0,closed=false;
     let connection=L("Připojuji TikFinity","Connecting to TikFinity"),received=0,malformed=0,lastMessage=0,connected=false;
     let lastFrame=performance.now(),stepTime=lastFrame,accumulator=0,nextAmbient=0,frames=16;
@@ -362,6 +384,8 @@
     }
     function events(e){
       if(fx.length>39)fx.splice(0,fx.length-39);
+      if(e.kind==='like'){likeFX.push({...e,at:now()});if(likeFX.length>12)likeFX.shift();nextRoster=0;}
+      if(e.kind==='teamlike'){likeFlash[e.team]=now();banner={text:L('SRDÍČKA → TÝMOVÉ TURBO!','HEARTS → TEAM TURBO!'),at:now(),team:e.team};tone(740);}
       if(['capture','down','respawn','impact'].includes(e.kind)){fx.push({...e,at:now()});if(fx.length>40)fx.shift();}
       if(e.kind==='wave'){banner={text:e.wave===3?L("BOSSOVÉ NA OBZORU","BOSSES INBOUND"):L("NÁJEZD ","WAVE ")+e.wave+' / 3',at:now(),team:-1};tone(220);say(L("Nájezdníci. Braňte své věže.","Raiders incoming. Defend your towers."),true);}
       if(e.kind==='capture'){tone(660);say(TEAM[e.team]+L(" obsadili maják."," captured a tower."));}
@@ -382,7 +406,7 @@
       }
     }
     let game;
-    function newGame(next){mode=next;fx=[];gifts=[];giftCurrent=null;drawShips=[];drawLabels.clear();nextRoster=0;banner=null;game=new Game({demo:next!=='live',emit:events});game.start(now());if(next!=='live')game.balanceBots();stepTime=now();accumulator=0;}
+    function newGame(next){mode=next;fx=[];likeFX=[];likeFlash=[-Infinity,-Infinity];gifts=[];giftCurrent=null;drawShips=[];drawLabels.clear();nextRoster=0;banner=null;game=new Game({demo:next!=='live',emit:events});game.start(now());if(next!=='live')game.balanceBots();stepTime=now();accumulator=0;}
     newGame(mode);
     const panel=document.createElement('section');panel.id='frontier-admin';panel.hidden=query.get('admin')!=='1';
     panel.innerHTML=`<strong>GALAXINKO FRONTIER ${VERSION} · streamer panel</strong>
@@ -395,7 +419,7 @@
     function preferences(){try{localStorage.setItem('nebula-settings',JSON.stringify({chroma,names,lang:LANG}));}catch(_){}buttons();}
     function buttons(){
       for(const [id,label]of Object.entries({hide:L('Skrýt (H)','Hide (H)'),test:L('Zkusit hru','Play test'),live:L('Připravit LIVE','Prepare LIVE'),lang:'CZ / EN: '+LANG.toUpperCase(),connect:L('Připojit','Connect'),diag:L('Stáhnout diagnostiku','Download diagnostics'),blue:L('TEST: modří','TEST: blue'),red:L('TEST: červení','TEST: red'),gift:L('TEST: dárek','TEST: gift'),sound:L(L("Zvuk: ","Sound: "),'Sound: ')+(sound?'ON':'OFF'),voice:L(L("Komentátor: ","Commentator: "),'Commentator: ')+(voice?'ON':'OFF')}))$(id).textContent=label;
-      $('help').textContent=L('H: panel. 1/2/3: věž. T/S/O/B: turbo, štít, oprava, stavba. Test ignoruje skutečné události. CZ i EN příkazy fungují současně. Dárky: 1–9 zásoby, 10–99 orbitální výboj, 100+ mateřská loď (Coins za dokončenou sérii). Týmový bonus nejvýše jednou za 20 s.','H: panel. 1/2/3: tower. T/S/O/B: turbo, shield, repair, build. Test ignores real events. CZ and EN commands work together. Gifts: 1–9 supply, 10–99 orbital surge, 100+ mothership (Coins per completed streak). Team bonus at most once per 20 seconds.');
+      $('help').textContent=L('H: panel. 1/2/3: věž. Mezerník/L: test lajku. T/S/O/B: turbo, štít, oprava, stavba. Test ignoruje skutečné události. CZ i EN příkazy fungují současně. Dárky: 1–9 zásoby, 10–99 orbitální výboj, 100+ mateřská loď (Coins za dokončenou sérii). Týmový bonus nejvýše jednou za 20 s.','H: panel. 1/2/3: tower. Space/L: test like. T/S/O/B: turbo, shield, repair, build. Test ignores real events. CZ and EN commands work together. Gifts: 1–9 supply, 10–99 orbital surge, 100+ mothership (Coins per completed streak). Team bonus at most once per 20 seconds.');
 
       $('bg').textContent=chroma?L("Pozadí: OBS zelená","Backdrop: OBS green"):L("Pozadí: vesmír","Backdrop: space");$('names').textContent=names?L("Jména: ZAP","Names: ON"):L("Jména: SKRYTÁ","Names: hidden");
       for(const id of ['blue','red','gift','crowd'])$(id).disabled=mode!=='test';
@@ -412,7 +436,7 @@
     $('crowd').onclick=()=>{if(mode!=='test')return;for(let i=0;i<499;i++)game.add('load-'+i,'TEST '+(i+1),i%2);panel.hidden=true;};
     $('sound').onclick=async()=>{try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();sound=!sound;}catch(_){sound=false;}$('sound').textContent=L("Zvuk: ","Sound: ")+(sound?L("ZAP","ON"):L("VYP","OFF"));tone();};
     $('voice').onclick=()=>{voice=!voice&&'speechSynthesis'in window;$('voice').textContent=L("Komentátor: ","Commentator: ")+(voice?L("ZAP","ON"):L("VYP","OFF"));if(voice)say(L("Palubní komentátor je připraven.","The commentator is ready."),true);else if('speechSynthesis'in window)speechSynthesis.cancel();};
-    function receive(raw){const e=packet(raw);if(!e)return;
+    function receive(raw,normalized=false){const e=normalized?raw:packet(raw);if(!e)return;
       if(e.type==='streamend'){newGame('attract');connection=L('TikFinity hlásí konec LIVE','TikFinity reports LIVE ended');return;}
       if(mode==='test')return;
       if(mode==='attract'&&['chat','like','gift','subscribe'].includes(e.type)){newGame('live');buttons();}
@@ -422,10 +446,10 @@
     function enqueue(raw){const e=packet(raw);if(!e)return;
       if(e.type==='streamend'){inbox.length=0;priorityInbox.length=0;likeInbox.clear();receive(raw);return;}
       if(e.type==='gift'||e.type==='subscribe'){if(priorityInbox.length<200)priorityInbox.push(raw);else dropped++;return;}
-      if(e.type==='like'){if(likeInbox.size<500||likeInbox.has(e.id))likeInbox.set(e.id,raw);else dropped++;return;}
+      if(e.type==='like'){if(likeInbox.size<500||likeInbox.has(e.id)){const previous=likeInbox.get(e.id);if(previous)e.likeCount=Math.min(10000,e.likeCount+previous.likeCount);likeInbox.set(e.id,e);}else dropped++;return;}
       if(inbox.length>=2000){dropped++;return;}inbox.push(raw);
     }
-    function drain(){for(let i=0;i<20&&priorityInbox.length;i++)receive(priorityInbox.shift());for(let i=0;i<40&&inbox.length;i++)receive(inbox.shift());let k=0;for(const [id,e]of likeInbox){likeInbox.delete(id);receive(e);if(++k>=30)break;}}
+    function drain(){for(let i=0;i<20&&priorityInbox.length;i++)receive(priorityInbox.shift());for(let i=0;i<40&&inbox.length;i++)receive(inbox.shift());let k=0;for(const [id,e]of likeInbox){likeInbox.delete(id);receive(e,true);if(++k>=30)break;}}
     function connect(){
       clearTimeout(retryTimer);clearTimeout(handshakeTimer);if(socket){socket.onopen=null;socket.onmessage=null;socket.onerror=null;socket.onclose=null;socket.close();}connected=false;
       let address;try{address=new URL($('url').value);if(!['ws:','wss:'].includes(address.protocol))throw Error();}catch(_){connection=L("Neplatná adresa WebSocket","Invalid WebSocket address");return;}
@@ -441,9 +465,11 @@
     $('connect').onclick=()=>{attempt=0;connect();};
     $('diag').onclick=()=>{const report={version:VERSION,at:new Date().toISOString(),mode,connection,received,malformed,secondsSinceMessage:lastMessage?Math.floor((now()-lastMessage)/1000):null,players:game.players.size,queue:inbox.length+priorityInbox.length,likes:likeInbox.size,dropped,giftsQueued:gifts.length,language:LANG,fps:Math.round(1000/frames),stats:game.stats};const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='frontier-diagnostika.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
     function localAction(text){if(mode!=='test')return;game.accept({type:'chat',id:'local-test',name:L("TY · TEST","YOU · TEST"),text},now());}
+    function localLike(){if(mode==='test')game.accept({type:'like',id:'local-test',name:L(L("TY · TEST","YOU · TEST"),'YOU · TEST'),likeCount:5},now());}
     document.addEventListener('keydown',e=>{
       if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const k=e.key.toLowerCase();
       if(k==='h'){panel.hidden=!panel.hidden;return;}
+      if(k===' '||k==='l'){e.preventDefault();localLike();return;}
       const action={'1':'1','2':'2','3':'3',t:'turbo',s:'stit',o:'oprav',b:'stav'}[k];if(action){e.preventDefault();localAction(action);}
     });
     canvas.ondblclick=()=>panel.hidden=!panel.hidden;
@@ -451,8 +477,8 @@
       const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*1080/r.width,y=(e.clientY-r.top)*1920/r.height;
       if(mode==='attract'&&y>1710&&y<1820){newGame('test');testJoin(x>540?1:0);buttons();return;}
       if(mode==='test'){
-        if(y>1307&&y<1352)localAction('stav');
-        else if(y>1360&&y<1510)localAction(['turbo','stit','oprav'][clamp(Math.floor((x-50)/330),0,2)]);
+        if(y>1250&&y<1450)localLike();
+        else if(y>=1450&&y<1505)localAction(['turbo','stit','oprav','stav'][clamp(Math.floor((x-55)/243),0,3)]);
         else{const i=NODES.findIndex(n=>Math.hypot(x-n.x,y-n.y)<170);if(i>=0)localAction(String(i+1));}
       }
     };
@@ -467,6 +493,49 @@
       let v=String(s);if(c.measureText(v).width>max){while(v.length&&c.measureText(v+'…').width>max)v=Array.from(v).slice(0,-1).join('');v+='…';}c.fillText(v,x,y);
     };
     const display=p=>names?p.name:'Pilot '+(hash(p.id)%10000);
+    function heart(x,y,size,col){
+      c.save();c.translate(x,y);c.scale(size/20,size/20);c.beginPath();c.moveTo(0,8);
+      c.bezierCurveTo(-28,-9,-15,-29,0,-14);c.bezierCurveTo(15,-29,28,-9,0,8);
+      c.fillStyle=col;c.fill();c.strokeStyle='#f5fbff';c.lineWidth=1.3;c.stroke();c.restore();
+    }
+    function heartTrails(t){
+      likeFX=likeFX.filter(e=>t-e.at<1100);
+      for(const e of likeFX){const u=clamp((t-e.at)/1100,0,1),target=e.team===0?288:790;
+        const x=(1-u)*(1-u)*e.x+2*(1-u)*u*(target+(e.team===0?-100:100))+u*u*target;
+        const y=(1-u)*(1-u)*e.y+2*(1-u)*u*(e.y-100)+u*u*1350;
+        c.save();c.globalAlpha=Math.min(1,u*8,(1-u)*6);heart(x,y,13+Math.sin(u*Math.PI)*7,COLOR[e.team]);c.restore();
+        if(u<.45){c.save();c.globalAlpha=1-u*2;circle(e.x,e.y,32+u*75,null,COLOR[e.team],3);c.restore();}
+      }
+      for(let team=0;team<2;team++)if(t-likeFlash[team]<1100){
+        const u=clamp((t-likeFlash[team])/1100,0,1);c.save();c.globalAlpha=1-u;
+        for(const n of game.nodes)if(n.owner===team){c.save();c.translate(n.x,n.y);c.scale(1,.6);circle(0,0,70+u*170,null,COLOR[team],5);c.restore();}
+        c.restore();
+      }
+    }
+    function likeHub(t){
+      rect(55,1250,970,250,20,'#0a192d','#48637d');
+      text(game.phase==='results'?L(L("ODVETA ZA ","REMATCH IN "),'REMATCH IN ')+Math.max(0,Math.ceil((game.restartAt-t)/1000))+' s':L('POSÍLEJ SRDÍČKA → NABIJ TÝMOVÉ TURBO','SEND HEARTS → CHARGE TEAM TURBO'),540,1278,27,'#fff','center',900,920);
+      for(let team=0;team<2;team++){
+        const x=team===0?82:566,col=COLOR[team],active=game.likeUntil[team]>t;
+        const ready=Math.max(0,Math.ceil((game.likeReady[team]-t)/1000));
+        heart(x+16,1320,20,col);text(TEAM[team],x+49,1314,20,col,'left',800);
+        const label=active?L('TURBO! ','TURBO! ')+Math.ceil((game.likeUntil[team]-t)/1000)+' s':game.likeCharge[team]+'/'+game.likeGoal[team]+L(' NABITÍ',' CHARGE');
+        text(label,x+430,1314,20,active?'#ffe1a4':'#d9ebff','right',800,310);
+        rect(x,1340,430,23,7,'#233751');
+        const ratio=active?clamp((game.likeUntil[team]-t)/5000,0,1):game.likeCharge[team]/game.likeGoal[team];
+        if(ratio>0)rect(x,1340,Math.max(12,430*ratio),23,7,active?'#ffe1a4':col);
+        const status=active?L('CELÝ TÝM MÁ RYCHLEJŠÍ LODĚ','FASTER SHIPS FOR THE WHOLE TEAM'):ready?L('DALŠÍ TURBO ZA ','NEXT TURBO IN ')+ready+' s':L('NABIJTE LIŠTU → TURBO NA 5 s','FILL THE BAR → 5 s TEAM TURBO');
+        text(status,x+215,1382,16,active?'#ffe1a4':'#93b2cc','center',700,440);
+      }
+      const receipt=game.lastLike&&t-game.lastLike.at<4000?game.lastLike:null;
+      if(receipt){
+        const label=(names?receipt.name:L('Hráč','Player'))+(receipt.power?L('  ♥  +','  ♥  +')+receipt.power+L(' NABITÍ PRO TÝM',' TEAM CHARGE'):L('  ♥  SRDÍČKA PŘIJATA','  ♥  HEARTS RECEIVED'));
+        text(label,540,1417,22,COLOR[receipt.team],'center',800,910);
+      }else text(mode==='test'?L('KLIKNI SEM NEBO STISKNI MEZERNÍK = TEST LAJKU','CLICK HERE OR PRESS SPACE = TEST LIKE'):L('Loď bojuje sama. Více energie na konci kola vyhrává.','Your ship fights automatically. Most energy at round end wins.'),540,1417,20,'#c1d4e7','center',600,910);
+      line(77,1442,1003,1442,'#3c5670');
+      [L('TURBO','TURBO'),L('ŠTÍT / SHIELD','SHIELD / ŠTÍT'),L('OPRAV / REPAIR','REPAIR / OPRAV'),L('STAV / BUILD','BUILD / STAV')].forEach((label,i)=>text(label,175+i*243,1472,18,'#9cb8d2','center',700,231));
+    }
+
     // FRONTIER PRO — original Canvas artwork: orbital forts, alloy ships, energy field.
     function polygon(points,fill,stroke,width=2){c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}}
     function glow(x,y,r,color){if(chroma)return;const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');circle(x,y,r,g);}
@@ -685,7 +754,7 @@
       polygon([[68,63],[84,46],[108,52],[112,76],[91,91],[70,82]],'#163a53','#71dcff');
       polygon([[91,51],[78,75],[91,70],[99,80],[102,59]],'#80e2ff');
       text('GALAXINKO',131,71,42,'#f6faff','left',900);
-      text('N E B U L A  /  L I V E  S I E G E',69,122,17,'#8baac2','left',600);
+      text('N E B U L A  /  H E A R T  P O W E R',69,122,17,'#8baac2','left',600);
       text(mode==='live'?L("BITVA ","BATTLE ")+game.round:mode==='test'?L("TESTOVACÍ LET","TEST FLIGHT"):L("UKÁZKA · AUTOPILOT","DEMO · AUTOPILOT"),1008,68,19,mode==='live'?'#a8bed6':'#ffd595','right',800);
       text(game.phase==='results'?L("ODVETA ","REMATCH ")+seconds:Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'),1008,121,42,game.final?'#ffcc83':'#e9f3ff','right',800);
       line(66,152,1013,152,'#688ba32b');
@@ -693,7 +762,7 @@
       text(TEAM[0],71,187,26,COLOR[0],'left',900);text(TEAM[1],1008,187,26,COLOR[1],'right',900);
       text(Math.round(game.scores[0]).toLocaleString('cs-CZ'),71,245,51,'#fff','left',900);
       text(Math.round(game.scores[1]).toLocaleString('cs-CZ'),1008,245,51,'#fff','right',900);
-      text(L("ENERGIE","ENERGY"),540,190,16,'#9bb3c9','center',800);
+      text(L('BODY','SCORE'),540,190,16,'#9bb3c9','center',800);
       const owners=game.nodes.reduce((a,n)=>{if(n.owner>=0)a[n.owner]++;return a;},[0,0]);
       text(owners[0]+'  ◇  '+owners[1],540,236,28,'#b8d2e6','center',800);
       text(L("OVLÁDNUTÉ VĚŽE","CAPTURED TOWERS"),540,271,14,'#7f9bb6','center');
@@ -746,30 +815,13 @@
       if(game.phase!=='results')giftCinema(t);
       // Join command is a single prominent sign, always above the playfield.
       polygon([[55,326],[1026,326],[1012,458],[69,458]],'#0b1b2ce8','#345a73',1);
-      text(mode==='live'?L("PŘIDEJ SE DO BITVY · NAPIŠ DO CHATU","JOIN THE BATTLE · TYPE IN CHAT"):L("VYBER POSÁDKU · PRVNÍ KOMENTÁŘ SPUSTÍ HRU","CHOOSE A CREW · FIRST COMMENT STARTS THE GAME"),540,354,18,'#aac3d9','center',700,920);
+      text(L('VYBER TÝM. POSÍLEJ SRDÍČKA. LOĎ BOJUJE SAMA.','CHOOSE A TEAM. SEND HEARTS. YOUR SHIP FIGHTS.'),540,354,18,'#aac3d9','center',700,920);
       text('MODRÁ / BLUE',269,399,30,COLOR[0],'center',900);text('VS',540,399,18,'#758da7','center',900);text('ČERVENÁ / RED',810,399,30,COLOR[1],'center',900);
       text(counts[0]+L(" hráčů · "," players · ")+blueDrone+L(" dronů"," drones"),269,439,18,'#86a8c0','center');text(counts[1]+L(" hráčů · "," players · ")+redDrone+L(" dronů"," drones"),810,439,18,'#86a8c0','center');
       if(banner&&t-banner.at<2300){const a=clamp((2300-(t-banner.at))/350,0,1);c.globalAlpha=a;rect(55,475,624,42,10,'#0a1727ec','#527087');text(banner.text,367,496,22,banner.team>=0?COLOR[banner.team]:'#ffd28b','center',800);c.globalAlpha=1;}
       const nextWave=game.wave<3?Math.max(0,Math.ceil(([18000,42000,66000][game.wave]-(t-game.started))/1000)):0;
       rect(701,475,320,38,9,'#152033');text(game.raiders.length?L("NÁJEZD ","WAVE ")+game.wave+L(" • "," • ")+game.raiders.length+L(" NEPŘÁTEL"," ENEMIES"):game.wave<3?L("DALŠÍ NÁJEZD ZA ","NEXT WAVE IN ")+nextWave+' s':L("VŠECHNY VLNY VYSLÁNY","ALL WAVES DEPLOYED"),861,494,17,'#ffcc91','center',800);
-      const nudge=mode==='attract'?L("UKÁZKA: ŠEDÉ LODĚ JSOU CVIČNÉ DRONY","DEMO: GRAY SHIPS ARE TRAINING DRONES"):game.final?L("FINÁLE: VĚŽE VYRÁBĚJÍ DVOJNÁSOBEK ENERGIE","FINALE: TOWERS GENERATE DOUBLE ENERGY"):L("1 / 2 / 3  →  VYBER VĚŽ PRO SVOU LOĎ","1 / 2 / 3  →  CHOOSE YOUR SHIP'S TOWER");
-      rect(95,1253,890,49,12,game.final?'#fbd092':'#0a182ae8','#344f67');text(nudge,540,1278,22,game.final?'#251f1c':'#c4d9eb','center',800,850);
-      // Ability dock. Icon, action and benefit have one consistent visual hierarchy.
-      if(chroma)rect(55,1340,970,158,16,'#0b182a');
-      rect(205,1309,670,37,9,'#182b40','#7595b2');text(L("STAV / BUILD → 2 PŘÍKAZY = ÚROVEŇ VĚŽE","STAV / BUILD → 2 COMMANDS = TOWER LEVEL"),540,1328,18,'#ffda9b','center',800);
-      const local=game.players.get('local-test');
-      [['TURBO',L("2× výkon na 4 s","2× capture for 4 s"),'turbo'],['ŠTÍT / SHIELD',L("Ochrana na 5 s","Protection for 5 s"),'stit'],['OPRAV / REPAIR',L("Obnoví 45 HP","Restore 45 HP"),'oprav']].forEach((a,i)=>{
-        const x=208+i*333,col=i===0?'#ffd393':i===1?'#75d4ff':'#c3afff';
-        if(i)line(x-165,1365,x-165,1472,'#56708344');
-        const cooldown=mode==='test'&&local?Math.max(0,Math.ceil((local.cool[a[2]]-t)/1000)):0;
-        circle(x-104,1405,34,'#142d42',col+'77');
-        if(i===0)polygon([[x-98,1383],[x-119,1408],[x-105,1407],[x-111,1425],[x-90,1399],[x-103,1400]],col);
-        if(i===1)polygon([[x-104,1383],[x-87,1391],[x-89,1411],[x-104,1426],[x-119,1411],[x-121,1391]],'#244b62',col,2);
-        if(i===2){rect(x-107,1388,7,34,2,col);rect(x-120,1401,34,7,2,col);}
-        text(a[0],x-50,1390,20,col,'left',900);text(a[1],x-50,1428,20,'#a3bad1','left',600,205);
-        text(cooldown?L("PŘIPRAVENO ZA ","READY IN ")+cooldown+' s':L("NAPIŠ ","TYPE ")+a[0],x,1472,17,cooldown?'#ffd28b':'#789ab7','center',700);
-      });
-      line(67,1502,1013,1502,'#395572');
+      likeHub(t);heartTrails(t);
       // Radio strip reserves space for the most recent personal interaction.
       if(chroma)rect(55,1520,970,132,16,'#0b182a');
       const ack=game.ack&&t-game.ack.at<5000?game.ack:null;
@@ -782,8 +834,8 @@
       }else{
         text(L("PALUBNÍ RÁDIO","CREW RADIO"),90,1547,17,radioColor,'left',800);
         const f=names?game.feed.find(f=>t-f.at<7000):null;
-        text(f?f.text:L("1: řetězový výboj · 2: kanóny · 3: zpomalení","1: chain lightning · 2: cannons · 3: slow field"),90,1586,25,'#dceaf7','left',600,900);
-        text(L("STAV opraví štít věže · zničená loď se vrátí za 5 s","BUILD repairs towers · destroyed ships return in 5 s"),90,1625,18,'#809fb9');
+        text(f?f.text:L('Napiš 1 / 2 / 3, pokud chceš změnit cíl své lodi.','Type 1 / 2 / 3 to change your ship’s target.'),90,1586,25,'#dceaf7','left',600,900);
+        text(L('SRDÍČKA = TURBO · OVLÁDNUTÉ VĚŽE = BODY','HEARTS = TURBO · CAPTURED TOWERS = POINTS'),90,1625,18,'#809fb9');
       }
       if(game.phase==='results'){
         const r=game.result;if(!chroma){c.fillStyle='#030a15a8';c.fillRect(30,316,1020,1015);}
@@ -805,7 +857,7 @@
         rect(155,1710,770,94,19,'#0d1b2d','#46657e');text(L("PRVNÍ KOMENTÁŘ SPUSTÍ SKUTEČNOU BITVU","FIRST COMMENT STARTS THE REAL BATTLE"),540,1738,22,'#d4e4f7','center',800,730);
         text(L("Klikni a zkus si let · nic se neposílá na TikTok","Click to try · nothing is sent to TikTok"),540,1776,21,'#89aac7','center',600,730);
       }else if(mode==='test'){
-        rect(192,1710,696,76,17,'#ffd28b');text(L("TEST · 1 / 2 / 3 = cíl · T / S / O · B = stav","TEST · 1 / 2 / 3 = target · T / S / O · B = build"),540,1737,23,'#29221c','center',800);
+        rect(192,1710,696,76,17,'#ffd28b');text(L('TEST · MEZERNÍK = LAJK · 1 / 2 / 3 = VĚŽ','TEST · SPACE = LIKE · 1 / 2 / 3 = TOWER'),540,1737,23,'#29221c','center',800);
         text(L("H → Připravit LIVE ukončí test","H → Prepare LIVE exits test mode"),540,1767,19,'#57432e','center');
       }
       if(!connected){rect(222,1830,636,44,11,'#101c30');text(L("TIKFINITY ODPOJENO · H OTEVŘE NASTAVENÍ","TIKFINITY DISCONNECTED · H OPENS SETTINGS"),540,1852,19,'#ffd28b','center',700);}
@@ -825,7 +877,7 @@
       requestAnimationFrame(frame);
     }
     root.Frontier={version:VERSION,snapshot:()=>({renderMs:Math.round(renderCost*100)/100,lang:LANG,queue:inbox.length+priorityInbox.length,likesQueued:likeInbox.size,dropped,fx:fx.length,giftsQueued:gifts.length,giftTier:giftCurrent?.tier||0,drawn:drawShips.length,labels:drawLabels.size,mode,phase:game.phase,round:game.round,scores:game.scores.map(Math.round),humans:game.humans().length,ships:game.players.size,connected,stats:{...game.stats},
-      rally:[...game.rally],quest:[...game.quest],wave:game.wave,raiders:game.raiders.length,nodes:game.nodes.map(n=>({owner:n.owner,control:n.control,level:n.level,armor:n.armor,build:n.build})),ack:game.ack?{text:game.ack.text,kind:game.ack.kind}:null,
+      likeCharge:[...game.likeCharge],likeGoal:[...game.likeGoal],likeUntil:[...game.likeUntil],likeReady:[...game.likeReady],lastLike:game.lastLike,likeFX:likeFX.length,rally:[...game.rally],quest:[...game.quest],wave:game.wave,raiders:game.raiders.length,nodes:game.nodes.map(n=>({owner:n.owner,control:n.control,level:n.level,armor:n.armor,build:n.build})),ack:game.ack?{text:game.ack.text,kind:game.ack.kind}:null,
       local:game.players.has('local-test')?{target:game.players.get('local-test').target,hp:game.players.get('local-test').hp}:null})};
     requestAnimationFrame(frame);
   }
