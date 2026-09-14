@@ -4,7 +4,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
    New agreed rules: energy, team assignment, saws, rockets, points and respawns.
    Standalone Canvas build; profile images come from incoming viewer events. */
 (function(root){'use strict';
-const VERSION='23.1 TEAM',MAX=500,ROUND=180000,IDLE=300000;
+const VERSION='23.2 TEAM',MAX=500,ROUND=180000,IDLE=300000;
 // Research-informed principles, designer-selected values. See VYVAZENI-23.1.md.
 // Speeds are logical canvas pixels per second, not device/display pixels.
 const BALANCE=Object.freeze({startEnergy:6,respawnMs:3000,spawnShieldMs:3000,
@@ -18,7 +18,14 @@ const clean=x=>Array.from(String(x??'').replace(/[\u0000-\u001f\u007f-\u009f\u20
 function hash(x){let h=2166136261;for(const c of String(x))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
 function avatarUrl(d){
  const u=d.user||d;
- const candidates=[u.profilePictureUrl,d.profilePictureUrl,u.avatarThumb?.urlList?.[0],u.avatarThumb?.url_list?.[0],u.avatarMedium?.urlList?.[0],u.userDetails?.profilePictureUrls?.[0],d.userDetails?.profilePictureUrls?.[0]];
+ const candidates=[];
+ for(const owner of [u,d,u.userDetails,d.userDetails])if(owner){
+  for(const key of ['profilePictureUrl','profilePictureUrls','profile_picture_url','avatarThumb','avatarMedium','avatarLarger','avatar_thumb','avatar_medium','avatar_larger','avatarUrl','avatar']){
+   const value=owner[key];if(typeof value==='string')candidates.push(value);
+   else if(Array.isArray(value))candidates.push(...value.slice(0,8));
+   else if(value&&typeof value==='object')candidates.push(value.url,...(Array.isArray(value.urlList)?value.urlList.slice(0,8):[]),...(Array.isArray(value.url_list)?value.url_list.slice(0,8):[]));
+  }
+ }
  for(const value of candidates){if(typeof value!=='string'||value.length>4096)continue;try{const url=new URL(value);if(url.protocol==='https:'&&!url.username&&!url.password)return url.href;}catch{}}
  return '';
 }
@@ -28,11 +35,11 @@ function packet(raw){
  const type=String(raw.event||raw.type||'').toLowerCase(),d=raw.data,u=d.user||d,g=d.giftDetails||d.extendedGiftInfo||d.gift||{};
  if(type==='streamend')return {type};
  if(!['member','chat','like','gift','share','follow','subscribe'].includes(type))return null;
- const id=u.uniqueId??d.uniqueId??u.userId??d.userId;if(id==null||!String(id).length||String(id).length>180)return null;
+ const id=u.uniqueId??u.unique_id??d.uniqueId??d.unique_id??u.userId??u.id??d.userId;if(id==null||!String(id).length||String(id).length>180)return null;
  const repeat=Math.floor(clamp(number(d.repeatCount,1),1,1000000)),end=[true,1,'true'].includes(d.repeatEnd);
  if(type==='gift'&&number(d.giftType??g.giftType??g.type)===1&&!end)return null;
  const mid=d.msgId??d.common?.msgId;
- const uid=u.userId??d.userId;
+ const uid=u.userId??u.id??d.userId;
  return {type,id:String(id),userId:uid==null?'':String(uid).slice(0,180),name:clean(u.nickname||d.nickname||id),avatar:avatarUrl(d),text:String(d.comment||'').slice(0,300),
   count:Math.floor(clamp(number(d.likeCount,1),1,10000)),repeat,coins:Math.min(1e9,clamp(number(d.diamondCount??g.diamondCount??g.diamond_count),0,1e6)*repeat),
   eventId:mid==null?null:type+':'+mid+(type==='gift'?':'+repeat+':'+end:'')};
@@ -204,12 +211,12 @@ if(typeof document==='undefined')return;
 /* BROWSER */
 function boot(){
  let prefs={};try{prefs=JSON.parse(localStorage.getItem('wars-team-settings')||'{}');}catch{}
- const query=new URLSearchParams(location.search);let lang=query.get('lang')||prefs.lang||'cs',chroma=prefs.chroma!==false,sound=false,hideProfiles=prefs.hideProfiles===true;
+ const query=new URLSearchParams(location.search);let lang=query.get('lang')||prefs.lang||'cs',chroma=prefs.chroma!==false,sound=false,hideProfiles=false;
  const L=(cs,en)=>lang==='en'?en:cs,team=t=>TEAMS[lang==='en'?1:0][t];
  const displayName=p=>hideProfiles&&!p.bot?'P'+hash(p.id||p.name).toString(36).slice(0,4).toUpperCase():p.name;
  const host=document.getElementById('game-container');host.innerHTML='<canvas id="arena" width="1080" height="1920"></canvas>';
  const canvas=document.getElementById('arena'),c=canvas.getContext('2d',{alpha:false});
- const panel=document.createElement('section');panel.id='panel';panel.hidden=true;panel.innerHTML=`<b>GALAXINKO WARS ${VERSION}</b><p><button id="hide">Skrýt / Hide (H)</button><button id="lang">CZ / EN</button><button id="bg">OBS / Dark</button><button id="sound">Zvuk / Sound</button><button id="profiles">Profily / Profiles (P)</button></p><p><button id="test">TEST</button><button id="ready">Připravit LIVE / Prepare LIVE</button><button id="like">♥ TEST</button><button id="gift">★ TEST</button><button id="crowd">TEST 100</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Připojit / Connect</button></p><p id="status"></p><p id="help"></p>`;document.body.appendChild(panel);
+ const panel=document.createElement('section');panel.id='panel';panel.hidden=true;panel.innerHTML=`<b>GALAXINKO WARS ${VERSION}</b><p><button id="hide">Skrýt / Hide (H)</button><button id="lang">CZ / EN</button><button id="bg">OBS / Dark</button><button id="sound">Zvuk / Sound</button><button id="profiles">Profily ZAP / Profiles ON</button></p><p><button id="test">TEST</button><button id="ready">Připravit LIVE / Prepare LIVE</button><button id="like">♥ TEST</button><button id="gift">★ TEST</button><button id="crowd">TEST 100</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Připojit / Connect</button></p><p id="status"></p><p id="help"></p>`;document.body.appendChild(panel);
  const $=id=>document.getElementById(id);let mode='demo',game,fx=[],receipt=null,gift=null,socialNote=null,leaders=[],rankAt=0,renderMs=0,fps=0,frameCount=0,fpsAt=performance.now(),workMs=0;
  const focusQueue=new Map();let focusId=null,focusUntil=0,focusCursor=0,focusCycle=0,moment=null,lastMoment=-Infinity;
  function offerFocus(id){if(id&&id!==focusId&&!focusQueue.has(id)&&focusQueue.size<60)focusQueue.set(id,true);}
@@ -223,6 +230,7 @@ function boot(){
  const portraits=new Map();let imageJobs=0,imageSweep=0;
  // Keep only small thumbnails, with four downloads at once and bounded storage.
  function portrait(url){return url?portraits.get(url)?.canvas:null;}
+ function requestPortrait(url){if(url&&!portraits.has(url)&&portraits.size<500)portraits.set(url,{state:'waiting'});pumpImages();}
  function updatePortraits(t){
   if(t<imageSweep)return;imageSweep=t+1000;
   const wanted=new Set([...game.players.values()].filter(p=>!p.bot&&p.avatar).map(p=>p.avatar));
@@ -263,9 +271,9 @@ function boot(){
   if(e.type==='member')members++;
   // A viewer entry or interaction starts a clean live round, preserving queued events.
   if(mode==='demo'&&['member','chat','like','gift','share','follow','subscribe'].includes(e.type)){mode='live';resetFocus();fx=[];receipt=null;gift=null;leaders=[];rankAt=0;game=new Arena({emit:event});game.start(now());last=now();step=last;acc=0;}
-  game.accept(e,now());
+  game.accept(e,now());const player=game.player(e.id);if(player)requestPortrait(player.avatar);
  }
- function enqueue(e){if(!e)return;if(e.type==='streamend'){receive(e);return;}if(mode==='test')return;
+ function enqueue(e){if(!e)return;if(e.type==='streamend'){receive(e);return;}if(mode==='test')return;if(e.type==='member'){receive(e);return;}
   if(e.type==='like'){const previous=likes.get(e.id);if(previous){e.count=Math.min(10000,e.count+previous.count);e.avatar||=previous.avatar;e.userId||=previous.userId;if(e.name===e.id&&previous.name)e.name=previous.name;}if(likes.size<500||previous)likes.set(e.id,e);else dropped++;}
   else{const q=['gift','subscribe'].includes(e.type)?priority:queue,limit=q===priority?200:2000;if(q.length<limit)q.push(e);else dropped++;}
  }
@@ -284,9 +292,9 @@ function boot(){
  $('crowd').onclick=()=>{if(mode!=='test')return;for(let i=0;i<99;i++)game.join({id:'test'+i,name:'TEST '+i});panel.hidden=true;};
  $('sound').onclick=async()=>{try{audio??=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();sound=!sound;$('sound').textContent='Sound: '+(sound?'ON':'OFF');tone(440);}catch{sound=false;}};
  $('connect').onclick=connect;
- $('profiles').onclick=()=>{hideProfiles=!hideProfiles;save();};
- document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key.toLowerCase()==='h')panel.hidden=!panel.hidden;if(e.key.toLowerCase()==='p')$('profiles').click();if(e.key===' '||e.key.toLowerCase()==='l'){e.preventDefault();testLike();}});
- canvas.ondblclick=()=>panel.hidden=!panel.hidden;canvas.onclick=()=>{if(mode==='demo')$('test').click();else testLike();};
+ $('profiles').onclick=()=>{hideProfiles=!hideProfiles;$('profiles').textContent=hideProfiles?'Profily VYP / Profiles OFF':'Profily ZAP / Profiles ON';save();};
+ document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key.toLowerCase()==='h')panel.hidden=!panel.hidden;if(e.key===' '||e.key.toLowerCase()==='l'){e.preventDefault();testLike();}});
+ canvas.ondblclick=()=>panel.hidden=!panel.hidden;canvas.onclick=()=>{if(mode==='test')testLike();};
  window.addEventListener('beforeunload',()=>{closed=true;clearTimeout(retry);clearTimeout(handshake);if(socket){socket.onclose=null;socket.close();}});
  const rect=(x,y,w,h,r,fill,stroke)=>{c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=2;c.stroke();}};
  const circle=(x,y,r,fill,stroke,width=2)=>{c.beginPath();c.arc(x,y,Math.max(0,r),0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}};
@@ -399,11 +407,11 @@ function orbLabels(players,names){
   if(players.some(q=>q!==p&&q.hp>0&&Math.hypot(q.x-clamp(q.x,box.x,box.x+box.w),q.y-clamp(q.y,box.y,box.y+box.h))<q.r+6))return;
   used.push(box);text(label,x,y,size,col,'center',max);
  };
- // Recent participants get label priority. Crowded labels never cover a portrait.
+ // Every human has a compact name anchored to their own ball; optional stats may be culled.
  const ordered=players.slice().sort((a,b)=>b.recent-a.recent);
  for(const p of ordered){if(p.hp<=0)continue;const col=p.bot?'#b8c4d2':COL[p.team],detail=names.has(p.id)||p.id==='you';
+  if(!p.bot)text(displayName(p),p.x,p.y+p.r+9,Math.max(11,Math.min(18,p.r*.46)),col,'center',p.r*2.5);
   if(players.length>80&&!detail)continue;
-  if(detail)place(p,displayName(p),p.y-p.r-30,18,col,170);
   if(detail||players.length<=35)place(p,p.bot?'BOT':'★ '+Math.floor(p.points),p.y+p.r+40,18,p.bot?col:'#ffdf92',120);
   if(p.hp<100||detail){const y=p.y+p.r+18,w=p.r*1.5;
    const box={x:p.x-w/2,y:y-2,w,h:9};
@@ -509,7 +517,7 @@ function render(t){
   if(!panel.hidden){$('status').textContent=(connected?'TikFinity OK':'TikFinity OFF')+' · '+mode+' · '+game.players.size+'/500 · arrivals '+members+' · portraits '+[...portraits.values()].filter(p=>p.state==='ready').length+' · FPS '+Math.round(fps)+' · frame '+workMs.toFixed(1)+'ms · dropped '+dropped+' · invalid '+invalid;$('help').textContent=L('Příchod diváka nebo interakce spustí kolo. TEST ignoruje skutečné události. Mezerník/L = test energie. Stejný tým po celé kolo. Příchody a profilovky závisejí na datech z TikFinity.','A viewer entry or interaction starts the round. TEST ignores real events. Space/L tests energy. Teams stay fixed for the round. Entries and portraits depend on TikFinity event data.');}
   requestAnimationFrame(frame);
  }
- root.Wars={version:VERSION,snapshot:()=>({mode,lang,phase:game.phase,round:game.round,connected,players:game.players.size,humans:game.humans().length,rockets:game.rockets.length,fx:fx.length,queued:queue.length+priority.length+likes.size,dropped,renderMs,workMs,fps,targetFps:60,renderWidth:canvas.width,crystals:game.crystals.length,members,hideProfiles,focusId,focusPending:focusQueue.size,moment:moment?.kind||null,portraits:[...portraits.values()].filter(p=>p.state==='ready').length,portraitCache:portraits.size,imageJobs,score:[...game.scores],receipt:receipt?{kind:receipt.kind,id:receipt.id}:null}),player:id=>{const p=game.player(id);return p?{id:p.id,team:p.team,avatar:!!portrait(p.avatar),energy:p.energy,hp:p.hp,points:p.points,best:p.best,roundWins:p.roundWins,x:p.x,y:p.y,dash:p.dashUntil>game.now}:null;}};
+ root.Wars={version:VERSION,snapshot:()=>({mode,lang,phase:game.phase,round:game.round,connected,players:game.players.size,humans:game.humans().length,rockets:game.rockets.length,fx:fx.length,queued:queue.length+priority.length+likes.size,dropped,renderMs,workMs,fps,targetFps:60,renderWidth:canvas.width,crystals:game.crystals.length,members,hideProfiles,focusId,focusPending:focusQueue.size,moment:moment?.kind||null,portraits:[...portraits.values()].filter(p=>p.state==='ready').length,portraitCache:portraits.size,imageJobs,score:[...game.scores],receipt:receipt?{kind:receipt.kind,id:receipt.id}:null}),player:id=>{const p=game.player(id);return p?{id:p.id,name:p.name,team:p.team,avatar:!!portrait(p.avatar),energy:p.energy,hp:p.hp,points:p.points,best:p.best,roundWins:p.roundWins,x:p.x,y:p.y,dash:p.dashUntil>game.now}:null;}};
  requestAnimationFrame(frame);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
