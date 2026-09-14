@@ -1,887 +1,425 @@
-<!doctype html>
-<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko FRONTIER</title><style>html,body{margin:0;background:#00ff00;color:white;font-family:Arial}</style></head><body><noscript>Zapni JavaScript pro spuštění hry.</noscript><script>
-/* GALAXINKO FRONTIER 3.0 — standalone Canvas game, no external libraries.
-   Chat: MODRA / CERVENA / JOIN, 1 / 2 / 3, TURBO / STIT / OPRAV.
-   TikFinity Desktop ws://localhost:21213/. H opens streamer controls.
-   Node: require('./sketch.js') exposes the same simulation used by the browser.
-*/
-(function(root) {
-  'use strict';
-  const VERSION='5.1 PULSE', ROUND_MS=90000, BREAK_MS=10000, ACTIVE_MS=300000, MAX_PLAYERS=500;
-  let LANG='cs';
-  const L=(cs,en)=>LANG==='en'?en:cs;
-  const setLanguage=lang=>{LANG=lang==='en'?'en':'cs';TEAM[0]=L(L("MODŘÍ","BLUE"),'BLUE');TEAM[1]=L(L("ČERVENÍ","RED"),'RED');};
-  const TEAM=[L("MODŘÍ","BLUE"),L("ČERVENÍ","RED")], COLOR=['#5cd9ff','#ff7496'];
-  const NODES=[{x:315,y:695,name:'AURORA'},{x:765,y:845,name:'NOVA'},{x:385,y:1050,name:'ATLAS'}];
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const numeric=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
-  const clean=s=>Array.from(String(s??'').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g,'').trim()).slice(0,24).join('')||'Pilot';
-  const command=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/^!/, '');
-  function hash(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
-  function packet(raw) {
-    if(!raw || typeof raw!=='object' || !raw.data || typeof raw.data!=='object')return null;
-    const type=String(raw.event||raw.type||'').toLowerCase();
-    if(!['chat','like','gift','follow','share','subscribe','streamend'].includes(type))return null;
-    const d=raw.data,u=d.user||d,g=d.giftDetails||d.extendedGiftInfo||d.gift||{};
-    if(type==='streamend')return {type};
-    const id=u.uniqueId??d.uniqueId??u.userId??d.userId;
-    if(id===undefined||id===null||!String(id).length||String(id).length>180)return null;
-    const repeat=Math.floor(clamp(numeric(d.repeatCount,1),1,1000000));
-    const end=[true,1,'true'].includes(d.repeatEnd);
-    if(type==='gift' && numeric(d.giftType??g.giftType??g.type)===1&&!end)return null;
-    const mid=d.msgId??d.common?.msgId;
-    const unit=clamp(numeric(d.diamondCount??g.diamondCount??g.diamond_count,0),0,1000000);
-    const coins=Math.min(1000000000,unit*repeat);
-    return {type,id:String(id),name:clean(u.nickname||d.nickname||u.uniqueId||d.uniqueId),
-      coins,giftName:clean(d.giftName??g.giftName??g.name??L('Dárek','Gift')),
-      text:String(d.comment||'').slice(0,300),repeat,likeCount:clamp(numeric(d.likeCount,1),1,10000),
-      eventId:mid==null?null:type+':'+mid+(type==='gift'?':'+repeat+':'+end:'')};
+<!doctype html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars TEAM</title><style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:Arial,sans-serif}#game-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}canvas{display:block;width:auto;height:auto;max-width:100vw;max-height:100vh;aspect-ratio:9/16}#panel{position:fixed;z-index:5;inset:15px auto auto 15px;max-width:900px;max-height:90vh;overflow:auto;padding:20px;background:#132139;color:white;border:2px solid #7890aa;border-radius:15px}#panel[hidden]{display:none}button,input{padding:12px;margin:4px;border-radius:8px;background:#2d425f;color:white;border:1px solid #8ba8c7;font:16px Arial}button{cursor:pointer}input{max-width:70vw}
+</style></head><body><div id="game-container"></div><noscript>JavaScript je nutný / JavaScript required.</noscript><script>/* GALAXINKO WARS TEAM — ball arena based on the supplied v19.59.0 concept.
+   New agreed rules: energy, team assignment, saws, rockets, points and respawns.
+   Standalone Canvas build; profile images come from incoming viewer events. */
+(function(root){'use strict';
+const VERSION='22.0 TEAM',MAX=500,ROUND=180000,IDLE=300000;
+const COL=['#64d9ff','#ff749c'],TEAMS=[['MODŘÍ','ČERVENÍ'],['BLUE','RED']];
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const number=(x,f=0)=>Number.isFinite(Number(x))?Number(x):f;
+const clean=x=>Array.from(String(x??'').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g,'').trim()).slice(0,24).join('')||'Pilot';
+function hash(x){let h=2166136261;for(const c of String(x))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
+function avatarUrl(d){
+ const u=d.user||d;
+ const candidates=[u.profilePictureUrl,d.profilePictureUrl,u.avatarThumb?.urlList?.[0],u.avatarThumb?.url_list?.[0],u.avatarMedium?.urlList?.[0],u.userDetails?.profilePictureUrls?.[0],d.userDetails?.profilePictureUrls?.[0]];
+ for(const value of candidates){if(typeof value!=='string'||value.length>4096)continue;try{const url=new URL(value);if(url.protocol==='https:'&&!url.username&&!url.password)return url.href;}catch{}}
+ return '';
+}
+function packet(raw){
+ if(raw&&String(raw.event||raw.type||'').toLowerCase()==='streamend')return {type:'streamend'};
+ if(!raw||typeof raw.data!=='object'||!raw.data)return null;
+ const type=String(raw.event||raw.type||'').toLowerCase(),d=raw.data,u=d.user||d,g=d.giftDetails||d.extendedGiftInfo||d.gift||{};
+ if(type==='streamend')return {type};
+ if(!['member','chat','like','gift','share','follow','subscribe'].includes(type))return null;
+ const id=u.uniqueId??d.uniqueId??u.userId??d.userId;if(id==null||!String(id).length||String(id).length>180)return null;
+ const repeat=Math.floor(clamp(number(d.repeatCount,1),1,1000000)),end=[true,1,'true'].includes(d.repeatEnd);
+ if(type==='gift'&&number(d.giftType??g.giftType??g.type)===1&&!end)return null;
+ const mid=d.msgId??d.common?.msgId;
+ const uid=u.userId??d.userId;
+ return {type,id:String(id),userId:uid==null?'':String(uid).slice(0,180),name:clean(u.nickname||d.nickname||id),avatar:avatarUrl(d),text:String(d.comment||'').slice(0,300),
+  count:Math.floor(clamp(number(d.likeCount,1),1,10000)),repeat,coins:Math.min(1e9,clamp(number(d.diamondCount??g.diamondCount??g.diamond_count),0,1e6)*repeat),
+  eventId:mid==null?null:type+':'+mid+(type==='gift'?':'+repeat+':'+end:'')};
+}
+class Arena{
+ constructor({emit=()=>{},demo=false}={}){this.emit=emit;this.demo=demo;this.players=new Map();this.aliases=new Map();this.seen=new Map();this.social=new Map();this.now=0;this.round=0;this.phase='lobby';this.ends=0;this.scores=[0,0];this.wins=[0,0];this.rockets=[];this.giftReady=[0,0];this.result=null;this.nextBots=0;this.nextSweep=0;this.radius=40;this.stats={likes:0,gifts:0,accepted:0,rejected:0};}
+ player(id){return this.players.get(this.aliases.get(String(id))||String(id));}
+ humans(){return [...this.players.values()].filter(p=>!p.bot);}
+ join(e,bot=false,team=null){
+  if(this.players.has(e.id))return this.players.get(e.id);
+  // Do not evict a human mid-round: rejoining must keep their team and score.
+  if(this.players.size>=MAX){const remove=[...this.players.values()].find(p=>p.bot);if(remove)this.players.delete(remove.id);else{this.stats.rejected++;return null;}}
+  const counts=[0,0];for(const p of this.humans())counts[p.team]++;
+  if(team==null)team=counts[0]===counts[1]?hash(e.id)%2:counts[0]<counts[1]?0:1;
+  const h=hash(e.id),p={id:e.id,name:clean(e.name),avatar:e.avatar||'',team,bot,energy:4,hp:100,points:0,kills:0,last:this.now,joinedAt:this.now,
+   x:100+h%880,y:380+(h>>>10)%960,vx:Math.cos(h)*30,vy:Math.sin(h)*30,r:40,protectedUntil:this.now+3000,
+   graceUntil:0,respawn:0,shotAt:this.now+1500,sawAt:this.now+700,target:null,thinkAt:0,best:0,roundWins:0,recordAt:-Infinity,chargeAt:-Infinity,unlockAt:-Infinity,findAt:-Infinity,trail:[],trailAt:0,
+   tokens:6,tokenAt:this.now,likeFxAt:-Infinity,recent:this.now,hitAt:-Infinity,goldUntil:0};
+  this.players.set(p.id,p);this.emit({kind:'join',id:p.id,team,name:p.name,x:p.x,y:p.y});return p;
+ }
+ safeSpawn(p){
+  const opponents=[...this.players.values()].filter(q=>q!==p&&q.team!==p.team&&q.hp>0);
+  const h=hash(p.id+':'+this.round+':'+Math.floor(this.now/1000));let best=null,score=-Infinity;
+  for(let i=0;i<12;i++){const x=100+((h+i*239)%880),y=450+((h+i*317)%880);let distance=1e9;
+   for(const q of opponents)distance=Math.min(distance,(q.x-x)**2+(q.y-y)**2);
+   if(distance>score){score=distance;best={x,y};}
   }
-
-  class Game {
-    constructor(options={}) {
-      this.emit=options.emit||(()=>{});this.demo=!!options.demo;
-      this.players=new Map();this.seen=new Map();this.nodes=NODES.map(n=>({...n,control:0,owner:-1}));
-      this.now=0;this.phase='lobby';this.round=0;this.ends=0;this.scores=[0,0];this.wins=[0,0];
-      this.raiders=[];this.wave=0;this.started=0;this.result=null;this.final=false;this.shots=[];this.feed=[];this.ack=null;
-      this.nextBotThink=0;this.nextSweep=0;this.lastLead=-1;this.lastLeadNotice=-Infinity;
-      this.social=new Map();this.supportAt=[-Infinity,-Infinity];this.rally=[0,0];this.rallyAt=[-Infinity,-Infinity];this.quest=[0,0];this.questDone=[false,false];this.totalSupport=0;
-      this.likeCharge=[0,0];this.likeGoal=[10,10];this.likeUntil=[0,0];this.likeReady=[0,0];this.lastLike=null;
-      this.stats={events:0,gifts:0,rounds:0,commands:0,rejected:0};
-    }
-    notice(text,team=-1,kind='info') {
-      this.feed.unshift({text,team,kind,at:this.now});if(this.feed.length>5)this.feed.pop();
-      this.emit({kind:'notice',text,team});
-    }
-    acknowledge(p,text,kind='action') {
-      this.ack={name:p.name,id:p.id,text,team:p.team,kind,at:this.now};
-      this.emit({kind:'ack',team:p.team,text});
-    }
-    add(id,name,team,bot=false) {
-      if(this.players.has(id))return this.players.get(id);
-      if(this.players.size>=MAX_PLAYERS){const drone=!bot&&[...this.players.values()].find(p=>p.bot);if(drone)this.players.delete(drone.id);else {const stale=[...this.players.values()].find(x=>this.now-x.last>=ACTIVE_MS);if(stale)this.players.delete(stale.id);else return null;}}
-      const h=hash(id),base=team===0?{x:165,y:585}:{x:915,y:585};
-      const p={id,name:clean(name),team,bot,target:h%3,hp:100,x:base.x,y:base.y,
-        last:this.now,angle:(h%628)/100,shootAt:this.now+900+(h%600),respawn:0,
-        turboUntil:0,shieldUntil:0,goldUntil:0,cool:{turbo:0,stit:0,oprav:0},
-        likeFxAt:-Infinity,buildAt:-Infinity,routeAt:-Infinity,tapAt:-Infinity,lastChat:-Infinity,contribution:0,kills:0,
-        rank:0,career:0,played:0,joinedRound:this.round,teamLocked:false,recent:this.now};
-      this.players.set(id,p);return p;
-    }
-    humans() {return [...this.players.values()].filter(p=>!p.bot&&this.now-p.last<ACTIVE_MS);}
-    start(now) {
-      this.now=now;this.phase='playing';this.round++;this.ends=now+ROUND_MS;this.final=false;
-      this.quest=[0,0];this.questDone=[false,false];this.started=now;this.wave=0;this.raiders=[];this.scores=[0,0];this.result=null;this.shots=[];this.lastLead=-1;
-      this.likeCharge=[0,0];this.likeUntil=[0,0];this.likeReady=[0,0];this.lastLike=null;
-      this.likeGoal=[0,1].map(team=>Math.min(120,Math.max(10,this.humans().filter(p=>p.team===team).length*2)));
-      this.nodes.forEach(n=>{n.control=0;n.owner=-1;n.level=1;n.build=0;n.armor=100;n.fireAt=0;});
-      for(const [id,p] of this.players) {
-        if(!p.bot && now-p.last>=ACTIVE_MS){this.players.delete(id);continue;}
-        p.buildAt=-Infinity;p.hp=100;p.respawn=0;p.contribution=0;p.kills=0;p.teamLocked=false;
-        p.cool={turbo:0,stit:0,oprav:0};p.turboUntil=0;p.shieldUntil=now+1500;p.shootAt=now+1000;
-        p.x=p.team===0?165:915;p.y=585;
-      }
-      this.notice(L("Obsaďte majáky. Držené majáky vyrábějí energii.","Capture towers. Your towers generate energy."));
-      this.emit({kind:'round'});
-    }
-    accept(e,now) {
-      this.now=now;
-      if(!e||!e.id)return false;
-      if(e.eventId){if(this.seen.has(e.eventId))return false;this.seen.set(e.eventId,now);if(this.seen.size>6000)this.seen.delete(this.seen.keys().next().value);}
-      this.stats.events++;
-      let p=this.players.get(e.id);
-      if(e.type==='gift'||e.type==='subscribe') {
-        if(!p){const counts=[0,0];for(const x of this.humans())counts[x.team]++;p=this.add(e.id,e.name,counts[0]<=counts[1]?0:1);}
-        if(p){p.last=now;p.goldUntil=now+60000;p.recent=now;}
-        const repeats=Math.floor(clamp(numeric(e.repeat,1),1,1000000));
-        if(e.type==='gift')this.stats.gifts+=repeats;
-        const coins=clamp(numeric(e.coins),0,1000000000),tier=e.type==='subscribe'?2:coins>=100?3:coins>=10?2:1;
-        this.totalSupport+=e.type==='gift'?coins:0;
-        let bonus=false;
-        if(p&&this.phase==='playing'&&now<this.ends&&now-this.supportAt[p.team]>=20000){
-          this.supportAt[p.team]=now;bonus=true;
-          for(const ally of this.players.values())if(ally.team===p.team&&ally.hp>0){ally.hp=Math.min(100,ally.hp+(tier===1?5:10));if(tier===3)ally.shieldUntil=Math.max(ally.shieldUntil,now+2000);}
-          if(tier>=2)for(const n of this.nodes)if(n.owner===p.team)n.armor=Math.min(100,n.armor+20);
-        }
-        const team=p?p.team:-1;
-        this.ack={name:e.name,id:e.id,text:bonus?L('ZÁSOBY DORAZILY • TÝMOVÁ OPRAVA','SUPPLIES ARRIVED • TEAM REPAIR'):L('DĚKUJEME • SPECIÁLNÍ PRŮLET','THANK YOU • SPECIAL FLYBY'),team,kind:'gift',at:now};
-        this.emit({kind:'gift',name:e.name,team,tier,coins,bonus});return true;
-      }
-      if(e.type==='share'||e.type==='follow') {
-        const key=e.type+':'+e.id,last=this.social.get(key)??-Infinity;
-        if(now-last<(e.type==='share'?60000:3600000))return true;
-        this.social.set(key,now);if(this.social.size>3000)this.social.delete(this.social.keys().next().value);
-        if(p)p.last=now;
-        if(e.type==='share'&&p&&this.phase==='playing'&&now<this.ends){
-          this.rally[p.team]=Math.min(5,this.rally[p.team]+1);
-          if(this.rally[p.team]>=5&&now-this.rallyAt[p.team]>=30000){
-            this.rally[p.team]=0;this.rallyAt[p.team]=now;
-            for(const ally of this.players.values())if(ally.team===p.team&&ally.hp>0)ally.hp=Math.min(100,ally.hp+15);
-            for(const n of this.nodes)if(n.owner===p.team)n.armor=Math.min(100,n.armor+15);
-            this.notice(TEAM[p.team]+L(' • SIGNÁL SDÍLENÍ: OPRAVA POSÁDKY',' • SHARE SIGNAL: CREW REPAIR'),p.team);this.emit({kind:'rally',team:p.team});
-          }else this.notice(e.name+L(' sdílí • týmový signál ',' shared • team signal ')+this.rally[p.team]+'/5',p.team);
-        }else this.notice(e.name+(e.type==='follow'?L(' se přidává k výpravě!',' follows the expedition!'):L(' sdílí výpravu!',' shared the expedition!')));
-        if(e.type==='follow'&&p&&p.hp>0&&this.phase==='playing'&&now<this.ends)p.shieldUntil=Math.max(p.shieldUntil,now+2500);
-        this.emit({kind:'social',team:p?p.team:-1});return true;
-      }
-      if(!['chat','like'].includes(e.type))return false;
-      const cmd=command(e.text);
-      const wanted=/^(modra|modri|blue)$/.test(cmd)?0:/^(cervena|cerveni|red)$/.test(cmd)?1:-1;
-      if(!p) {
-        const h=this.humans(),a=h.filter(x=>x.team===0).length,b=h.length-a;
-        const team=wanted>=0?wanted:a===b?hash(e.id)%2:a<b?0:1;
-        p=this.add(e.id,e.name,team);if(!p){this.stats.rejected++;return false;}
-        this.acknowledge(p,L("PŘIPOJENO • MAJÁK ","JOINED • TOWER ")+(p.target+1),'join');
-        this.notice(p.name+L(" posiluje "," joins ")+TEAM[p.team]+'.',p.team);
-      }
-      p.name=clean(e.name);p.last=now;
-      if(this.phase==='lobby')this.start(now);
-      // Events arriving after the deadline cannot alter the already earned result.
-      if(this.phase==='playing'&&now>=this.ends)this.finish();
-      if(e.type==='chat'&&wanted>=0) {
-        if(this.phase==='results'||!p.teamLocked) {
-          if(p.team!==wanted){p.team=wanted;p.x=wanted===0?165:915;p.y=585;}
-          this.acknowledge(p,TEAM[p.team]+L(" • MAJÁK "," • TOWER ")+(p.target+1),'join');
-        } else this.acknowledge(p,L("TÝM ZMĚNÍŠ MEZI KOLY","CHANGE TEAMS BETWEEN ROUNDS"),'cooldown');
-        return true;
-      }
-      if(this.phase!=='playing')return true;
-      if(e.type==='like') {
-        let power=0;
-        if(now-p.tapAt>=5000){
-          p.tapAt=now;power=Math.min(5,Math.max(1,Math.floor(numeric(e.likeCount,1))));
-          const available=this.likeGoal[p.team]-this.likeCharge[p.team];power=Math.min(power,available);this.likeCharge[p.team]+=power;
-          if(p.hp>0)p.turboUntil=Math.max(p.turboUntil,now+1800);
-          this.pulseTeam(p.team,now);
-        }
-        if(now-p.likeFxAt>=500){
-          p.likeFxAt=now;p.recent=now;this.lastLike={id:p.id,name:p.name,team:p.team,at:now,power};
-          this.emit({kind:'like',id:p.id,name:p.name,team:p.team,x:p.x,y:p.y,power});
-        }
-        return true;
-      }
-      if(now-p.lastChat<700)return true;p.lastChat=now;
-      if(/^[123]$/.test(cmd)) {
-        if(now-p.routeAt<1500)return true;p.routeAt=now;p.target=Number(cmd)-1;p.recent=now;
-        this.acknowledge(p,L("LETÍŠ K MAJÁKU ","FLYING TO TOWER ")+cmd);this.stats.commands++;return true;
-      }
-      if(cmd==='stav'||cmd==='build') {
-        const n=this.nodes[p.target];
-        if(p.hp<=0||n.owner!==p.team||Math.hypot(p.x-n.x,p.y-n.y)>190){this.acknowledge(p,L("STAV: PŘILEŤ K VLASTNÍ VĚŽI","BUILD: MOVE TO YOUR TEAM'S TOWER"),'cooldown');return true;}
-        if(now-p.buildAt<12000){this.acknowledge(p,L("STAV ZA ","BUILD IN ")+Math.ceil((12000-now+p.buildAt)/1000)+' s','cooldown');return true;}
-        if(n.level===3&&n.armor===100){this.acknowledge(p,L("VĚŽ JE PLNĚ VYLEPŠENÁ","TOWER FULLY UPGRADED"),'cooldown');return true;}
-        p.buildAt=now;n.armor=Math.min(100,n.armor+35);p.contribution+=4;this.stats.commands++;
-        if(n.level<3){n.build++;if(n.build>=2){n.level++;n.build=0;this.emit({kind:'capture',x:n.x,y:n.y,team:p.team});}}
-        this.acknowledge(p,L("VĚŽ ","TOWER ")+(p.target+1)+' • LV '+n.level+L(" • "," • ")+(n.level<3?n.build+L("/2 STAV","/2 BUILD"):'MAX')+L(" • ŠTÍT "," • SHIELD ")+Math.round(n.armor)+' %');return true;
-      }
-      const skill=({turbo:'turbo',utok:'turbo',boost:'turbo',stit:'stit',shield:'stit',oprav:'oprav',lecit:'oprav',heal:'oprav',repair:'oprav'})[cmd];
-      if(skill) {
-        if(p.hp<=0){this.acknowledge(p,L("NÁVRAT ZA ","RESPAWN IN ")+Math.max(1,Math.ceil((p.respawn-now)/1000))+' s','cooldown');return true;}
-        if(now<p.cool[skill]){this.acknowledge(p,({turbo:'TURBO',stit:L('ŠTÍT','SHIELD'),oprav:L('OPRAV','REPAIR')})[skill]+L(" ZA "," IN ")+Math.ceil((p.cool[skill]-now)/1000)+' s','cooldown');return true;}
-        if(skill==='oprav'&&p.hp>=100){this.acknowledge(p,L("LOĎ JE V POŘÁDKU • 100 HP","SHIP AT FULL HEALTH • 100 HP"),'cooldown');return true;}
-        p.cool[skill]=now+12000;
-        if(skill==='turbo')p.turboUntil=now+4000;
-        if(skill==='stit')p.shieldUntil=now+5000;
-        if(skill==='oprav')p.hp=Math.min(100,p.hp+45);
-        p.recent=now;this.stats.commands++;
-        this.acknowledge(p,skill==='turbo'?L("TURBO 4 s • DVOJNÁSOBNÝ VÝKON","TURBO 4 s • DOUBLE CAPTURE POWER"):skill==='stit'?L("ŠTÍT 5 s • BLOKUJE ZÁSAHY","SHIELD 5 s • BLOCKS HITS"):L("OPRAVENO • ","REPAIRED • ")+Math.ceil(p.hp)+' HP');
-      }
-      return true;
-    }
-    pulseTeam(team,now){
-      if(this.phase!=='playing'||now>=this.ends||this.likeCharge[team]<this.likeGoal[team]||now<this.likeReady[team])return;
-      this.likeCharge[team]=0;this.likeUntil[team]=now+5000;this.likeReady[team]=now+20000;
-      this.likeGoal[team]=Math.min(120,Math.max(10,this.humans().filter(p=>p.team===team).length*2));
-      for(const p of this.players.values())if(p.team===team&&p.hp>0)p.turboUntil=Math.max(p.turboUntil,this.likeUntil[team]);
-      this.emit({kind:'teamlike',team});
-      this.notice(TEAM[team]+L(' • SRDÍČKA SPUSTILA TÝMOVÉ TURBO!',' • HEARTS ACTIVATED TEAM TURBO!'),team);
-    }
-    balanceBots() {
-      const humans=this.humans(),counts=[0,0];humans.forEach(p=>counts[p.team]++);
-      // Explicit training drones: only fill a sparse side, at most 3 per team.
-      const goal=Math.max(2,Math.min(3,...counts.map(n=>Math.max(n,2))));
-      for(let team=0;team<2;team++){
-        const want=this.demo?3:Math.min(3,Math.max(0,goal-counts[team]));
-        const bots=[...this.players.values()].filter(p=>p.bot&&p.team===team);
-        while(bots.length>want){const b=bots.pop();this.players.delete(b.id);}
-        for(let i=0;i<want;i++)if(!this.players.has('drone-'+team+'-'+i))this.add('drone-'+team+'-'+i,L("DRON ","DRONE ")+(i+1),team,true);
-      }
-    }
-    defense(now,dt,live) {
-      const schedule=[18000,42000,66000];
-      if(this.wave<3&&now-this.started>=schedule[this.wave]) {
-        this.wave++;
-        for(let i=0;i<3;i++)for(let j=0;j<(this.wave===3?1:3);j++){
-          const boss=this.wave===3,scale=1+Math.min(8,live.filter(p=>!p.bot&&p.target===i).length/12),hp=Math.round((boss?400:65+this.wave*15)*scale);
-          this.raiders.push({x:i===1?985:95,y:(i===2?1140:i===1?590:550)+j*(i===2?-65:65),target:i,hp,max:hp,boss,hitAt:0,slowUntil:0});
-        }
-        this.notice(this.wave===3?L("BOSSOVÉ! BRAŇTE SVÉ VĚŽE","BOSSES! DEFEND YOUR TOWERS"):L("NÁJEZD ","WAVE ")+this.wave+L(" / 3 • BRAŇTE VĚŽE"," / 3 • DEFEND THE TOWERS"));
-        this.emit({kind:'wave',wave:this.wave});
-      }
-      const damage=(r,amount,team,x,y,kind,p)=>{
-        r.hp=Math.max(0,r.hp-amount);
-        this.shots.push({x,y,tx:r.x,ty:r.y,team,at:now,blocked:false,weapon:kind});
-        if(r.hp===0){this.scores[team]+=r.boss?100:15;if(p){p.contribution+=r.boss?25:5;p.kills++;}
-          this.emit({kind:'down',x:r.x,y:r.y,team});}
-      };
-      for(let i=0;i<3;i++){
-        const n=this.nodes[i],targets=this.raiders.filter(r=>r.target===i&&r.hp>0);
-        if(n.owner>=0&&now>=n.fireAt&&targets.length){
-          const r=targets.reduce((a,b)=>Math.hypot(a.x-n.x,a.y-n.y)<Math.hypot(b.x-n.x,b.y-n.y)?a:b);
-          n.fireAt=now+(i===1?700:1100);damage(r,(i===1?13:20)*n.level,n.owner,n.x,n.y-90,i);
-          if(i===0)for(const extra of targets.filter(e=>e!==r&&e.hp>0&&Math.hypot(e.x-r.x,e.y-r.y)<130).slice(0,2))damage(extra,9*n.level,n.owner,r.x,r.y,0);
-          if(i===2)r.slowUntil=now+1500;
-        }
-      }
-      for(const p of live){
-        if(p.hp<=0||now<p.shootAt)continue;
-        const r=this.raiders.find(r=>r.hp>0&&r.target===p.target&&Math.hypot(p.x-r.x,p.y-r.y)<260);
-        if(r){p.shootAt=now+(p.turboUntil>now?500:1000);damage(r,p.bot?9:20,p.team,p.x,p.y,3,p);}
-      }
-      for(const r of this.raiders){
-        if(r.hp<=0)continue;const n=this.nodes[r.target],dx=n.x-r.x,dy=n.y-r.y,d=Math.hypot(dx,dy);
-        if(d>85){const step=Math.min(d-85,(r.boss?47:65)*(r.slowUntil>now?.4:1)*dt);r.x+=dx/d*step;r.y+=dy/d*step;}
-        else if(n.owner>=0&&now>=r.hitAt){
-          r.hitAt=now+1500;n.armor=Math.max(0,n.armor-(r.boss?24:10));
-          this.emit({kind:'impact',x:n.x,y:n.y,team:n.owner});
-          if(n.armor===0){this.notice(n.name+L(" PADLA • ZNOVU JI OBSAĎTE"," FELL • CAPTURE IT AGAIN"));n.owner=-1;n.control=0;n.level=1;n.build=0;n.armor=100;}
-        }
-      }
-      this.raiders=this.raiders.filter(r=>r.hp>0);if(this.shots.length>180)this.shots.splice(0,this.shots.length-180);
-    }
-    finish() {
-      if(this.phase!=='playing')return;
-      const values=this.scores.map(Math.round),winner=values[0]===values[1]?-1:values[0]>values[1]?0:1;
-      if(winner>=0)this.wins[winner]++;
-      this.result={scores:values,winner,round:this.round,top:[...this.players.values()].filter(p=>!p.bot&&p.contribution>0)
-        .sort((a,b)=>b.contribution-a.contribution).slice(0,3).map(p=>({id:p.id,name:p.name,team:p.team,points:Math.round(p.contribution),kills:p.kills}))};
-      for(const p of this.players.values())if(!p.bot&&p.contribution>0){p.career+=Math.round(p.contribution);p.played++;p.rank=Math.min(9,Math.floor(Math.sqrt(p.career/100)));}
-      this.phase='results';this.restartAt=this.now+BREAK_MS;this.stats.rounds++;this.shots=[];
-      this.emit({kind:'result',result:this.result});
-    }
-    tick(now,dt) {
-      this.now=now;
-      if(now>=this.nextSweep){
-        this.nextSweep=now+10000;
-        for(const [id,p] of this.players)if(!p.bot&&now-p.last>=ACTIVE_MS)this.players.delete(id);
-        for(const [k,t]of this.social)if(now-t>3600000)this.social.delete(k);
-        for(const [k,t]of this.seen)if(now-t>300000)this.seen.delete(k);
-      }
-      if(this.phase==='results'){
-        if(now>=this.restartAt){if(this.humans().length||this.demo)this.start(now);else this.phase='lobby';}
-        return;
-      }
-      if(this.phase!=='playing')return;
-      if(now>=this.ends){this.finish();return;}
-      dt=clamp(dt,0,.1);
-      for(let team=0;team<2;team++)this.pulseTeam(team,now);
-      if(!this.final&&this.ends-now<=15000){this.final=true;this.notice(L("FINÁLE • MAJÁKY VYRÁBĚJÍ 2× ENERGII","FINALE • TOWERS GENERATE 2× ENERGY"));this.emit({kind:'final'});}
-      if(now>=this.nextBotThink){
-        this.nextBotThink=now+2200;this.balanceBots();
-        for(const p of this.players.values())if(p.bot){
-          const ranked=this.nodes.map((n,i)=>({i,value:(p.team===0?n.control:-n.control)+(hash(p.id+Math.floor(now/9000)+i)%60)})).sort((a,b)=>a.value-b.value);
-          if(hash(p.id+Math.floor(now/2200))%3===0)p.target=ranked[0].i;
-        }
-      }
-      const live=[...this.players.values()].filter(p=>p.bot||now-p.last<ACTIVE_MS);
-      const counts=this.nodes.map(()=>[[],[]]);
-      for(const p of live){
-        if(p.hp<=0){if(now>=p.respawn){p.hp=100;p.x=p.team===0?165:915;p.y=585;p.shieldUntil=now+2000;this.emit({kind:'respawn',x:p.x,y:p.y,team:p.team});}else continue;}
-        if(this.likeUntil[p.team]>now)p.turboUntil=Math.max(p.turboUntil,this.likeUntil[p.team]);
-        const n=this.nodes[p.target],angle=p.angle+now*.00019*(p.team===0?1:-1);
-        const radius=85+(hash(p.id)%65),tx=n.x+Math.cos(angle)*radius,ty=n.y+Math.sin(angle)*radius*.75;
-        const speed=1-Math.exp(-dt*(p.turboUntil>now?3.8:2));p.x+=(tx-p.x)*speed;p.y+=(ty-p.y)*speed;
-        const near=Math.hypot(p.x-n.x,p.y-n.y)<190;
-        if(near){counts[p.target][p.team].push(p);p.teamLocked=true;}
-      }
-      for(let i=0;i<3;i++){
-        const n=this.nodes[i],groups=counts[i];
-        const power=groups.map(g=>g.reduce((v,p)=>v+(p.bot?0.72:1)*(p.turboUntil>now?2:1),0));
-        const difference=power[0]-power[1],change=clamp(difference,-5,5)*20*dt;
-        n.control=clamp(n.control+change,-100,100);
-        const old=n.owner;
-        if(n.control>=99.9)n.owner=0;else if(n.control<=-99.9)n.owner=1;
-        else if((n.owner===0&&n.control<0)||(n.owner===1&&n.control>0))n.owner=-1;
-        if(old!==n.owner&&n.owner>=0){this.notice(TEAM[n.owner]+L(" získali "," captured ")+n.name+'!',n.owner,'capture');this.emit({kind:'capture',x:n.x,y:n.y,team:n.owner});}
-        if(n.owner>=0){const gain=dt*8*(this.final?2:1);this.scores[n.owner]+=gain;
-          const allies=groups[n.owner];for(const p of allies)p.contribution+=gain/Math.max(1,allies.length);}
-        if(difference!==0){const group=groups[difference>0?0:1];for(const p of group)p.contribution+=Math.abs(change)/Math.max(1,group.length)*.12;}
-        for(let team=0;team<2;team++)for(const p of groups[team]){
-          if(p.hp<=0||now<p.shootAt)continue;
-          const enemies=groups[1-team];let target=null,best=Infinity;
-          const offset=hash(p.id+Math.floor(now/1300))%Math.max(1,enemies.length);
-          for(let k=0;k<Math.min(enemies.length,12);k++){const q=enemies[(offset+k)%enemies.length];if(q.hp<=0)continue;const d=(p.x-q.x)**2+(p.y-q.y)**2;if(d<best){target=q;best=d;}}
-          if(!target)continue;
-          p.shootAt=now+(p.turboUntil>now?650:1300);
-          const blocked=target.shieldUntil>now,damage=p.bot?10:16;
-          if(!blocked)target.hp=Math.max(0,target.hp-damage);
-          this.shots.push({x:p.x,y:p.y,tx:target.x,ty:target.y,team:p.team,at:now,blocked});if(this.shots.length>180)this.shots.shift();
-          if(target.hp===0){target.respawn=now+4500;p.kills++;p.contribution+=5;
-            this.emit({kind:'down',x:target.x,y:target.y,team:target.team});
-            if(!target.bot)this.acknowledge(target,L("LOĎ SE VRÁTÍ ZA 5 s","SHIP RETURNS IN 5 s"),'respawn');}
-        }
-      }
-      for(let team=0;team<2;team++)if(!this.questDone[team]){
-        if(this.nodes.filter(n=>n.owner===team).length>=2)this.quest[team]=Math.min(15,this.quest[team]+dt);
-        if(this.quest[team]>=15){this.questDone[team]=true;this.scores[team]+=60;this.notice(TEAM[team]+L(' • MISE SPLNĚNA +60',' • MISSION COMPLETE +60'),team);this.emit({kind:'rally',team});}
-      }
-      this.defense(now,dt,live);
-      this.shots=this.shots.filter(s=>now-s.at<400);
-      const lead=this.scores[0]===this.scores[1]?-1:this.scores[0]>this.scores[1]?0:1;
-      if(lead>=0&&lead!==this.lastLead&&Math.abs(this.scores[0]-this.scores[1])>20){
-        if(this.lastLead>=0&&now-this.lastLeadNotice>10000){this.notice(TEAM[lead]+L(" přebírají vedení!"," take the lead!"),lead);this.emit({kind:'lead',team:lead});this.lastLeadNotice=now;}
-        this.lastLead=lead;
-      }
-    }
+  p.x=best.x;p.y=best.y;p.vx=p.vy=0;p.trail=[];p.target=null;p.thinkAt=0;
+ }
+ start(now){this.now=now;this.round++;this.phase='playing';this.ends=now+ROUND;this.scores=[0,0];this.rockets=[];this.result=null;
+  for(const [id,p]of this.players){if(!p.bot&&now-p.last>=IDLE){this.players.delete(id);continue;}p.energy=4;p.hp=100;p.points=0;p.kills=0;p.respawn=0;p.protectedUntil=now+3000;p.graceUntil=0;p.tokens=6;p.tokenAt=now;p.shotAt=now+1500;p.sawAt=now+700;p.target=null;p.trail=[];p.recordAt=-Infinity;}
+  for(const [alias,id]of this.aliases)if(!this.players.has(id))this.aliases.delete(alias);
+  this.emit({kind:'round'});
+ }
+ accept(e,now){
+  if(!e||!e.id)return false;this.now=now;
+  if(e.eventId){if(this.seen.has(e.eventId))return false;this.seen.set(e.eventId,now);if(this.seen.size>6000)this.seen.delete(this.seen.keys().next().value);}
+  if(this.phase==='playing'&&now>=this.ends)this.finish(now);
+  this.stats.accepted++;const named=this.player(e.id),numeric=e.userId?this.player(e.userId):null;let p=named||numeric;
+  // Later packets may be the first evidence linking a username to a numeric ID.
+  if(named&&numeric&&named!==numeric){p=named.joinedAt<=numeric.joinedAt?named:numeric;const other=p===named?numeric:named;
+   if(this.phase==='playing'&&other.team!==p.team){this.scores[other.team]=Math.max(0,this.scores[other.team]-other.points);this.scores[p.team]+=other.points;}
+   p.points+=other.points;p.kills+=other.kills;p.best=Math.max(p.best,other.best);p.roundWins=Math.max(p.roundWins,other.roundWins);p.energy=Math.max(p.energy,other.energy);p.avatar||=other.avatar;
+   this.players.delete(other.id);for(const [alias,id]of this.aliases)if(id===other.id)this.aliases.set(alias,p.id);if(this.aliases.size<MAX*3)this.aliases.set(other.id,p.id);
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={Game,packet,command,hash,setLanguage,L,MAX_PLAYERS};
-  if(typeof document==='undefined')return;
-
-  function boot(){
-    if(document.getElementById('frontier'))return;
-    document.title='Galaxinko FRONTIER • '+VERSION;
-    const style=document.createElement('style');style.textContent=`
-      html,body{margin:0!important;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:Arial,sans-serif}
-      #frontier{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#00ff00;z-index:1000}
-      #frontier canvas{display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;aspect-ratio:9/16;touch-action:manipulation}
-      #frontier-admin{position:fixed;z-index:1001;top:12px;left:12px;right:12px;max-height:85vh;overflow:auto;background:#101a2d;color:#eef6ff;border:1px solid #647993;border-radius:16px;padding:20px;box-shadow:0 20px 80px #000b;font:15px Arial}
-      #frontier-admin[hidden]{display:none}#frontier-admin button,#frontier-admin input{background:#253650;border:1px solid #526782;color:white;border-radius:8px;padding:11px;margin:4px;font:15px Arial}#frontier-admin button{cursor:pointer}#frontier-admin p{line-height:1.5;margin:10px 0}#frontier-admin small{color:#b4c7dd}#frontier-admin input{max-width:70vw}
-    `;document.head.appendChild(style);
-    const host=document.createElement('main');host.id='frontier';document.body.appendChild(host);
-    const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1920;host.appendChild(canvas);
-    canvas.setAttribute('aria-label',L("Galaxinko Frontier. Modří a červení ovládají tři majáky.","Galaxinko Nebula. Blue and red fight for three towers."));
-    const c=canvas.getContext('2d',{alpha:false}),query=new URLSearchParams(location.search);
-    let saved={};try{saved=JSON.parse(localStorage.getItem('nebula-settings')||'{}')||{};}catch(_){}
-    setLanguage(query.get('lang')||saved.lang||'cs');document.documentElement.lang=LANG;
-    let chroma=query.has('chroma')?query.get('chroma')!=='0':saved.chroma!==false;
-    let names=saved.names!==false,sound=false,voice=false,audio=null,lastTone=0,lastSpeech=-Infinity;
-    let mode=query.get('test')==='1'?'test':'attract';
-    let gifts=[],giftCurrent=null,drawShips=[],drawLabels=new Set(),nextRoster=0,lastRender=0,renderCost=0,likeFX=[],likeFlash=[-Infinity,-Infinity];
-    let fx=[],cometAt=-Infinity,banner=null;let socket=null,retryTimer,handshakeTimer,attempt=0,closed=false;
-    let connection=L("Připojuji TikFinity","Connecting to TikFinity"),received=0,malformed=0,lastMessage=0,connected=false;
-    let lastFrame=performance.now(),stepTime=lastFrame,accumulator=0,nextAmbient=0,frames=16;
-    const now=()=>performance.now();
-    const day=()=>new Date().toLocaleDateString('sv-SE');let archive={day:day(),top:[]};
-    try{const a=JSON.parse(localStorage.getItem('frontier-daily')||'null');if(a?.day===day()&&Array.isArray(a.top))archive={day:a.day,top:a.top.filter(p=>typeof p.name==='string'&&Number.isFinite(p.points)).slice(0,100)};}catch(_){}
-    function say(s,priority=false){
-      if(!voice||!('speechSynthesis'in window)||(!priority&&now()-lastSpeech<12000))return;
-      if(speechSynthesis.speaking&&!priority)return;speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(s);u.lang=LANG==='en'?'en-US':'cs-CZ';u.rate=1.05;u.volume=.65;
-      const v=speechSynthesis.getVoices().find(v=>v.lang.startsWith(LANG));if(v)u.voice=v;
-      speechSynthesis.speak(u);lastSpeech=now();
-    }
-    function tone(hz=440){if(!sound||!audio||now()-lastTone<160)return;lastTone=now();
-      const o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.setValueAtTime(hz,audio.currentTime);o.frequency.exponentialRampToValueAtTime(hz*.75,audio.currentTime+.15);
-      g.gain.setValueAtTime(.0001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.055,audio.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.18);
-      o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.2);o.onended=()=>{o.disconnect();g.disconnect();};}
-    function flourish(tier){
-      if(!sound||!audio)return;
-      const start=audio.currentTime;
-      for(let k=0;k<3;k++){const osc=audio.createOscillator(),gain=audio.createGain();osc.type=tier===3?'triangle':'sine';
-        osc.frequency.setValueAtTime([220,330,440][k]*(tier===3?.5:1),start+k*.11);osc.frequency.exponentialRampToValueAtTime([440,660,880][k],start+.65+k*.11);
-        gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.025,start+.05+k*.11);gain.gain.exponentialRampToValueAtTime(.0001,start+1.05+k*.11);
-        osc.connect(gain);gain.connect(audio.destination);osc.start(start+k*.11);osc.stop(start+1.2+k*.11);osc.onended=()=>{osc.disconnect();gain.disconnect();};}
-    }
-    function events(e){
-      if(fx.length>39)fx.splice(0,fx.length-39);
-      if(e.kind==='like'){likeFX.push({...e,at:now()});if(likeFX.length>12)likeFX.shift();nextRoster=0;}
-      if(e.kind==='teamlike'){likeFlash[e.team]=now();banner={text:L('SRDÍČKA → TÝMOVÉ TURBO!','HEARTS → TEAM TURBO!'),at:now(),team:e.team};tone(740);}
-      if(['capture','down','respawn','impact'].includes(e.kind)){fx.push({...e,at:now()});if(fx.length>40)fx.shift();}
-      if(e.kind==='wave'){banner={text:e.wave===3?L("BOSSOVÉ NA OBZORU","BOSSES INBOUND"):L("NÁJEZD ","WAVE ")+e.wave+' / 3',at:now(),team:-1};tone(220);say(L("Nájezdníci. Braňte své věže.","Raiders incoming. Defend your towers."),true);}
-      if(e.kind==='capture'){tone(660);say(TEAM[e.team]+L(" obsadili maják."," captured a tower."));}
-      if(e.kind==='gift'){if(gifts.length<12)gifts.push({...e,at:now(),count:1});else{const q=gifts[gifts.length-1];q.count++;q.tier=Math.max(q.tier,e.tier);q.name=L('Podpora posádky','Crew supporters');}tone(880);say(L('Děkujeme za podporu posádky.','Thank you for supporting the crew.'));}
-      if(e.kind==='rally'){banner={text:L('POSÁDKA SPOJILA SÍLY','CREW POWER ACTIVATED'),at:now(),team:e.team};fx.push({kind:'capture',x:540,y:820,team:e.team,at:now()});}
-      if(e.kind==='ack')tone(390);
-      if(e.kind==='round'){banner={text:L("VÝPRAVA ZAČÍNÁ","EXPEDITION BEGINS"),at:now(),team:-1};if(mode==='live')say(L("Začínáme. Napiš jedna, dva nebo tři a vyber maják.","Here we go. Type one, two or three to choose a tower."));}
-      if(e.kind==='final'){banner={text:L("FINÁLE • ENERGIE ×2","FINALE • ENERGY ×2"),at:now(),team:-1};say(L("Finále! Majáky teď vyrábějí dvojnásobek energie.","Finale! Towers now generate double energy."),true);tone(990);}
-      if(e.kind==='lead'){banner={text:TEAM[e.team]+L(" OTÁČEJÍ BITVU"," TURN THE BATTLE"),at:now(),team:e.team};say(TEAM[e.team]+L(" přebírají vedení."," take the lead."));}
-      if(e.kind==='result'){
-        if(mode==='live'){
-          say(e.result.winner<0?L("Remíza! Za deset sekund začíná odveta.","A draw! Rematch in ten seconds."):TEAM[e.result.winner]+L(" vyhrávají! Za deset sekund odveta."," win! Rematch in ten seconds."),true);
-          if(archive.day!==day())archive={day:day(),top:[]};
-          for(const p of game.players.values())if(!p.bot&&p.contribution>0){let q=archive.top.find(x=>x.id===p.id);if(!q){q={id:p.id,name:p.name,points:0};archive.top.push(q);}q.name=p.name;q.points+=Math.round(p.contribution);}
-          archive.top.sort((a,b)=>b.points-a.points);archive.top=archive.top.slice(0,100);
-          try{localStorage.setItem('frontier-daily',JSON.stringify(archive));}catch(_){}
-        }
-      }
-    }
-    let game;
-    function newGame(next){mode=next;fx=[];likeFX=[];likeFlash=[-Infinity,-Infinity];gifts=[];giftCurrent=null;drawShips=[];drawLabels.clear();nextRoster=0;banner=null;game=new Game({demo:next!=='live',emit:events});game.start(now());if(next!=='live')game.balanceBots();stepTime=now();accumulator=0;}
-    newGame(mode);
-    const panel=document.createElement('section');panel.id='frontier-admin';panel.hidden=query.get('admin')!=='1';
-    panel.innerHTML=`<strong>GALAXINKO FRONTIER ${VERSION} · streamer panel</strong>
-      <p><button id="f-hide">Skrýt (H)</button><button id="f-test">Zkusit hru</button><button id="f-live">Připravit LIVE</button><button id="f-lang">CZ / EN</button><button id="f-bg">Pozadí</button><button id="f-sound">Zvuk: VYP</button><button id="f-voice">Komentátor: VYP</button><button id="f-names">Jména</button></p>
-      <p id="f-state"></p><p><input aria-label="TikFinity adresa" id="f-url" value="ws://localhost:21213/"><button id="f-connect">Připojit</button><button id="f-diag">Stáhnout diagnostiku</button></p>
-      <p><button id="f-blue">TEST: modří</button><button id="f-red">TEST: červení</button><select aria-label="Gift Coins" id="f-gift-value"><option value="1">1 Coin</option><option value="10">10 Coins</option><option value="100" selected>100 Coins</option></select><button id="f-gift">TEST: dárek</button><button id="f-crowd">TEST: 500</button></p>
-      <p id="f-help"><small>H nebo dvojklik zobrazí panel. V testu klikni na maják, nebo použij 1 / 2 / 3. T = turbo, S = štít, O = oprava. Skutečné zprávy jsou během TESTU ignorované; „Připravit LIVE“ je znovu zapne. V běžné ukázce první komentář nebo lajk automaticky spustí živé kolo.</small></p>
-      <p id="f-metrics"></p>`;document.body.appendChild(panel);
-    const $=id=>document.getElementById('f-'+id);
-    function preferences(){try{localStorage.setItem('nebula-settings',JSON.stringify({chroma,names,lang:LANG}));}catch(_){}buttons();}
-    function buttons(){
-      for(const [id,label]of Object.entries({hide:L('Skrýt (H)','Hide (H)'),test:L('Zkusit hru','Play test'),live:L('Připravit LIVE','Prepare LIVE'),lang:'CZ / EN: '+LANG.toUpperCase(),connect:L('Připojit','Connect'),diag:L('Stáhnout diagnostiku','Download diagnostics'),blue:L('TEST: modří','TEST: blue'),red:L('TEST: červení','TEST: red'),gift:L('TEST: dárek','TEST: gift'),sound:L(L("Zvuk: ","Sound: "),'Sound: ')+(sound?'ON':'OFF'),voice:L(L("Komentátor: ","Commentator: "),'Commentator: ')+(voice?'ON':'OFF')}))$(id).textContent=label;
-      $('help').textContent=L('H: panel. 1/2/3: věž. Mezerník/L: test lajku. T/S/O/B: turbo, štít, oprava, stavba. Test ignoruje skutečné události. CZ i EN příkazy fungují současně. Dárky: 1–9 zásoby, 10–99 orbitální výboj, 100+ mateřská loď (Coins za dokončenou sérii). Týmový bonus nejvýše jednou za 20 s.','H: panel. 1/2/3: tower. Space/L: test like. T/S/O/B: turbo, shield, repair, build. Test ignores real events. CZ and EN commands work together. Gifts: 1–9 supply, 10–99 orbital surge, 100+ mothership (Coins per completed streak). Team bonus at most once per 20 seconds.');
-
-      $('bg').textContent=chroma?L("Pozadí: OBS zelená","Backdrop: OBS green"):L("Pozadí: vesmír","Backdrop: space");$('names').textContent=names?L("Jména: ZAP","Names: ON"):L("Jména: SKRYTÁ","Names: hidden");
-      for(const id of ['blue','red','gift','crowd'])$(id).disabled=mode!=='test';
-      host.style.background=chroma?'#00ff00':'#080f1e';
-    }
-    $('lang').onclick=()=>{setLanguage(LANG==='cs'?'en':'cs');document.documentElement.lang=LANG;game.ack=null;game.feed=[];banner=null;preferences();};
-    $('hide').onclick=()=>panel.hidden=true;
-    $('bg').onclick=()=>{chroma=!chroma;preferences();};$('names').onclick=()=>{names=!names;preferences();};
-    function testJoin(team){if(mode!=='test')return;const p=game.players.get('local-test');if(p)p.teamLocked=false;game.accept({type:'chat',id:'local-test',name:L("TY · TEST","YOU · TEST"),text:team?'cervena':'modra'},now());}
-    $('test').onclick=()=>{newGame('test');testJoin(0);buttons();panel.hidden=true;};
-    $('live').onclick=()=>{newGame('attract');buttons();};
-    $('blue').onclick=()=>testJoin(0);$('red').onclick=()=>testJoin(1);
-    $('gift').onclick=()=>{if(mode==='test')game.accept({type:'gift',id:'local-test',name:L("TEST PODPORA","TEST SUPPORTER"),repeat:1,coins:numeric($('gift-value').value,1)},now());};
-    $('crowd').onclick=()=>{if(mode!=='test')return;for(let i=0;i<499;i++)game.add('load-'+i,'TEST '+(i+1),i%2);panel.hidden=true;};
-    $('sound').onclick=async()=>{try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();sound=!sound;}catch(_){sound=false;}$('sound').textContent=L("Zvuk: ","Sound: ")+(sound?L("ZAP","ON"):L("VYP","OFF"));tone();};
-    $('voice').onclick=()=>{voice=!voice&&'speechSynthesis'in window;$('voice').textContent=L("Komentátor: ","Commentator: ")+(voice?L("ZAP","ON"):L("VYP","OFF"));if(voice)say(L("Palubní komentátor je připraven.","The commentator is ready."),true);else if('speechSynthesis'in window)speechSynthesis.cancel();};
-    function receive(raw,normalized=false){const e=normalized?raw:packet(raw);if(!e)return;
-      if(e.type==='streamend'){newGame('attract');connection=L('TikFinity hlásí konec LIVE','TikFinity reports LIVE ended');return;}
-      if(mode==='test')return;
-      if(mode==='attract'&&['chat','like','gift','subscribe'].includes(e.type)){newGame('live');buttons();}
-      game.accept(e,now());
-    }
-    const inbox=[],priorityInbox=[],likeInbox=new Map();let dropped=0;
-    function enqueue(raw){const e=packet(raw);if(!e)return;
-      if(e.type==='streamend'){inbox.length=0;priorityInbox.length=0;likeInbox.clear();receive(raw);return;}
-      if(e.type==='gift'||e.type==='subscribe'){if(priorityInbox.length<200)priorityInbox.push(raw);else dropped++;return;}
-      if(e.type==='like'){if(likeInbox.size<500||likeInbox.has(e.id)){const previous=likeInbox.get(e.id);if(previous)e.likeCount=Math.min(10000,e.likeCount+previous.likeCount);likeInbox.set(e.id,e);}else dropped++;return;}
-      if(inbox.length>=2000){dropped++;return;}inbox.push(raw);
-    }
-    function drain(){for(let i=0;i<20&&priorityInbox.length;i++)receive(priorityInbox.shift());for(let i=0;i<40&&inbox.length;i++)receive(inbox.shift());let k=0;for(const [id,e]of likeInbox){likeInbox.delete(id);receive(e,true);if(++k>=30)break;}}
-    function connect(){
-      clearTimeout(retryTimer);clearTimeout(handshakeTimer);if(socket){socket.onopen=null;socket.onmessage=null;socket.onerror=null;socket.onclose=null;socket.close();}connected=false;
-      let address;try{address=new URL($('url').value);if(!['ws:','wss:'].includes(address.protocol))throw Error();}catch(_){connection=L("Neplatná adresa WebSocket","Invalid WebSocket address");return;}
-      connection=L("Připojuji TikFinity…","Connecting to TikFinity…");
-      try{socket=new WebSocket(address.href);
-        handshakeTimer=setTimeout(()=>{if(socket&&socket.readyState===WebSocket.CONNECTING)socket.close();},12000);
-        socket.onopen=()=>{clearTimeout(handshakeTimer);connected=true;attempt=0;connection=L("TikFinity připojeno","TikFinity connected");};
-        socket.onmessage=e=>{if(typeof e.data!=='string'||e.data.length>200000){malformed++;return;}try{const v=JSON.parse(e.data);lastMessage=now();received++;enqueue(v);}catch(error){malformed++;console.warn('Frontier event:',error.message);}};
-        socket.onerror=()=>connection=L("Chyba spojení · zkontroluj TikFinity a místní síť","Connection error; check TikFinity and local network");
-        socket.onclose=()=>{clearTimeout(handshakeTimer);connected=false;connection=L("TikFinity odpojeno · obnovuji spojení","TikFinity disconnected; reconnecting");if(!closed)retryTimer=setTimeout(connect,Math.min(30000,1500*2**Math.min(attempt++,5)));};
-      }catch(_){connection=L('Prohlížeč spojení zablokoval · ověř oprávnění k místní síti','Browser blocked connection; check local network access');if(!closed)retryTimer=setTimeout(connect,30000);}
-    }
-    $('connect').onclick=()=>{attempt=0;connect();};
-    $('diag').onclick=()=>{const report={version:VERSION,at:new Date().toISOString(),mode,connection,received,malformed,secondsSinceMessage:lastMessage?Math.floor((now()-lastMessage)/1000):null,players:game.players.size,queue:inbox.length+priorityInbox.length,likes:likeInbox.size,dropped,giftsQueued:gifts.length,language:LANG,fps:Math.round(1000/frames),stats:game.stats};const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='frontier-diagnostika.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-    function localAction(text){if(mode!=='test')return;game.accept({type:'chat',id:'local-test',name:L("TY · TEST","YOU · TEST"),text},now());}
-    function localLike(){if(mode==='test')game.accept({type:'like',id:'local-test',name:L(L("TY · TEST","YOU · TEST"),'YOU · TEST'),likeCount:5},now());}
-    document.addEventListener('keydown',e=>{
-      if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const k=e.key.toLowerCase();
-      if(k==='h'){panel.hidden=!panel.hidden;return;}
-      if(k===' '||k==='l'){e.preventDefault();localLike();return;}
-      const action={'1':'1','2':'2','3':'3',t:'turbo',s:'stit',o:'oprav',b:'stav'}[k];if(action){e.preventDefault();localAction(action);}
-    });
-    canvas.ondblclick=()=>panel.hidden=!panel.hidden;
-    canvas.onclick=e=>{
-      const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*1080/r.width,y=(e.clientY-r.top)*1920/r.height;
-      if(mode==='attract'&&y>1710&&y<1820){newGame('test');testJoin(x>540?1:0);buttons();return;}
-      if(mode==='test'){
-        if(y>1250&&y<1450)localLike();
-        else if(y>=1450&&y<1505)localAction(['turbo','stit','oprav','stav'][clamp(Math.floor((x-55)/243),0,3)]);
-        else{const i=NODES.findIndex(n=>Math.hypot(x-n.x,y-n.y)<170);if(i>=0)localAction(String(i+1));}
-      }
-    };
-    window.addEventListener('beforeunload',()=>{closed=true;clearTimeout(retryTimer);clearTimeout(handshakeTimer);if(socket){socket.onopen=null;socket.onmessage=null;socket.onerror=null;socket.onclose=null;socket.close();}});
-    buttons();connect();
-
-    const rect=(x,y,w,h,r,fill,stroke)=>{c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=2;c.stroke();}};
-    const circle=(x,y,r,fill,stroke,w=2)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke();}};
-    const line=(x,y,xx,yy,col,width=1)=>{c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.strokeStyle=col;c.lineWidth=width;c.stroke();};
-    const text=(s,x,y,size=26,color='#eff6ff',align='left',weight=600,max=960)=>{
-      c.font=weight+' '+size+'px Arial,sans-serif';c.textAlign=align;c.textBaseline='middle';c.fillStyle=color;
-      let v=String(s);if(c.measureText(v).width>max){while(v.length&&c.measureText(v+'…').width>max)v=Array.from(v).slice(0,-1).join('');v+='…';}c.fillText(v,x,y);
-    };
-    const display=p=>names?p.name:'Pilot '+(hash(p.id)%10000);
-    function heart(x,y,size,col){
-      c.save();c.translate(x,y);c.scale(size/20,size/20);c.beginPath();c.moveTo(0,8);
-      c.bezierCurveTo(-28,-9,-15,-29,0,-14);c.bezierCurveTo(15,-29,28,-9,0,8);
-      c.fillStyle=col;c.fill();c.strokeStyle='#f5fbff';c.lineWidth=1.3;c.stroke();c.restore();
-    }
-    function heartTrails(t){
-      likeFX=likeFX.filter(e=>t-e.at<1100);
-      for(const e of likeFX){const u=clamp((t-e.at)/1100,0,1),target=e.team===0?288:790;
-        const x=(1-u)*(1-u)*e.x+2*(1-u)*u*(target+(e.team===0?-100:100))+u*u*target;
-        const y=(1-u)*(1-u)*e.y+2*(1-u)*u*(e.y-100)+u*u*1350;
-        c.save();c.globalAlpha=Math.min(1,u*8,(1-u)*6);heart(x,y,13+Math.sin(u*Math.PI)*7,COLOR[e.team]);c.restore();
-        if(u<.45){c.save();c.globalAlpha=1-u*2;circle(e.x,e.y,32+u*75,null,COLOR[e.team],3);c.restore();}
-      }
-      for(let team=0;team<2;team++)if(t-likeFlash[team]<1100){
-        const u=clamp((t-likeFlash[team])/1100,0,1);c.save();c.globalAlpha=1-u;
-        for(const n of game.nodes)if(n.owner===team){c.save();c.translate(n.x,n.y);c.scale(1,.6);circle(0,0,70+u*170,null,COLOR[team],5);c.restore();}
-        c.restore();
-      }
-    }
-    function likeHub(t){
-      rect(55,1250,970,250,20,'#0a192d','#48637d');
-      text(game.phase==='results'?L(L("ODVETA ZA ","REMATCH IN "),'REMATCH IN ')+Math.max(0,Math.ceil((game.restartAt-t)/1000))+' s':L('POSÍLEJ SRDÍČKA → NABIJ TÝMOVÉ TURBO','SEND HEARTS → CHARGE TEAM TURBO'),540,1278,27,'#fff','center',900,920);
-      for(let team=0;team<2;team++){
-        const x=team===0?82:566,col=COLOR[team],active=game.likeUntil[team]>t;
-        const ready=Math.max(0,Math.ceil((game.likeReady[team]-t)/1000));
-        heart(x+16,1320,20,col);text(TEAM[team],x+49,1314,20,col,'left',800);
-        const label=active?L('TURBO! ','TURBO! ')+Math.ceil((game.likeUntil[team]-t)/1000)+' s':game.likeCharge[team]+'/'+game.likeGoal[team]+L(' NABITÍ',' CHARGE');
-        text(label,x+430,1314,20,active?'#ffe1a4':'#d9ebff','right',800,310);
-        rect(x,1340,430,23,7,'#233751');
-        const ratio=active?clamp((game.likeUntil[team]-t)/5000,0,1):game.likeCharge[team]/game.likeGoal[team];
-        if(ratio>0)rect(x,1340,Math.max(12,430*ratio),23,7,active?'#ffe1a4':col);
-        const status=active?L('CELÝ TÝM MÁ RYCHLEJŠÍ LODĚ','FASTER SHIPS FOR THE WHOLE TEAM'):ready?L('DALŠÍ TURBO ZA ','NEXT TURBO IN ')+ready+' s':L('NABIJTE LIŠTU → TURBO NA 5 s','FILL THE BAR → 5 s TEAM TURBO');
-        text(status,x+215,1382,16,active?'#ffe1a4':'#93b2cc','center',700,440);
-      }
-      const receipt=game.lastLike&&t-game.lastLike.at<4000?game.lastLike:null;
-      if(receipt){
-        const label=(names?receipt.name:L('Hráč','Player'))+(receipt.power?L('  ♥  +','  ♥  +')+receipt.power+L(' NABITÍ PRO TÝM',' TEAM CHARGE'):L('  ♥  SRDÍČKA PŘIJATA','  ♥  HEARTS RECEIVED'));
-        text(label,540,1417,22,COLOR[receipt.team],'center',800,910);
-      }else text(mode==='test'?L('KLIKNI SEM NEBO STISKNI MEZERNÍK = TEST LAJKU','CLICK HERE OR PRESS SPACE = TEST LIKE'):L('Loď bojuje sama. Více energie na konci kola vyhrává.','Your ship fights automatically. Most energy at round end wins.'),540,1417,20,'#c1d4e7','center',600,910);
-      line(77,1442,1003,1442,'#3c5670');
-      [L('TURBO','TURBO'),L('ŠTÍT / SHIELD','SHIELD / ŠTÍT'),L('OPRAV / REPAIR','REPAIR / OPRAV'),L('STAV / BUILD','BUILD / STAV')].forEach((label,i)=>text(label,175+i*243,1472,18,'#9cb8d2','center',700,231));
-    }
-
-    // FRONTIER PRO — original Canvas artwork: orbital forts, alloy ships, energy field.
-    function polygon(points,fill,stroke,width=2){c.beginPath();points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}}
-    function glow(x,y,r,color){if(chroma)return;const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');circle(x,y,r,g);}
-    function hex(x,y,rx,ry,color,stroke){polygon(Array.from({length:6},(_,i)=>[x+Math.cos(i*Math.PI/3)*rx,y+Math.sin(i*Math.PI/3)*ry]),color,stroke);}
-    // Procedural vector art: finite particles, no downloaded assets or perpetual emitters.
-    function shard(x,y,r,col,angle=0){c.save();c.translate(x,y);c.rotate(angle);polygon([[0,-r],[r*.55,0],[0,r],[-r*.55,0]],col,'#edfaff',1);c.restore();}
-    function arcRing(x,y,r,col,t,segments=6){c.save();c.translate(x,y);c.rotate(t);for(let k=0;k<segments;k++){c.beginPath();c.arc(0,0,r,k*Math.PI*2/segments,k*Math.PI*2/segments+.65*Math.PI*2/segments);c.strokeStyle=col;c.lineWidth=3;c.stroke();}c.restore();}
-    function fleetRoster(t){
-      if(t<nextRoster)return;nextRoster=t+300;drawShips=[];drawLabels.clear();
-      const all=[...game.players.values()].filter(p=>p.hp>0);
-      for(let team=0;team<2;team++)for(let target=0;target<3;target++){
-        const group=all.filter(p=>p.team===team&&p.target===target);
-        group.sort((a,b)=>(b.id==='local-test'?1:0)-(a.id==='local-test'?1:0)||b.recent-a.recent||hash(a.id+Math.floor(t/8000))-hash(b.id+Math.floor(t/8000)));
-        drawShips.push(...group.slice(0,14));
-        group.filter(p=>!p.bot).slice(0,2).forEach(p=>drawLabels.add(p.id));
-      }
-    }
-    function stationAura(n,i,t){
-      if(n.owner<0)return;const col=COLOR[n.owner];
-      c.save();c.translate(n.x,n.y+6);c.scale(1,.5);
-      arcRing(0,0,151,col+'99',t*.00025*(i%2?-1:1),3);
-      if(n.level>=2)arcRing(0,0,158,col+'77',-t*.0003,9);
-      c.restore();
-      for(let k=0;k<n.level;k++){const a=t*.0005+k*Math.PI*2/n.level,x=n.x+Math.cos(a)*88,y=n.y-58+Math.sin(a)*28;
-        line(x,y+8,x,y+18,col+'66',2);shard(x,y,7,col,a);}
-      if(n.armor<35){c.save();c.globalAlpha=.5+.3*Math.sin(t*.007);arcRing(n.x,n.y,78,'#ffbc80',t*.0007,3);c.restore();}
-    }
-    function giftCinema(t){
-      if(!giftCurrent&&gifts.length){giftCurrent=gifts.shift();giftCurrent.start=t;flourish(giftCurrent.tier);}
-      if(!giftCurrent)return;
-      const g=giftCurrent,age=(t-g.start)/1000,duration=g.tier===3?7:5;
-      if(age>duration){giftCurrent=null;return;}
-      const fade=Math.min(1,age*3,(duration-age)*2),col=g.tier===3?'#ffdc9c':g.tier===2?'#d3b1ff':'#8ee8ff';
-      c.save();c.globalAlpha=Math.max(0,fade);
-      const cx=540,cy=800,open=Math.min(1,age*1.3);
-      // A portal expands behind the ship. The HUD and controls remain visible.
-      c.save();c.translate(cx,cy);c.scale(1,.62);
-      arcRing(0,0,150*open,col,age*.6,8);arcRing(0,0,170*open,col+'88',-age*.4,12);
-      if(g.tier>=2)arcRing(0,0,197*open,'#f6fbff',age*.22,3);
-      c.restore();
-      if(g.tier===1){
-        c.save();c.translate(cx,cy-35+Math.sin(age*2)*12);
-        polygon([[0,-105],[-85,-55],[0,-5],[85,-55]],'#6eacc8',col,3);
-        polygon([[-85,-55],[-85,45],[0,95],[0,-5]],'#21435f',col,3);
-        polygon([[0,-5],[85,-55],[85,45],[0,95]],'#102c4b',col,3);
-        polygon([[-57,-40],[-57,30],[-28,47],[-28,-23]],'#99edff');
-        polygon([[25,10],[60,-10],[60,13],[25,33]],'#f3fcff');
-        line(42,-13,42,55,'#f3fcff',9);
-        for(let k=0;k<3;k++)line(-48+k*30,118,-48+k*30,143+Math.sin(age*13+k)*8,col,4);
-        c.restore();
-      }else if(g.tier===2){
-        c.save();c.translate(cx,cy-30);c.rotate(age*.25);
-        for(let k=0;k<3;k++){c.rotate(Math.PI*2/3);polygon([[-24,-45],[-53,-137],[0,-175],[53,-137],[24,-45]],'#1c294e',col,3);polygon([[-12,-62],[-26,-124],[0,-147],[26,-124],[12,-62]],'#bfa4ff');}
-        circle(0,0,55,'#1b1640',col,3);arcRing(0,0,77,'#e8d9ff',-age*.8,6);shard(0,0,41,'#fff0ff',age);
-        c.restore();
-        for(let k=0;k<3;k++){const a=age+k*Math.PI*2/3,x=cx+Math.cos(a)*190,y=cy-30+Math.sin(a)*120;
-          c.beginPath();c.moveTo(cx,cy-30);c.lineTo((cx+x)/2+15*Math.sin(age*9+k),(cy-30+y)/2);c.lineTo(x,y);c.strokeStyle=col;c.lineWidth=3;c.stroke();}
-      }else{
-      const sy=cy+15-Math.sin(Math.min(1,age/2)*Math.PI/2)*45,scale=g.tier===3?1.45:g.tier===2?1.05:.75;
-      c.save();c.translate(cx,sy);c.scale(scale,scale);
-      const metal=c.createLinearGradient(-130,-70,130,60);metal.addColorStop(0,'#122238');metal.addColorStop(.45,'#63809b');metal.addColorStop(.5,'#dde9ef');metal.addColorStop(.58,'#45627b');metal.addColorStop(1,'#101a32');
-      polygon([[-190,68],[-135,-34],[-52,-55],[0,-127],[52,-55],[135,-34],[190,68],[83,28],[0,89],[-83,28]],metal,col,3);
-      polygon([[0,-117],[-35,-25],[0,36],[35,-25]],'#071e36','#c2eaff',2);
-      polygon([[0,-78],[-15,-19],[0,6],[15,-19]],col);
-      for(const side of [-1,1]){
-        polygon([[side*47,-32],[side*128,-11],[side*155,41],[side*71,8]],'#182b44',col,2);
-        line(side*64,-15,side*125,8,'#fff4d9',3);
-        const flame=25+Math.sin(age*22)*8;
-        polygon([[side*91,32],[side*104,32],[side*97,32+flame]],col);
-        if(g.tier===3){polygon([[side*54,-27],[side*70,-92],[side*91,-78],[side*99,-5]],'#36516c',col,2);circle(side*78,-63,6,'#fff');}
-      }
-      c.restore();
-      }
-      for(let k=0;k<(g.tier===3?42:22);k++){const a=k*2.399,phase=(age*.3+k*.071)%1,r=170+phase*150;
-        shard(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.6,2+(1-phase)*4,col,a+age);}
-      if(age>1&&age<3.5&&g.bonus)for(const n of game.nodes)if(n.owner===g.team){
-        c.globalAlpha=fade*.55;line(cx,cy+35,n.x,n.y,col,5);c.globalAlpha=fade;circle(n.x,n.y,10+((age*90)%45),null,col,3);}
-      // Opaque caption remains legible over any OBS footage. Names are never interpreted as markup.
-      rect(208,1077,664,146,20,'#0b1429',col);text(g.tier===3?'MOTHERSHIP':g.tier===2?'ORBITAL SURGE':'SUPPLY DROP',540,1104,20,col,'center',900);
-      text(g.count>1?L('POSÁDKA ×','CREW ×')+g.count:(names?g.name:L(L("Podporovatel","Supporter"),'Supporter')),540,1147,32,'#fff','center',900,610);
-      text(g.bonus?L('TÝMOVÉ ZÁSOBY AKTIVOVÁNY','TEAM SUPPLIES ACTIVATED'):L('DĚKUJEME ZA PODPORU','THANK YOU FOR YOUR SUPPORT'),540,1191,18,col,'center',700,610);
-      c.restore();
-    }
-    function operationStrip(t){
-      if(mode!=='live')return;
-      const phase=Math.floor(t/8000)%5;
-      rect(70,1688,940,96,15,'#0c1c30','#365374');
-      if(phase===0){
-        text(L('SPOLEČNÁ MISE','TEAM MISSION'),92,1712,16,'#ffd49a','left',800);
-        text(L('Držte 2 věže celkem 15 s → +60 energie','Hold 2 towers for 15 s total → +60 energy'),92,1747,22,'#f2f6ff','left',700,735);
-        text(Math.floor(game.quest[0])+' : '+Math.floor(game.quest[1]),982,1747,24,'#a7d8ff','right',800);
-      }else if(phase===1){
-        text(L('SIGNÁL SDÍLENÍ','SHARE SIGNAL'),92,1712,16,'#b9a1ff','left',800);
-        text(L('5 sdílení týmu → oprava lodí a věží','5 team shares → ship and tower repair'),92,1747,22,'#f2f6ff','left',700,735);
-        text(game.rally[0]+'/5 · '+game.rally[1]+'/5',982,1747,22,'#e2c8ff','right',800);
-      }else if(phase===2){
-        const leaders=game.humans().sort((a,b)=>b.career+b.contribution-a.career-a.contribution).slice(0,3);
-        text(L('HRDINOVÉ VÝPRAVY','EXPEDITION HEROES'),92,1712,16,'#93e3ff','left',800);
-        text(leaders.map(p=>display(p)+'  ★'+p.rank).join('     /     ')||L('Tvá loď. Tvůj tým. Tvoje bitva.','Your ship. Your team. Your battle.'),92,1747,22,'#f2f6ff','left',700,880);
-      }else if(phase===3){
-        text(L('PODPORA POSÁDKY','SUPPORT THE CREW'),92,1712,16,'#ffda9b','left',800);
-        text(L('Dárky: 1+ zásoby · 10+ výboj · 100+ mateřská loď','Gifts: 1+ supply · 10+ surge · 100+ mothership'),92,1747,22,'#f2f6ff','left',700,880);
-      }else{
-        text(L('MALÉ AKCE, VELKÁ BITVA','SMALL ACTIONS, BIG BATTLE'),92,1712,16,'#a2dcff','left',800);
-        text(L('LIKE → krátké turbo · FOLLOW → štít tvé lodi','LIKE → short turbo · FOLLOW → shield your ship'),92,1747,22,'#f2f6ff','left',700,880);
-      }
-    }
-
-    function ship(p,t){
-      if(p.hp<=0)return;
-      const n=NODES[p.target],angle=Math.atan2(n.y-p.y,n.x-p.x)+Math.PI/2;
-      const col=COLOR[p.team],boost=p.turboUntil>t,shield=p.shieldUntil>t,gold=p.goldUntil>t;
-      const size=(p.bot?0.65:1)*(game.players.size>45?.76:1);
-      c.save();c.translate(p.x,p.y);
-      if(shield){glow(0,0,49,col+'22');circle(0,0,34,col+'0b',col,2);c.setLineDash([12,10]);circle(0,0,38,null,col+'66');c.setLineDash([]);}
-      if(gold){c.save();c.rotate(t*.0012);c.setLineDash([16,12]);circle(0,0,32,null,'#ffda91',2);c.setLineDash([]);c.restore();}
-      c.rotate(angle);c.scale(size,size);
-      // Engine taper and luminous central thrust, restrained to the rear of the hull.
-      const length=boost?65:33+Math.sin(t*.018+p.angle)*6;
-      const tail=c.createLinearGradient(0,10,0,length);tail.addColorStop(0,boost?'#ffe9be':col);tail.addColorStop(1,'transparent');
-      polygon([[-8,16],[0,length],[8,16]],tail);
-      polygon([[-25,24],[-16,-1],[-6,-9],[-8,18]],p.bot?'#6b8195':'#385271',col,1.5);
-      polygon([[25,24],[16,-1],[6,-9],[8,18]],p.bot?'#6b8195':'#385271',col,1.5);
-      const hull=c.createLinearGradient(-10,0,13,0);hull.addColorStop(0,'#54708d');hull.addColorStop(.45,p.bot?'#c3d1db':'#f0f8ff');hull.addColorStop(1,'#506782');
-      polygon([[0,-29],[-11,9],[-7,23],[0,18],[7,23],[11,9]],hull,col,1.5);
-      polygon([[0,-15],[-5,1],[0,8],[5,1]],col);
-      line(-20,17,-13,3,col,3);line(20,17,13,3,col,3);
-      c.restore();
-      if(!p.bot){
-        rect(p.x-23,p.y+35,46,4,2,'#182b3e');rect(p.x-23,p.y+35,46*clamp(p.hp/100,0,1),4,2,p.hp<35?'#ffac7a':col);
-        if(drawLabels.has(p.id)||p.id==='local-test'){
-          c.font='600 18px Arial';const label=display(p)+(p.rank?' ★'+p.rank:''),w=Math.min(160,c.measureText(label).width+18);
-          rect(p.x-w/2,p.y-57,w,25,7,'#071323d9');text(label,p.x,p.y-44,17,'#e4f2ff','center',600,150);
-        }
-        if(p.id==='local-test'){line(p.x-42,p.y-8,p.x-42,p.y+8,'#fff',2);line(p.x+42,p.y-8,p.x+42,p.y+8,'#fff',2);}
-      }
-    }
-    const stars=Array.from({length:95},(_,i)=>({x:65+(hash('sx'+i)%950),y:370+(hash('sy'+i)%955),r:i%9===0?1.8:.8}));
-    function fort(n,i,t){
-      const col=n.owner<0?'#94b6c8':COLOR[n.owner],pulse=.5+.5*Math.sin(t*.002+i);
-      const power=[0,0];for(const p of game.players.values())if(p.hp>0&&p.target===i)power[p.team]++;
-      glow(n.x,n.y+20,154,col+(n.owner<0?'0a':'18'));
-      // Isometric six-sided platform, with separate top and three visible side faces.
-      hex(n.x,n.y+31,110,56,'#06111e','#1d3e54');
-      polygon([[n.x-110,n.y+6],[n.x-55,n.y+54],[n.x-55,n.y+76],[n.x-110,n.y+31]],'#0a1b2c','#244256');
-      polygon([[n.x-55,n.y+54],[n.x+55,n.y+54],[n.x+55,n.y+76],[n.x-55,n.y+76]],'#102b3d','#315266');
-      polygon([[n.x+55,n.y+54],[n.x+110,n.y+6],[n.x+110,n.y+31],[n.x+55,n.y+76]],'#091a2a','#244256');
-      hex(n.x,n.y+6,110,56,'#163247',col+'88');
-      hex(n.x,n.y+4,91,43,'#0c2134','#396076');
-      for(let k=0;k<5;k++)line(n.x-35+k*17,n.y+63,n.x-29+k*17,n.y+63,col,3);
-      c.save();c.translate(n.x,n.y+6);c.scale(1,.52);
-      circle(0,0,124,null,'#52768a33',2);
-      c.beginPath();c.arc(0,0,124,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.abs(n.control)/100);c.strokeStyle=COLOR[n.control>=0?0:1];c.lineWidth=7;c.stroke();
-      c.setLineDash([2,14]);circle(0,0,138,null,col+'44',3);c.setLineDash([]);c.restore();
-      // Alloy armor plates and embedded energy rails give the three forts a shared design.
-      for(const side of [-1,1]){
-        polygon([[n.x+side*102,n.y+13],[n.x+side*66,n.y+35],[n.x+side*66,n.y+50],[n.x+side*102,n.y+29]],'#203d56',col+'99',1);
-        line(n.x+side*77,n.y+38,n.x+side*95,n.y+27,col,3);
-        hex(n.x+side*73,n.y-1,16,10,'#0c192d','#7195aa');
-        circle(n.x+side*73,n.y-5,5,col);
-      }
-      c.save();c.translate(n.x,n.y);c.scale(1,.55);c.beginPath();c.arc(0,0,70,t*.0006,t*.0006+Math.PI*.75);c.strokeStyle=col;c.lineWidth=4;c.stroke();c.restore();
-      // Central bastion, illuminated energy chamber, and twin-barrel turret.
-      polygon([[n.x-39,n.y-10],[n.x-39,n.y-73],[n.x,n.y-92],[n.x,n.y-30]],'#173a50','#477289');
-      polygon([[n.x,n.y-30],[n.x,n.y-92],[n.x+39,n.y-73],[n.x+39,n.y-10]],'#0b2438','#355a70');
-      polygon([[n.x-39,n.y-73],[n.x,n.y-94],[n.x+39,n.y-73],[n.x,n.y-52]],'#30566d','#678597');
-      polygon([[n.x-28,n.y-17],[n.x-28,n.y-58],[n.x-9,n.y-47],[n.x-9,n.y-6]],col+'99');
-      polygon([[n.x+9,n.y-6],[n.x+9,n.y-47],[n.x+28,n.y-58],[n.x+28,n.y-17]],col+'55');
-      glow(n.x,n.y-47,60,col+'22');
-      if(i===0){
-        for(const side of [-1,1]){polygon([[n.x+side*18,n.y-105],[n.x+side*30,n.y-153],[n.x+side*43,n.y-128],[n.x+side*30,n.y-88]],'#29495f',col,2);}
-        line(n.x,n.y-90,n.x,n.y-142,'#5d8298',6);
-        polygon([[n.x,n.y-157],[n.x-14,n.y-131],[n.x,n.y-105],[n.x+14,n.y-131]],'#244a63',col,2);
-        polygon([[n.x,n.y-151],[n.x-7,n.y-131],[n.x,n.y-112],[n.x+7,n.y-131]],col);
-        glow(n.x,n.y-130,33,col+'33');
-      }else if(i===2){
-        c.save();c.translate(n.x,n.y-88);c.scale(1,.65);arcRing(0,0,49,col,t*.0005,4);c.restore();
-        c.save();c.translate(n.x,n.y-91);c.scale(1,.65);circle(0,0,36,'#26465d','#6e96ad');circle(0,0,24,'#102c43',col);circle(0,0,9,col);c.restore();
-        c.beginPath();c.arc(n.x,n.y-87,44,Math.PI,Math.PI*2);c.strokeStyle=col+'88';c.lineWidth=2;c.stroke();
-      }else{
-        c.save();c.translate(n.x,n.y-79);c.rotate(Math.sin(t*.00035+i)*.45-.6);
-        rect(-24,-11,48,21,6,'#203d53','#82a4b8');rect(-11,-55,8,42,3,'#7191a8','#b0c8d4');rect(5,-55,8,42,3,'#496d86','#9bbccf');
-        rect(-11,-56,8,7,1,col);rect(5,-56,8,7,1,col);circle(0,0,7,col);c.restore();
-      }
-      // Level crown and integrity meter remain opaque for clean chroma key edges.
-      for(let k=0;k<n.level;k++)polygon([[n.x-18+k*16,n.y-186],[n.x-12+k*16,n.y-194],[n.x-6+k*16,n.y-186],[n.x-12+k*16,n.y-178]],col,'#08192c');
-      if(n.owner>=0){rect(n.x-48,n.y+82,96,7,3,'#08192c');rect(n.x-48,n.y+82,96*n.armor/100,7,3,n.armor<35?'#ffb267':col);}
-      // A large target number sits off the model: the tower remains readable beneath it.
-      circle(n.x-80,n.y-85,23,'#08192c',col,2);text(i+1,n.x-80,n.y-84,27,'#fff','center',900);
-      rect(n.x-108,n.y+95,216,59,12,'#091a2dde','#35546b');
-      text(n.name,n.x,n.y+112,21,'#edf6ff','center',800);
-      const ownership=n.owner<0?(Math.abs(n.control)>10?L("OBSAZOVÁNÍ ","CAPTURING ")+Math.round(Math.abs(n.control))+' %':L("NEUTRÁLNÍ","NEUTRAL")):TEAM[n.owner]+'  +'+(game.final?'16':'8')+'/s';
-      text(ownership,n.x,n.y+139,17,col,'center',700);
-      if(game.players.size>40){rect(n.x-107,n.y+159,214,27,8,'#101e32');text(power[0]+' BLUE  /  '+power[1]+' RED',n.x,n.y+173,17,'#c9e2f6','center',800);}
-      // Tiny team pips communicate a local contest without another numeric dashboard.
-      for(let k=0;k<Math.min(game.players.size>40?0:power[0],7);k++)circle(n.x-42+k*10,n.y+172,3,COLOR[0]);
-      for(let k=0;k<Math.min(game.players.size>40?0:power[1],7);k++)circle(n.x+42-k*10,n.y+172,3,COLOR[1]);
-      if(power[0]&&power[1])text(L("BOJ O VĚŽ","TOWER CONTESTED"),n.x,n.y-155,17,'#ffca87','center',800);
-      if(n.owner>=0){
-        const bx=n.owner===0?190:890,by=490;
-        c.setLineDash([3,16]);line(n.x,n.y+8,bx,by,col+'16',1);c.setLineDash([]);
-        const phase=(t*.00024+i*.3)%1;
-        circle(n.x+(bx-n.x)*phase,n.y+8+(by-n.y-8)*phase,3,col+'aa');
-      }
-    }
-    function render(t){
-      c.fillStyle=chroma?'#00ff00':'#060d18';c.fillRect(0,0,1080,1920);
-      const human=game.humans(),counts=[human.filter(p=>p.team===0).length,human.filter(p=>p.team===1).length];
-      const seconds=game.phase==='results'?Math.max(0,Math.ceil((game.restartAt-t)/1000)):Math.max(0,Math.ceil((game.ends-t)/1000));
-      // One continuous frame rather than a pile of unrelated cards.
-      if(!chroma)rect(30,25,1020,1652,29,'#0a1424','#314459');
-      c.save();c.beginPath();c.roundRect(32,27,1016,1648,27);c.clip();
-      const header=c.createLinearGradient(30,30,1050,300);header.addColorStop(0,'#16354d');header.addColorStop(.5,'#101c30');header.addColorStop(1,'#3a243f');c.fillStyle=header;c.fillRect(30,25,1020,305);
-      glow(120,30,300,'#35b8ee15');glow(1050,190,300,'#f3538515');
-      // Compact emblem and the familiar game title.
-      polygon([[68,63],[84,46],[108,52],[112,76],[91,91],[70,82]],'#163a53','#71dcff');
-      polygon([[91,51],[78,75],[91,70],[99,80],[102,59]],'#80e2ff');
-      text('GALAXINKO',131,71,42,'#f6faff','left',900);
-      text('N E B U L A  /  H E A R T  P O W E R',69,122,17,'#8baac2','left',600);
-      text(mode==='live'?L("BITVA ","BATTLE ")+game.round:mode==='test'?L("TESTOVACÍ LET","TEST FLIGHT"):L("UKÁZKA · AUTOPILOT","DEMO · AUTOPILOT"),1008,68,19,mode==='live'?'#a8bed6':'#ffd595','right',800);
-      text(game.phase==='results'?L("ODVETA ","REMATCH ")+seconds:Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'),1008,121,42,game.final?'#ffcc83':'#e9f3ff','right',800);
-      line(66,152,1013,152,'#688ba32b');
-      const blueDrone=[...game.players.values()].filter(p=>p.bot&&p.team===0).length,redDrone=[...game.players.values()].filter(p=>p.bot&&p.team===1).length;
-      text(TEAM[0],71,187,26,COLOR[0],'left',900);text(TEAM[1],1008,187,26,COLOR[1],'right',900);
-      text(Math.round(game.scores[0]).toLocaleString('cs-CZ'),71,245,51,'#fff','left',900);
-      text(Math.round(game.scores[1]).toLocaleString('cs-CZ'),1008,245,51,'#fff','right',900);
-      text(L('BODY','SCORE'),540,190,16,'#9bb3c9','center',800);
-      const owners=game.nodes.reduce((a,n)=>{if(n.owner>=0)a[n.owner]++;return a;},[0,0]);
-      text(owners[0]+'  ◇  '+owners[1],540,236,28,'#b8d2e6','center',800);
-      text(L("OVLÁDNUTÉ VĚŽE","CAPTURED TOWERS"),540,271,14,'#7f9bb6','center');
-      const ratio=game.scores[0]+game.scores[1]<1?.5:game.scores[0]/Math.max(1,game.scores[0]+game.scores[1]);
-      rect(68,292,944,6,3,'#ff7496');rect(68,292,944*clamp(ratio,.01,.99),6,3,'#5cd9ff');circle(68+944*clamp(ratio,.01,.99),295,5,'#f1f8ff');
-      // Tactical light accents on the frame, visible without filling the chroma field.
-      line(34,30,230,30,'#a2ecff',3);line(850,30,1046,30,'#ff99c3',3);
-      // Deep-space battlefield: a distant gas planet, navigation grid and linked forts.
-      if(!chroma){const bg=c.createLinearGradient(0,310,1000,1320);bg.addColorStop(0,'#081727');bg.addColorStop(.6,'#0e2638');bg.addColorStop(1,'#131c35');c.fillStyle=bg;c.fillRect(30,316,1020,1020);}
-      glow(500,840,550,'#257a9520');glow(960,1150,380,'#84528316');
-      c.save();c.beginPath();c.rect(30,316,1020,1020);c.clip();
-      if(!chroma){
-      const planet=c.createRadialGradient(954,594,15,940,680,340);planet.addColorStop(0,'#264457');planet.addColorStop(.62,'#122d3d');planet.addColorStop(1,'#0c1c2b');circle(1015,715,345,planet,'#3d768d25',2);
-      c.save();c.translate(1015,715);c.rotate(-.4);c.scale(1,.22);circle(0,0,430,null,'#688b9e10',10);circle(0,0,460,null,'#84a0b811',3);c.restore();
-      stars.forEach((s,i)=>{c.globalAlpha=.25+.4*(.5+.5*Math.sin(t*.0006+i));circle(s.x,s.y,s.r,'#adc7de');});c.globalAlpha=1;
-      for(let x=80;x<1080;x+=60)for(let y=540;y<1310;y+=60)circle(x,y,.7,'#718da51c');
-      }
-      for(const [a,b]of [[0,1],[1,2],[2,0]]){c.setLineDash([8,15]);line(NODES[a].x,NODES[a].y+15,NODES[b].x,NODES[b].y+15,'#607f9840',2);c.setLineDash([]);}
-      for(let i=0;i<3;i++){stationAura(game.nodes[i],i,t);fort(game.nodes[i],i,t);}
-      // Enemy silhouettes: compact armored raiders and broad segmented siege bosses.
-      for(const r of game.raiders){
-        const col=r.slowUntil>t?'#c8b4ff':'#ffbd75',size=r.boss?34:19;
-        c.save();c.translate(r.x,r.y);c.rotate(Math.atan2(game.nodes[r.target].y-r.y,game.nodes[r.target].x-r.x));
-        polygon([[-size,-size*.6],[size*.65,-size*.8],[size,0],[size*.65,size*.8],[-size,size*.6],[-size*.6,0]],'#391f32',col,3);
-        polygon([[size*.6,0],[-size*.3,-size*.35],[-size*.3,size*.35]],col);
-        if(r.boss){line(-24,-35,12,-35,col,5);line(-24,35,12,35,col,5);circle(-14,0,8,'#ff688a');}c.restore();
-        rect(r.x-size,r.y+size+8,size*2,5,2,'#172033');rect(r.x-size,r.y+size+8,size*2*r.hp/r.max,5,2,col);
-        if(r.boss){rect(r.x-48,r.y-size-35,96,25,6,'#291b2a');text('BOSS',r.x,r.y-size-22,17,col,'center',900);}
-      }
-      // Laser packets travel from the source; the short residual beam makes hits legible.
-      for(const s of game.shots){const u=clamp((t-s.at)/260,0,1);c.globalAlpha=clamp(1-(t-s.at)/400,0,1);line(s.x,s.y,s.tx,s.ty,COLOR[s.team]+'99',s.weapon===0?4:s.weapon===2?6:2);
-        const x=s.x+(s.tx-s.x)*u,y=s.y+(s.ty-s.y)*u;glow(x,y,18,COLOR[s.team]+'44');circle(x,y,3.5,'#fff');
-        if(u>.85){circle(s.tx,s.ty,7+(t-s.at-220)*.12,null,s.blocked?'#bddeff':COLOR[s.team],2);}}
-      c.globalAlpha=1;fleetRoster(t);for(const p of drawShips)ship(p,t);
-      // Interaction targets stay legible when a ship crosses the station caption.
-      for(let i=0;i<3;i++){
-        const n=game.nodes[i],col=n.owner<0?'#94b6c8':COLOR[n.owner];
-        circle(n.x-80,n.y-85,23,'#08192c',col,2);text(i+1,n.x-80,n.y-84,27,'#fff','center',900);
-        rect(n.x-108,n.y+95,216,59,12,'#091a2df5','#35546b');
-        text(n.name+' · LV '+n.level,n.x,n.y+112,21,'#edf6ff','center',800);
-        text(n.owner<0?(Math.abs(n.control)>10?L("OBSAZOVÁNÍ ","CAPTURING ")+Math.round(Math.abs(n.control))+' %':L("NEUTRÁLNÍ","NEUTRAL")):TEAM[n.owner]+'  +'+(game.final?'16':'8')+'/s',n.x,n.y+139,17,col,'center',700);
-      }
-      fx=fx.filter(f=>t-f.at<950);for(const f of fx){const age=clamp((t-f.at)/950,0,1);c.globalAlpha=1-age;const col=COLOR[f.team];
-        if(f.kind==='impact'){circle(f.x,f.y,30+age*75,null,'#ffbd75',5);}
-        else if(f.kind==='down'){circle(f.x,f.y,9+age*80,null,'#ffd2a0',3);for(let k=0;k<12;k++){const a=k*2.399;line(f.x+Math.cos(a)*age*35,f.y+Math.sin(a)*age*35,f.x+Math.cos(a)*age*100,f.y+Math.sin(a)*age*100,col,2);shard(f.x+Math.cos(a)*age*90,f.y+Math.sin(a)*age*90,2+(1-age)*4,col,a);}}
-        else {c.save();c.translate(f.x,f.y);c.scale(1,.6);circle(0,0,20+age*180,null,col,3);c.restore();}}
-      c.globalAlpha=1;
-      if(t-cometAt<5500){const x=-200+(t-cometAt)/5500*1500;glow(x,604,80,'#ffbb5544');line(x-200,675,x,604,'#ffc66a88',10);line(x-100,639,x,604,'#fff3d4',3);circle(x,604,11,'#ffe5a4');}
-      c.restore();
-      if(game.phase!=='results')giftCinema(t);
-      // Join command is a single prominent sign, always above the playfield.
-      polygon([[55,326],[1026,326],[1012,458],[69,458]],'#0b1b2ce8','#345a73',1);
-      text(L('VYBER TÝM. POSÍLEJ SRDÍČKA. LOĎ BOJUJE SAMA.','CHOOSE A TEAM. SEND HEARTS. YOUR SHIP FIGHTS.'),540,354,18,'#aac3d9','center',700,920);
-      text('MODRÁ / BLUE',269,399,30,COLOR[0],'center',900);text('VS',540,399,18,'#758da7','center',900);text('ČERVENÁ / RED',810,399,30,COLOR[1],'center',900);
-      text(counts[0]+L(" hráčů · "," players · ")+blueDrone+L(" dronů"," drones"),269,439,18,'#86a8c0','center');text(counts[1]+L(" hráčů · "," players · ")+redDrone+L(" dronů"," drones"),810,439,18,'#86a8c0','center');
-      if(banner&&t-banner.at<2300){const a=clamp((2300-(t-banner.at))/350,0,1);c.globalAlpha=a;rect(55,475,624,42,10,'#0a1727ec','#527087');text(banner.text,367,496,22,banner.team>=0?COLOR[banner.team]:'#ffd28b','center',800);c.globalAlpha=1;}
-      const nextWave=game.wave<3?Math.max(0,Math.ceil(([18000,42000,66000][game.wave]-(t-game.started))/1000)):0;
-      rect(701,475,320,38,9,'#152033');text(game.raiders.length?L("NÁJEZD ","WAVE ")+game.wave+L(" • "," • ")+game.raiders.length+L(" NEPŘÁTEL"," ENEMIES"):game.wave<3?L("DALŠÍ NÁJEZD ZA ","NEXT WAVE IN ")+nextWave+' s':L("VŠECHNY VLNY VYSLÁNY","ALL WAVES DEPLOYED"),861,494,17,'#ffcc91','center',800);
-      likeHub(t);heartTrails(t);
-      // Radio strip reserves space for the most recent personal interaction.
-      if(chroma)rect(55,1520,970,132,16,'#0b182a');
-      const ack=game.ack&&t-game.ack.at<5000?game.ack:null;
-      const radioColor=ack?(ack.team>=0?COLOR[ack.team]:'#ffd28b'):'#71c9ef';
-      rect(66,1536,5,98,2,radioColor);
-      if(ack){
-        text(ack.kind==='gift'?L("PODPORA POSÁDKY  /  ","CREW SUPPORT  /  ")+(names?ack.name:L("Podporovatel","Supporter")):display(ack),90,1547,21,radioColor,'left',800,900);
-        text(ack.text,90,1586,27,'#eff6ff','left',700,900);
-        text(ack.kind==='gift'?L("Efekt dárku + zásoby · týmová pauza 20 s","Gift effect + supplies · team cooldown 20 s"):L("Příkaz přijat · schopnosti mají pauzu 12 s","Command received · ability cooldown 12 s"),90,1625,18,'#809fb9');
-      }else{
-        text(L("PALUBNÍ RÁDIO","CREW RADIO"),90,1547,17,radioColor,'left',800);
-        const f=names?game.feed.find(f=>t-f.at<7000):null;
-        text(f?f.text:L('Napiš 1 / 2 / 3, pokud chceš změnit cíl své lodi.','Type 1 / 2 / 3 to change your ship’s target.'),90,1586,25,'#dceaf7','left',600,900);
-        text(L('SRDÍČKA = TURBO · OVLÁDNUTÉ VĚŽE = BODY','HEARTS = TURBO · CAPTURED TOWERS = POINTS'),90,1625,18,'#809fb9');
-      }
-      if(game.phase==='results'){
-        const r=game.result;if(!chroma){c.fillStyle='#030a15a8';c.fillRect(30,316,1020,1015);}
-        rect(111,566,858,610,25,'#0c1a2df5',r.winner<0?'#ffdb9c':COLOR[r.winner]);
-        const col=r.winner<0?'#ffdb9c':COLOR[r.winner];glow(540,660,250,col+'15');
-        text(L("VÝSLEDEK BITVY ","BATTLE RESULT ")+r.round,540,610,18,'#8cabc5','center',800);
-        text(r.winner<0?L("VYROVNANÁ BITVA","A PERFECT DRAW"):TEAM[r.winner]+L(" VÍTĚZÍ"," WIN"),540,670,46,col,'center',900,790);
-        text(r.scores[0]+' : '+r.scores[1],540,740,48,'#fff','center',900);
-        line(165,791,915,791,'#48677f66');
-        text(mode==='live'?L("HRDINOVÉ POSÁDKY","CREW HEROES"):L("CVÍČNÁ BITVA · PŘIDEJ SE","TRAINING BATTLE · JOIN IN"),540,823,19,'#8fb0c9','center',800);
-        if(r.top.length)r.top.forEach((p,i)=>{text(String(i+1).padStart(2,'0'),162,875+i*64,20,'#5e7e98');text(display(p),217,875+i*64,27,COLOR[p.team],'left',700,550);text(p.points+L(" b."," pts"),915,875+i*64,27,'#fff','right');});
-        else text(L("Tady bude tvé jméno.","Your name belongs here."),540,930,29,'#c1d5e8','center');
-        text(L("ODVETA ZA ","REMATCH IN ")+seconds+' s',540,1099,29,'#ffd28b','center',800);
-        text(L("Mezi koly můžeš změnit tým.","You can change teams between rounds."),540,1141,20,'#87a6c0','center');
-      }
-      c.restore();
-      operationStrip(t);
-      if(mode==='attract'){
-        rect(155,1710,770,94,19,'#0d1b2d','#46657e');text(L("PRVNÍ KOMENTÁŘ SPUSTÍ SKUTEČNOU BITVU","FIRST COMMENT STARTS THE REAL BATTLE"),540,1738,22,'#d4e4f7','center',800,730);
-        text(L("Klikni a zkus si let · nic se neposílá na TikTok","Click to try · nothing is sent to TikTok"),540,1776,21,'#89aac7','center',600,730);
-      }else if(mode==='test'){
-        rect(192,1710,696,76,17,'#ffd28b');text(L('TEST · MEZERNÍK = LAJK · 1 / 2 / 3 = VĚŽ','TEST · SPACE = LIKE · 1 / 2 / 3 = TOWER'),540,1737,23,'#29221c','center',800);
-        text(L("H → Připravit LIVE ukončí test","H → Prepare LIVE exits test mode"),540,1767,19,'#57432e','center');
-      }
-      if(!connected){rect(222,1830,636,44,11,'#101c30');text(L("TIKFINITY ODPOJENO · H OTEVŘE NASTAVENÍ","TIKFINITY DISCONNECTED · H OPENS SETTINGS"),540,1852,19,'#ffd28b','center',700);}
-    }
-
-    function frame(t){
-      drain();
-      const elapsed=Math.max(0,t-lastFrame);lastFrame=t;frames=.95*frames+.05*elapsed;
-      // Fixed simulation steps; a suspended tab does not extend a round or replay minutes of damage.
-      if(elapsed>500){stepTime=t;accumulator=0;game.tick(t,0);}else{
-        accumulator+=Math.min(elapsed,250);
-        while(accumulator>=50){stepTime+=50;game.tick(stepTime,.05);accumulator-=50;}
-      }
-      if(game.phase==='lobby'&&mode==='live'){newGame('attract');buttons();}
-      if(t-lastRender>=1000/30){const started=performance.now();render(started);renderCost=renderCost*.95+(performance.now()-started)*.05;lastRender=t;}
-      if(!panel.hidden){$('state').textContent=connection+L(" • "," • ")+(mode==='test'?L("TEST: živé události jsou ignorované","TEST: live events are ignored"):mode==='attract'?L("UKÁZKA: první hráč spustí LIVE kolo","DEMO: first player starts the LIVE round"):L("ŽIVÁ HRA","LIVE GAME"))+(lastMessage?L(" • poslední zpráva před "," • last message ")+Math.floor((t-lastMessage)/1000)+' s':'');$('metrics').textContent=Math.round(1000/frames)+' FPS • '+game.players.size+L("/500 lodí • zprávy ","/500 ships • messages ")+received+L(" • neplatné "," • invalid ")+malformed;}
-      requestAnimationFrame(frame);
-    }
-    root.Frontier={version:VERSION,snapshot:()=>({renderMs:Math.round(renderCost*100)/100,lang:LANG,queue:inbox.length+priorityInbox.length,likesQueued:likeInbox.size,dropped,fx:fx.length,giftsQueued:gifts.length,giftTier:giftCurrent?.tier||0,drawn:drawShips.length,labels:drawLabels.size,mode,phase:game.phase,round:game.round,scores:game.scores.map(Math.round),humans:game.humans().length,ships:game.players.size,connected,stats:{...game.stats},
-      likeCharge:[...game.likeCharge],likeGoal:[...game.likeGoal],likeUntil:[...game.likeUntil],likeReady:[...game.likeReady],lastLike:game.lastLike,likeFX:likeFX.length,rally:[...game.rally],quest:[...game.quest],wave:game.wave,raiders:game.raiders.length,nodes:game.nodes.map(n=>({owner:n.owner,control:n.control,level:n.level,armor:n.armor,build:n.build})),ack:game.ack?{text:game.ack.text,kind:game.ack.kind}:null,
-      local:game.players.has('local-test')?{target:game.players.get('local-test').target,hp:game.players.get('local-test').hp}:null})};
-    requestAnimationFrame(frame);
+  if(['member','chat','like','gift','share','follow','subscribe'].includes(e.type)&&!p)p=this.join(e);
+  if(p){p.last=now;if(e.name&&e.name!==e.id)p.name=clean(e.name);if(e.avatar)p.avatar=e.avatar;
+   // Bound alternate IDs and preserve the existing object, team, health and points.
+   for(const alias of [e.id,e.userId])if(alias&&alias!==p.id&&!this.aliases.has(alias)&&this.aliases.size<MAX*3)this.aliases.set(alias,p.id);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  if(this.phase==='lobby'&&p)this.start(now);
+  if(e.type==='chat'&&p&&['ja','já','me'].includes(String(e.text||'').trim().toLowerCase())&&now-p.findAt>=15000){p.findAt=now;this.emit({kind:'find',id:p.id,name:p.name,team:p.team});}
+  if(e.type==='like'){
+   this.stats.likes+=Math.floor(clamp(number(e.count,1),1,10000));if(!p||this.phase!=='playing')return true;
+   p.tokens=Math.min(6,p.tokens+Math.max(0,now-p.tokenAt)*.003);p.tokenAt=now;
+   const before=p.energy,grant=Math.min(clamp(number(e.count,1),1,6),p.tokens,20-p.energy);p.tokens-=grant;p.energy=Math.min(20,p.energy+grant);p.recent=now;if(grant>0)p.chargeAt=now;
+   if(before<=10&&p.energy>10&&now-p.unlockAt>5000){p.unlockAt=now;this.emit({kind:'unlock',id:p.id,name:p.name,team:p.team,x:p.x,y:p.y});}
+   if(now-p.likeFxAt>=400){p.likeFxAt=now;this.emit({kind:'like',id:p.id,name:p.name,team:p.team,x:p.x,y:p.y,grant,energy:p.energy});}
+   return true;
+  }
+  if(e.type==='gift'||e.type==='subscribe'){
+   this.stats.gifts+=Math.floor(clamp(number(e.repeat,1),1,1000000));
+   const bonus=p&&this.phase==='playing'&&now>=this.giftReady[p.team];
+   if(p){p.goldUntil=now+60000;p.recent=now;}
+   if(bonus){p.energy=20;this.giftReady[p.team]=now+20000;for(const a of this.players.values())if(a.team===p.team&&a.hp>0)a.protectedUntil=Math.max(a.protectedUntil,now+2500);}
+   this.emit({kind:'gift',name:e.name,team:p?p.team:-1,bonus,coins:e.coins||0});return true;
+  }
+  if(e.type==='follow'||e.type==='share'){
+   const key=e.type+e.id;if(now-(this.social.get(key)??-Infinity)<60000)return true;this.social.set(key,now);if(this.social.size>2000)this.social.delete(this.social.keys().next().value);
+   this.emit({kind:e.type,name:e.name,team:p?p.team:-1});
+  }
+  return !!p;
+ }
+ addPoints(p,value){if(!p.bot&&this.phase==='playing'){const old=p.points;p.points+=value;this.scores[p.team]+=value;
+  if(p.best>=20&&old<=p.best&&p.points>p.best&&p.recordAt===-Infinity){p.recordAt=this.now;this.emit({kind:'record',id:p.id,name:p.name,team:p.team,x:p.x,y:p.y});}
+ }}
+ damage(source,target,base,kind){
+  if(source.team===target.team||source.hp<=0||target.hp<=0||target.protectedUntil>this.now)return 0;
+  // Health is independent of charge: the same weapon always deals the same damage.
+  const hit=Math.min(target.hp,base);target.hp-=hit;target.hitAt=this.now;
+  this.addPoints(source,hit*.05);this.emit({kind:'hit',id:target.id,x:target.x,y:target.y,team:source.team,amount:hit,weapon:kind});
+  if(target.hp<=0){target.hp=0;target.respawn=this.now+5000;target.energy=0;source.kills++;this.addPoints(source,3);this.emit({kind:'down',id:target.id,name:target.name,team:target.team,x:target.x,y:target.y});}
+  return hit;
+ }
+ targetFor(p){let target=null,best=Infinity;
+  for(const q of this.players.values()){if(q.team===p.team||q.hp<=0||q.protectedUntil>this.now)continue;
+   const d=(q.x-p.x)**2+(q.y-p.y)**2,value=d+(q.energy>0?2e6:0);if(value<best){target=q;best=value;}}
+  return target;
+ }
+ bots(){const count=[0,0];for(const p of this.humans())count[p.team]++;
+  for(let team=0;team<2;team++){const want=this.demo?4:Math.max(0,3-count[team]),existing=[...this.players.values()].filter(p=>p.bot&&p.team===team);
+   while(existing.length>want)this.players.delete(existing.pop().id);
+   for(let i=0;i<want;i++)if(!this.players.has('bot:'+team+':'+i))this.join({id:'bot:'+team+':'+i,name:'BOT '+(i+1)},true,team);
+  }
+ }
+ finish(now){if(this.phase!=='playing')return;this.now=now;this.phase='results';this.restart=now+10000;this.rockets=[];
+  const scores=this.scores.map(Math.floor),winner=scores[0]===scores[1]?-1:scores[0]>scores[1]?0:1;if(winner>=0)this.wins[winner]++;
+  for(const p of this.humans()){if(p.team===winner)p.roundWins++;p.best=Math.max(p.best,Math.floor(p.points));}
+  this.result={scores,winner,at:now,top:this.humans().sort((a,b)=>b.points-a.points).slice(0,3).map(p=>({id:p.id,name:p.name,avatar:p.avatar,team:p.team,points:Math.floor(p.points)}))};this.emit({kind:'result',result:this.result});
+ }
+ suspend(now){
+  // A sleeping/throttled tab must not preserve a weapon charge indefinitely.
+  const elapsed=Math.max(0,now-this.now)/1000;
+  for(const p of this.players.values())if(p.hp>0){p.energy=Math.max(0,p.energy-elapsed);p.trail=[];}
+  this.rockets=[];this.tick(now,0);
+ }
+ tick(now,dt){this.now=now;
+  if(now>=this.nextSweep){this.nextSweep=now+10000;for(const [id,t]of this.seen)if(now-t>300000)this.seen.delete(id);for(const [id,t]of this.social)if(now-t>60000)this.social.delete(id);}
+  if(this.phase==='results'){if(now>=this.restart){if(this.humans().length||this.demo)this.start(now);else this.phase='lobby';}return;}
+  if(this.phase!=='playing')return;if(now>=this.ends){this.finish(now);return;}dt=clamp(dt,0,.1);
+  if(now>=this.nextBots){this.nextBots=now+2000;this.bots();}
+  const list=[...this.players.values()];this.radius=clamp(Math.sqrt(1080*1000/(Math.max(1,list.length)*Math.PI))*.39,12,40);
+  for(const p of list){
+   if(p.hp<=0){if(now<p.respawn)continue;this.safeSpawn(p);p.hp=100;p.energy=Math.max(4,p.energy);p.protectedUntil=now+3000;p.graceUntil=0;this.emit({kind:'respawn',id:p.id,x:p.x,y:p.y,team:p.team});}
+   if(p.bot&&now>=p.tokenAt){p.tokenAt=now+4000+(hash(p.id+Math.floor(now/4000))%6000);if(hash(p.id+Math.floor(now/6000))%3)p.energy=Math.min(20,p.energy+6);}
+   const before=p.energy;p.energy=Math.max(0,p.energy-dt);
+   if(before>0)this.addPoints(p,Math.min(dt,before)*2);
+   p.r+=(this.radius*(1+p.energy/20*.4)-p.r)*Math.min(1,dt*4);
+   if(now>=p.thinkAt){p.thinkAt=now+650+hash(p.id)%250;p.target=p.energy>0?this.targetFor(p)?.id:null;}
+   const target=this.players.get(p.target),speed=32+p.energy*2.8;
+   let dx=Math.cos(now*.00025+hash(p.id)),dy=Math.sin(now*.0003+hash(p.id));
+   if(target&&target.hp>0&&p.energy>0){const d=Math.hypot(target.x-p.x,target.y-p.y)||1;dx=(target.x-p.x)/d;dy=(target.y-p.y)/d;}
+   p.vx+=(dx*speed-p.vx)*dt*2;p.vy+=(dy*speed-p.vy)*dt*2;p.x+=p.vx*dt;p.y+=p.vy*dt;
+   p.x=clamp(p.x,p.r+42,1038-p.r);p.y=clamp(p.y,370+p.r,1450-p.r);
+   if(now>=p.trailAt){p.trailAt=now+100;p.trail.push({x:p.x,y:p.y});if(p.trail.length>6)p.trail.shift();}
+   if(target&&target.hp>0&&p.energy>10&&now>=p.shotAt&&Math.hypot(target.x-p.x,target.y-p.y)<600){
+    p.shotAt=now+2200;if(this.rockets.length<180)this.rockets.push({from:p.id,to:target.id,team:p.team,x:p.x,y:p.y,born:now});
+   }
+  }
+  // Spatial buckets avoid all-pairs collision work with hundreds of participants.
+  const grid=new Map(),cell=Math.ceil(this.radius*2.8+12);
+  for(const p of list)if(p.hp>0){const key=Math.floor(p.x/cell)+','+Math.floor(p.y/cell);if(!grid.has(key))grid.set(key,[]);grid.get(key).push(p);}
+  for(const p of list)if(p.hp>0){const gx=Math.floor(p.x/cell),gy=Math.floor(p.y/cell);
+   for(let x=gx-1;x<=gx+1;x++)for(let y=gy-1;y<=gy+1;y++)for(const q of grid.get(x+','+y)||[]){
+    if(q===p||q.hp<=0)continue;let dx=q.x-p.x,dy=q.y-p.y,d=Math.hypot(dx,dy);
+    if(d<.001){dx=1;dy=0;d=1;}const contact=p.r+q.r;
+    if(d<contact&&p.id<q.id){const overlap=(contact-d)*.5;p.x-=dx/d*overlap;p.y-=dy/d*overlap;q.x+=dx/d*overlap;q.y+=dy/d*overlap;}
+    if(p.energy>0&&q.team!==p.team&&d<contact+9&&now>=p.sawAt){p.sawAt=now+600;this.damage(p,q,8,'saw');}
+   }
+  }
+  for(const p of list){p.x=clamp(p.x,p.r+42,1038-p.r);p.y=clamp(p.y,370+p.r,1450-p.r);}
+  for(const r of this.rockets){const p=this.players.get(r.from),q=this.players.get(r.to);
+   if(!p||!q||p.hp<=0||q.hp<=0||now-r.born>3000){r.dead=true;continue;}
+   const dx=q.x-r.x,dy=q.y-r.y,d=Math.hypot(dx,dy)||1,step=dt*330;r.angle=Math.atan2(dy,dx);
+   if(d<=step+q.r){this.damage(p,q,12,'rocket');r.dead=true;}else{r.x+=dx/d*step;r.y+=dy/d*step;}
+  }
+  this.rockets=this.rockets.filter(r=>!r.dead);
+ }
+}
+if(typeof module!=='undefined'&&module.exports)module.exports={Arena,packet,MAX};
+if(typeof document==='undefined')return;
+/* BROWSER */
+function boot(){
+ let prefs={};try{prefs=JSON.parse(localStorage.getItem('wars-team-settings')||'{}');}catch{}
+ const query=new URLSearchParams(location.search);let lang=query.get('lang')||prefs.lang||'cs',chroma=prefs.chroma!==false,sound=false,hideProfiles=prefs.hideProfiles===true;
+ const L=(cs,en)=>lang==='en'?en:cs,team=t=>TEAMS[lang==='en'?1:0][t];
+ const displayName=p=>hideProfiles&&!p.bot?'P'+hash(p.id||p.name).toString(36).slice(0,4).toUpperCase():p.name;
+ const host=document.getElementById('game-container');host.innerHTML='<canvas id="arena" width="1080" height="1920"></canvas>';
+ const canvas=document.getElementById('arena'),c=canvas.getContext('2d',{alpha:false});
+ const panel=document.createElement('section');panel.id='panel';panel.hidden=true;panel.innerHTML=`<b>GALAXINKO WARS ${VERSION}</b><p><button id="hide">Skrýt / Hide (H)</button><button id="lang">CZ / EN</button><button id="bg">OBS / Dark</button><button id="sound">Zvuk / Sound</button><button id="profiles">Profily / Profiles (P)</button></p><p><button id="test">TEST</button><button id="ready">Připravit LIVE / Prepare LIVE</button><button id="like">♥ TEST</button><button id="gift">★ TEST</button><button id="crowd">TEST 100</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Připojit / Connect</button></p><p id="status"></p><p id="help"></p>`;document.body.appendChild(panel);
+ const $=id=>document.getElementById(id);let mode='demo',game,fx=[],receipt=null,gift=null,socialNote=null,leaders=[],rankAt=0,renderMs=0;
+ const focusQueue=new Map();let focusId=null,focusUntil=0,focusCursor=0,focusCycle=0,moment=null,lastMoment=-Infinity;
+ function offerFocus(id){if(id&&id!==focusId&&!focusQueue.has(id)&&focusQueue.size<60)focusQueue.set(id,true);}
+ function focusPlayer(t,human){
+  const current=game.players.get(focusId);if(current&&t<focusUntil)return current;
+  let p=null;if(++focusCycle%3!==0)while(focusQueue.size&&!p){const id=focusQueue.keys().next().value;focusQueue.delete(id);p=game.players.get(id);}
+  p??=human.length?human[focusCursor++%human.length]:null;focusId=p?.id||null;focusUntil=t+3500;return p;
+ }
+ function resetFocus(){focusQueue.clear();focusId=null;focusUntil=0;focusCursor=focusCycle=0;moment=null;lastMoment=-Infinity;}
+ let socket,retry,handshake,attempt=0,connected=false,closed=false,invalid=0,dropped=0,members=0;
+ const portraits=new Map();let imageJobs=0,imageSweep=0;
+ // Keep only small thumbnails, with four downloads at once and bounded storage.
+ function portrait(url){return url?portraits.get(url)?.canvas:null;}
+ function updatePortraits(t){
+  if(t<imageSweep)return;imageSweep=t+1000;
+  const wanted=new Set([...game.players.values()].filter(p=>!p.bot&&p.avatar).map(p=>p.avatar));
+  for(const [url,entry]of portraits)if(!wanted.has(url)){entry.cancel?.();portraits.delete(url);}
+  for(const url of wanted)if(!portraits.has(url)&&portraits.size<500)portraits.set(url,{state:'waiting'});
+  pumpImages();
+ }
+ function pumpImages(){
+  if(closed)return;
+  for(const [url,entry]of portraits){if(imageJobs>=4)break;if(entry.state!=='waiting')continue;
+   entry.state='loading';imageJobs++;const img=new Image();img.referrerPolicy='no-referrer';img.decoding='async';let done=false;
+   const finish=success=>{if(done)return;done=true;clearTimeout(timer);img.onload=img.onerror=null;entry.cancel=null;
+    if(success&&img.naturalWidth>0&&img.naturalHeight>0){try{const thumb=document.createElement('canvas');thumb.width=thumb.height=96;const side=Math.min(img.naturalWidth,img.naturalHeight);thumb.getContext('2d').drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,96,96);entry.canvas=thumb;entry.state='ready';}catch{entry.state='failed';}}
+    else entry.state='failed';img.src='';imageJobs--;queueMicrotask(pumpImages);
+   };
+   const timer=setTimeout(()=>finish(false),8000);entry.cancel=()=>finish(false);img.onload=()=>finish(true);img.onerror=()=>finish(false);img.src=url;
+  }
+ }
+ const queue=[],priority=[],likes=new Map();let last=performance.now(),acc=0,step=last,lastRender=0,audio=null,lastTone=0;
+ const now=()=>performance.now();
+ function tone(freq){if(!sound||!audio||now()-lastTone<180)return;lastTone=now();const o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(freq*.7,audio.currentTime+.13);g.gain.setValueAtTime(.035,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.18);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.2);o.onended=()=>{o.disconnect();g.disconnect();};}
+ function event(e){
+  if(e.kind==='share'||e.kind==='follow')socialNote={...e,at:now()};
+  if(['like','hit','down','respawn','unlock','find','record'].includes(e.kind)){fx.push({...e,at:now()});if(fx.length>50)fx.shift();}
+  if(['like','join','find','record','unlock'].includes(e.kind)&&e.id&&!e.id.startsWith('bot:'))offerFocus(e.id);
+  if(['unlock','record'].includes(e.kind)&&now()-lastMoment>=4500){moment={...e,at:now()};lastMoment=now();tone(e.kind==='record'?980:720);}
+  if(e.kind==='like'){receipt={...e,at:now()};tone(560);}
+  if(e.kind==='join'&&e.id&&!e.id.startsWith('bot:'))receipt={...e,at:now()};
+  if(e.kind==='gift'){gift={...e,at:now()};tone(880);}
+  if(e.kind==='result'){
+   if(mode==='live')try{localStorage.setItem('wars-team-last-result',JSON.stringify(e.result));}catch{}
+   tone(660);
+  }
+ }
+ function newGame(next){mode=next;resetFocus();fx=[];receipt=null;gift=null;socialNote=null;leaders=[];rankAt=0;queue.length=0;priority.length=0;likes.clear();game=new Arena({demo:next!=='live',emit:event});game.start(now());game.bots();last=now();step=last;acc=0;}
+ function testLike(){if(mode==='test')game.accept({type:'like',id:'you',name:L('TY','YOU'),count:6},now());}
+ function receive(e){if(e.type==='streamend'){newGame('demo');return;}if(mode==='test')return;
+  if(e.type==='member')members++;
+  // A viewer entry or interaction starts a clean live round, preserving queued events.
+  if(mode==='demo'&&['member','chat','like','gift','share','follow','subscribe'].includes(e.type)){mode='live';resetFocus();fx=[];receipt=null;gift=null;leaders=[];rankAt=0;game=new Arena({emit:event});game.start(now());last=now();step=last;acc=0;}
+  game.accept(e,now());
+ }
+ function enqueue(e){if(!e)return;if(e.type==='streamend'){receive(e);return;}if(mode==='test')return;
+  if(e.type==='like'){const previous=likes.get(e.id);if(previous){e.count=Math.min(10000,e.count+previous.count);e.avatar||=previous.avatar;e.userId||=previous.userId;if(e.name===e.id&&previous.name)e.name=previous.name;}if(likes.size<500||previous)likes.set(e.id,e);else dropped++;}
+  else{const q=['gift','subscribe'].includes(e.type)?priority:queue,limit=q===priority?200:2000;if(q.length<limit)q.push(e);else dropped++;}
+ }
+ function connect(){clearTimeout(retry);clearTimeout(handshake);if(socket){socket.onopen=socket.onmessage=socket.onclose=socket.onerror=null;socket.close();}connected=false;
+  let url;try{url=new URL($('url').value);if(!['ws:','wss:'].includes(url.protocol))throw Error();}catch{return;}
+  try{socket=new WebSocket(url.href);handshake=setTimeout(()=>{if(socket.readyState===WebSocket.CONNECTING)socket.close();},12000);
+   socket.onopen=()=>{clearTimeout(handshake);connected=true;attempt=0;};socket.onmessage=e=>{if(typeof e.data!=='string'||e.data.length>200000){invalid++;return;}try{enqueue(packet(JSON.parse(e.data)));}catch{invalid++;}};
+   socket.onerror=()=>{};socket.onclose=()=>{clearTimeout(handshake);connected=false;if(!closed)retry=setTimeout(connect,Math.min(30000,1500*2**Math.min(attempt++,5)));};
+  }catch{if(!closed)retry=setTimeout(connect,30000);}
+ }
+ function save(){try{localStorage.setItem('wars-team-settings',JSON.stringify({lang,chroma,hideProfiles}));}catch{}document.documentElement.lang=lang;}
+ $('hide').onclick=()=>panel.hidden=true;$('lang').onclick=()=>{lang=lang==='cs'?'en':'cs';save();};$('bg').onclick=()=>{chroma=!chroma;save();};
+ $('test').onclick=()=>{newGame('test');game.accept({type:'chat',id:'you',name:L('TY','YOU'),text:'join'},now());panel.hidden=true;};
+ $('ready').onclick=()=>{newGame('demo');panel.hidden=true;};$('like').onclick=testLike;
+ $('gift').onclick=()=>{if(mode==='test')game.accept({type:'gift',id:'you',name:L('TY','YOU'),repeat:1,coins:100},now());};
+ $('crowd').onclick=()=>{if(mode!=='test')return;for(let i=0;i<99;i++)game.join({id:'test'+i,name:'TEST '+i});panel.hidden=true;};
+ $('sound').onclick=async()=>{try{audio??=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();sound=!sound;$('sound').textContent='Sound: '+(sound?'ON':'OFF');tone(440);}catch{sound=false;}};
+ $('connect').onclick=connect;
+ $('profiles').onclick=()=>{hideProfiles=!hideProfiles;save();};
+ document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key.toLowerCase()==='h')panel.hidden=!panel.hidden;if(e.key.toLowerCase()==='p')$('profiles').click();if(e.key===' '||e.key.toLowerCase()==='l'){e.preventDefault();testLike();}});
+ canvas.ondblclick=()=>panel.hidden=!panel.hidden;canvas.onclick=()=>{if(mode==='demo')$('test').click();else testLike();};
+ window.addEventListener('beforeunload',()=>{closed=true;clearTimeout(retry);clearTimeout(handshake);if(socket){socket.onclose=null;socket.close();}});
+ const rect=(x,y,w,h,r,fill,stroke)=>{c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=2;c.stroke();}};
+ const circle=(x,y,r,fill,stroke,width=2)=>{c.beginPath();c.arc(x,y,Math.max(0,r),0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}};
+ const text=(s,x,y,size=24,col='#fff',align='center',max=950)=>{c.font='800 '+size+'px Arial';c.textAlign=align;c.textBaseline='middle';c.fillStyle=col;let v=String(s);while(v.length&&c.measureText(v).width>max)v=Array.from(v).slice(0,-1).join('');c.lineJoin='round';c.lineWidth=Math.max(3,size*.16);c.strokeStyle='#101724';c.strokeText(v,x,y);c.fillText(v,x,y);};
+ function polygon(points,fill,stroke){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1.4;c.stroke();}}
+ function heart(x,y,r,color){c.save();c.translate(x,y);c.scale(r/20,r/20);c.beginPath();c.moveTo(0,10);c.bezierCurveTo(-32,-10,-12,-29,0,-14);c.bezierCurveTo(12,-29,32,-10,0,10);c.fillStyle=color;c.fill();c.restore();}
+ // Canvas-only artwork; all broadcast text sits directly on the chroma background.
+function face(p,x,y,r){
+ const image=hideProfiles?null:portrait(p.avatar);
+ c.save();c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.clip();
+ if(image)c.drawImage(image,x-r,y-r,r*2,r*2);
+ else{
+  const g=c.createLinearGradient(x-r,y-r,x+r,y+r);g.addColorStop(0,p.bot?'#66717f':p.team?'#803b67':'#285f89');g.addColorStop(1,'#152238');
+  c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);
+  if(p.bot){rect(x-r*.58,y-r*.36,r*1.16,r*.72,r*.15,'#aebcca');circle(x-r*.25,y-r*.05,r*.10,'#263648');circle(x+r*.25,y-r*.05,r*.10,'#263648');rect(x-r*.22,y+r*.2,r*.44,r*.07,1,'#263648');}
+  else text(Array.from(displayName(p)).slice(0,2).join('').toUpperCase(),x,y,Math.max(11,r*.65),'#f4f8ff','center',r*1.6);
+ }
+ c.restore();
+}
+function orb(p,t,showName){
+ const r=p.r,col=p.bot?'#a8b5c5':COL[p.team],active=p.energy>0;
+ c.save();c.translate(p.x,p.y);
+ if(p.hp<=0){circle(0,0,r+3,null,col,2);text(Math.max(1,Math.ceil((p.respawn-t)/1000))+'s',0,0,Math.max(14,r*.7),col);if(showName)text(displayName(p),0,-r-17,16,col,'center',150);c.restore();return;}
+ if(active){
+  c.save();c.rotate(t*(p.energy>10?.004:.002)*(p.team?1:-1));const points=[],teeth=game.players.size>100?12:20;
+  for(let i=0;i<teeth;i++){const a=i*Math.PI*2/teeth;for(const [o,s]of [[0,1],[.45,1.22],[.75,1.03]])points.push([Math.cos(a+o*Math.PI*2/teeth)*(r+6)*s,Math.sin(a+o*Math.PI*2/teeth)*(r+6)*s]);}
+  const metal=c.createLinearGradient(-r,-r,r,r);metal.addColorStop(0,'#f5fbff');metal.addColorStop(.35,'#8b9dad');metal.addColorStop(.65,'#354353');metal.addColorStop(1,'#d1dfec');
+  polygon(points,metal,'#142135');circle(0,0,r+6,'#253647',col,2);c.restore();
+ }
+ circle(0,0,r+1,'#152133',col,3);
+ if(active&&game.players.size<100){for(let k=0;k<6;k++){const a=k*Math.PI/3+t*.001;circle(Math.cos(a)*(r+4),Math.sin(a)*(r+4),1.6,'#eef9ff');}}
+ face(p,0,0,Math.max(6,r-5));
+ // Team rim stays visible even without charge. The separate yellow arc is energy.
+ circle(0,0,r-2,null,'#101b2d',3);
+ if(active){c.beginPath();c.arc(0,0,r+3,-Math.PI/2,-Math.PI/2+Math.PI*2*p.energy/20);c.strokeStyle='#ffdc83';c.lineWidth=Math.max(3,r*.09);c.stroke();}
+ if(t-p.hitAt<140)circle(0,0,r-5,'#ffffff60');
+ if(p.protectedUntil>t){c.setLineDash([7,5]);circle(0,0,r+18,null,'#f0f8ff',2);c.setLineDash([]);}
+ if(p.goldUntil>t)circle(0,0,r+22,null,'#ffda83',2);
+ const charged=clamp(1-(t-p.chargeAt)/700,0,1);if(charged>0){c.save();c.globalAlpha=charged;circle(0,0,r+12+(1-charged)*22,null,'#fff0bd',3);c.restore();}
+ if(p.energy>10){for(const s of [-1,1]){c.save();c.translate(s*(r+4),0);polygon([[-3,-10],[3,-10],[5,5],[0,10],[-5,5]],'#fff3d7','#172b40');c.restore();}}
+ if(leaders[0]?.id===p.id&&!p.bot){polygon([[-13,-r-47],[-16,-r-62],[-5,-r-55],[0,-r-67],[5,-r-55],[16,-r-62],[13,-r-47]],'#ffe09b','#664826');}
+ c.restore();
+}
+function orbLabels(players,names){
+ const used=[];
+ const place=(p,label,y,size,col,max)=>{
+  c.font='800 '+size+'px Arial';const w=Math.min(max,c.measureText(String(label)).width)+8,x=clamp(p.x,25+w/2,1055-w/2),box={x:x-w/2,y:y-size/2-2,w,h:size+4};
+  if(box.y<327||box.y+box.h>1510)return;
+  if(used.some(b=>box.x<b.x+b.w&&box.x+box.w>b.x&&box.y<b.y+b.h&&box.y+box.h>b.y))return;
+  if(players.some(q=>q!==p&&q.hp>0&&Math.hypot(q.x-clamp(q.x,box.x,box.x+box.w),q.y-clamp(q.y,box.y,box.y+box.h))<q.r+6))return;
+  used.push(box);text(label,x,y,size,col,'center',max);
+ };
+ // Recent participants get label priority. Crowded labels never cover a portrait.
+ const ordered=players.slice().sort((a,b)=>b.recent-a.recent);
+ for(const p of ordered){if(p.hp<=0)continue;const col=p.bot?'#b8c4d2':COL[p.team],detail=names.has(p.id)||p.id==='you';
+  if(detail)place(p,displayName(p),p.y-p.r-30,18,col,170);
+  if(detail||players.length<=35)place(p,p.bot?'BOT':'★ '+Math.floor(p.points),p.y+p.r+40,18,p.bot?col:'#ffdf92',120);
+  if(p.hp<100||detail){const y=p.y+p.r+18,w=p.r*1.5;
+   const box={x:p.x-w/2,y:y-2,w,h:9};
+   if(!used.some(b=>box.x<b.x+b.w&&box.x+box.w>b.x&&box.y<b.y+b.h&&box.y+box.h>b.y)&&!players.some(q=>q!==p&&q.hp>0&&Math.hypot(q.x-clamp(q.x,p.x-w/2,p.x+w/2),q.y-y)<q.r+5)){used.push(box);rect(p.x-w/2,y,w,5,2,'#152033','#152033');rect(p.x-w/2,y,w*p.hp/100,5,2,p.hp<=30?'#ff867e':'#f1f7ff');}
+  }
+ }
+}
+function meter(x,y,w,value,color){rect(x,y,w,8,4,'#162436','#162436');if(value>0)rect(x,y,Math.max(5,w*clamp(value,0,1)),8,4,color);}
+function render(t){
+ c.fillStyle=chroma?'#00ff00':'#101727';c.fillRect(0,0,1080,1920);updatePortraits(t);
+ const seconds=Math.max(0,Math.ceil(((game.phase==='results'?game.restart:game.ends)-t)/1000)),human=game.humans(),counts=[0,0];
+ for(const p of human)counts[p.team]++;
+ const observed=focusPlayer(t,human);
+ text('GALAXINKO WARS',540,53,31,'#f8fbff');
+ text(mode==='demo'?L('UKÁZKA · BOTI','DEMO · BOTS'):mode==='test'?'TEST':L('KOLO ','ROUND ')+game.round,540,90,16,'#ccd9e8');
+ const finale=game.phase==='playing'&&seconds<=30;
+ text(Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'),540,158,45,finale?'#ffdb86':'#fff');
+ if(finale)text(L('FINÁLE','FINALE'),540,207,17,'#ffdb86');
+ for(let i=0;i<2;i++){const x=i?825:255;text(team(i),x,126,24,COL[i]);text(Math.floor(game.scores[i]),x,174,49);text(counts[i]+L(' hráčů',' players'),x,219,17,'#d2dfeb');}
+ const total=game.scores[0]+game.scores[1],split=total?clamp(game.scores[0]/total,.025,.975):.5;
+ rect(170,249,740,7,3,'#162436','#162436');rect(170,249,740*split,7,3,COL[0]);rect(170+740*split,249,740*(1-split),7,3,COL[1]);
+ text(game.phase==='results'?L('TÝMOVÁ ARÉNA','TEAM ARENA'):moment&&t-moment.at<3000?displayName(moment)+' · '+(moment.kind==='record'?L('OSOBNÍ REKORD','PERSONAL BEST'):L('RAKETY AKTIVNÍ','ROCKETS ONLINE')):L('♥  →  ENERGIE  →  ÚTOK','♥  →  ENERGY  →  ATTACK'),540,292,moment&&t-moment.at<3000?24:27,'#ffdf99','center',940);
+ if(t>=rankAt){rankAt=t+400;leaders=human.slice().sort((a,b)=>b.points-a.points).slice(0,3);}
+ const names=new Set(human.slice().sort((a,b)=>b.recent-a.recent).slice(0,game.players.size<35?35:12).map(p=>p.id));
+ c.save();c.beginPath();c.rect(20,320,1040,1200);c.clip();
+ // Only the result text takes center stage during the short round break.
+ if(game.phase!=='results'){
+  const players=[...game.players.values()];
+  // Short trails describe real movement; storage stays bounded to six positions.
+  c.save();c.lineCap='round';for(const p of players)if(p.hp>0&&p.energy>10){const tail=p.trail;for(let i=1;i<tail.length;i++){c.globalAlpha=.08+i*.045;c.strokeStyle=COL[p.team];c.lineWidth=Math.max(2,p.r*.22);c.beginPath();c.moveTo(tail[i-1].x,tail[i-1].y);c.lineTo(tail[i].x,tail[i].y);c.stroke();}}c.restore();
+  for(const p of players)orb(p,t,names.has(p.id));orbLabels(players,names);
+  if(observed&&observed.hp>0){const d=observed.r+27; c.save();c.translate(observed.x,observed.y);c.strokeStyle='#fff4d0';c.lineWidth=2.5;for(const sx of [-1,1])for(const sy of [-1,1]){c.beginPath();c.moveTo(sx*(d-9),sy*d);c.lineTo(sx*d,sy*d);c.lineTo(sx*d,sy*(d-9));c.stroke();}c.restore();}
+  for(const r of game.rockets){c.save();c.translate(r.x,r.y);c.rotate(r.angle||0);polygon([[-12,-4],[5,-4],[12,0],[5,4],[-12,4]],'#fff2ce',COL[r.team]);polygon([[-12,-3],[-25-Math.sin(t*.05)*5,0],[-12,3]],'#ffba62');c.restore();}
+  fx=fx.filter(f=>t-f.at<950);
+  for(const f of fx){const u=clamp((t-f.at)/950,0,1);c.save();c.globalAlpha=1-u;
+   if(f.kind==='like'){const p=game.players.get(f.id);circle(p?.x??f.x,p?.y??f.y,(p?.r??30)+15+u*28,null,'#ffdf9d',3);heart(f.x+15*Math.sin(u*4),f.y-35-u*70,15,COL[f.team]);if(f.grant>=.1)text('+'+f.grant.toFixed(1)+'s',f.x,f.y-68-u*50,20,'#ffdf9d');}
+   else if(f.kind==='hit'){for(let k=0;k<5;k++){const a=k*Math.PI*2/5;circle(f.x+Math.cos(a)*u*34,f.y+Math.sin(a)*u*34,3*(1-u)+1,'#ffe2a5');}if(game.players.size<40)text('−'+Math.ceil(f.amount),f.x,f.y-25-u*35,17,'#ffc6a6');}
+   else if(['find','unlock','record'].includes(f.kind)){const p=game.players.get(f.id);if(p){circle(p.x,p.y,p.r+24+u*45,null,'#fff1bb',3);if(f.kind==='find')text(displayName(p),p.x,Math.max(346,p.y-p.r-50),23,'#fff1bb','center',250);}}
+   else if(f.kind==='down'){for(let k=0;k<8;k++){const a=k*Math.PI/4,x=f.x+Math.cos(a)*u*80,y=f.y+Math.sin(a)*u*80;c.save();c.translate(x,y);c.rotate(a+u*3);polygon([[-4,-3],[6,0],[-4,3]],COL[f.team]);c.restore();}}
+   else circle(f.x,f.y,12+u*70,null,COL[f.team],3);
+   c.restore();
+  }
+ }
+ c.restore();
+ if(gift&&t-gift.at<4500&&game.phase!=='results'){
+  const age=(t-gift.at)/4500;c.save();c.globalAlpha=Math.min(1,(1-age)*5);text('★ '+displayName(gift)+' ★',540,1100,36,'#ffdf94','center',850);
+  text(gift.bonus?L('ENERGIE + TÝMOVÝ ŠTÍT','ENERGY + TEAM SHIELD'):L('DĚKUJEME ZA PODPORU','THANK YOU FOR YOUR SUPPORT'),540,1145,23);
+  for(let k=0;k<10;k++){const a=k*Math.PI*2/10;circle(540+Math.cos(a)*(100+age*220),1110+Math.sin(a)*(65+age*120),2+Math.sin(age*Math.PI)*2,'#ffdc91');}c.restore();
+ }
+ if(game.phase==='results'){
+  const r=game.result,age=Math.max(0,(t-r.at)/1000),winCol=r.winner<0?'#ffdc91':COL[r.winner];
+  for(let k=0;k<65;k++){const h=hash('confetti'+k),x=60+h%960,y=365+((h%900)+age*(35+h%40))%1030;c.save();c.translate(x,y);c.rotate(k+age*.7);c.globalAlpha=.65;rect(-3,-5,6,10,1,k%3?'#ffdf98':winCol);c.restore();}
+  text(L('KONEC KOLA','ROUND COMPLETE'),540,494,23,'#d4e4f4');
+  text(r.winner<0?L('REMÍZA','DRAW'):team(r.winner)+L(' VÍTĚZÍ',' WIN'),540,567,55,winCol);
+  text(r.scores.join(' : '),540,649,49);
+  // Podium uses the actual top players, including their own profile images.
+  r.top.forEach((p,i)=>{const x=[540,265,815][i],y=[852,937,979][i],radius=i?62:84;
+   circle(x,y,radius+10,null,i?'#b9d0e6':'#ffdf98',3);face(p,x,y,radius);text(i+1,x,y+radius+36,28,'#ffdf98');
+   text(displayName(p),x,y+radius+79,24,COL[p.team],'center',240);text('★ '+p.points,x,y+radius+120,29,'#ffdf98');
+   if(i===0){c.save();c.translate(x,y-radius-55);polygon([[-31,20],[-39,-17],[-15,-2],[0,-32],[15,-2],[39,-17],[31,20]],'#ffdf98','#96764b');c.restore();}
+  });
+  text(L('DALŠÍ KOLO ZA ','NEXT ROUND IN ')+seconds+'s',540,1325,27,'#ffdf94');
+  text(L('VÍTĚZNÁ KOLA','ROUNDS WON')+'  '+game.wins.join(' : '),540,1390,21,'#d9e7f5');
+  return; // No combat/energy status while the round is paused on results.
+ }
+ if(observed){
+  const col=COL[observed.team];face(observed,155,1619,40);circle(155,1619,44,null,col,3);
+  if(t-observed.chargeAt<700)circle(155,1619,49+(t-observed.chargeAt)*.012,null,'#ffdf98',2);
+  text(displayName(observed),225,1568,29,col,'left',520);text('★ '+Math.floor(observed.points),927,1568,29,'#ffdf94','right',220);
+  text(L('ZDRAVÍ ','HEALTH ')+Math.ceil(observed.hp)+'/100',225,1614,20,'#f1f6fc','left',290);meter(225,1635,285,observed.hp/100,observed.hp<=30?'#ff867e':'#f1f7ff');
+  text(L('ENERGIE ','ENERGY ')+observed.energy.toFixed(1)+'s',577,1614,20,'#ffdf94','left',340);meter(577,1635,350,observed.energy/20,'#ffdc83');
+  text(observed.hp<=0?L('NÁVRAT ZA ','RESPAWN IN ')+Math.max(0,Math.ceil((observed.respawn-t)/1000))+'s':observed.protectedUntil>t?L('OCHRANNÝ ŠTÍT','PROTECTIVE SHIELD'):observed.energy>10?L('PILA + RAKETY','SAW + ROCKETS'):observed.energy>0?L('PILA AKTIVNÍ','SAW ACTIVE'):L('BEZ ENERGIE · SNADNÝ CÍL','NO ENERGY · EASY TARGET'),540,1690,23,'#f0f7fe');
+  if(observed.best>0)text(L('OSOBNÍ REKORD ','PERSONAL BEST ')+Math.max(observed.best,Math.floor(observed.points))+'  ·  '+L('VÝHRY ','WINS ')+observed.roundWins,540,1725,17,'#ffdf98');
+ }else{
+  text(L('TVŮJ PROFIL. TVŮJ TÝM. TVOJE ARÉNA.','YOUR PROFILE. YOUR TEAM. YOUR ARENA.'),540,1585,27);
+  text(L('♥ nabíjí pilu · plná síla přidá rakety','♥ powers the saw · more energy adds rockets'),540,1640,23,'#ffdf94');
+ }
+ if(mode==='test')text(L('TEST · KLIKNUTÍ / MEZERNÍK = ♥','TEST · CLICK / SPACE = ♥'),540,1770,20,'#c4d6e8');
+ else if(mode==='demo')text(L('ČEKÁME NA HRÁČE · ŠEDÍ JSOU BOTI','WAITING FOR PLAYERS · GRAY = BOTS'),540,1770,20,'#c4d6e8');
+ else{
+  const tips=[L('Barva = tým · žlutý kruh = energie','Color = team · yellow ring = energy'),L('Zásah ubírá zdraví · návrat za 5s','Hits reduce health · respawn in 5s'),L('„já“ / „me“ v chatu označí tvůj profil','“me” / “já” in chat highlights your profile')];
+  text(socialNote&&t-socialNote.at<3500?displayName(socialNote)+L(' · DÍKY, ŽE JSI TU!',' · THANKS FOR BEING HERE!'):tips[Math.floor(t/7000)%tips.length],540,1770,20,'#d9e6f4');
+ }
+ if(!connected)text(L('TIKFINITY ODPOJENO · NASTAVENÍ: H','TIKFINITY DISCONNECTED · SETTINGS: H'),540,1840,19,'#ffdf9d');
+}
+
+ newGame('demo');save();connect();
+ function frame(t){
+  const elapsed=Math.max(0,t-last);last=t;
+  if(elapsed>500){step=t;acc=0;game.suspend(t);}else{acc+=Math.min(elapsed,250);while(acc>=50){step+=50;game.tick(step,.05);acc-=50;}}
+  for(let i=0;i<15&&priority.length;i++)receive(priority.shift());for(let i=0;i<35&&queue.length;i++)receive(queue.shift());let n=0;for(const [id,e]of likes){likes.delete(id);receive(e);if(++n>=30)break;}
+  if(game.phase==='lobby'&&mode==='live')newGame('demo');
+  if(t-lastRender>=1000/30){const a=now();render(a);renderMs=renderMs*.95+(now()-a)*.05;lastRender=t;}
+  if(!panel.hidden){$('status').textContent=(connected?'TikFinity OK':'TikFinity OFF')+' · '+mode+' · '+game.players.size+'/500 · arrivals '+members+' · portraits '+[...portraits.values()].filter(p=>p.state==='ready').length+' · dropped '+dropped+' · invalid '+invalid;$('help').textContent=L('Příchod diváka nebo interakce spustí kolo. TEST ignoruje skutečné události. Mezerník/L = test energie. Stejný tým po celé kolo. Příchody a profilovky závisejí na datech z TikFinity.','A viewer entry or interaction starts the round. TEST ignores real events. Space/L tests energy. Teams stay fixed for the round. Entries and portraits depend on TikFinity event data.');}
+  requestAnimationFrame(frame);
+ }
+ root.Wars={version:VERSION,snapshot:()=>({mode,lang,phase:game.phase,round:game.round,connected,players:game.players.size,humans:game.humans().length,rockets:game.rockets.length,fx:fx.length,queued:queue.length+priority.length+likes.size,dropped,renderMs,members,hideProfiles,focusId,focusPending:focusQueue.size,moment:moment?.kind||null,portraits:[...portraits.values()].filter(p=>p.state==='ready').length,portraitCache:portraits.size,imageJobs,score:[...game.scores],receipt:receipt?{kind:receipt.kind,id:receipt.id}:null}),player:id=>{const p=game.player(id);return p?{id:p.id,team:p.team,avatar:!!portrait(p.avatar),energy:p.energy,hp:p.hp,points:p.points,best:p.best,roundWins:p.roundWins,x:p.x,y:p.y}:null;}};
+ requestAnimationFrame(frame);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+
 })(typeof window==='undefined'?globalThis:window);
-
 </script></body></html>
