@@ -4,15 +4,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
    New agreed rules: energy, team assignment, saws, rockets, points and respawns.
    Standalone Canvas build; profile images come from incoming viewer events. */
 (function(root){'use strict';
-const VERSION='23.2 TEAM',MAX=500,ROUND=180000,IDLE=300000;
+const VERSION='23.3 TEAM',MAX=500,ROUND=180000,IDLE=300000;
 // Research-informed principles, designer-selected values. See VYVAZENI-23.1.md.
 // Speeds are logical canvas pixels per second, not device/display pixels.
 const BALANCE=Object.freeze({startEnergy:6,respawnMs:3000,spawnShieldMs:3000,
- idleSpeed:28,activeMinSpeed:70,activeMaxSpeed:105,dashSpeed:220,dashMs:360,dashCooldownMs:6000,
+ idleSpeed:32,activeMinSpeed:78,activeMaxSpeed:118,dashSpeed:245,dashMs:360,dashCooldownMs:6000,
  sawDamage:6,sawCooldownMs:750,rocketDamage:10,rocketCooldownMs:2400,rocketSpeed:360,
  damageBurst:24,damagePerSecond:24,feedbackMs:150,targetLockMs:1200});
 const COL=['#64d9ff','#ff749c'],TEAMS=[['MODŘÍ','ČERVENÍ'],['BLUE','RED']];
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const playBounds=count=>count<=10?{left:250,right:830,top:500,bottom:1240}:count<=20?{left:155,right:925,top:430,bottom:1370}:count<=40?{left:75,right:1005,top:385,bottom:1425}:{left:42,right:1038,top:370,bottom:1450};
 const number=(x,f=0)=>Number.isFinite(Number(x))?Number(x):f;
 const clean=x=>Array.from(String(x??'').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g,'').trim()).slice(0,24).join('')||'Pilot';
 function hash(x){let h=2166136261;for(const c of String(x))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
@@ -64,8 +65,8 @@ class Arena{
  }
  safeSpawn(p){
   const opponents=[...this.players.values()].filter(q=>q!==p&&q.team!==p.team&&q.hp>0);
-  const h=hash(p.id+':'+this.round+':'+Math.floor(this.now/1000));let best=null,score=-Infinity;
-  for(let i=0;i<12;i++){const x=100+((h+i*239)%880),y=450+((h+i*317)%880);let distance=1e9;
+  const bounds=playBounds(this.players.size+1),pad=55,h=hash(p.id+':'+this.round+':'+Math.floor(this.now/1000));let best=null,score=-Infinity;
+  for(let i=0;i<12;i++){const x=bounds.left+pad+((h+i*239)%Math.max(1,bounds.right-bounds.left-pad*2)),y=bounds.top+pad+((h+i*317)%Math.max(1,bounds.bottom-bounds.top-pad*2));let distance=1e9;
    for(const q of opponents)distance=Math.min(distance,(q.x-x)**2+(q.y-y)**2);
    if(distance>score){score=distance;best={x,y};}
   }
@@ -156,25 +157,26 @@ class Arena{
   if(this.phase==='results'){if(now>=this.restart){if(this.humans().length||this.demo)this.start(now);else this.phase='lobby';}return;}
   if(this.phase!=='playing')return;if(now>=this.ends){this.finish(now);return;}dt=clamp(dt,0,.1);
   if(now>=this.nextBots){this.nextBots=now+2000;this.bots();}
-  const list=[...this.players.values()];this.radius=clamp(Math.sqrt(1080*1000/(Math.max(1,list.length)*Math.PI))*.39,12,40);
+  const list=[...this.players.values()],bounds=playBounds(list.length);this.radius=clamp(Math.sqrt(1080*1000/(Math.max(1,list.length)*Math.PI))*.39,12,40);
   for(const p of list){
    if(p.hp<=0){if(now<p.respawn)continue;this.safeSpawn(p);p.hp=100;p.energy=Math.max(BALANCE.startEnergy,p.energy);p.damageBudget=BALANCE.damageBurst;p.damageAt=now;p.guardUntil=0;p.protectedUntil=now+BALANCE.spawnShieldMs;p.graceUntil=0;this.emit({kind:'respawn',id:p.id,x:p.x,y:p.y,team:p.team});}
    if(p.bot&&now>=p.tokenAt){p.tokenAt=now+4000+(hash(p.id+Math.floor(now/4000))%6000);if(hash(p.id+Math.floor(now/6000))%3)p.energy=Math.min(20,p.energy+6);}
    const before=p.energy;p.energy=Math.max(0,p.energy-dt);
    if(before>0)this.addPoints(p,Math.min(dt,before)*2);
-   p.r+=(this.radius*(1+p.energy/20*.4)-p.r)*Math.min(1,dt*4);
+   // Energy is also visible as physical growth: full charge reaches 1.55x base size.
+   p.r+=(this.radius*(1+p.energy/20*.55)-p.r)*Math.min(1,dt*4.5);
    if(now>=p.thinkAt){p.thinkAt=now+400+hash(p.id)%160;const current=this.players.get(p.target);if(p.energy<=0)p.target=null;else if(!current||current.hp<=0||current.protectedUntil>now||now>=p.targetLockUntil){const chosen=this.targetFor(p)?.id;if(chosen!==p.target){p.target=chosen;p.targetLockUntil=now+BALANCE.targetLockMs;}}}
    const target=this.players.get(p.target),densityScale=clamp(this.radius/40,.75,1),speed=(now<p.dashUntil?BALANCE.dashSpeed:p.energy>0?BALANCE.activeMinSpeed+(BALANCE.activeMaxSpeed-BALANCE.activeMinSpeed)*p.energy/20:BALANCE.idleSpeed)*densityScale;
    let dx=Math.cos(now*.00025+hash(p.id)),dy=Math.sin(now*.0003+hash(p.id));
    if(target&&target.hp>0&&p.energy>0){const d=Math.hypot(target.x-p.x,target.y-p.y)||1,ux=(target.x-p.x)/d,uy=(target.y-p.y)/d;
-    const contact=p.r+target.r+3,near=clamp(1-(d-contact)/100,0,1),radial=clamp((d-contact)/12,-1,1),side=now<p.dashUntil?0:p.orbitSide*near*.6;
+    const contact=p.r+target.r+3,near=clamp(1-(d-contact)/90,0,1),radial=clamp((d-contact)/12,-1,1),side=now<p.dashUntil?0:p.orbitSide*near*.38;
     dx=ux*radial-uy*side;dy=uy*radial+ux*side;
    }
    // Soft containment turns characters before they stick to the arena boundary.
-   dx+=clamp((90-p.x)/80,0,1)-clamp((p.x-990)/80,0,1);dy+=clamp((415-p.y)/80,0,1)-clamp((p.y-1405)/80,0,1);
+   dx+=clamp((bounds.left+55-p.x)/70,0,1)-clamp((p.x-(bounds.right-55))/70,0,1);dy+=clamp((bounds.top+55-p.y)/70,0,1)-clamp((p.y-(bounds.bottom-55))/70,0,1);
    const direction=Math.hypot(dx,dy)||1;dx/=direction;dy/=direction;
-   const steer=now<p.dashUntil?12:2;p.vx+=(dx*speed-p.vx)*Math.min(1,dt*steer);p.vy+=(dy*speed-p.vy)*Math.min(1,dt*steer);p.x+=p.vx*dt;p.y+=p.vy*dt;
-   p.x=clamp(p.x,p.r+42,1038-p.r);p.y=clamp(p.y,370+p.r,1450-p.r);
+   const steer=now<p.dashUntil?12:2.7;p.vx+=(dx*speed-p.vx)*Math.min(1,dt*steer);p.vy+=(dy*speed-p.vy)*Math.min(1,dt*steer);p.x+=p.vx*dt;p.y+=p.vy*dt;
+   p.x=clamp(p.x,bounds.left+p.r,bounds.right-p.r);p.y=clamp(p.y,bounds.top+p.r,bounds.bottom-p.r);
    if(now>=p.trailAt){p.trailAt=now+100;p.trail.push({x:p.x,y:p.y});if(p.trail.length>6)p.trail.shift();}
    if(target&&target.hp>0&&p.energy>10&&now>=p.shotAt&&Math.hypot(target.x-p.x,target.y-p.y)<600){
     p.shotAt=now+BALANCE.rocketCooldownMs;if(this.rockets.length<180)this.rockets.push({from:p.id,to:target.id,team:p.team,x:p.x,y:p.y,born:now});
@@ -191,14 +193,14 @@ class Arena{
     if(p.energy>0&&q.team!==p.team&&d<contact+9&&now>=p.sawAt){p.sawAt=now+BALANCE.sawCooldownMs;this.damage(p,q,BALANCE.sawDamage,'saw');}
    }
   }
-  for(const p of list){p.x=clamp(p.x,p.r+42,1038-p.r);p.y=clamp(p.y,370+p.r,1450-p.r);}
+  for(const p of list){p.x=clamp(p.x,bounds.left+p.r,bounds.right-p.r);p.y=clamp(p.y,bounds.top+p.r,bounds.bottom-p.r);}
   for(const r of this.rockets){const p=this.players.get(r.from),q=this.players.get(r.to);
    if(!p||!q||p.hp<=0||q.hp<=0||now-r.born>3000){r.dead=true;continue;}
    const dx=q.x-r.x,dy=q.y-r.y,d=Math.hypot(dx,dy)||1,step=dt*BALANCE.rocketSpeed;r.angle=Math.atan2(dy,dx);
    if(d<=step+q.r){this.damage(p,q,BALANCE.rocketDamage,'rocket');r.dead=true;}else{r.x+=dx/d*step;r.y+=dy/d*step;}
   }
   this.rockets=this.rockets.filter(r=>!r.dead);
-  if(now>=this.nextCrystal){this.nextCrystal=now+5000;if(this.crystals.length<5){const h=hash('crystal'+this.round+Math.floor(now/5000));this.crystals.push({x:110+h%860,y:450+(h>>>8)%880,born:now});}}
+  if(now>=this.nextCrystal){this.nextCrystal=now+5000;if(this.crystals.length<5){const h=hash('crystal'+this.round+Math.floor(now/5000)),w=Math.max(1,bounds.right-bounds.left-100),height=Math.max(1,bounds.bottom-bounds.top-100);this.crystals.push({x:bounds.left+50+h%w,y:bounds.top+50+(h>>>8)%height,born:now});}}
   for(const gem of this.crystals){if(now-gem.born>20000){gem.dead=true;continue;}let winner=null,best=Infinity;
    for(const p of list)if(!p.bot&&p.hp>0&&p.energy<20){const d=(p.x-gem.x)**2+(p.y-gem.y)**2;if(d<(p.r+20)**2&&d<best){winner=p;best=d;}}
    if(winner){const grant=Math.min(3,20-winner.energy);winner.energy+=grant;winner.chargeAt=now;gem.dead=true;this.emit({kind:'pickup',id:winner.id,name:winner.name,team:winner.team,x:gem.x,y:gem.y,grant});}
@@ -206,7 +208,7 @@ class Arena{
   this.crystals=this.crystals.filter(g=>!g.dead);
  }
 }
-if(typeof module!=='undefined'&&module.exports)module.exports={Arena,packet,MAX,BALANCE};
+if(typeof module!=='undefined'&&module.exports)module.exports={Arena,packet,MAX,BALANCE,playBounds};
 if(typeof document==='undefined')return;
 /* BROWSER */
 function boot(){
@@ -366,6 +368,7 @@ function arenaFrame(t,chroma){
 }
 
 // Canvas-only artwork; all broadcast text sits directly on the chroma background.
+let cameraX=540,cameraY=920,cameraZoom=1;
 function face(p,x,y,r){
  const image=hideProfiles?null:portrait(p.avatar);
  if(image){c.drawImage(image,x-r,y-r,r*2,r*2);return;}
@@ -380,9 +383,11 @@ function face(p,x,y,r){
  c.restore();
 }
 function orb(p,t,showName){
- const r=p.r,col=p.bot?'#a8bed1':COL[p.team],active=p.energy>0,dashing=t<p.dashUntil;
+ const r=p.r,teamCol=COL[p.team],col=p.bot?'#a8bed1':teamCol,active=p.energy>0,dashing=t<p.dashUntil;
  c.save();c.translate(p.x,p.y);
  if(p.hp<=0){c.setLineDash([3,7]);circle(0,0,r,null,col,2);c.setLineDash([]);text(Math.max(1,Math.ceil((p.respawn-t)/1000)),0,0,Math.max(16,r*.6),col);c.restore();return;}
+ // A broad team halo stays readable even when portraits and saws overlap.
+ c.save();c.globalAlpha=active?.4:.26;circle(0,0,r*1.43,null,teamCol,Math.max(4,r*.14));c.restore();
  if(active&&(game.players.size<80||p.id===focusId||dashing))c.drawImage(lightArt(p.team),-r*2,-r*2,r*4,r*4);
  if(active){c.save();c.rotate(t*(dashing?.009:p.energy>10?.004:.0018)*(p.team?1:-1));c.drawImage(rotorLod(p.bot?-1:p.team,true,r),-r*1.52,-r*1.52,r*3.04,r*3.04);c.restore();}
  else c.drawImage(rotorLod(p.bot?-1:p.team,false,r),-r*1.52,-r*1.52,r*3.04,r*3.04);
@@ -396,6 +401,7 @@ function orb(p,t,showName){
  const charge=clamp(1-(t-p.chargeAt)/650,0,1);if(charge>0&&(game.players.size<=100||showName||p.id===focusId)){c.globalAlpha=charge;circle(0,0,r*1.3+(1-charge)*30,null,'#fff0c7',3);c.globalAlpha=1;}
  if(p.energy>10&&(game.players.size<=100||p.id===focusId)){const target=game.players.get(p.target),angle=target?Math.atan2(target.y-p.y,target.x-p.x):Math.atan2(p.vy,p.vx);c.save();c.rotate(angle);for(const side of [-1,1]){c.save();c.translate(r*.75,side*r*.69);polygon([[-8,-4],[9,-4],[14,0],[9,4],[-8,4]],'#bfd4e7','#102136');rect(4,-2,9,4,1,'#fff0b6');c.restore();}c.restore();}
  if(leaders[0]?.id===p.id&&!p.bot){text('◆',0,-r*1.55,18,'#ffdc97');}
+ if(game.players.size<=120){circle(r*.83,-r*.83,Math.max(8,r*.25),teamCol,'#0b1725',2);text(team(p.team).slice(0,1),r*.83,-r*.82,Math.max(9,r*.24),'#08131f');}
  c.restore();
 }
 function orbLabels(players,names){
@@ -409,7 +415,7 @@ function orbLabels(players,names){
  };
  // Every human has a compact name anchored to their own ball; optional stats may be culled.
  const ordered=players.slice().sort((a,b)=>b.recent-a.recent);
- for(const p of ordered){if(p.hp<=0)continue;const col=p.bot?'#b8c4d2':COL[p.team],detail=names.has(p.id)||p.id==='you';
+ for(const p of ordered){if(p.hp<=0)continue;const col=COL[p.team],detail=names.has(p.id)||p.id==='you';
   if(!p.bot)text(displayName(p),p.x,p.y+p.r+9,Math.max(11,Math.min(18,p.r*.46)),col,'center',p.r*2.5);
   if(players.length>80&&!detail)continue;
   if(detail||players.length<=35)place(p,p.bot?'BOT':'★ '+Math.floor(p.points),p.y+p.r+40,18,p.bot?col:'#ffdf92',120);
@@ -445,7 +451,20 @@ function render(t){
  c.save();c.beginPath();c.rect(20,320,1040,1200);c.clip();
  // Only the result text takes center stage during the short round break.
  if(game.phase!=='results'){
-  const players=[...game.players.values()];for(const gem of game.crystals)crystalArt(gem,t);
+  const players=[...game.players.values()],alive=players.filter(p=>p.hp>0);
+  // The arena follows the action. Few players are enlarged and centered; crowds
+  // smoothly return to the full-field view without moving the fixed HUD.
+  if(alive.length){
+   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+   for(const p of alive){minX=Math.min(minX,p.x-p.r);maxX=Math.max(maxX,p.x+p.r);minY=Math.min(minY,p.y-p.r);maxY=Math.max(maxY,p.y+p.r);}
+   const countZoom=alive.length<=2?1.78:alive.length<=5?1.52:alive.length<=10?1.3:alive.length<=18?1.14:alive.length<=40?1.04:1;
+   const fitZoom=Math.min(940/Math.max(280,maxX-minX+150),1050/Math.max(360,maxY-minY+170));
+   const wantedZoom=clamp(Math.min(countZoom,fitZoom),1,1.78),wantedX=(minX+maxX)/2,wantedY=(minY+maxY)/2;
+   const follow=1-Math.exp(-Math.min(.05,Math.max(0,(t-lastRender)/1000))*3.8);
+   cameraZoom+=(wantedZoom-cameraZoom)*follow;cameraX+=(wantedX-cameraX)*follow;cameraY+=(wantedY-cameraY)*follow;
+  }else cameraZoom+=(1-cameraZoom)*.08;
+  c.translate(540,920);c.scale(cameraZoom,cameraZoom);c.translate(-cameraX,-cameraY);
+  for(const gem of game.crystals)crystalArt(gem,t);
   // Short trails describe real movement; storage stays bounded to six positions.
   c.save();c.lineCap='round';for(const p of players)if(p.hp>0&&(players.length<=80||names.has(p.id))&&(p.energy>10||t<p.dashUntil)){const tail=p.trail;for(let i=1;i<tail.length;i++){c.globalAlpha=.08+i*.045;c.strokeStyle=COL[p.team];c.lineWidth=Math.max(2,p.r*.22);c.beginPath();c.moveTo(tail[i-1].x,tail[i-1].y);c.lineTo(tail[i].x,tail[i].y);c.stroke();}}c.restore();
   for(const p of players)orb(p,t,names.has(p.id));orbLabels(players,names);
@@ -517,7 +536,7 @@ function render(t){
   if(!panel.hidden){$('status').textContent=(connected?'TikFinity OK':'TikFinity OFF')+' · '+mode+' · '+game.players.size+'/500 · arrivals '+members+' · portraits '+[...portraits.values()].filter(p=>p.state==='ready').length+' · FPS '+Math.round(fps)+' · frame '+workMs.toFixed(1)+'ms · dropped '+dropped+' · invalid '+invalid;$('help').textContent=L('Příchod diváka nebo interakce spustí kolo. TEST ignoruje skutečné události. Mezerník/L = test energie. Stejný tým po celé kolo. Příchody a profilovky závisejí na datech z TikFinity.','A viewer entry or interaction starts the round. TEST ignores real events. Space/L tests energy. Teams stay fixed for the round. Entries and portraits depend on TikFinity event data.');}
   requestAnimationFrame(frame);
  }
- root.Wars={version:VERSION,snapshot:()=>({mode,lang,phase:game.phase,round:game.round,connected,players:game.players.size,humans:game.humans().length,rockets:game.rockets.length,fx:fx.length,queued:queue.length+priority.length+likes.size,dropped,renderMs,workMs,fps,targetFps:60,renderWidth:canvas.width,crystals:game.crystals.length,members,hideProfiles,focusId,focusPending:focusQueue.size,moment:moment?.kind||null,portraits:[...portraits.values()].filter(p=>p.state==='ready').length,portraitCache:portraits.size,imageJobs,score:[...game.scores],receipt:receipt?{kind:receipt.kind,id:receipt.id}:null}),player:id=>{const p=game.player(id);return p?{id:p.id,name:p.name,team:p.team,avatar:!!portrait(p.avatar),energy:p.energy,hp:p.hp,points:p.points,best:p.best,roundWins:p.roundWins,x:p.x,y:p.y,dash:p.dashUntil>game.now}:null;}};
+ root.Wars={version:VERSION,snapshot:()=>({mode,lang,phase:game.phase,round:game.round,connected,players:game.players.size,humans:game.humans().length,rockets:game.rockets.length,fx:fx.length,queued:queue.length+priority.length+likes.size,dropped,renderMs,workMs,fps,targetFps:60,renderWidth:canvas.width,crystals:game.crystals.length,members,hideProfiles,focusId,focusPending:focusQueue.size,moment:moment?.kind||null,camera:{x:cameraX,y:cameraY,zoom:cameraZoom},portraits:[...portraits.values()].filter(p=>p.state==='ready').length,portraitCache:portraits.size,imageJobs,score:[...game.scores],receipt:receipt?{kind:receipt.kind,id:receipt.id}:null}),player:id=>{const p=game.player(id);return p?{id:p.id,name:p.name,team:p.team,avatar:!!portrait(p.avatar),energy:p.energy,hp:p.hp,points:p.points,best:p.best,roundWins:p.roundWins,x:p.x,y:p.y,r:p.r,dash:p.dashUntil>game.now}:null;}};
  requestAnimationFrame(frame);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
