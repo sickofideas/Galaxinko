@@ -4,13 +4,13 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
    New agreed rules: energy, team assignment, saws, rockets, points and respawns.
    Standalone Canvas build; profile images come from incoming viewer events. */
 (function(root){'use strict';
-const VERSION='23.3 TEAM',MAX=500,ROUND=180000,IDLE=300000;
+const VERSION='23.4 TEAM',MAX=500,ROUND=180000,IDLE=300000;
 // Research-informed principles, designer-selected values. See VYVAZENI-23.1.md.
 // Speeds are logical canvas pixels per second, not device/display pixels.
 const BALANCE=Object.freeze({startEnergy:6,respawnMs:3000,spawnShieldMs:3000,
  idleSpeed:32,activeMinSpeed:78,activeMaxSpeed:118,dashSpeed:245,dashMs:360,dashCooldownMs:6000,
- sawDamage:6,sawCooldownMs:750,rocketDamage:10,rocketCooldownMs:2400,rocketSpeed:360,
- damageBurst:24,damagePerSecond:24,feedbackMs:150,targetLockMs:1200});
+ sawDamage:4,sawCooldownMs:900,rocketDamage:8,rocketCooldownMs:2800,rocketSpeed:360,
+ damageBurst:16,damagePerSecond:12,idleArmor:.6,regenDelayMs:5000,regenPerSecond:2,feedbackMs:150,targetLockMs:1200});
 const COL=['#64d9ff','#ff749c'],TEAMS=[['MODŘÍ','ČERVENÍ'],['BLUE','RED']];
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const playBounds=count=>count<=10?{left:250,right:830,top:500,bottom:1240}:count<=20?{left:155,right:925,top:430,bottom:1370}:count<=40?{left:75,right:1005,top:385,bottom:1425}:{left:42,right:1038,top:370,bottom:1450};
@@ -124,7 +124,9 @@ class Arena{
   if(source.team===target.team||source.hp<=0||target.hp<=0||target.protectedUntil>this.now)return 0;
   // The shared budget limits focus fire; ordinary one-on-one hits retain full damage.
   target.damageBudget=Math.min(BALANCE.damageBurst,target.damageBudget+Math.max(0,this.now-target.damageAt)*BALANCE.damagePerSecond/1000);target.damageAt=this.now;
-  const hit=Math.min(target.hp,base,target.damageBudget);if(hit<base)target.guardUntil=this.now+180;
+  // An uncharged player cannot fight, but receives 40% damage reduction so a
+  // passive viewer remains present long enough to understand and rejoin play.
+  const effective=base*(target.energy<=0?BALANCE.idleArmor:1),hit=Math.min(target.hp,effective,target.damageBudget);if(hit<effective)target.guardUntil=this.now+180;
   if(hit<=0)return 0;target.damageBudget-=hit;target.hp-=hit;target.hitAt=this.now;
   this.addPoints(source,hit*.05);this.emit({kind:'hit',id:target.id,x:target.x,y:target.y,team:source.team,amount:hit,weapon:kind});
   if(target.hp<=0){target.hp=0;target.respawn=this.now+BALANCE.respawnMs;target.energy=0;source.kills++;this.addPoints(source,3);this.emit({kind:'down',id:target.id,name:target.name,team:target.team,x:target.x,y:target.y});}
@@ -163,6 +165,7 @@ class Arena{
    if(p.bot&&now>=p.tokenAt){p.tokenAt=now+4000+(hash(p.id+Math.floor(now/4000))%6000);if(hash(p.id+Math.floor(now/6000))%3)p.energy=Math.min(20,p.energy+6);}
    const before=p.energy;p.energy=Math.max(0,p.energy-dt);
    if(before>0)this.addPoints(p,Math.min(dt,before)*2);
+   if(p.hp<100&&now-p.hitAt>=BALANCE.regenDelayMs)p.hp=Math.min(100,p.hp+BALANCE.regenPerSecond*dt);
    // Energy is also visible as physical growth: full charge reaches 1.55x base size.
    p.r+=(this.radius*(1+p.energy/20*.55)-p.r)*Math.min(1,dt*4.5);
    if(now>=p.thinkAt){p.thinkAt=now+400+hash(p.id)%160;const current=this.players.get(p.target);if(p.energy<=0)p.target=null;else if(!current||current.hp<=0||current.protectedUntil>now||now>=p.targetLockUntil){const chosen=this.targetFor(p)?.id;if(chosen!==p.target){p.target=chosen;p.targetLockUntil=now+BALANCE.targetLockMs;}}}
@@ -317,7 +320,7 @@ function rotorArt(teamIndex,teeth=true){
  const disc=(r,fill,stroke,width=1)=>{g.beginPath();g.arc(0,0,r,0,Math.PI*2);if(fill){g.fillStyle=fill;g.fill();}if(stroke){g.strokeStyle=stroke;g.lineWidth=width;g.stroke();}};
  if(teeth){
   const steel=g.createLinearGradient(-130,-130,125,125);steel.addColorStop(0,'#f0faff');steel.addColorStop(.25,'#627f9e');steel.addColorStop(.48,'#1a2d42');steel.addColorStop(.75,'#88a2ba');steel.addColorStop(1,'#e0f3ff');
-  for(let k=0;k<16;k++){g.save();g.rotate(k*Math.PI/8);g.beginPath();g.moveTo(88,-14);g.lineTo(116,-22);g.lineTo(141,-7);g.lineTo(126,-4);g.lineTo(110,12);g.lineTo(88,16);g.closePath();g.fillStyle=steel;g.fill();g.strokeStyle='#071525';g.lineWidth=2;g.stroke();
+  for(let k=0;k<16;k++){g.save();g.rotate(k*Math.PI/8);g.beginPath();g.moveTo(88,-14);g.lineTo(116,-22);g.lineTo(141,-7);g.lineTo(126,-4);g.lineTo(110,12);g.lineTo(88,16);g.closePath();g.fillStyle=steel;g.fill();g.globalAlpha=.52;g.fillStyle=col;g.fill();g.globalAlpha=1;g.strokeStyle='#071525';g.lineWidth=2;g.stroke();
    g.beginPath();g.moveTo(116,-19);g.lineTo(134,-8);g.lineTo(121,-5);g.strokeStyle=col;g.lineWidth=3;g.stroke();g.restore();}
  }
  const metal=g.createLinearGradient(-100,-100,90,100);metal.addColorStop(0,'#b9d2e8');metal.addColorStop(.13,'#2e4c67');metal.addColorStop(.43,'#101d2e');metal.addColorStop(.85,'#35516c');metal.addColorStop(1,'#7496b1');
@@ -389,8 +392,8 @@ function orb(p,t,showName){
  // A broad team halo stays readable even when portraits and saws overlap.
  c.save();c.globalAlpha=active?.4:.26;circle(0,0,r*1.43,null,teamCol,Math.max(4,r*.14));c.restore();
  if(active&&(game.players.size<80||p.id===focusId||dashing))c.drawImage(lightArt(p.team),-r*2,-r*2,r*4,r*4);
- if(active){c.save();c.rotate(t*(dashing?.009:p.energy>10?.004:.0018)*(p.team?1:-1));c.drawImage(rotorLod(p.bot?-1:p.team,true,r),-r*1.52,-r*1.52,r*3.04,r*3.04);c.restore();}
- else c.drawImage(rotorLod(p.bot?-1:p.team,false,r),-r*1.52,-r*1.52,r*3.04,r*3.04);
+ if(active){c.save();c.rotate(t*(dashing?.009:p.energy>10?.004:.0018)*(p.team?1:-1));c.drawImage(rotorLod(p.team,true,r),-r*1.52,-r*1.52,r*3.04,r*3.04);c.restore();}
+ else c.drawImage(rotorLod(p.team,false,r),-r*1.52,-r*1.52,r*3.04,r*3.04);
  face(p,0,0,r*.78);
  // A reflective edge keeps the portrait recessed inside the machined hub.
  if(game.players.size<=120){circle(0,0,r*.8,null,'#c0d9ea',1);circle(0,0,r*.85,null,'#081724',3);}
