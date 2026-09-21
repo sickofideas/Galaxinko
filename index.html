@@ -480,8 +480,7 @@ function render(t){
   }else cameraZoom+=(1-cameraZoom)*.08;
   c.translate(540,920);c.scale(cameraZoom,cameraZoom);c.translate(-cameraX,-cameraY);
    for(const zone of game.zones)zoneArt(zone,t);bossWarnings(t);bossArt(t,players);for(const gem of game.crystals)crystalArt(gem,t);
-  // Short trails describe real movement; storage stays bounded to six positions.
-  c.save();c.lineCap='round';for(const p of players)if(p.hp>0&&(players.length<=80||names.has(p.id))&&(p.energy>10||t<p.dashUntil)){const tail=p.trail;for(let i=1;i<tail.length;i++){c.globalAlpha=.08+i*.045;c.strokeStyle=COL[p.team];c.lineWidth=Math.max(2,p.r*.22);c.beginPath();c.moveTo(tail[i-1].x,tail[i-1].y);c.lineTo(tail[i].x,tail[i].y);c.stroke();}}c.restore();
+  // No translucent movement trails: keyed Minecraft edges stay clean in OBS.
    for(const p of players)orb(p,t,names.has(p.id));orbLabels(players,names);
   if(observed&&observed.hp>0){const d=observed.r+27; c.save();c.translate(observed.x,observed.y);c.strokeStyle='#fff4d0';c.lineWidth=2.5;for(const sx of [-1,1])for(const sy of [-1,1]){c.beginPath();c.moveTo(sx*(d-9),sy*d);c.lineTo(sx*d,sy*d);c.lineTo(sx*d,sy*(d-9));c.stroke();}c.restore();}
   for(const r of game.rockets)bolt(r,t);
@@ -523,20 +522,14 @@ function render(t){
  if(joinSplash&&game.phase==='playing'){const age=(t-joinSplash.at)/1200,alpha=Math.min(1,age*10,(1-age)*7),p=game.player(joinSplash.id);if(p){const col=COL[p.team],joinTeam=p.team?L('JSI ČERVENÝ','YOU ARE RED'):L('JSI MODRÝ','YOU ARE BLUE');c.save();c.globalAlpha=alpha;glass(155,360,770,148,col);c.save();c.translate(232,434);c.drawImage(rotorArt(p.team,true),-64,-64,128,128);circle(0,0,45,TOY.cream,TOY.ink,6);face(p,0,0,39);c.restore();text(displayName(p),310,405,31,col,'left',500);ribbon(535,462,450,44,col,joinTeam,19);heart(790,431,24,TOY.gold);c.restore();}}
  if(countdownUntil){const n=Math.max(0,Math.ceil((countdownUntil-t)/1000));c.save();circle(540,900,150,TOY.hud,TOY.gold,10);text(n||L('START','GO'),540,900,n?112:54,TOY.gold);c.restore();}
  if(game.phase==='results'){
-  const r=game.result,age=Math.max(0,(t-r.at)/1000),winCol=r.winner<0?'#ffdc91':COL[r.winner];
-  for(let k=0;k<12;k++){const h=hash('confetti'+k),x=80+h%920,y=390+((h%850)+age*(28+h%24))%1000;c.save();c.translate(x,y);c.rotate(k+age*.7);starPath(c,5,13,6);c.fillStyle=k%3?TOY.gold:winCol;c.fill();c.strokeStyle=TOY.ink;c.lineWidth=3;c.stroke();c.restore();}
-  text(L('KONEC KOLA','ROUND COMPLETE'),540,494,23,'#d4e4f4');
-  text(r.winner<0?L('REMÍZA','DRAW'):team(r.winner)+L(' VÍTĚZÍ',' WIN'),540,567,55,winCol);
-  text(r.scores.join(' : '),540,649,49);
-  // Podium uses the actual top players, including their own profile images.
-  r.top.forEach((p,i)=>{const x=[540,265,815][i],y=[852,937,979][i],radius=i?62:84;
-   circle(x,y,radius+10,null,i?'#b9d0e6':'#ffdf98',3);face(p,x,y,radius);text(i+1,x,y+radius+36,28,'#ffdf98');
-   text(displayName(p),x,y+radius+79,24,COL[p.team],'center',240);text('★ '+p.points,x,y+radius+120,29,'#ffdf98');
-   if(i===0){c.save();c.translate(x,y-radius-55);polygon([[-31,20],[-39,-17],[-15,-2],[0,-32],[15,-2],[39,-17],[31,20]],'#ffdf98','#96764b');c.restore();}
-  });
-  text(L('DALŠÍ KOLO ZA ','NEXT ROUND IN ')+seconds+'s',540,1325,27,'#ffdf94');
-  text(L('VÍTĚZNÁ KOLA','ROUNDS WON')+'  '+game.wins.join(' : '),540,1390,21,'#d9e7f5');
-  return; // No combat/energy status while the round is paused on results.
+  const r=game.result,age=Math.max(0,(t-r.at)/1000),winCol=r.winner<0?TOY.gold:COL[r.winner],winner=r.winner<0?L('REMÍZA','DRAW'):team(r.winner)+L(' VÍTĚZÍ',' WIN');
+  glass(80,380,920,1045,winCol);ribbon(540,448,700,78,winCol,winner,40);
+  text(L('KONEC KOLA','ROUND COMPLETE'),540,511,20,TOY.gold);text(r.scores.join('  :  '),540,574,64,TOY.cream);
+  const cards=[{x:540,y:820,w:300,h:440,r:84,accent:TOY.gold},{x:235,y:875,w:235,h:350,r:58,accent:'#C9D8E8'},{x:845,y:875,w:235,h:350,r:58,accent:'#D88A55'}];
+  r.top.slice(0,3).forEach((p,i)=>{const q=cards[i];glass(q.x-q.w/2,q.y-q.h/2,q.w,q.h,q.accent);ribbon(q.x,q.y-q.h/2+49,i?82:106,42,q.accent,String(i+1),22);circle(q.x,q.y-48,q.r+10,TOY.cream,TOY.ink,7);face(p,q.x,q.y-48,q.r);circle(q.x,q.y-48,q.r+2,null,COL[p.team],6);text(displayName(p),q.x,q.y+70,i?20:27,COL[p.team],'center',q.w-28);ribbon(q.x,q.y+126,q.w-48,48,TOY.gold,'★ '+Math.floor(p.points),22);if(i===0){c.save();c.translate(q.x,q.y-q.h/2-18);polygon([[-31,20],[-39,-17],[-15,-2],[0,-32],[15,-2],[39,-17],[31,20]],TOY.gold,TOY.ink,6);c.restore();}});
+  for(let k=0;k<12;k++){const h=hash('confetti'+k),x=120+h%840,y=430+((h%820)+age*(24+h%18))%850;c.save();c.translate(x,y);c.rotate(k+age*.7);starPath(c,5,11,5);c.fillStyle=k%3?TOY.gold:winCol;c.fill();c.strokeStyle=TOY.ink;c.lineWidth=3;c.stroke();c.restore();}
+  ribbon(540,1289,590,62,TOY.gold,L('DALŠÍ KOLO ZA ','NEXT ROUND IN ')+seconds+'s',25);ribbon(540,1360,470,48,TOY.hud,L('VÍTĚZNÁ KOLA','ROUNDS WON')+'  '+game.wins.join(' : '),19);
+  return;
  }
  if(showBottom){glass(72,1536,936,211,observed?COL[observed.team]:TOY.gold);
  if(observed){
