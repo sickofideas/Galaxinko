@@ -1,8 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 27.1</title><style>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 27.2</title><style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:"Trebuchet MS",Arial,sans-serif}#game-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}canvas{display:block;width:min(100vw,56.25vh);height:min(100vh,177.777778vw);aspect-ratio:9/16}#panel{position:fixed;z-index:5;inset:12px auto auto 12px;max-width:min(780px,92vw);max-height:90vh;overflow:auto;padding:18px;background:#101326;color:#fff;border:5px solid #ffd45c;border-radius:20px}#panel[hidden]{display:none}button,input{padding:9px;margin:4px;border-radius:11px;background:#24304e;color:#fff;border:3px solid #ffd45c;font:700 15px Arial,sans-serif}button{cursor:pointer}input{width:300px;max-width:70vw}
-</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 27.1</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 500</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
+</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 27.2</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 500</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
   'use strict';
-  const VERSION='27.1', MAX=600, GREEN='#00ff00', BLUE='#39c9ff', RED='#ff547b', INK='#101326', GOLD='#ffd45c';
+  const VERSION='27.2', MAX=600, GREEN='#00ff00', BLUE='#39c9ff', RED='#ff547b', INK='#101326', GOLD='#ffd45c';
   const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const orbRadius=n=>n>700?10:n>500?13:n>300?17:n>120?22:n>50?27:n>12?42:52;
   const physicalRadius=n=>orbRadius(n)+(n<=50?21:0);
@@ -213,6 +213,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     }catch{if(!closed)retry=setTimeout(connect,30000);}
   }
   const rounded=(x,y,w,h,r,fill,stroke=INK,line=7)=>{c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();if(line){c.lineWidth=line;c.strokeStyle=stroke;c.stroke();}};
+  function hudFinish(t){
+    c.save();c.beginPath();c.roundRect(48,43,984,220,27);c.clip();
+    let seed=(Math.floor(t/500)+1)*2654435761>>>0;
+    c.fillStyle='#fff8e7';c.globalAlpha=.055;
+    for(let i=0;i<140;i++){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;const x=52+(seed>>>0)%976;seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;const y=46+(seed>>>0)%211;c.fillRect(x,y,1+(i%3===0),1+(i%4===0));}
+    c.restore();
+    // Exact chroma cutouts show the keyed background without translucent green fringes.
+    rounded(76,105,182,8,4,GREEN,GREEN,0);rounded(822,105,182,8,4,GREEN,GREEN,0);
+    rounded(91,253,206,7,3,GREEN,GREEN,0);rounded(783,253,206,7,3,GREEN,GREEN,0);
+  }
   function label(s,x,y,size=28,color='#fff',align='center',width=900){c.font=`900 ${size}px "Trebuchet MS",Arial,sans-serif`;c.textAlign=align;c.textBaseline='middle';c.lineWidth=Math.max(4,size*.15);c.lineJoin='round';c.strokeStyle=INK;let value=String(s);while(value.length&&c.measureText(value).width>width)value=Array.from(value).slice(0,-1).join('');c.strokeText(value,x,y);c.fillStyle=color;c.fillText(value,x,y);}
   function ring(x,y,r,fill,stroke=INK,w=8){c.beginPath();c.arc(x,y,r,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.lineWidth=w;c.strokeStyle=stroke;c.stroke();}}
   function bar(x,y,w,h,f,color){rounded(x,y,w,h,h/2,INK,INK,4);if(f>0)rounded(x+3,y+3,Math.max(4,(w-6)*clamp(f,0,1)),h-6,h/2,color,color,0);}
@@ -250,7 +260,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     fx=fx.filter(f=>t-f.at<1000);for(const f of fx){const a=(t-f.at)/1000;if(f.kind==='hit'){const x=f.x,y=f.y;ring(x,y,118+a*80,null,f.team?RED:BLUE,7);if(a<.65)label('-'+Math.ceil(f.damage),x,y-130-a*90,37,GOLD);}
       if(f.kind==='charge'&&f.p){ring(f.p.x,f.p.y,46+a*46,null,GOLD,5);if(a<.6&&f.grant>0)label('+'+Math.ceil(f.grant),f.p.x,f.p.y-72-a*40,24,GOLD);}
     }c.restore();
-    rounded(40,35,1000,236,34,INK,GOLD,8);label('GALAXINKO WARS',540,79,36,GOLD);
+    rounded(40,35,1000,236,34,INK,GOLD,8);hudFinish(t);label('GALAXINKO WARS',540,79,36,GOLD);
     const teamCounts=[0,0];for(const p of battle.players.values())teamCounts[p.team]++;
     label('BLUE · '+teamCounts[0],220,148,30,BLUE);label('RED · '+teamCounts[1],860,148,30,RED);label(Math.ceil(battle.hp[0])+'',220,199,44,'#fff');label(Math.ceil(battle.hp[1])+'',860,199,44,'#fff');
     bar(340,172,400,30,battle.hp[0]/battle.maxHp,BLUE);bar(340,214,400,30,battle.hp[1]/battle.maxHp,RED);
