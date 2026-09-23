@@ -1,8 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 27.5</title><style>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 27.6</title><style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:"Trebuchet MS",Arial,sans-serif}#game-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}canvas{display:block;width:min(100vw,56.25vh);height:min(100vh,177.777778vw);aspect-ratio:9/16}#panel{position:fixed;z-index:5;inset:12px auto auto 12px;max-width:min(780px,92vw);max-height:90vh;overflow:auto;padding:18px;background:#101326;color:#fff;border:5px solid #ffd45c;border-radius:20px}#panel[hidden]{display:none}button,input{padding:9px;margin:4px;border-radius:11px;background:#24304e;color:#fff;border:3px solid #ffd45c;font:700 15px Arial,sans-serif}button{cursor:pointer}input{width:300px;max-width:70vw}
-</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 27.5</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 500</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
+</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 27.6</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 500</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
   'use strict';
-  const VERSION='27.5', MAX=600, GREEN='#00ff00', BLUE='#39c9ff', RED='#ff547b', INK='#101326', GOLD='#ffd45c';
+  const VERSION='27.6', MAX=600, GREEN='#00ff00', BLUE='#39c9ff', RED='#ff547b', INK='#101326', GOLD='#ffd45c';
   const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const orbRadius=n=>n>700?10:n>500?13:n>300?17:n>120?22:n>24?27:n>8?42:52;
   const physicalRadius=n=>orbRadius(n)+(n<=24?21:n<=50?19:0);
@@ -264,19 +264,26 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   function bar(x,y,w,h,f,color){rounded(x,y,w,h,h/2,INK,INK,4);if(f>0)rounded(x+3,y+3,Math.max(4,(w-6)*clamp(f,0,1)),h-6,h/2,color,color,0);}
   function avatar(p,x,y,r,tilt=0){const image=p.avatar&&pics.get(p.avatar)?.img,line=Math.min(7,Math.max(2,r*.35)),inner=Math.max(2,r-line);ring(x,y,r,INK,INK,line);if(image){c.save();c.beginPath();c.arc(x,y,inner,0,Math.PI*2);c.clip();c.translate(x,y);c.rotate(tilt);c.drawImage(image,-inner,-inner,inner*2,inner*2);c.restore();}else{ring(x,y,inner,p.bot?'#ffd86b':p.team?RED:BLUE,null,0);if(r>=11)label(p.bot?'◆':p.name.slice(0,1).toUpperCase(),x,y+2,r*.75,INK);}ring(x,y,r,null,p.team?RED:BLUE,line);}
   function star(x,y,r,color,angle=0){c.save();c.translate(x,y);c.rotate(angle);c.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8-Math.PI/2,rr=i%2?r*.69:r;c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}c.closePath();c.fillStyle=color;c.fill();c.strokeStyle=INK;c.lineWidth=8;c.stroke();c.restore();}
-  function core(team,t){const b=battle.cores[team],x=b.drawX??b.x,y=b.drawY??b.y,col=team?RED:BLUE,f=battle.hp[team]/battle.maxHp,hit=t-b.hitAt<220;
-    star(x,y,119,INK,t*.0004*(team?-1:1));
+  function core(team,t){const b=battle.cores[team],x=b.drawX??b.x,y=b.drawY??b.y,col=team?RED:BLUE,light=team?'#ffafc3':'#a4edff',f=clamp(battle.hp[team]/battle.maxHp,0,1),hit=t-b.hitAt<210,phase=t*.00026*(team?-1:1);
+    // The solid silhouette stays inside the existing collision clearance.
+    star(x,y,137,INK,phase);
+    ring(x,y,106,INK,INK,8);
     const armorOrder=[0,7,3,10,5,1,9,4,11,6,2,8],armorLeft=Math.max(0,Math.ceil(f*12));
-    for(let i=0;i<12;i++)if(armorOrder[i]<armorLeft){const a=i*Math.PI/6-Math.PI/2+.045,z=a+Math.PI/6-.09;
-      c.beginPath();c.moveTo(x+Math.cos(a)*88,y+Math.sin(a)*88);c.lineTo(x+Math.cos(a)*119,y+Math.sin(a)*119);c.lineTo(x+Math.cos(z)*119,y+Math.sin(z)*119);c.lineTo(x+Math.cos(z)*88,y+Math.sin(z)*88);c.closePath();c.fillStyle=i%3===0?GOLD:col;c.fill();c.lineWidth=5;c.strokeStyle=INK;c.stroke();}
-    ring(x,y,84,INK,INK,7);ring(x,y,77,col,INK,7);ring(x,y,60,hit?'#fff2b6':'#fff8e7',INK,7);
-    const look=team?-7:7;ring(x-25,y-14,15,'#fff',INK,4);ring(x+25,y-14,15,'#fff',INK,4);
-    ring(x-25+look,y-12,6,INK,null,0);ring(x+25+look,y-12,6,INK,null,0);
-    c.beginPath();c.moveTo(x-47,y-43);c.lineTo(x-8,y-29);c.moveTo(x+47,y-43);c.lineTo(x+8,y-29);c.lineWidth=8;c.strokeStyle=INK;c.stroke();
-    rounded(x-36,y+17,72,38,13,INK,INK,0);for(const dx of [-21,0,21]){c.beginPath();c.moveTo(x+dx-9,y+18);c.lineTo(x+dx,y+34);c.lineTo(x+dx+9,y+18);c.fillStyle='#fff8e7';c.fill();}
-    ring(x-55,y-79,12,GOLD,INK,5);ring(x+55,y-79,12,GOLD,INK,5);
-    if(f<.72){c.beginPath();c.moveTo(x-58,y-45);c.lineTo(x-39,y-35);c.lineTo(x-46,y-16);if(f<.38){c.moveTo(x+42,y+28);c.lineTo(x+25,y+41);c.lineTo(x+33,y+56);}c.strokeStyle=INK;c.lineWidth=6;c.stroke();}
-    ring(x-78,y-48,9,GOLD,INK,4);ring(x+78,y-48,9,GOLD,INK,4);
+    for(let i=0;i<12;i++)if(armorOrder[i]<armorLeft){const a=phase+i*Math.PI/6-Math.PI/2+.055,z=a+Math.PI/6-.11,m=(a+z)/2,point=(r,v)=>[x+Math.cos(v)*r,y+Math.sin(v)*r];
+      c.beginPath();for(const [r,v]of [[94,a],[132,a],[137,m],[132,z],[94,z]]){const [px,py]=point(r,v);c.lineTo(px,py);}c.closePath();c.fillStyle=i%4===0?GOLD:col;c.fill();c.lineWidth=6;c.strokeStyle=INK;c.stroke();
+      c.beginPath();for(const [r,v]of [[109,a+.04],[129,a+.04],[132,m],[129,z-.04],[109,z-.04]]){const [px,py]=point(r,v);c.lineTo(px,py);}c.closePath();c.fillStyle=i%4===0?'#fff1ac':light;c.fill();
+      const [rx,ry]=point(112,m);ring(rx,ry,4,INK,null,0);
+    }
+    ring(x,y,94,INK,INK,8);ring(x,y,84,col,INK,8);
+    ring(x,y,71,hit?'#fff2a1':'#fff8e7',INK,8);
+    if(f<.72){c.beginPath();c.moveTo(x-57,y-38);c.lineTo(x-37,y-29);c.lineTo(x-47,y-8);if(f<.38){c.moveTo(x+48,y+25);c.lineTo(x+26,y+42);c.lineTo(x+37,y+55);}c.strokeStyle=INK;c.lineWidth=7;c.lineCap='round';c.stroke();}
+    const look=clamp((b.goalX-b.x)/65,-1,1)*7;
+    for(const side of [-1,1]){const ex=x+side*29;ring(ex,y-15,18,'#fff',INK,5);ring(ex+look,y-12,8,INK,null,0);ring(ex+look-2,y-15,3,'#fff',null,0);}
+    c.beginPath();c.moveTo(x-57,y-50);c.lineTo(x-14,y-34);c.moveTo(x+57,y-50);c.lineTo(x+14,y-34);c.lineWidth=9;c.lineCap='round';c.strokeStyle=INK;c.stroke();
+    c.beginPath();c.moveTo(x-43,y+16);c.quadraticCurveTo(x,y+12,x+43,y+16);c.lineTo(x+36,y+53);c.quadraticCurveTo(x,y+64,x-36,y+53);c.closePath();c.fillStyle=INK;c.fill();
+    for(const dx of [-25,0,25]){c.beginPath();c.moveTo(x+dx-11,y+18);c.lineTo(x+dx,y+36);c.lineTo(x+dx+11,y+18);c.closePath();c.fillStyle='#fff8e7';c.fill();}
+    for(const dx of [-14,14]){c.beginPath();c.moveTo(x+dx-9,y+54);c.lineTo(x+dx,y+43);c.lineTo(x+dx+9,y+54);c.closePath();c.fillStyle='#fff8e7';c.fill();}
+    for(const side of [-1,1]){c.beginPath();c.moveTo(x+side*48,y-72);c.lineTo(x+side*67,y-105);c.lineTo(x+side*75,y-56);c.closePath();c.fillStyle=GOLD;c.fill();c.lineWidth=6;c.strokeStyle=INK;c.stroke();ring(x+side*75,y-41,8,GOLD,INK,4);}
   }
   function avatarTilt(p,t){return t*.00075+(hash(p.id)%628)/100;}
   function orb(p,t,showName){const n=battle.players.size,r=orbRadius(n),dense=n>50,visualR=n>300?r-4:dense?r-3:r,charged=p.energy>=10||t<p.boostUntil,highlight=p.id===focus&&t<focusAt,x=p.drawX??p.x,y=p.drawY??p.y;
@@ -293,7 +300,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
       c.beginPath();c.moveTo(27,0);c.lineTo(-13,-15);c.lineTo(-7,0);c.lineTo(-13,15);c.closePath();c.fillStyle=r.deflected?GOLD:col;c.fill();c.lineWidth=6;c.strokeStyle=INK;c.stroke();
       ring(1,0,7,'#fff8e7',INK,3);}
     c.restore();}
-  function cannon(team,t){const core=battle.cores[team],x=(core.drawX??core.x)+(team?-140:140),y=core.drawY??core.y,col=team?RED:BLUE;ring(x,y,35,INK,col,8);c.save();c.translate(x,y);c.rotate(Math.sin(t*.0015)*.2+(team?Math.PI:0));rounded(-8,-30,16,60,6,GOLD,INK,5);c.restore();ring(x,y,13,GOLD,INK,5);label('AUTO',x,y+63,17,GOLD);}
+  function cannon(team,t){const core=battle.cores[team],x=(core.drawX??core.x)+(team?-143:143),y=(core.drawY??core.y)+31,col=team?RED:BLUE;rounded(x+(team?0:-25),y-15,25,30,7,INK,INK,0);ring(x,y,34,INK,col,8);c.save();c.translate(x,y);c.rotate(Math.sin(t*.002)*.18+(team?Math.PI:0));rounded(-10,-31,20,53,7,GOLD,INK,5);rounded(-6,-27,12,15,3,'#fff8e7',INK,2);c.restore();ring(x,y,12,col,INK,5);}
   function draw(t,alpha=1){const start=performance.now();alpha=clamp(alpha,0,1);for(const core of battle.cores){core.drawX=(core.prevX??core.x)+(core.x-(core.prevX??core.x))*alpha;core.drawY=(core.prevY??core.y)+(core.y-(core.prevY??core.y))*alpha;}for(const p of battle.players.values()){const a=battle.phase==='playing'?alpha:1;p.drawX=(p.prevX??p.x)+(p.x-(p.prevX??p.x))*a;p.drawY=(p.prevY??p.y)+(p.y-(p.prevY??p.y))*a;}c.fillStyle=dark?'#10172d':GREEN;c.fillRect(0,0,1080,1920);
     // Chroma green is deliberately kept over the entire court for the existing OBS key.
     c.lineWidth=18;c.strokeStyle=INK;c.strokeRect(17,307,1046,1198);c.lineWidth=8;c.strokeStyle=GOLD;c.strokeRect(27,317,1026,1178);
