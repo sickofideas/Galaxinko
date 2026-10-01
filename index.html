@@ -1,8 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 32.9</title><style>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 32.10</title><style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:"Trebuchet MS",Arial,sans-serif}#game-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}canvas{display:block;width:min(100vw,56.25vh);height:min(100vh,177.777778vw);aspect-ratio:9/16}#panel{position:fixed;z-index:5;inset:12px auto auto 12px;max-width:min(780px,92vw);max-height:90vh;overflow:auto;padding:18px;background:#101326;color:#fff;border:5px solid #ffd45c;border-radius:20px}#panel[hidden]{display:none}button,input{padding:9px;margin:4px;border-radius:11px;background:#24304e;color:#fff;border:3px solid #ffd45c;font:700 15px Arial,sans-serif}button{cursor:pointer}input{width:300px;max-width:70vw}
-</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 32.9</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button><button id="sfx">SFX ON</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">1 ♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 50</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
+</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 32.10</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button><button id="sfx">SFX ON</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">1 ♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 50</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
   'use strict';
-  const VERSION='32.9', MAX=600, GREEN='#00ff00', BLUE='#42dbff', RED='#ff4b94', INK='#080d20', GOLD='#ffd36e', WHITE='#eefbff', VIOLET='#ab83ff';
+  const VERSION='32.10', MAX=600, GREEN='#00ff00', BLUE='#42dbff', RED='#ff4b94', INK='#080d20', GOLD='#ffd36e', WHITE='#eefbff', VIOLET='#ab83ff';
   const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const targetRadius=n=>n>700?10:n>500?13:n>300?17:n>120?22:n>24?27:n>8?42:52;
   const courtSize={radius:52,extra:21};
@@ -408,10 +408,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     state.previous=target;if(target===0)state.ghost=0;else if(t>state.hold)state.ghost+=(target-state.ghost)*.08;
     label(team?'RED CORE':'BLUE CORE',x+2,160,29,col,'left',270);label(Math.round(target*100)+'%',x+w-2,160,29,WHITE,'right',120);
     label(Math.ceil(battle.hp[team])+' / '+battle.maxHp+' HP',x+2,196,34,WHITE,'left',w);
-    const pulse=hudPulse[team],flash=pulse&&t-(pulse.lastAt??pulse.at)<180;rounded(x,219,w,33,7,INK,flash?(pulse.kind==='heal'?WHITE:GOLD):col,3);const inner=w-10;
-    if(state.ghost>target+.001)rounded(x+5,224,Math.max(2,inner*state.ghost),23,4,GOLD,GOLD,0);
-    if(target>0){rounded(x+5,224,Math.max(2,inner*target),23,4,col,col,0);beam(x+7,228,x+Math.max(7,inner*target),228,WHITE,2,false);}
-    c.strokeStyle=INK;c.lineWidth=3;for(let i=1;i<10;i++){c.beginPath();c.moveTo(x+5+inner*i/10,224);c.lineTo(x+5+inner*i/10,247);c.stroke();}
+    const pulse=hudPulse[team],flash=pulse&&t-(pulse.lastAt??pulse.at)<180,barX=x+(team?70:0),barWidth=w-70;rounded(barX,219,barWidth,33,7,INK,flash?(pulse.kind==='heal'?WHITE:GOLD):col,3);const inner=barWidth-10;
+    if(state.ghost>target+.001)rounded(barX+5,224,Math.max(2,inner*state.ghost),23,4,GOLD,GOLD,0);
+    if(target>0){rounded(barX+5,224,Math.max(2,inner*target),23,4,col,col,0);beam(barX+7,228,barX+Math.max(7,inner*target),228,WHITE,2,false);}
+    c.strokeStyle=INK;c.lineWidth=3;for(let i=1;i<10;i++){c.beginPath();c.moveTo(barX+5+inner*i/10,224);c.lineTo(barX+5+inner*i/10,247);c.stroke();}
     label(pilots+' '+(pilots===1?'PILOT':'PILOTS'),x+3,275,21,col,'left',200);hudImpact(team,t,x+w-2,275);
   }
   function hudImpact(team,t,x,y){const pulse=hudPulse[team];if(!pulse)return;const age=t-(pulse.lastAt??pulse.at);if(age<0||age>1000)return;const heal=pulse.kind==='heal',col=heal?BLUE:GOLD;
@@ -564,7 +564,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     for(let i=0;i<7;i++){const a=i*Math.PI*2/7+t*.0003,dist=r*(.75+(i%2)*.15),size=2+Math.sin(t*.003+i)**2*2;ring(Math.cos(a)*dist,Math.sin(a)*dist*.75,size,rebuild>0?col:GOLD,INK,2);}
     c.restore();
   }
-  function scoreHud(t){label(battle.wins[0],514,43,42,BLUE,'right',180);label('vs',540,43,23,WHITE,'center',40);label(battle.wins[1],566,43,42,RED,'left',180);
+  function scoreHud(t){c.font='700 36px "Bahnschrift","Segoe UI",Arial,sans-serif';const scoreSize=Math.min(36,36*76/Math.max(1,...battle.wins.map(n=>c.measureText(String(n)).width)));label(battle.wins[0],520,235,scoreSize,BLUE,'right',78);label('vs',540,235,18,WHITE,'center',32);label(battle.wins[1],560,235,scoreSize,RED,'left',78);
     const last=battle.history.slice(-5);for(let i=0;i<last.length;i++){const result=last[i],x=130+i*205,col=result.winner===0?BLUE:result.winner===1?RED:WHITE;label('#'+result.round+' '+(result.winner===0?'BLUE':result.winner===1?'RED':'DRAW'),x,299,18,col,'center',185);}
   }
   function drawCollapse(t){const wave=battle.collapse;if(!wave)return;const age=(t-wave.at)/1000;if(age<0)return;const col=wave.team?RED:BLUE;
