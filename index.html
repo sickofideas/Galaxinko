@@ -1,8 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 32.11</title><style>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 32.12</title><style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:"Trebuchet MS",Arial,sans-serif}#game-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}canvas{display:block;width:min(100vw,56.25vh);height:min(100vh,177.777778vw);aspect-ratio:9/16}#panel{position:fixed;z-index:5;inset:12px auto auto 12px;max-width:min(780px,92vw);max-height:90vh;overflow:auto;padding:18px;background:#101326;color:#fff;border:5px solid #ffd45c;border-radius:20px}#panel[hidden]{display:none}button,input{padding:9px;margin:4px;border-radius:11px;background:#24304e;color:#fff;border:3px solid #ffd45c;font:700 15px Arial,sans-serif}button{cursor:pointer}input{width:300px;max-width:70vw}
-</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 32.11</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button><button id="sfx">SFX ON</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">1 ♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 50</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
+</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 32.12</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button><button id="sfx">SFX ON</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">1 ♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 50</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
   'use strict';
-  const VERSION='32.11', MAX=600, GREEN='#00ff00', BLUE='#42dbff', RED='#ff4b94', INK='#080d20', GOLD='#ffd36e', WHITE='#eefbff', VIOLET='#ab83ff';
+  const VERSION='32.12', MAX=600, GREEN='#00ff00', BLUE='#42dbff', RED='#ff4b94', INK='#080d20', GOLD='#ffd36e', WHITE='#eefbff', VIOLET='#ab83ff';
   const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const targetRadius=n=>n>700?10:n>500?13:n>300?17:n>120?22:n>24?27:n>8?42:52;
   const courtSize={radius:52,extra:21};
@@ -26,7 +26,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   const SHIPS=['VECTOR','MANTA','HALO','NOVA','WRAITH'];
   const shipModel=p=>hash(p.id+':hull')%SHIPS.length;
   const BOLT_SPEED=720;
-  const AIM_ASSIST=.32,COURT_VIEW={scale:.77,top:530};
+  const AIM_ASSIST=.32,ARENA={left:27,right:1053,top:530,bottom:1510};
   const comboGoal=p=>p.aimStreak<3?{hits:3,power:2}:p.aimStreak<6?{hits:6,power:3}:{hits:10,power:4};
   const earn=(p,badge)=>{if(p&&!p.bot){p.badges??=new Set();p.badges.add(badge);}};
   const pilotTitle=p=>p.badges?.has('BREAKER')?'BREAKER':p.badges?.has('ACE')?'ACE':p.badges?.has('DONOR')?'DONOR':p.badges?.has('MEDIC')?'MEDIC':p.badges?.has('BOMBER')?'BOMBER':p.badges?.has('FIRST HIT')?'FIRST HIT':'ROOKIE';
@@ -34,7 +34,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   const aimAngle=(p,t)=>(p.aimPhase??(hash(p.id)%628)/100)+clamp(t-(p.spinAt??t),0,50)*.00095*(p.spinRate??1)*(1+(p.spinBoost||0));
   function aimReady(p,t){const boss=battle.cores[1-p.team],dx=boss.x-p.x,dy=boss.y-p.y,d=Math.hypot(dx,dy)||1,wanted=Math.atan2(dy,dx),gap=Math.abs(Math.atan2(Math.sin(wanted-aimAngle(p,t)),Math.cos(wanted-aimAngle(p,t))));return gap<=Math.asin(Math.min(.95,(battle.coreRadius(1-p.team)+13)/d))+AIM_ASSIST;}
   function projectilePoint(shot,t,render=false){
-    if(shot.fading){const age=Math.max(0,(t-shot.fadeAt)/1000),drift=.035*(1-Math.exp(-age/.035));return {x:clamp(shot.x+shot.vx*drift,45,1035),y:clamp(shot.y+shot.vy*drift,335,1475)};}
+    if(shot.fading){const age=Math.max(0,(t-shot.fadeAt)/1000),drift=.035*(1-Math.exp(-age/.035));return {x:clamp(shot.x+shot.vx*drift,45,1035),y:clamp(shot.y+shot.vy*drift,ARENA.top+18,ARENA.bottom-20)};}
     if(shot.deflected){const age=(t-shot.deflectAt)/1000;return {x:shot.deflectX+shot.deflectVX*age,y:shot.deflectY+shot.deflectVY*age};}
     if(shot.aimed){const age=Math.max(0,(t-(shot.flightAt??shot.start))/1000);return {x:shot.x+shot.vx*age,y:shot.y+shot.vy*age};}
     const target=battle.cores[1-shot.team],f=clamp((t-shot.start)/shot.duration,0,1),ease=1-(1-f)**2;
@@ -72,7 +72,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     get(id){return this.players.get(this.aliases.get(String(id))||String(id));}
     nextBoss(team){const core=this.cores[team],other=this.cores[1-team],choices=BOSSES.filter(b=>!core.recent.includes(b.id)&&b.id!==core.model&&b.id!==other.model&&b.id!==other.nextModel),model=choices[Math.floor(Math.random()*choices.length)].id;core.recent.push(model);if(core.recent.length>6)core.recent.shift();return model;}
     coreRadius(team){return (137*(1+bossGrowth(this.teamLikes[team]))+8)*(this.cores[team].sizeScale??1);}
-    bounds(team,r){return {left:team?565+r:55+r,right:team?1025-r:515-r,top:405+r,bottom:1415-r};}
+    bounds(team,r){return {left:team?565+r:55+r,right:team?1025-r:515-r,top:ARENA.top+64+r,bottom:ARENA.bottom-60-r};}
     place(p,peers=this.roster(),total=this.roster().length+1){
       const r=playerRadius(p,total),b=this.bounds(p.team,r),core=this.cores[p.team],others=[...peers];let best=null,bestSpace=-Infinity;
       for(let i=0;i<70;i++){
@@ -95,7 +95,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
       if(this.phase==='results'||this.phase==='collapse'||t<(this.formationUntil||0))continue;const decayKick=Math.exp(-dt*12);core.x+=(core.kickVx||0)*(1-decayKick)/12;core.y+=(core.kickVy||0)*(1-decayKick)/12;core.kickVx=(core.kickVx||0)*decayKick;core.kickVy=(core.kickVy||0)*decayKick;
       const stress=1-clamp(this.hp?.[team]/(this.maxHp||1),0,1);
       if(t>=core.next||Math.hypot(core.goalX-core.x,core.goalY-core.y)<9){core.goalX=(team?715:230)+Math.random()*135;core.goalY=low+Math.random()*Math.max(1,high-low);core.next=t+2600+Math.random()*2200-stress*1500;}
-      const dx=core.goalX-core.x,dy=core.goalY-core.y,d=Math.hypot(dx,dy)||1,step=Math.min(d,dt*(80+55*stress*stress));core.x=clamp(core.x+dx/d*step,(team?565:55)+this.coreRadius(team),(team?1025:515)-this.coreRadius(team));core.y=clamp(core.y+dy/d*step,405+this.coreRadius(team),1415-this.coreRadius(team));
+      const dx=core.goalX-core.x,dy=core.goalY-core.y,d=Math.hypot(dx,dy)||1,step=Math.min(d,dt*(80+55*stress*stress));core.x=clamp(core.x+dx/d*step,(team?565:55)+this.coreRadius(team),(team?1025:515)-this.coreRadius(team));core.y=clamp(core.y+dy/d*step,ARENA.top+64+this.coreRadius(team),ARENA.bottom-60-this.coreRadius(team));
     }}
     separatePlayers(list,r){
       const total=this.players.size,radii=list.map(p=>playerRadius(p,total)),cell=2*maxRadius(total)+7,key=(team,gx,gy)=>team*10000+gx*100+gy;
@@ -299,7 +299,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
       const circleContact=(x,y,dx,dy,cx,cy,r)=>{const ox=x-cx,oy=y-cy,A=dx*dx+dy*dy;if(A<1e-9)return null;const B=ox*dx+oy*dy,C=ox*ox+oy*oy-r*r;if(C<0){const d=Math.hypot(ox,oy);return {f:0,nx:d>1e-6?ox/d:-dx/Math.sqrt(A),ny:d>1e-6?oy/d:-dy/Math.sqrt(A)};}const disc=B*B-A*C;if(disc<0)return null;const f=(-B-Math.sqrt(disc))/A;if(f<-.00001||f>1)return null;const px=x+dx*f-cx,py=y+dy*f-cy,d=Math.hypot(px,py)||1;return {f:Math.max(0,f),nx:px/d,ny:py/d};};
       for(let i=this.projectiles.length-1;i>=0;i--){const shot=this.projectiles[i];if(!shot)break;
         if(shot.aimed){
-          if(t-shot.start>=shot.duration){this.retireShot(shot,t);this.projectiles.splice(i,1);const pilot=this.get(shot.id);if(pilot&&!shot.welcome&&!shot.burst&&!shot.bomb&&shot.round===this.round&&this.phase==='playing')pilot.aimStreak=0;if(pilot&&!pilot.bot&&this.heartPlayers.size<=4)this.emit({kind:'miss',p:pilot,x:clamp(shot.lastX,45,1035),y:clamp(shot.lastY,335,1475)});continue;}
+          if(t-shot.start>=shot.duration){this.retireShot(shot,t);this.projectiles.splice(i,1);const pilot=this.get(shot.id);if(pilot&&!shot.welcome&&!shot.burst&&!shot.bomb&&shot.round===this.round&&this.phase==='playing')pilot.aimStreak=0;if(pilot&&!pilot.bot&&this.heartPlayers.size<=4)this.emit({kind:'miss',p:pilot,x:clamp(shot.lastX,45,1035),y:clamp(shot.lastY,ARENA.top+18,ARENA.bottom-20)});continue;}
           let x=shot.lastX,y=shot.lastY,remaining=Math.max(0,(t-shot.updatedAt)/1000),removed=false;
           // Swept contacts prevent a fast bolt tunnelling through either a hull or a wall.
           for(let step=0;step<8&&remaining>.000001;step++){
@@ -310,8 +310,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
             for(let gy=Math.floor((minY-maxHull)/cell);gy<=Math.floor((maxY+maxHull)/cell);gy++)for(let gx=Math.floor((minX-maxHull)/cell);gx<=Math.floor((maxX+maxHull)/cell);gx++){const nearby=grid[enemy].get(gx+gy*20);if(nearby)for(const p of nearby){const radius=radii.get(p.id)+(shot.hitRadius||8);if(p.x+radius<minX||p.x-radius>maxX||p.y+radius<minY||p.y-radius>maxY)continue;consider(circleContact(x,y,dx,dy,p.x,p.y,radius),'ship',p);}}
             if(dx<0)consider({f:Math.max(0,(45-x)/dx),nx:1,ny:0},'wall');
             if(dx>0)consider({f:Math.max(0,(1035-x)/dx),nx:-1,ny:0},'wall');
-            if(dy<0)consider({f:Math.max(0,(335-y)/dy),nx:0,ny:1},'wall');
-            if(dy>0)consider({f:Math.max(0,(1475-y)/dy),nx:0,ny:-1},'wall');
+            if(dy<0)consider({f:Math.max(0,(ARENA.top+18-y)/dy),nx:0,ny:1},'wall');
+            if(dy>0)consider({f:Math.max(0,(ARENA.bottom-20-y)/dy),nx:0,ny:-1},'wall');
             if(!first){x+=dx;y+=dy;remaining=0;break;}
             x+=dx*first.f;y+=dy*first.f;remaining*=1-first.f;
             if(first.kind==='boss'){this.projectiles.splice(i,1);removed=true;if(shot.round===this.round&&this.phase==='playing')this.hit(shot.team,shot.id,shot.damage,t,shot.welcome?'welcome':shot.burst?'burst':shot.bomb?'bomb':'rocket',{x,y});break;}
@@ -580,15 +580,14 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     for(const ship of wave.mode==='exit'?[]:wave.ships){const f=(t-ship.at)/1000;if(f>=0&&f<.8){const u=f/.8;vectorBurst(ship.x,ship.y,u,ship.color,7,.75,hash(ship.id));if(u<.45)ring(ship.x,ship.y,12+u*100,null,ship.color,Math.max(1,5*(1-u)));}}
   }
   function finisherPortrait(t){const p=battle.result?.finisher;if(battle.phase!=='collapse'||!p)return;const age=clamp((t-battle.result.endedAt)/2000,0,1),size=210*Math.min(1,age*8),x=p.team?810:270,y=890;if(size<2)return;avatar(p,x,y,size,0);ring(x,y,size+9,null,GOLD,5);label(p.name,x,y+size+42,40,WHITE,'center',470);label('CORE BREAKER',x,y-size-38,31,GOLD,'center',430);}
-  function courtTransform(){c.translate(540,COURT_VIEW.top);c.scale(COURT_VIEW.scale,COURT_VIEW.scale);c.translate(-540,-324);}
   function draw(t,alpha=1){const start=performance.now(),court=battle.roster(t);alpha=clamp(alpha,0,1);for(const core of battle.cores){core.drawX=(core.prevX??core.x)+(core.x-(core.prevX??core.x))*alpha;core.drawY=(core.prevY??core.y)+(core.y-(core.prevY??core.y))*alpha;}for(const p of court){const a=battle.phase==='playing'?alpha:1;p.drawX=(p.prevX??p.x)+(p.x-(p.prevX??p.x))*a;p.drawY=(p.prevY??p.y)+(p.y-(p.prevY??p.y))*a;if(p.entry&&t<p.entry.until){const u=clamp((t-p.entry.at)/(p.entry.until-p.entry.at),0,1),ease=1-(1-u)**3;p.drawX=p.entry.fromX+(p.entry.toX-p.entry.fromX)*ease;p.drawY=p.entry.fromY+(p.entry.toY-p.entry.fromY)*ease;}}c.fillStyle=dark?'#050812':GREEN;c.fillRect(0,0,1080,1920);
     const donor=giftBanner&&t-giftBanner.at<3000&&battle.phase==='playing'?giftBanner.p:null,worldContext=c;if(donor){spotlightContext.clearRect(0,0,1080,1920);c=spotlightContext;}
-    c.save();courtTransform();
+    c.save();
     // Minecraft remains visible through the court; the optional dark preview has a vector grid.
-    if(dark){c.strokeStyle='#15223a';c.lineWidth=1;for(let x=40;x<1045;x+=50){c.beginPath();c.moveTo(x,325);c.lineTo(x,1487);c.stroke();}for(let y=325;y<1487;y+=50){c.beginPath();c.moveTo(40,y);c.lineTo(1045,y);c.stroke();}}
-    beam(27,317,27,1495,BLUE,5,false);beam(1053,317,1053,1495,RED,5,false);beam(27,317,1053,317,VIOLET,3,false);beam(27,1495,1053,1495,VIOLET,3,false);
-    for(const [x,y,sx,sy,col] of [[27,317,1,1,BLUE],[1053,317,-1,1,RED],[27,1495,1,-1,BLUE],[1053,1495,-1,-1,RED]]){beam(x,y,x+sx*65,y,col,7);beam(x,y,x,y+sy*65,col,7);}
-    c.save();c.beginPath();c.rect(34,324,1012,1164);c.clip();
+    if(dark){c.strokeStyle='#15223a';c.lineWidth=1;for(let x=40;x<1045;x+=50){c.beginPath();c.moveTo(x,ARENA.top+8);c.lineTo(x,ARENA.bottom-8);c.stroke();}for(let y=ARENA.top+8;y<ARENA.bottom-8;y+=50){c.beginPath();c.moveTo(40,y);c.lineTo(1045,y);c.stroke();}}
+    beam(ARENA.left,ARENA.top,ARENA.left,ARENA.bottom,BLUE,5,false);beam(ARENA.right,ARENA.top,ARENA.right,ARENA.bottom,RED,5,false);beam(ARENA.left,ARENA.top,ARENA.right,ARENA.top,VIOLET,3,false);beam(ARENA.left,ARENA.bottom,ARENA.right,ARENA.bottom,VIOLET,3,false);
+    for(const [x,y,sx,sy,col] of [[ARENA.left,ARENA.top,1,1,BLUE],[ARENA.right,ARENA.top,-1,1,RED],[ARENA.left,ARENA.bottom,1,-1,BLUE],[ARENA.right,ARENA.bottom,-1,-1,RED]]){beam(x,y,x+sx*65,y,col,7);beam(x,y,x,y+sy*65,col,7);}
+    c.save();c.beginPath();c.rect(34,ARENA.top+7,1012,ARENA.bottom-ARENA.top-14);c.clip();
     drawCrater(t);for(const team of [0,1])core(team,t);
     for(const p of court)orb(p,t,court.length<24&&!p.bot,court.length);
     for(const shot of battle.fading){const fade=clamp(1-(t-shot.fadeAt)/260,0,1);if(fade>0){c.save();c.globalAlpha=fade*fade;projectile(shot,t,court.length>24);c.restore();}}
@@ -607,7 +606,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
       if(f.kind==='share'&&f.p&&a<.5)label('AUTO BOMB',f.p.drawX??f.p.x,(f.p.drawY??f.p.y)-90-a*22,24,GOLD);
     }
     drawCollapse(t);finisherPortrait(t);c.restore();
-    if(donor){const age=t-giftBanner.at,shade=.74*Math.min(clamp(age/140,0,1),clamp((3000-age)/350,0,1));c.save();c.globalCompositeOperation='source-atop';c.fillStyle='rgba(3,7,20,'+shade+')';c.fillRect(34,324,1012,1164);c.restore();c.restore();c=worldContext;c.drawImage(spotlightCanvas,0,0);c.save();courtTransform();c.save();c.beginPath();c.rect(34,324,1012,1164);c.clip();core(1-donor.team,t);orb(donor,t,true,court.length);for(const r of battle.projectiles)if(r.id===donor.id)projectile(r,t,false);const x=donor.drawX??donor.x,y=donor.drawY??donor.y,rr=playerRadius(donor,court.length)+23;for(let i=0;i<6;i++){const a=t*.001+i*Math.PI/3;beam(x+Math.cos(a)*rr,y+Math.sin(a)*rr,x+Math.cos(a)*(rr+13),y+Math.sin(a)*(rr+13),GOLD,4,false);}for(const f of fx)if(f.kind==='hit'&&f.id===donor.id&&f.weapon==='burst'&&t-f.at<550){const u=clamp((t-f.at)/550,0,1);ring(f.x,f.y,15+u*65,null,pilotTint(donor),Math.max(2,8*(1-u)));label('−'+Math.ceil(f.damage)+' HP',f.x,f.y-55-u*25,27,pilotTint(donor));}label('THANK YOU!',x,y-rr-22,25,GOLD,'center',220);c.restore();}
+    if(donor){const age=t-giftBanner.at,shade=.74*Math.min(clamp(age/140,0,1),clamp((3000-age)/350,0,1));c.save();c.globalCompositeOperation='source-atop';c.fillStyle='rgba(3,7,20,'+shade+')';c.fillRect(34,ARENA.top+7,1012,ARENA.bottom-ARENA.top-14);c.restore();c.restore();c=worldContext;c.drawImage(spotlightCanvas,0,0);c.save();c.save();c.beginPath();c.rect(34,ARENA.top+7,1012,ARENA.bottom-ARENA.top-14);c.clip();core(1-donor.team,t);orb(donor,t,true,court.length);for(const r of battle.projectiles)if(r.id===donor.id)projectile(r,t,false);const x=donor.drawX??donor.x,y=donor.drawY??donor.y,rr=playerRadius(donor,court.length)+23;for(let i=0;i<6;i++){const a=t*.001+i*Math.PI/3;beam(x+Math.cos(a)*rr,y+Math.sin(a)*rr,x+Math.cos(a)*(rr+13),y+Math.sin(a)*(rr+13),GOLD,4,false);}for(const f of fx)if(f.kind==='hit'&&f.id===donor.id&&f.weapon==='burst'&&t-f.at<550){const u=clamp((t-f.at)/550,0,1);ring(f.x,f.y,15+u*65,null,pilotTint(donor),Math.max(2,8*(1-u)));label('−'+Math.ceil(f.damage)+' HP',f.x,f.y-55-u*25,27,pilotTint(donor));}label('THANK YOU!',x,y-rr-22,25,GOLD,'center',220);c.restore();}
     c.restore();
     label('GALAXINKO WARS',55,114,23,WHITE,'left',300);scoreHud(t);rounded(445,86,190,47,10,INK,VIOLET,3);
     const teamCounts=[0,0];for(const p of court)if(!p.bot)teamCounts[p.team]++;healthHud(0,t,teamCounts[0]);healthHud(1,t,teamCounts[1]);
