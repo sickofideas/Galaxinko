@@ -1,8 +1,9 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 32.13</title><style>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxinko Wars 32.14</title><style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;font-family:"Trebuchet MS",Arial,sans-serif}#game-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}canvas{display:block;width:min(100vw,56.25vh);height:min(100vh,177.777778vw);aspect-ratio:9/16}#panel{position:fixed;z-index:5;inset:12px auto auto 12px;max-width:min(780px,92vw);max-height:90vh;overflow:auto;padding:18px;background:#101326;color:#fff;border:5px solid #ffd45c;border-radius:20px}#panel[hidden]{display:none}button,input{padding:9px;margin:4px;border-radius:11px;background:#24304e;color:#fff;border:3px solid #ffd45c;font:700 15px Arial,sans-serif}button{cursor:pointer}input{width:300px;max-width:70vw}
-</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><section id="panel" hidden><b>GALAXINKO WARS 32.13</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button><button id="sfx">SFX ON</button></p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">1 ♥ TEST · SPACE</button><button id="gift">GIFT TEST · G</button><button id="crowd">TEST 50</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
+#audioStart{position:fixed;z-index:6;right:14px;bottom:14px;border-color:#42dbff;background:#101326;font-size:15px}#audioStart[hidden]{display:none}#volume{width:160px;vertical-align:middle;padding:0;border:0}#audioStatus{max-width:650px;font-size:14px;color:#b9eaff}
+</style></head><body><div id="game-container"><canvas id="arena" width="1080" height="1920"></canvas></div><button id="audioStart" type="button">ENABLE SOUND</button><section id="panel" hidden><b>GALAXINKO WARS 32.14</b><p><button id="toggle">Hide · H</button><button id="dark">Chroma / Dark</button><button id="sfx">ENABLE SOUND</button><button id="audioTest">TEST SOUND</button></p><p><label for="volume">SOUND VOLUME</label> <input id="volume" type="range" min="0" max="100" step="5" value="80"> <output id="volumeValue" for="volume">80%</output></p><p id="audioStatus" role="status">Click ENABLE SOUND to allow browser playback.</p><p><button id="test">TEST</button><button id="live">RETURN TO LIVE</button><button id="join">JOIN TEST · J</button><button id="heart">1 ♥ TEST · SPACE</button><button id="gift">POWER TEST · G</button><button id="crowd">TEST 50</button></p><p><input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/"><button id="connect">Connect</button></p><p id="status"></p></section><script>(() => {
   'use strict';
-  const VERSION='32.13', MAX=600, GREEN='#00ff00', BLUE='#42dbff', RED='#ff4b94', INK='#080d20', GOLD='#ffd36e', WHITE='#eefbff', VIOLET='#ab83ff';
+  const VERSION='32.14', MAX=600, GREEN='#00ff00', BLUE='#42dbff', RED='#ff4b94', INK='#080d20', GOLD='#ffd36e', WHITE='#eefbff', VIOLET='#ab83ff';
   const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const targetRadius=n=>n>700?10:n>500?13:n>300?17:n>120?22:n>24?27:n>8?42:52;
   const courtSize={radius:52,extra:21};
@@ -337,21 +338,38 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   const feed={packets:0,accepted:0,byType:{},lastAt:0,lastType:''};
   let now=performance.now(),last=now,acc=0,renderAcc=0,frameCount=0,fps=0,fpsAt=now,renderMs=0,workMs=0,portraitJobs=0,portraitSweep=0;
   let sound=true,audioCtx=null,soundEvents=0,dark=false,focus=null,focusAt=0,fx=[],joinBanner=null,giftBanner=null,eventBanner=null,lastHitFx=[-Infinity,-Infinity],hudPulse=[null,null],actionPulse={heart:0,share:0,chat:0,gift:0};
+  let soundLevel=.8;try{const saved=localStorage.getItem('galaxinko-sfx-volume');if(saved!==null&&Number.isFinite(Number(saved)))soundLevel=clamp(Number(saved),0,1);}catch{}
   let hpVisual=[{},{}];const queuedIds=new Map();let lastMissFx=[-Infinity,-Infinity],lastBounceFx=[-Infinity,-Infinity];
   const SFX_NOTES=[293.665,329.628,369.994,440,493.883]; // One D-major pentatonic palette for both teams.
-  const sfxMix={input:null,master:null,voices:new Set(),limit:16,peakVoices:0,next:0,resumeAt:-Infinity,duckUntil:0,pending:[0,0],pilots:[new Map(),new Map()],step:[0,0],layers:[0,0],fireNotes:[0,0],effects:{},last:new Map()};
+  const sfxMix={input:null,master:null,voices:new Set(),limit:16,peakVoices:0,next:0,resumeAt:-Infinity,checkAt:-Infinity,error:'',uiKey:'',duckUntil:0,pending:[0,0],pilots:[new Map(),new Map()],step:[0,0],layers:[0,0],fireNotes:[0,0],effects:{},last:new Map()};
   const pics=new Map(),priority=[],ordinary=[],likes=new Map(),boltCache=new Map(),shipCache=new Map(),reactorCache=new Map();
-  function unlockAudio(){
-    if(!sound)return;const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+  function updateSoundUI(){
+    const available=!!(window.AudioContext||window.webkitAudioContext),running=audioCtx?.state==='running',ready=sound&&running,muted=soundLevel===0;
+    const key=[available,sound,audioCtx?.state,soundLevel,sfxMix.error].join('|');if(key===sfxMix.uiKey)return;sfxMix.uiKey=key;
+    const button=$('sfx');if(button)button.textContent=!available?'AUDIO UNAVAILABLE':!sound?'SOUND OFF':!running?'ENABLE SOUND':muted?'SOUND MUTED':'SOUND ON';
+    const start=$('audioStart');if(start)start.hidden=!sound||ready||!available;
+    const volume=$('volume');if(volume)volume.value=String(Math.round(soundLevel*100));
+    const value=$('volumeValue');if(value)value.textContent=Math.round(soundLevel*100)+'%';
+    const info=$('audioStatus');if(info)info.textContent=!available?'Web Audio is unavailable in this browser.':sfxMix.error?'AUDIO: '+sfxMix.error:!sound?'Sound is off.':!running?'Click ENABLE SOUND to allow browser playback.':muted?'Volume is zero. Increase SOUND VOLUME.':'Audio ready. TEST SOUND plays a short check without players.';
+  }
+  function applySoundLevel(){if(sfxMix.master){const at=audioCtx.currentTime;sfxMix.master.gain.cancelScheduledValues(at);sfxMix.master.gain.setTargetAtTime(sound&&soundLevel>0?soundLevel:.0001,at,.02);}updateSoundUI();}
+  function setSoundLevel(value){soundLevel=clamp(num(value,.8),0,1);try{localStorage.setItem('galaxinko-sfx-volume',String(soundLevel));}catch{}applySoundLevel();}
+  function unlockAudio(gesture=false){
+    if(!sound){updateSoundUI();return Promise.resolve(false);}const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio){updateSoundUI();return Promise.resolve(false);}
     try{
       if(!audioCtx){
-        audioCtx=new Audio();const filter=audioCtx.createBiquadFilter(),compressor=audioCtx.createDynamicsCompressor(),master=audioCtx.createGain();
+        audioCtx=new Audio();const filter=audioCtx.createBiquadFilter(),compressor=audioCtx.createDynamicsCompressor(),master=audioCtx.createGain(),limiter=audioCtx.createDynamicsCompressor();
         filter.type='lowpass';filter.frequency.value=4200;filter.Q.value=.5;
-        compressor.threshold.value=-24;compressor.knee.value=12;compressor.ratio.value=5;compressor.attack.value=.005;compressor.release.value=.16;
-        master.gain.value=.65;filter.connect(compressor);compressor.connect(master);master.connect(audioCtx.destination);sfxMix.input=filter;sfxMix.master=master;
+        compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=4;compressor.attack.value=.005;compressor.release.value=.16;
+        limiter.threshold.value=-4;limiter.knee.value=0;limiter.ratio.value=20;limiter.attack.value=.001;limiter.release.value=.08;
+        master.gain.value=soundLevel;filter.connect(compressor);compressor.connect(master);master.connect(limiter);limiter.connect(audioCtx.destination);sfxMix.input=filter;sfxMix.master=master;
+        audioCtx.onstatechange=updateSoundUI;
       }
-      const t=performance.now();if(audioCtx.state==='suspended'&&t-sfxMix.resumeAt>500){sfxMix.resumeAt=t;audioCtx.resume().catch(()=>{});}
-    }catch{}
+      if(audioCtx.state==='running'){sfxMix.error='';updateSoundUI();return Promise.resolve(true);}
+      const t=performance.now();if(audioCtx.state==='closed'||!gesture&&t-sfxMix.resumeAt<500){updateSoundUI();return Promise.resolve(false);}
+      // A real operator click must never be skipped by the automatic retry cooldown.
+      sfxMix.resumeAt=t;updateSoundUI();return Promise.resolve(audioCtx.resume()).then(()=>{sfxMix.error='';updateSoundUI();return audioCtx.state==='running';},error=>{sfxMix.error=String(error?.message||'Playback blocked. Click ENABLE SOUND.');updateSoundUI();return false;});
+    }catch(error){sfxMix.error=String(error?.message||'Audio could not start.');updateSoundUI();return Promise.resolve(false);}
   }
   function stopVoice(voice){
     if(voice.stopping)return;voice.stopping=true;
@@ -372,7 +390,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   }
   function clearFireSfx(){sfxMix.pending=[0,0];sfxMix.pilots.forEach(m=>m.clear());sfxMix.layers=[0,0];}
   function queueFireSfx(p,t){
-    if(p?.bot||!sound||battle?.phase!=='playing')return;unlockAudio();if(audioCtx?.state!=='running')return;
+    if(p?.bot||!sound||battle?.phase!=='playing')return;if(audioCtx?.state!=='running')unlockAudio();if(audioCtx?.state!=='running')return;
     const team=p.team===1?1:0;sfxMix.pending[team]++;sfxMix.pilots[team].set(p.id,t);
   }
   function flushFireSfx(t){
@@ -381,7 +399,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
     for(let team=0;team<2;team++){
       const pilots=sfxMix.pilots[team];for(const [id,at]of pilots)if(t-at>1800)pilots.delete(id);
       const layers=pilots.size>=6?3:pilots.size>=3?2:pilots.size?1:0;sfxMix.layers[team]=layers;
-      if(!sfxMix.pending[team])continue;sfxMix.pending[team]=0;const beat=sfxMix.step[team]++%SFX_NOTES.length,duck=t<sfxMix.duckUntil?.38:1,volume=.020*duck/Math.sqrt(layers||1);
+      if(!sfxMix.pending[team])continue;sfxMix.pending[team]=0;const beat=sfxMix.step[team]++%SFX_NOTES.length,duck=t<sfxMix.duckUntil?.38:1,volume=.065*duck/Math.sqrt(layers||1);
       // At busy moments, group sound only; every gameplay bolt still exists.
       for(let i=0;i<layers;i++){const freq=SFX_NOTES[(beat+i*2)%SFX_NOTES.length]*(team===0?2:1),made=sfxTone(freq,.10+i*.025,volume,team,team===0?'sine':'triangle',i*.012,team===0?1.035:.96,0);if(made)sfxMix.fireNotes[team]++;}
     }
@@ -389,22 +407,32 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   function playSfx(kind,t=performance.now(),team=0,coins=0){
     const cooldown={hit:140,heal:650,share:700,gift:900,join:550}[kind];
     if(!sound||battle?.phase==='collapse'||cooldown==null)return;const key=kind+':'+team;if(t-(sfxMix.last.get(key)??-Infinity)<cooldown)return;
-    unlockAudio();if(audioCtx?.state!=='running')return;sfxMix.last.set(key,t);sfxMix.effects[kind]=(sfxMix.effects[kind]||0)+1;
+    if(audioCtx?.state!=='running')unlockAudio();if(audioCtx?.state!=='running')return;sfxMix.last.set(key,t);sfxMix.effects[kind]=(sfxMix.effects[kind]||0)+1;
     const base=team===1?1:2;
-    if(kind==='hit'){sfxTone(SFX_NOTES[team===1?0:3]*.5,.14,.026,team,'triangle',0,.82,2);sfxTone(SFX_NOTES[team===1?0:3],.08,.008,team,'sine',.012,1,2);}
-    else if(kind==='join'){sfxTone(SFX_NOTES[0]*base,.16,.014,team,'sine',0,1,1);sfxTone(SFX_NOTES[2]*base,.18,.014,team,'sine',.07,1,1);}
-    else if(kind==='heal'){for(const [i,n]of [0,2,3].entries())sfxTone(SFX_NOTES[n]*base,.23,.023,team,'sine',i*.055,1,2);}
-    else if(kind==='share'){sfxTone(SFX_NOTES[0]*.5,.30,.028,team,'triangle',0,.72,2);sfxTone(SFX_NOTES[3],.20,.018,team,'sine',.06,1,2);}
+    if(kind==='hit'){sfxTone(SFX_NOTES[team===1?0:3]*.5,.14,.075,team,'triangle',0,.82,2);sfxTone(SFX_NOTES[team===1?0:3],.08,.024,team,'sine',.012,1,2);}
+    else if(kind==='join'){sfxTone(SFX_NOTES[0]*base,.16,.045,team,'sine',0,1,1);sfxTone(SFX_NOTES[2]*base,.18,.045,team,'sine',.07,1,1);}
+    else if(kind==='heal'){for(const [i,n]of [0,2,3].entries())sfxTone(SFX_NOTES[n]*base,.23,.065,team,'sine',i*.055,1,2);}
+    else if(kind==='share'){sfxTone(SFX_NOTES[0]*.5,.30,.08,team,'triangle',0,.72,2);sfxTone(SFX_NOTES[3],.20,.052,team,'sine',.06,1,2);}
     else if(kind==='gift'){
       sfxMix.duckUntil=t+1150;const notes=coins>=100?[0,2,3,4,5]:[0,2,3,5];
-      for(const [i,n]of notes.entries()){const freq=n===5?SFX_NOTES[0]*4:SFX_NOTES[n]*2;sfxTone(freq,.34,.036,team,'sine',i*.065,1,3);}
-      sfxTone(SFX_NOTES[0],.55,.018,team,'triangle',0,1,3);
+      for(const [i,n]of notes.entries()){const freq=n===5?SFX_NOTES[0]*4:SFX_NOTES[n]*2;sfxTone(freq,.34,.095,team,'sine',i*.065,1,3);}
+      sfxTone(SFX_NOTES[0],.55,.05,team,'triangle',0,1,3);
     }
   }
+  function testSound(){
+    sound=true;if(soundLevel===0)setSoundLevel(.8);applySoundLevel();
+    return unlockAudio(true).then(ready=>{
+      if(!ready||!sound)return false;const t=performance.now();if(t-sfxMix.checkAt<650)return true;sfxMix.checkAt=t;
+      sfxTone(SFX_NOTES[0]*2,.20,.09,0,'sine',0,1.035,3);
+      sfxTone(SFX_NOTES[0],.20,.09,1,'triangle',.25,.96,3);
+      sfxTone(SFX_NOTES[3]*.5,.16,.09,0,'triangle',.5,.82,3);
+      for(const [i,n]of [0,2,3].entries())sfxTone(SFX_NOTES[n]*2,.27,.075,0,'sine',.75+i*.075,1,3);
+      return true;
+    });
+  }
   function toggleSound(){
-    sound=!sound;$('sfx').textContent=sound?'SFX ON':'SFX OFF';clearFireSfx();
-    if(sound)unlockAudio();else for(const voice of [...sfxMix.voices])stopVoice(voice);
-    if(sfxMix.master){const at=audioCtx.currentTime;sfxMix.master.gain.cancelScheduledValues(at);sfxMix.master.gain.setTargetAtTime(sound?.65:.0001,at,.025);}
+    if(!sound||audioCtx?.state!=='running'||soundLevel===0){sound=true;applySoundLevel();return testSound();}
+    sound=false;clearFireSfx();for(const voice of [...sfxMix.voices])stopVoice(voice);applySoundLevel();return Promise.resolve(false);
   }
   function emit(e){
     const t=performance.now();
@@ -605,7 +633,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   function actionCard(index,t){const kinds=['heart','share','chat','gift'],effects=['rocket','bomb','heal','burst'],colors=[RED,GOLD,BLUE,'#e2a8ff'],kind=kinds[index],x=53+index*244,y=342,w=238,h=76,pulse=clamp(1-(t-actionPulse[kind])/850,0,1),color=colors[index];
     rounded(x,y,w,h,12,INK,color,pulse?4:2);if(pulse)beam(x+15,y+3,x+w-15,y+3,WHITE,3,false);
     actionIcon(kind,x+52,y+26,20,color);label('=',x+109,y+26,22,WHITE);const pilot=battle.get(focus);if(index===0&&pilot)avatar(pilot,x+169,y+26,19);else actionIcon(effects[index],x+169,y+26,20,color);
-    label(['1 ♥ = 1 HEAD','SHARE = BOMB','CHAT = HEAL','GIFT · THANK YOU'][index],x+w/2,y+59,19,WHITE,'center',220);
+    label(['1 ♥ = 1 SHOT','BIG BOMB','TEAM HEAL','POWER BURST'][index],x+w/2,y+59,19,WHITE,'center',220);
   }
   function drawPilotBanners(t){
     const gift=giftBanner&&t-giftBanner.at<3000?giftBanner:null,joined=joinBanner&&t-joinBanner.at<5000?joinBanner:null,activity=eventBanner?.p&&t-eventBanner.at<1500?eventBanner:null,p=(gift||joined||activity)?.p||battle.get(focus),col=p&&!p.bot?pilotTint(p):VIOLET;
@@ -712,13 +740,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   $('connect').onclick=connect;
   $('dark').onclick=()=>{dark=!dark;};
   $('sfx').onclick=toggleSound;
-  document.addEventListener('pointerdown',unlockAudio,{passive:true});
-  document.addEventListener('keydown',unlockAudio);
+  $('audioStart').onclick=testSound;$('audioTest').onclick=testSound;$('volume').oninput=e=>setSoundLevel(Number(e.target.value)/100);
+  const audioGesture=e=>{if(!e.target.closest?.('#sfx,#audioStart,#audioTest')&&sound)unlockAudio(true);};
+  document.addEventListener('click',audioGesture,{passive:true});
+  document.addEventListener('keydown',audioGesture);
   document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const key=e.key.toLowerCase();if(key==='h')panel.hidden=!panel.hidden;if(mode==='test'){if(e.key===' '){e.preventDefault();$('heart').click();}if(key==='j')$('join').click();if(key==='g')$('gift').click();}});
   window.addEventListener('beforeunload',()=>{closed=true;clearTimeout(retry);ws?.close();});
   window.Wars={
     version:VERSION,
-    audio:()=>({enabled:sound,state:audioCtx?.state||'ready',voices:sfxMix.voices.size,voiceLimit:sfxMix.limit,peakVoices:sfxMix.peakVoices,activePilots:sfxMix.pilots.map(m=>m.size),harmonyLayers:[...sfxMix.layers],fireNotes:[...sfxMix.fireNotes],effects:{...sfxMix.effects},played:soundEvents,masterGain:sfxMix.master?.gain.value??.65}),
+    audio:()=>({enabled:sound,state:audioCtx?.state||'ready',volume:Math.round(soundLevel*100),error:sfxMix.error,voices:sfxMix.voices.size,voiceLimit:sfxMix.limit,peakVoices:sfxMix.peakVoices,activePilots:sfxMix.pilots.map(m=>m.size),harmonyLayers:[...sfxMix.layers],fireNotes:[...sfxMix.fireNotes],effects:{...sfxMix.effects},played:soundEvents,masterGain:sfxMix.master?.gain.value??soundLevel}),
     snapshot:()=>({mode,phase:battle.phase,arenaRadius:courtSize.radius,resultsInMs:Math.max(0,(battle.resultsAt||0)-battle.t),spotlight:giftBanner&&performance.now()-giftBanner.at<3000&&battle.phase==='playing'?giftBanner.p.id:null,roundHistory:battle.history.map(r=>({...r})),crater:battle.crater?{team:battle.crater.team,ageMs:performance.now()-battle.crater.at}:null,collapse:battle.collapse?{mode:battle.collapse.mode,team:battle.collapse.team,ships:battle.collapse.ships.length,ageMs:performance.now()-battle.collapse.at}:null,round:battle.round,durationMs:battle.duration,players:battle.players.size,humans:battle.humanCount(),onCourt:battle.roster().length,drones:[...battle.players.values()].filter(p=>p.bot).length,active:battle.activePlayers.size,heartPilots:battle.heartPlayers.size,expectedLikers:battle.roundExpected,teamLikes:[...battle.teamLikes],bossScale:battle.teamLikes.map((n,team)=>(1+bossGrowth(n))*battle.cores[team].sizeScale),hp:[...battle.hp],maxHp:battle.maxHp,damage:[...battle.damage],wins:[...battle.wins],blocks:battle.stats.blocks,remainingMs:Math.max(0,battle.end-battle.t),projectiles:battle.projectiles.length,fadingShots:battle.fading.length,aimedShots:battle.projectiles.filter(s=>s.aimed).length,bombs:battle.projectiles.filter(s=>s.bomb).length,burstShots:battle.projectiles.filter(s=>s.burst).length,queuedBurstShots:battle.bursts.reduce((n,b)=>n+b.remaining,0),queued:priority.length+ordinary.length+likes.size,connected,members,dropped,invalid,feed:{packets:feed.packets,accepted:feed.accepted,byType:{...feed.byType},lastType:feed.lastType,secondsSinceLast:feed.lastAt?Math.floor((performance.now()-feed.lastAt)/1000):null},fps,renderMs,workMs,sfx:{enabled:sound,state:audioCtx?.state||'ready',played:soundEvents},hudPulse:hudPulse.map(p=>p?{kind:p.kind,amount:p.amount,ageMs:performance.now()-p.at}:null),portraits:[...pics.values()].filter(v=>v.state==='ready').length,cores:battle.cores.map(o=>({model:o.model,name:BOSSES[o.model].name,sizeScale:o.sizeScale,radius:battle.coreRadius(battle.cores.indexOf(o)),x:o.x,y:o.y,spinBoost:o.spinBoost||0,spinAngle:o.spinPhase||0,knock:o.lastKnock||0,giftHitUntil:o.giftHitUntil||0})),result:battle.phase==='results'?{participants:battle.result.participants,top:battle.result.top.map(p=>({id:p.id,team:p.team,points:p.roundPoints,likes:p.roundLikes})),rest:battle.result.rest.map(p=>({id:p.id,team:p.team,points:p.roundPoints,likes:p.roundLikes}))}:null}),
     player:id=>{const p=battle.get(id),t=performance.now();return p?{name:p.name,team:p.team,color:pilotTint(p),energy:p.energy,points:p.points,roundPoints:p.roundPoints,roundLikes:p.roundLikes,shots:p.shots,totalShots:p.totalShots,pendingShots:p.pendingShots,hits:p.hitShots,welcomeShots:p.welcomeShots,entryMs:Math.max(0,(p.entry?.until||0)-t),title:pilotTitle(p),badges:[...(p.badges||[])],nextPower:p.nextPower||1,spinRate:p.spinRate,spinBoost:p.spinBoost,portraitAngle:avatarTilt(p,t),spreadSize:performance.now()<p.spreadUntil?p.spreadSize:1,spreadMs:Math.max(0,p.spreadUntil-performance.now()),ship:SHIPS[shipModel(p)],aimStreak:p.aimStreak,bestStreak:p.bestStreak,aimAngle:aimAngle(p,t),aimReady:aimReady(p,t),heartActive:p.pendingShots>0||t<p.boostUntil,sizeScale:1+playerGrowth(p),avatar:!!pics.get(p.avatar)?.img,x:p.x,y:p.y}:null;},
     ballistics:()=>({welcomes:battle.stats.welcomes,received:battle.stats.likes,fired:[...battle.players.values()].filter(p=>!p.bot).reduce((n,p)=>n+p.totalShots,0),pending:[...battle.players.values()].filter(p=>!p.bot).reduce((n,p)=>n+p.pendingShots,0),active:battle.projectiles.length,shots:battle.projectiles.filter(s=>s.aimed).map(s=>({id:s.id,x:s.lastX,y:s.lastY,vx:s.vx,vy:s.vy,bounces:s.bounces,born:s.start,color:s.color,burst:s.burst,bomb:s.bomb,welcome:s.welcome,speed:s.speed,damage:s.damage,power:s.power,head:!!s.avatar})),angles:battle.projectiles.filter(s=>s.aimed&&!battle.get(s.id)?.bot).map(s=>({id:s.id,angle:s.initialAngle,currentAngle:s.angle,team:s.team}))}),
@@ -730,6 +760,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00ff00;fon
   };
   for(let team=0;team<2;team++)for(let model=0;model<SHIPS.length;model++)shipSprite(model,team);
   for(let team=0;team<2;team++)for(let i=0;i<72;i++){boltSprite(team,false,i*Math.PI*2/72);boltSprite(team,false,i*Math.PI*2/72,true);boltSprite(team,true,i*Math.PI*2/72);}
-  newBattle('live');connect();requestAnimationFrame(loop);
+  updateSoundUI();newBattle('live');connect();requestAnimationFrame(loop);
 })();
 </script></body></html>
