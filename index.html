@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Galaxinko: The CNC Judge</title>
+<title>Galaxinko: Realistic CNC Judge</title>
 <style>
   body, html {
     margin: 0; padding: 0; width: 100%; height: 100%;
@@ -44,8 +44,8 @@
 <div id="admin-panel">
   <h3>Admin Panel (Live TEST)</h3>
   <button id="btn-sound">Enable Sound</button><br><br>
-  <button id="btn-voteA">Vote A</button>
-  <button id="btn-voteB">Vote B</button><br>
+  <button id="btn-voteA">Vote A (Photo)</button>
+  <button id="btn-voteB">Vote B (Photo)</button><br>
   <button id="btn-like">Add Like (SpeedUp)</button>
   <button id="btn-gift">Add Gift (Gold Plating)</button><br><br>
   <button id="btn-end">Force End Round</button>
@@ -53,21 +53,20 @@
 
 <script>
 // ==========================================
-// KONFIGURACE HRY
+// KONFIGURACE HRY A ROZLOŽENÍ
 // ==========================================
 const OPTIONS = {
-    A: { title: "PIZZA", emoji: "🍕", color: "#FF4136" },
-    B: { title: "BURGER", emoji: "🍔", color: "#0074D9" }
+    A: { title: "PIZZA", emoji: "🍕", color: "#FF4136", x: 90, w: 400 },
+    B: { title: "BURGER", emoji: "🍔", color: "#0074D9", x: 590, w: 400 }
 };
-const ROUND_TIME = 45; // sekundy
-const FLOOR_Y = 1600;
+const ROUND_TIME = 45; 
+const W = 1080, H = 1920;
+const TUBES_Y = 1100; // Horní hrana zkumavek
+const TUBES_H = 700;  // Výška zkumavek
+const FLOOR_Y = TUBES_Y + TUBES_H - 40; // Kde se kuličky zastaví
 
-// ==========================================
-// ENGINE A STAV
-// ==========================================
 const canvas = document.getElementById('arena');
 const ctx = canvas.getContext('2d', { alpha: false });
-const W = 1080, H = 1920;
 
 let audioCtx = null;
 let soundEnabled = false;
@@ -78,21 +77,19 @@ let lastTime = performance.now();
 
 let balls = [];
 let particles = [];
-let players = {}; // id -> { name, avatarImg, score, side, likes, gifts }
+let players = {}; 
 let avatarCache = {};
 
 let mvpPlayer = null;
-let cncProgress = 0; // 0 to 1
+let cncProgress = 0; 
 let laserPos = { x: 0, y: 0 };
 let isGoldPlated = false;
 
 // ==========================================
-// ZVUKY (Web Audio API)
+// ZVUKY
 // ==========================================
 function unlockAudio() {
-    if(!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if(audioCtx.state === 'suspended') audioCtx.resume();
     soundEnabled = true;
     document.getElementById('btn-sound').innerText = "Sound ON";
@@ -111,59 +108,74 @@ function playTone(freq, type, duration, vol=0.1) {
     } catch(e) {}
 }
 
-function playLaserSound() {
-    if(!soundEnabled || !audioCtx || Math.random() > 0.3) return; // limit
-    playTone(150 + Math.random()*50, 'sawtooth', 0.1, 0.05);
+// ==========================================
+// AVATARY A TEXTURY
+// ==========================================
+function loadAvatar(url) {
+    if(!url) return null;
+    if(avatarCache[url]) return avatarCache[url] === 'loading' ? null : avatarCache[url];
+    avatarCache[url] = 'loading';
+    let img = new Image();
+    img.crossOrigin = "Anonymous"; // Zásadní pro TikTok obrázky na Canvasu
+    img.onload = () => { avatarCache[url] = img; };
+    img.onerror = () => { avatarCache[url] = null; };
+    img.src = url;
+    return null;
 }
 
 // ==========================================
-// FYZIKA A LOGIKA
+// FYZIKA A SPAWNOVÁNÍ KULIČEK
 // ==========================================
 function spawnBall(userId, name, avatarUrl, side) {
-    let x = side === 'A' ? 270 + (Math.random()*100 - 50) : 810 + (Math.random()*100 - 50);
-    let y = 300 + Math.random() * 50;
-    let r = 35;
+    let opt = OPTIONS[side];
+    // Spawnuje se přesně nad daným skleněným tubusem
+    let x = opt.x + opt.w/2 + (Math.random()*100 - 50);
+    let y = TUBES_Y - 150 - Math.random() * 100;
+    let r = 38; // Zvětšené fotky
     
     balls.push({
         userId: userId, name: name, avatar: avatarUrl, side: side,
-        x: x, y: y, vx: (Math.random()-0.5)*2, vy: Math.random()*2, r: r, active: true
+        x: x, y: y, vx: (Math.random()-0.5)*100, vy: Math.random()*100, r: r, active: true
     });
     
-    playTone(side === 'A' ? 600 : 800, 'sine', 0.1, 0.05);
+    playTone(side === 'A' ? 500 : 700, 'sine', 0.1, 0.05);
 }
 
 function updatePhysics(dt) {
-    // Gravitace a pohyb
+    let winningSide = getWinningSide();
+    
     for(let b of balls) {
         if(!b.active) continue;
-        b.vy += 2400 * dt; // gravity
+        b.vy += 3000 * dt; // Silnější gravitace
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         
-        // Tření
-        b.vx *= 0.99;
-        b.vy *= 0.99;
+        b.vx *= 0.98; b.vy *= 0.98; // Tření vzduchu
         
-        // Podlaha
-        if(state === "VOTE" || (state === "SHRED" && b.side === getWinningSide())) {
+        let opt = OPTIONS[b.side];
+        
+        // Zdi skleněného tubusu
+        let minX = opt.x + 10 + b.r;
+        let maxX = opt.x + opt.w - 10 - b.r;
+        if(b.x < minX) { b.x = minX; b.vx *= -0.5; }
+        if(b.x > maxX) { b.x = maxX; b.vx *= -0.5; }
+        
+        // Podlaha tubusu (Otevře se pro poražené během SHRED fáze)
+        let floorActive = state === "VOTE" || (state === "SHRED" && b.side === winningSide) || state === "CNC" || state === "RESULTS";
+        if(floorActive) {
             if(b.y > FLOOR_Y - b.r) { b.y = FLOOR_Y - b.r; b.vy *= -0.3; }
         }
         
-        // Zdi a střed
-        let minX = b.side === 'A' ? 40 : 550;
-        let maxX = b.side === 'A' ? 530 : 1040;
-        if(b.x < minX + b.r) { b.x = minX + b.r; b.vx *= -0.5; }
-        if(b.x > maxX - b.r) { b.x = maxX - b.r; b.vx *= -0.5; }
+        if(b.y > H + 100) b.active = false; // Úplně zmizí až když propadnou obrazovkou
     }
     
-    // Stabilní resolve kolizí (3 iterace pro tuhost)
-    for(let iter = 0; iter < 3; iter++) {
+    // Stabilní kolize kuliček mezi sebou
+    for(let iter = 0; iter < 4; iter++) {
         for(let i=0; i<balls.length; i++) {
             if(!balls[i].active) continue;
             for(let j=i+1; j<balls.length; j++) {
                 if(!balls[j].active) continue;
-                // Kuličky se míchají jen na své straně
-                if(balls[i].side !== balls[j].side) continue;
+                if(balls[i].side !== balls[j].side) continue; // Nekolidují přes tubus
                 
                 let dx = balls[j].x - balls[i].x;
                 let dy = balls[j].y - balls[i].y;
@@ -174,15 +186,15 @@ function updatePhysics(dt) {
                     let overlap = minDist - dist;
                     let nx = dx / dist, ny = dy / dist;
                     
+                    // Rozstrčení kuliček od sebe
                     balls[i].x -= nx * overlap * 0.5; balls[i].y -= ny * overlap * 0.5;
                     balls[j].x += nx * overlap * 0.5; balls[j].y += ny * overlap * 0.5;
                     
-                    // Přenos hybnosti
                     let dvx = balls[j].vx - balls[i].vx; let dvy = balls[j].vy - balls[i].vy;
-                    let impulse = (dvx * nx + dvy * ny) * 0.5;
+                    let impulse = (dvx * nx + dvy * ny) * 0.4; // 0.4 je tvrdost odrazu
                     if(impulse < 0) {
-                        balls[i].vx += nx * impulse; balls[i].y += ny * impulse;
-                        balls[j].vx -= nx * impulse; balls[j].y -= ny * impulse;
+                        balls[i].vx += nx * impulse; balls[i].vy += ny * impulse;
+                        balls[j].vx -= nx * impulse; balls[j].vy -= ny * impulse;
                     }
                 }
             }
@@ -191,17 +203,17 @@ function updatePhysics(dt) {
 }
 
 function getWinningSide() {
-    let countA = balls.filter(b => b.side === 'A').length;
-    let countB = balls.filter(b => b.side === 'B').length;
+    let countA = balls.filter(b => b.side === 'A' && b.active).length;
+    let countB = balls.filter(b => b.side === 'B' && b.active).length;
     return countA >= countB ? 'A' : 'B';
 }
 
 function startCNC() {
     let winSide = getWinningSide();
-    let winBalls = balls.filter(b => b.side === winSide);
+    let winBalls = balls.filter(b => b.side === winSide && b.active);
     
     if(winBalls.length > 0) {
-        // Vyber MVP (nejvíc gifts/likes, nebo náhodně)
+        // Nalezení MVP
         let best = winBalls[0];
         let maxScore = -1;
         for(let b of winBalls) {
@@ -211,199 +223,204 @@ function startCNC() {
         }
         mvpPlayer = best;
     } else {
-        mvpPlayer = { name: "NOBODY", avatar: null }; // Fallback
+        mvpPlayer = { name: "NOBODY", avatar: null }; 
     }
     
     cncProgress = 0;
     state = "CNC";
-    playTone(200, 'square', 1.0, 0.1);
+    playTone(200, 'square', 1.0, 0.1); // Zapnutí stroje
 }
 
 function spawnSparks(x, y) {
-    if(particles.length > 150) return;
-    for(let i=0; i<3; i++) {
+    if(particles.length > 200) return;
+    for(let i=0; i<4; i++) {
         particles.push({
-            x: x, y: y,
-            vx: (Math.random()-0.5)*800, vy: -Math.random()*800 - 200,
-            life: 1.0, color: isGoldPlated ? '#FFDC00' : '#FF851B'
+            x: x + (Math.random()-0.5)*10, y: y,
+            vx: (Math.random()-0.5)*1200, vy: -Math.random()*1000 - 300,
+            life: 1.0, color: isGoldPlated ? '#FFDC00' : '#FF4136', type: 'spark'
+        });
+    }
+    // Dým
+    if(Math.random() > 0.5) {
+        particles.push({
+            x: x, y: y - 20,
+            vx: (Math.random()-0.5)*100, vy: -Math.random()*200 - 100,
+            life: 1.0, size: Math.random()*20+20, color: 'rgba(50,50,50,', type: 'smoke'
         });
     }
 }
 
-function updateParticles(dt) {
-    for(let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
-        p.vy += 2000 * dt; // gravity
-        p.x += p.vx * dt; p.y += p.vy * dt;
-        p.life -= dt * 1.5;
-        if(p.life <= 0) particles.splice(i, 1);
-    }
-}
-
 // ==========================================
-// VYKRESLOVÁNÍ
+// VYKRESLOVACÍ FUNKCE (GRAFIKA)
 // ==========================================
-function loadAvatar(url) {
-    if(!url) return null;
-    if(avatarCache[url]) return avatarCache[url] === 'loading' ? null : avatarCache[url];
-    avatarCache[url] = 'loading';
-    let img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => { avatarCache[url] = img; };
-    img.onerror = () => { avatarCache[url] = null; };
-    img.src = url;
-    return null;
+function drawRoundedRect(x, y, w, h, r, fill, stroke, strokeW) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if(fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if(stroke) { ctx.lineWidth = strokeW; ctx.strokeStyle = stroke; ctx.stroke(); }
 }
 
 function drawBall(b) {
     ctx.save();
     ctx.translate(b.x, b.y);
     
-    // Obrys podle týmu
-    ctx.beginPath();
-    ctx.arc(0, 0, b.r, 0, Math.PI*2);
-    ctx.fillStyle = OPTIONS[b.side].color;
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#000';
-    ctx.stroke();
+    // Ořez pro profilovku
+    ctx.beginPath(); ctx.arc(0, 0, b.r, 0, Math.PI*2); ctx.clip();
     
-    // Profilovka
     let img = loadAvatar(b.avatar);
     if(img && img !== 'loading') {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(0, 0, b.r - 4, 0, Math.PI*2); ctx.clip();
         ctx.drawImage(img, -b.r, -b.r, b.r*2, b.r*2);
-        ctx.restore();
     } else {
-        ctx.fillStyle = '#111';
-        ctx.beginPath(); ctx.arc(0, 0, b.r - 4, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = "bold 24px Arial";
+        ctx.fillStyle = '#222'; ctx.fillRect(-b.r, -b.r, b.r*2, b.r*2);
+        ctx.fillStyle = '#fff'; ctx.font = "bold 35px Arial";
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(b.name.charAt(0).toUpperCase(), 0, 2);
     }
+    
+    // 3D Stínování (Skleněný/Prostorový efekt)
+    let grad = ctx.createRadialGradient(-b.r*0.3, -b.r*0.3, b.r*0.1, 0, 0, b.r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.4)');
+    grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.8)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(-b.r, -b.r, b.r*2, b.r*2);
+    
     ctx.restore();
+    
+    // Zářící okraj týmu
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.lineWidth = 5; ctx.strokeStyle = OPTIONS[b.side].color;
+    ctx.stroke();
 }
 
-function drawCNCPhase() {
-    let px = W/2 - 300, py = H/2 - 300, pSize = 600;
+function drawTubes() {
+    for(let key of ['A', 'B']) {
+        let opt = OPTIONS[key];
+        // Zadní stěna tubusu
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(opt.x, TUBES_Y, opt.w, TUBES_H);
+    }
     
-    // 1. Zlatá/Kovová deska
-    ctx.fillStyle = isGoldPlated ? '#FFD700' : '#888888';
-    ctx.fillRect(px, py, pSize, pSize);
-    ctx.lineWidth = 10; ctx.strokeStyle = '#222';
-    ctx.strokeRect(px, py, pSize, pSize);
+    // Kuličky uvnitř
+    for(let b of balls) if(b.active) drawBall(b);
     
-    // 2. Gravírování portrétu (Ořezávací maska)
-    if(mvpPlayer) {
-        ctx.save();
-        // Vypočítáme, kolik řádků už CNC udělalo
-        let revealH = pSize * cncProgress;
+    for(let key of ['A', 'B']) {
+        let opt = OPTIONS[key];
         
+        // Přední sklo (Odlesk)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.beginPath();
-        ctx.rect(px, py, pSize, revealH);
-        ctx.clip();
+        ctx.moveTo(opt.x, TUBES_Y); ctx.lineTo(opt.x + opt.w/2, TUBES_Y);
+        ctx.lineTo(opt.x, TUBES_Y + TUBES_H); ctx.fill();
         
-        // Vykreslit tmavou verzi profilovky
-        let img = loadAvatar(mvpPlayer.avatar);
-        if(img && img !== 'loading') {
-            ctx.drawImage(img, px + 50, py + 50, pSize - 100, pSize - 100);
-            // Ztmavovací vrstva, aby to vypadalo vyfrézovaně
-            ctx.fillStyle = isGoldPlated ? 'rgba(100, 60, 0, 0.4)' : 'rgba(0, 0, 0, 0.6)';
-            ctx.fillRect(px, py, pSize, pSize);
-        } else {
-            ctx.fillStyle = '#222';
-            ctx.fillRect(px + 50, py + 50, pSize - 100, pSize - 100);
-            ctx.fillStyle = isGoldPlated ? '#FFD700' : '#888';
-            ctx.font = "bold 100px Arial"; ctx.textAlign = "center";
-            ctx.fillText(mvpPlayer.name, px + pSize/2, py + pSize/2);
-        }
+        // Kovový rám tubusu
+        drawRoundedRect(opt.x, TUBES_Y, opt.w, TUBES_H, 15, null, opt.color, 12);
+        drawRoundedRect(opt.x-5, TUBES_Y-5, opt.w+10, TUBES_H+10, 15, null, '#111', 4);
         
-        // Jméno dárce gravírované dole
+        // Nadpis tubusu
         ctx.fillStyle = '#111';
-        ctx.font = "bold 40px Arial"; ctx.textAlign = "center";
-        ctx.fillText("MVP: " + mvpPlayer.name, px + pSize/2, py + pSize - 20);
-        ctx.restore();
+        drawRoundedRect(opt.x + 20, TUBES_Y - 60, opt.w - 40, 80, 10, '#111', opt.color, 4);
+        ctx.fillStyle = '#fff'; ctx.font = "900 45px Arial Black"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(`[${key}] ${opt.emoji} ${opt.title}`, opt.x + opt.w/2, TUBES_Y - 20);
         
-        // 3. Hlava CNC (laser)
-        if(state === "CNC") {
-            let scanLines = 20;
-            let currentLine = Math.floor(cncProgress * scanLines);
-            let lineProgress = (cncProgress * scanLines) % 1;
-            
-            laserPos.x = px + (currentLine % 2 === 0 ? lineProgress * pSize : (1 - lineProgress) * pSize);
-            laserPos.y = py + revealH;
-            
-            // Jiskry a zvuk
-            spawnSparks(laserPos.x, laserPos.y);
-            playLaserSound();
-            
-            // Vykreslení laserové hlavy
-            ctx.fillStyle = '#ff0000';
-            ctx.beginPath();
-            ctx.moveTo(laserPos.x, laserPos.y);
-            ctx.lineTo(laserPos.x - 20, laserPos.y - 40);
-            ctx.lineTo(laserPos.x + 20, laserPos.y - 40);
-            ctx.fill();
-            
-            // Paprsek
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(laserPos.x, laserPos.y); ctx.lineTo(laserPos.x, 0); ctx.stroke();
-        }
+        // Počítadlo procent
+        let total = balls.filter(b => b.active).length || 1;
+        let count = balls.filter(b => b.side === key && b.active).length;
+        let pct = Math.round((count/total)*100);
+        
+        ctx.fillStyle = opt.color;
+        ctx.font = "900 80px Arial Black";
+        ctx.lineWidth = 8; ctx.strokeStyle = '#000';
+        ctx.strokeText(`${pct}%`, opt.x + opt.w/2, TUBES_Y + TUBES_H - 60);
+        ctx.fillText(`${pct}%`, opt.x + opt.w/2, TUBES_Y + TUBES_H - 60);
+    }
+}
+
+function drawCNC() {
+    let px = 140, py = 250, pSize = 800; // Hlavní deska nahoře
+    
+    // Stín pod deskou
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(px+20, py+20, pSize, pSize);
+    
+    // Samotná deska
+    let plateColor = isGoldPlated ? '#FFD700' : '#8B7355'; // Zlato nebo Dřevo
+    drawRoundedRect(px, py, pSize, pSize, 20, plateColor, '#222', 15);
+    
+    ctx.fillStyle = '#fff'; ctx.font = "900 60px Arial Black"; ctx.textAlign = 'center';
+    ctx.lineWidth = 6; ctx.strokeStyle = '#000';
+    ctx.strokeText("CNC MASTERPIECE", W/2, py - 40); ctx.fillText("CNC MASTERPIECE", W/2, py - 40);
+    
+    if(!mvpPlayer) return;
+    
+    // 2. Gravírování (Odhalovací maska)
+    ctx.save();
+    let revealH = pSize * cncProgress;
+    ctx.beginPath(); ctx.rect(px, py, pSize, revealH); ctx.clip();
+    
+    let img = loadAvatar(mvpPlayer.avatar);
+    if(img && img !== 'loading') {
+        ctx.drawImage(img, px + 100, py + 100, pSize - 200, pSize - 200);
+        // "Vypálený" filtr přes fotku
+        ctx.fillStyle = isGoldPlated ? 'rgba(80, 50, 0, 0.6)' : 'rgba(40, 20, 10, 0.7)';
+        ctx.fillRect(px, py, pSize, pSize);
+    }
+    
+    // Nápis dole na desce
+    ctx.fillStyle = '#111'; ctx.font = "900 50px Arial Black";
+    ctx.fillText("WINNER: " + mvpPlayer.name, px + pSize/2, py + pSize - 40);
+    ctx.restore();
+    
+    // 3. Laser / Hlava
+    if(state === "CNC") {
+        let scanLines = 25;
+        let currentLine = Math.floor(cncProgress * scanLines);
+        let lineProgress = (cncProgress * scanLines) % 1;
+        
+        laserPos.x = px + (currentLine % 2 === 0 ? lineProgress * pSize : (1 - lineProgress) * pSize);
+        laserPos.y = py + revealH;
+        
+        spawnSparks(laserPos.x, laserPos.y);
+        if(Math.random() > 0.5) playTone(200 + Math.random()*50, 'sawtooth', 0.1, 0.03); // Řezací zvuk
+        
+        // Zářící paprsek (Additive blending pro neonový look)
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        
+        ctx.beginPath(); ctx.moveTo(laserPos.x, 0); ctx.lineTo(laserPos.x, laserPos.y);
+        ctx.lineWidth = 20; ctx.strokeStyle = 'rgba(0, 242, 254, 0.3)'; ctx.stroke();
+        ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(0, 242, 254, 0.8)'; ctx.stroke();
+        ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+        
+        // Glow bod na desce
+        ctx.beginPath(); ctx.arc(laserPos.x, laserPos.y, 20, 0, Math.PI*2);
+        ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.restore();
     }
 }
 
 function drawUI() {
-    // Nadpisy
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.font = "900 80px Arial Black";
-    ctx.lineWidth = 8; ctx.strokeStyle = '#000';
+    let topText = state === "VOTE" ? `TIME: ${Math.ceil(roundTimer)}s` : state === "SHRED" ? "LOSERS SHREDDED!" : state === "CNC" ? "ENGRAVING MVP..." : "ROUND OVER";
+    let color = state === "VOTE" && roundTimer <= 10 ? '#FF4136' : '#00f2fe';
     
-    ctx.strokeText("WHAT DO YOU PREFER?", W/2, 120);
-    ctx.fillText("WHAT DO YOU PREFER?", W/2, 120);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = "900 60px Arial Black"; ctx.lineWidth = 8; ctx.strokeStyle = '#000';
     
-    // Timer / Status
-    let statusText = state === "VOTE" ? `TIME: ${Math.ceil(roundTimer)}` : state === "SHRED" ? "LOSERS DESTROYED!" : state === "CNC" ? "ENGRAVING MVP..." : "ROUND OVER";
-    let statusColor = state === "VOTE" && roundTimer <= 10 ? '#FF4136' : '#FFDC00';
-    
-    ctx.font = "900 50px Arial Black";
-    ctx.strokeStyle = '#000'; ctx.strokeText(statusText, W/2, 220);
-    ctx.fillStyle = statusColor; ctx.fillText(statusText, W/2, 220);
-
-    // Dvě poloviny
-    if(state === "VOTE" || state === "SHRED") {
-        // A Option
-        ctx.fillStyle = OPTIONS.A.color;
-        ctx.fillRect(40, 250, 480, 150);
-        ctx.strokeRect(40, 250, 480, 150);
-        ctx.fillStyle = '#fff'; ctx.font = "900 60px Arial Black";
-        ctx.fillText(`[A] ${OPTIONS.A.emoji} ${OPTIONS.A.title}`, 280, 350);
-        
-        // B Option
-        ctx.fillStyle = OPTIONS.B.color;
-        ctx.fillRect(560, 250, 480, 150);
-        ctx.strokeRect(560, 250, 480, 150);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(`[B] ${OPTIONS.B.emoji} ${OPTIONS.B.title}`, 800, 350);
-        
-        // Počítadla
-        let countA = balls.filter(b => b.side === 'A').length;
-        let countB = balls.filter(b => b.side === 'B').length;
-        let total = countA + countB || 1;
-        
-        ctx.font = "900 70px Arial";
-        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000';
-        ctx.strokeText(`${Math.round(countA/total*100)}%`, 280, 480); ctx.fillText(`${Math.round(countA/total*100)}%`, 280, 480);
-        ctx.strokeText(`${Math.round(countB/total*100)}%`, 800, 480); ctx.fillText(`${Math.round(countB/total*100)}%`, 800, 480);
-    }
+    // Pozadí pro horní lištu
+    drawRoundedRect(W/2 - 350, 40, 700, 100, 20, 'rgba(10,15,30,0.8)', color, 5);
+    ctx.strokeText(topText, W/2, 90); ctx.fillStyle = color; ctx.fillText(topText, W/2, 90);
 }
 
 function draw() {
     let now = performance.now();
-    let dt = Math.min((now - lastTime) / 1000, 0.05); // Limit dt proti lag spike
+    let dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
     
-    // Čisté Chroma zelené pozadí
+    // Čisté Chroma zelené pozadí pro OBS Minecraft
     ctx.fillStyle = '#00FF00';
     ctx.fillRect(0, 0, W, H);
     
@@ -411,74 +428,66 @@ function draw() {
     if(state === "VOTE") {
         roundTimer -= dt;
         if(roundTimer <= 0) {
-            state = "SHRED";
-            roundTimer = 3; // Shredding trvá 3s
-            playTone(100, 'sawtooth', 2.0, 0.2); // Basový hluk drcení
+            state = "SHRED"; roundTimer = 4;
+            playTone(80, 'sawtooth', 3.0, 0.3); // Hluboký dunivý zvuk drcení
         }
     } else if(state === "SHRED") {
         roundTimer -= dt;
-        // Poražená strana propadá floor
-        let loseSide = getWinningSide() === 'A' ? 'B' : 'A';
-        for(let b of balls) {
-            if(b.side === loseSide) b.vy += 5000 * dt; // Rychlý propad do pekla
-            if(b.y > H + 100) b.active = false;
-        }
         if(roundTimer <= 0) startCNC();
     } else if(state === "CNC") {
-        let speedMult = 1.0 + (isGoldPlated ? 1.0 : 0); // Zlatá jede rychleji
-        cncProgress += (dt / 15.0) * speedMult; // 15 sekund default
+        let speedMult = 1.0 + (isGoldPlated ? 1.0 : 0);
+        cncProgress += (dt / 15.0) * speedMult; 
         if(cncProgress >= 1.0) {
-            cncProgress = 1.0;
-            state = "RESULTS";
-            roundTimer = 5;
-            playTone(800, 'sine', 0.1); setTimeout(() => playTone(1200, 'sine', 0.5), 150); // Win znělka
+            cncProgress = 1.0; state = "RESULTS"; roundTimer = 6;
+            playTone(400, 'sine', 0.2, 0.1); setTimeout(() => playTone(600, 'sine', 0.5, 0.1), 200);
         }
     } else if(state === "RESULTS") {
         roundTimer -= dt;
         if(roundTimer <= 0) {
-            // Reset do nového kola
             state = "VOTE"; roundTimer = ROUND_TIME;
-            balls = []; particles = []; players = {};
-            isGoldPlated = false; mvpPlayer = null;
+            balls = []; particles = []; players = {}; isGoldPlated = false; mvpPlayer = null;
         }
     }
     
     updatePhysics(dt);
-    updateParticles(dt);
     
-    // Render Balls
-    if(state === "VOTE" || state === "SHRED") {
-        // Dělící čára
-        ctx.fillStyle = '#111'; ctx.fillRect(530, 250, 20, 1400);
-        // Podlaha
-        ctx.fillStyle = '#222'; ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
-        
-        for(let b of balls) if(b.active) drawBall(b);
+    // Particle update
+    for(let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 1.5;
+        if(p.type === 'spark') { p.vy += 3000 * dt; } // gravitace na jiskry
+        else { p.size += dt * 30; } // dým se zvětšuje
+        if(p.life <= 0) particles.splice(i, 1);
     }
     
-    if(state === "CNC" || state === "RESULTS") {
-        drawCNCPhase();
-    }
+    // Kreslení odzadu dopředu
+    drawCNC();
+    drawTubes();
     
-    // Render Particles (Jiskry)
+    // Kreslení částic
+    ctx.save();
     for(let p of particles) {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+        if(p.type === 'spark') {
+            ctx.globalCompositeOperation = "lighter";
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.fillStyle = p.color + p.life + ')';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+        }
     }
-    ctx.globalAlpha = 1.0;
+    ctx.restore();
     
     drawUI();
     requestAnimationFrame(draw);
 }
 
 // ==========================================
-// TIKFINITY INTEGRACE (Parser a Socket)
+// TIKFINITY INTEGRACE
 // ==========================================
 let socket;
 function connectTikfinity() {
     socket = new WebSocket("ws://localhost:21213/");
-    
     socket.onopen = () => console.log("TikFinity Connected!");
     socket.onclose = () => setTimeout(connectTikfinity, 5000);
     
@@ -492,30 +501,23 @@ function connectTikfinity() {
             let userId = data.uniqueId || data.userId || name;
             let avatar = data.profilePictureUrl || "";
             
-            // Registrace hráče do paměti kola
-            if(!players[userId]) {
-                players[userId] = { name: name, avatar: avatar, likes: 0, gifts: 0, voted: false };
-            }
+            if(!players[userId]) players[userId] = { name: name, avatar: avatar, likes: 0, gifts: 0, voted: false };
             let p = players[userId];
             
             if(event === "chat" && state === "VOTE" && !p.voted) {
                 let text = (data.comment || data.text || "").toUpperCase().trim();
                 if(text === 'A' || text === 'B') {
-                    p.voted = true;
-                    spawnBall(userId, name, avatar, text);
+                    p.voted = true; spawnBall(userId, name, avatar, text);
                 }
             }
             else if(event === "like" && state === "CNC") {
-                // Lajky během CNC zrychlují výrobu
                 p.likes += (data.likeCount || 1);
-                cncProgress += 0.02; // Okamžitý skok progressu
+                cncProgress += 0.02; // Okamžité zrychlení
             }
             else if(event === "gift") {
                 p.gifts += (data.diamondCount || data.coins || 1);
-                // Dárek přepne materiál na zlato
                 if(state === "CNC" && !isGoldPlated) {
-                    isGoldPlated = true;
-                    playTone(600, 'square', 0.5, 0.1); // Gold upgrade sound
+                    isGoldPlated = true; playTone(600, 'square', 0.5, 0.1);
                 }
             }
         } catch(err) {}
@@ -523,20 +525,20 @@ function connectTikfinity() {
 }
 
 // ==========================================
-// OVLÁDÁNÍ (Klávesové zkratky a Admin Panel)
+// ADMIN OVLÁDÁNÍ
 // ==========================================
 document.addEventListener('keydown', (e) => {
-    let key = e.key.toLowerCase();
-    if(key === 'h') {
+    if(e.key.toLowerCase() === 'h') {
         let pnl = document.getElementById('admin-panel');
         pnl.style.display = pnl.style.display === 'none' || pnl.style.display === '' ? 'block' : 'none';
     }
 });
 
-// Admin Tlačítka
+// Použití picsum.photos pro testování, abys viděl, že profilovky a 3D efekt koulí fungují
+let testId = 1;
 document.getElementById('btn-sound').onclick = unlockAudio;
-document.getElementById('btn-voteA').onclick = () => { if(state==="VOTE") spawnBall("test1", "Tester A", "", "A"); };
-document.getElementById('btn-voteB').onclick = () => { if(state==="VOTE") spawnBall("test2", "Tester B", "", "B"); };
+document.getElementById('btn-voteA').onclick = () => { if(state==="VOTE") spawnBall("t"+testId, "TesterA", "https://picsum.photos/100?random="+testId++, "A"); };
+document.getElementById('btn-voteB').onclick = () => { if(state==="VOTE") spawnBall("t"+testId, "TesterB", "https://picsum.photos/100?random="+testId++, "B"); };
 document.getElementById('btn-like').onclick = () => { if(state==="CNC") cncProgress += 0.05; };
 document.getElementById('btn-gift').onclick = () => { isGoldPlated = true; };
 document.getElementById('btn-end').onclick = () => { if(state==="VOTE") roundTimer = 0; };
