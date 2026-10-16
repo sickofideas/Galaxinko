@@ -330,10 +330,10 @@
   }
 
   const SFX_CHORD = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
-  let sound = true, ttsEnabled = true, audioCtx = null, soundEvents = 0, soundLevel = 0.85;
+  let sound = true, ttsEnabled = true, audioCtx = null, soundEvents = 0, soundLevel = 0.95;
   try {
     const saved = localStorage.getItem('galaxinko-sfx-volume');
-    if (saved !== null && Number.isFinite(Number(saved))) soundLevel = clamp(Number(saved), 0, 1);
+    if (saved !== null && Number.isFinite(Number(saved))) soundLevel = clamp(Number(saved), 0.2, 1);
   } catch (e) {}
 
   let lastSpokenAt = 0;
@@ -434,10 +434,10 @@
         const filter = audioCtx.createBiquadFilter();
         const compressor = audioCtx.createDynamicsCompressor();
         const master = audioCtx.createGain();
-        // Warm lowpass filter removes harsh arcade/slot-machine highs
-        filter.type = 'lowpass'; filter.frequency.value = 1850; filter.Q.value = 0.5;
-        compressor.threshold.value = -20; compressor.knee.value = 14; compressor.ratio.value = 4;
-        compressor.attack.value = 0.008; compressor.release.value = 0.18;
+        // Clear, audible frequency range so sounds cut through background music in OBS
+        filter.type = 'lowpass'; filter.frequency.value = 3800; filter.Q.value = 0.7;
+        compressor.threshold.value = -16; compressor.knee.value = 10; compressor.ratio.value = 3.5;
+        compressor.attack.value = 0.004; compressor.release.value = 0.15;
         master.gain.value = soundLevel;
         filter.connect(compressor); compressor.connect(master); master.connect(audioCtx.destination);
         sfxMix.input = filter; sfxMix.master = master;
@@ -449,7 +449,11 @@
       sfxMix.resumeAt = t;
       updateSoundUI();
       return Promise.resolve(audioCtx.resume()).then(() => {
-        sfxMix.error = ''; updateSoundUI(); return audioCtx.state === 'running';
+        sfxMix.error = ''; updateSoundUI();
+        if (gesture && audioCtx.state === 'running') {
+          sfxTone(523.25, 0.14, 0.16, 0, 'triangle', 0, 1.25);
+        }
+        return audioCtx.state === 'running';
       }, () => { updateSoundUI(); return false; });
     } catch (e) {
       updateSoundUI(); return Promise.resolve(false);
@@ -483,43 +487,39 @@
     } catch (e) { return false; }
   }
 
-  // Soft physical marimba/wood/water-drop ASMR sounds (no casino slot bleeps)
+  // Crisp, audible physical marimba & mechanical sounds that cut through stream music
   function playSfx(kind, side, tier) {
     const t = performance.now();
-    const cd = { vote: 65, bounce: 75, bumper: 65, like: 85, crown: 500, shred: 600, cnc: 80, gift: 320, win: 700 }[kind] || 75;
+    const cd = { vote: 55, bounce: 65, bumper: 55, like: 75, crown: 450, shred: 500, cnc: 70, gift: 280, win: 600 }[kind] || 65;
     const prev = sfxMix.last.has(kind) ? sfxMix.last.get(kind) : -Infinity;
     if (t - prev < cd) return;
     sfxMix.last.set(kind, t);
     const pan = side === 'A' ? -0.25 : side === 'B' ? 0.25 : 0;
 
     if (kind === 'vote') {
-      // Soft water-drop pop
-      const base = side === 'A' ? 240 : 290;
-      sfxTone(base, 0.09, 0.055, pan, 'sine', 0, 1.65);
+      const base = side === 'A' ? 320 : 390;
+      sfxTone(base, 0.12, 0.15, pan, 'triangle', 0, 1.55);
     } else if (kind === 'bumper') {
-      // Warm wooden marimba tap
-      const note = SFX_CHORD[Math.floor(Math.random() * SFX_CHORD.length)];
-      sfxTone(note, 0.085, 0.045, pan, 'sine', 0, 0.96);
+      const note = SFX_CHORD[Math.floor(Math.random() * SFX_CHORD.length)] * 1.5;
+      sfxTone(note, 0.11, 0.14, pan, 'triangle', 0, 1.04);
     } else if (kind === 'bounce') {
-      sfxTone(135 + Math.random() * 45, 0.055, 0.02, pan, 'sine', 0, 0.78);
+      sfxTone(170 + Math.random() * 60, 0.07, 0.08, pan, 'triangle', 0, 0.82);
     } else if (kind === 'like') {
-      sfxTone(310 + Math.random() * 90, 0.08, 0.038, pan, 'sine', 0, 1.35);
+      sfxTone(420 + Math.random() * 110, 0.10, 0.13, pan, 'triangle', 0, 1.35);
     } else if (kind === 'crown') {
-      [0, 2, 4].forEach((n, i) => sfxTone(SFX_CHORD[n], 0.18, 0.045, pan, 'sine', i * 0.06, 1.02));
+      [0, 2, 4].forEach((n, i) => sfxTone(SFX_CHORD[n] * 1.5, 0.20, 0.14, pan, 'triangle', i * 0.06, 1.02));
     } else if (kind === 'shred') {
-      // Deep hydraulic press thud
-      sfxTone(95, 0.55, 0.09, pan, 'triangle', 0, 0.42);
-      sfxTone(62, 0.65, 0.08, 0, 'sine', 0.05, 0.5);
+      sfxTone(125, 0.55, 0.22, pan, 'sawtooth', 0, 0.42);
+      sfxTone(75, 0.65, 0.20, 0, 'triangle', 0.04, 0.5);
     } else if (kind === 'cnc') {
-      // Soft muted carving hum
-      const f = 175 + (Math.random() * 45);
-      sfxTone(f, 0.06, 0.018, (Math.random() - 0.5) * 0.3, 'triangle', 0, 0.95);
+      const f = 240 + (Math.random() * 75);
+      sfxTone(f, 0.065, 0.075, (Math.random() - 0.5) * 0.3, 'sawtooth', 0, 0.94);
     } else if (kind === 'gift') {
       const gt = tier || 1;
       const notes = gt >= 3 ? [0, 2, 3, 5] : [0, 2, 4];
-      notes.forEach((n, i) => sfxTone(SFX_CHORD[n], 0.32, 0.065, 0, 'sine', i * 0.075, 1.01));
+      notes.forEach((n, i) => sfxTone(SFX_CHORD[n] * 2, 0.34, 0.18, 0, 'triangle', i * 0.07, 1.02));
     } else if (kind === 'win') {
-      [0, 2, 3, 5].forEach((n, i) => sfxTone(SFX_CHORD[n], 0.38, 0.06, 0, 'sine', i * 0.09, 1.0));
+      [0, 2, 3, 5].forEach((n, i) => sfxTone(SFX_CHORD[n] * 2, 0.38, 0.17, 0, 'triangle', i * 0.085, 1.0));
     }
   }
 
@@ -2179,6 +2179,12 @@
     if (game.banner && now < game.banner.until) {
       gradPanel(160, 1475, 760, 58, 18, '#1e293b', '#090d16', game.banner.color, 4);
       drawText(game.banner.text, 540, 1504, 26, game.banner.color, 'center', 720);
+    }
+
+    // Visual warning if Chrome/OBS is blocking Web Audio until first click
+    if (sound && (!audioCtx || audioCtx.state !== 'running')) {
+      gradPanel(90, 38, 900, 74, 20, '#b91c1c', '#7f1d1d', GOLD, 5);
+      drawText('🔇 CLICK ANYWHERE IN CHROME TO ACTIVATE SOUND', 540, 75, 30, WHITE, 'center', 860);
     }
 
     ctx.restore();
