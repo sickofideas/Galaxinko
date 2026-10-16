@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Galaxinko Trophy Forge 3.0</title>
+<title>Galaxinko Trophy Forge 4.0</title>
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-    background: #00ff00; font-family: "Segoe UI", "Trebuchet MS", Arial, sans-serif;
+    background: #00ff00; font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     user-select: none;
   }
   #game-container {
@@ -24,25 +24,25 @@
   #panel {
     position: fixed; z-index: 9999; top: 10px; left: 10px;
     max-width: 880px; width: 94vw; max-height: 92vh; overflow: auto;
-    padding: 16px 20px; background: linear-gradient(145deg, #10162f, #070a17); color: #fff;
-    border: 3px solid #00f2fe; border-radius: 18px;
-    box-shadow: 0 16px 50px rgba(0,0,0,0.92);
+    padding: 18px 22px; background: #0f1423; color: #fff;
+    border: 2px solid #38bdf8; border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.92);
     display: none;
   }
   button, input {
-    padding: 8px 13px; margin: 3px; border-radius: 10px;
-    background: #1b2647; color: #fff; border: 2px solid #00f2fe;
-    font: 700 13px "Segoe UI", Arial, sans-serif;
-    cursor: pointer; transition: transform 0.1s, background 0.15s;
+    padding: 8px 14px; margin: 3px; border-radius: 10px;
+    background: #1e293b; color: #f8fafc; border: 2px solid #38bdf8;
+    font: 700 13px "Segoe UI", system-ui, sans-serif;
+    cursor: pointer; transition: transform 0.12s, background 0.15s;
   }
-  button:hover { background: #00f2fe; color: #050914; transform: translateY(-1px); }
-  .btn-gold { border-color: #ffd84d; background: #3b2a08; color: #ffe885; }
-  .btn-gold:hover { background: #ffd84d; color: #1a1100; }
-  .btn-diamond { border-color: #d48aff; background: #2d1447; color: #f0d1ff; }
-  .btn-diamond:hover { background: #d48aff; color: #120421; }
+  button:hover { background: #38bdf8; color: #090d16; transform: translateY(-1px); }
+  .btn-gold { border-color: #fbbf24; background: #3b2a08; color: #fde68a; }
+  .btn-gold:hover { background: #fbbf24; color: #1a1100; }
+  .btn-diamond { border-color: #c084fc; background: #2d1447; color: #f3e8ff; }
+  .btn-diamond:hover { background: #c084fc; color: #120421; }
   input { width: 270px; max-width: 68vw; cursor: text; }
   #volume { width: 150px; vertical-align: middle; padding: 0; border: 0; }
-  #audioStatus { max-width: 720px; font-size: 13px; color: #9be8ff; margin: 5px 0; }
+  #audioStatus { max-width: 720px; font-size: 13px; color: #7dd3fc; margin: 5px 0; }
   #errBox {
     position: fixed; bottom: 8px; left: 8px; z-index: 9999;
     background: #b00020; color: #fff; padding: 6px 12px; border-radius: 6px;
@@ -58,7 +58,7 @@
 <div id="errBox"></div>
 
 <section id="panel">
-  <b>GALAXINKO: TROPHY FORGE 3.0 (Press H or Double-Click to Hide)</b>
+  <b>GALAXINKO: TROPHY FORGE 4.0 — CLEAN VIRAL EDITION (Press H or Double-Click)</b>
   <p>
     <button id="toggle" type="button">Hide · H</button>
     <button id="dark" type="button">Chroma / Dark Preview</button>
@@ -71,14 +71,14 @@
     <input id="volume" type="range" min="0" max="100" step="5" value="85">
     <output id="volumeValue" for="volume">85%</output>
   </p>
-  <p id="audioStatus" role="status">Sound and Auto-Voice TTS are enabled by default.</p>
+  <p id="audioStatus" role="status">Soft ASMR Sound & Natural Voice TTS enabled by default.</p>
   <p>
     <button id="test" type="button">START TEST MODE</button>
     <button id="live" type="button">RETURN TO LIVE</button>
     <button id="voteA" type="button">VOTE A · [A]</button>
     <button id="voteB" type="button">VOTE B · [B]</button>
     <button id="heart" type="button">LIKE BOOST · [SPACE]</button>
-    <button id="crowd" type="button">SPAWN 24 VOTERS</button>
+    <button id="crowd" type="button">SPAWN 30 VOTERS</button>
     <button id="skipPhase" type="button">NEXT PHASE · [N]</button>
   </p>
   <p>
@@ -117,23 +117,29 @@
 
   const MAX = 600;
   const GREEN = '#00ff00';
-  const OUTLINE = '#090e20';
-  const WHITE = '#f8fdff';
-  const GOLD = '#ffd84d';
-  const GOLD_HOT = '#fff5ab';
-  const TEAM_A = '#ff2a6d';
-  const TEAM_A_GLOW = '#ff789e';
-  const TEAM_B = '#05d9e8';
-  const TEAM_B_GLOW = '#84f8ff';
+  const OUTLINE = '#090d16';
+  const DARK_SLATE = '#111827';
+  const WHITE = '#ffffff';
+  const GOLD = '#fbbf24';
+  const GOLD_HOT = '#fef08a';
+  const TEAM_A = '#ff2a5f';
+  const TEAM_A_DARK = '#9f1239';
+  const TEAM_A_GLOW = '#fda4af';
+  const TEAM_B = '#00d2ff';
+  const TEAM_B_DARK = '#0369a1';
+  const TEAM_B_GLOW = '#a5f3fc';
 
-  // Chambers leave bottom > 1485 free for Veadotube avatar & TikTok chat
-  const CHAMBER_A = { left: 44, right: 516, top: 470, bottom: 1465 };
-  const CHAMBER_B = { left: 564, right: 1036, top: 470, bottom: 1465 };
+  // Arena bounds leave bottom > 1465 free for Veadotube avatar & TikTok chat
+  const ARENA_LEFT = 42;
+  const ARENA_RIGHT = 1038;
+  const ARENA_TOP = 390;
+  const ARENA_BOTTOM = 1460;
+  const GAP_HALF = 18;
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const num = (v, f = 0) => Number.isFinite(Number(v)) ? Number(v) : f;
-  const clean = s => Array.from(String(s == null ? 'PLAYER' : s).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, '').trim()).slice(0, 18).join('') || 'PLAYER';
+  const clean = s => Array.from(String(s == null ? 'Player' : s).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, '').trim()).slice(0, 16).join('') || 'Player';
   const hash = s => {
     let h = 2166136261;
     const str = String(s);
@@ -141,36 +147,44 @@
     return h >>> 0;
   };
 
+  // Casual realistic starter handles when stream has 0 human voters
+  const STARTER_PROFILES = [
+    { id: 'starter_1', name: 'alex_99', side: 'A' },
+    { id: 'starter_2', name: 'mia.vibes', side: 'B' },
+    { id: 'starter_3', name: 'lucas_gg', side: 'A' },
+    { id: 'starter_4', name: 'chloe_xo', side: 'B' }
+  ];
+
   const GIFT_TIERS = [
     {
-      tier: 0, minCoins: 0, name: 'CYBER TITANIUM', badge: '⚡ TITANIUM',
-      border: '#00f2fe', glow: '#7cf6fd', bgTop: '#233963', bgBot: '#0e182e',
-      coinOuter: '#395582', coinInner: '#172642', spark1: '#00f2fe', spark2: '#ffae38',
+      tier: 0, minCoins: 0, name: 'TITANIUM', badge: '⚡ TITANIUM',
+      border: '#38bdf8', glow: '#bae6fd', bgTop: '#1e293b', bgBot: '#0f172a',
+      coinOuter: '#475569', coinInner: '#1e293b', spark1: '#38bdf8', spark2: '#fbbf24',
       ballBonusR: 0, clones: 0, scoreMult: 1, speedMult: 1.0, lasers: 2
     },
     {
-      tier: 1, minCoins: 1, name: 'ROSE BRONZE', badge: '🌹 BRONZE BOOST',
-      border: '#ff7b54', glow: '#ffb26b', bgTop: '#6e2b1c', bgBot: '#2b0f08',
-      coinOuter: '#c9653b', coinInner: '#592512', spark1: '#ff7b54', spark2: '#ffd84d',
-      ballBonusR: 12, clones: 1, scoreMult: 120, speedMult: 1.12, lasers: 2
+      tier: 1, minCoins: 1, name: 'ROSE BRONZE', badge: '🌹 ROSE BOOST',
+      border: '#fb7185', glow: '#fecdd3', bgTop: '#4c1d24', bgBot: '#1f090d',
+      coinOuter: '#e11d48', coinInner: '#4c0519', spark1: '#fb7185', spark2: '#fbbf24',
+      ballBonusR: 12, clones: 1, scoreMult: 120, speedMult: 1.15, lasers: 2
     },
     {
-      tier: 2, minCoins: 10, name: '24K IMPERIAL GOLD', badge: '👑 24K GOLD',
-      border: '#ffd84d', glow: '#fff5ab', bgTop: '#785206', bgBot: '#2e1d02',
-      coinOuter: '#ffd84d', coinInner: '#784e04', spark1: '#fff5ab', spark2: '#ffaa00',
-      ballBonusR: 22, clones: 2, scoreMult: 160, speedMult: 1.25, lasers: 2
+      tier: 2, minCoins: 10, name: '24K GOLD', badge: '👑 24K GOLD',
+      border: '#fbbf24', glow: '#fef08a', bgTop: '#452c04', bgBot: '#1c1101',
+      coinOuter: '#f59e0b', coinInner: '#78350f', spark1: '#fef08a', spark2: '#f59e0b',
+      ballBonusR: 22, clones: 2, scoreMult: 160, speedMult: 1.28, lasers: 2
     },
     {
-      tier: 3, minCoins: 100, name: 'PLASMA DIAMOND', badge: '💎 DIAMOND CORE',
-      border: '#e08aff', glow: '#84f8ff', bgTop: '#4c1c7a', bgBot: '#1b0836',
-      coinOuter: '#d875ff', coinInner: '#291254', spark1: '#84f8ff', spark2: '#f3a6ff',
-      ballBonusR: 30, clones: 4, scoreMult: 220, speedMult: 1.4, lasers: 4
+      tier: 3, minCoins: 100, name: 'DIAMOND', badge: '💎 DIAMOND',
+      border: '#c084fc', glow: '#a5f3fc', bgTop: '#3b0764', bgBot: '#140326',
+      coinOuter: '#a855f7', coinInner: '#2e1065', spark1: '#a5f3fc', spark2: '#e879f9',
+      ballBonusR: 30, clones: 4, scoreMult: 220, speedMult: 1.45, lasers: 4
     },
     {
-      tier: 4, minCoins: 500, name: 'MYTHIC SUPERNOVA', badge: '🌌 SUPERNOVA TITAN',
-      border: '#ff2a6d', glow: '#ffd84d', bgTop: '#7a0936', bgBot: '#1c052e',
-      coinOuter: '#ff2a6d', coinInner: '#470a32', spark1: '#ffd84d', spark2: '#00f2fe',
-      ballBonusR: 38, clones: 6, scoreMult: 300, speedMult: 1.6, lasers: 4
+      tier: 4, minCoins: 500, name: 'SUPERNOVA', badge: '🌌 SUPERNOVA',
+      border: '#ff2a5f', glow: '#fde047', bgTop: '#500724', bgBot: '#170312',
+      coinOuter: '#ec4899', coinInner: '#3b0764', spark1: '#fde047', spark2: '#38bdf8',
+      ballBonusR: 38, clones: 6, scoreMult: 300, speedMult: 1.65, lasers: 4
     }
   ];
 
@@ -190,89 +204,71 @@
     { a: 'IPHONE', ea: '🍎', b: 'ANDROID', eb: '🤖' },
     { a: 'SUMMER', ea: '☀️', b: 'WINTER', eb: '❄️' },
     { a: 'COFFEE', ea: '☕', b: 'ENERGY DRINK', eb: '⚡' },
-    { a: 'PC GAMING', ea: '🖥️', b: 'PS5 CONSOLE', eb: '🎮' },
+    { a: 'PC GAMING', ea: '🖥️', b: 'PS5', eb: '🎮' },
     { a: 'NIGHT OWL', ea: '🌙', b: 'EARLY BIRD', eb: '🌅' },
     { a: 'COCA-COLA', ea: '🥤', b: 'PEPSI', eb: '🧊' },
     { a: 'NETFLIX', ea: '🎬', b: 'YOUTUBE', eb: '▶️' },
-    { a: 'SUPER STRENGTH', ea: '💪', b: 'FLYING POWER', eb: '🦅' },
-    { a: 'INVISIBILITY', ea: '👻', b: 'TIME TRAVEL', eb: '⏳' },
-    { a: 'BEACH LIFE', ea: '🏖️', b: 'MOUNTAINS', eb: '🏔️' },
+    { a: 'STRENGTH', ea: '💪', b: 'FLYING', eb: '🦅' },
+    { a: 'INVISIBLE', ea: '👻', b: 'TIME TRAVEL', eb: '⏳' },
+    { a: 'BEACH', ea: '🏖️', b: 'MOUNTAINS', eb: '🏔️' },
     { a: 'SWEET', ea: '🍩', b: 'SALTY', eb: '🥨' },
     { a: 'TACOS', ea: '🌮', b: 'SUSHI', eb: '🍣' },
     { a: 'BATMAN', ea: '🦇', b: 'SPIDER-MAN', eb: '🕷️' },
-    { a: 'RICH & ALONE', ea: '💰', b: 'BROKE & HAPPY', eb: '❤️' },
-    { a: 'LAMBORGHINI', ea: '🏎️', b: 'FERRARI', eb: '🐎' },
+    { a: 'LAMBO', ea: '🏎️', b: 'FERRARI', eb: '🐎' },
     { a: 'PANCAKES', ea: '🥞', b: 'WAFFLES', eb: '🧇' },
     { a: 'ICE CREAM', ea: '🍦', b: 'CHOCOLATE', eb: '🍫' },
     { a: 'FOOTBALL', ea: '⚽', b: 'BASKETBALL', eb: '🏀' },
     { a: 'ROBLOX', ea: '🧱', b: 'FORTNITE', eb: '🪂' },
     { a: 'PAUSE TIME', ea: '⏸️', b: 'REWIND TIME', eb: '⏪' },
     { a: 'READ MINDS', ea: '🧠', b: 'SEE FUTURE', eb: '🔮' },
-    { a: 'KFC BUCKET', ea: '🍗', b: 'MCDONALDS', eb: '🍟' },
+    { a: 'KFC', ea: '🍗', b: 'MCDONALDS', eb: '🍟' },
     { a: 'ANIME', ea: '⚔️', b: 'MOVIES', eb: '🍿' },
-    { a: 'GOLD BAR', ea: '🥇', b: 'DIAMOND', eb: '💎' },
-    { a: 'FIRE ELEMENT', ea: '🔥', b: 'ICE ELEMENT', eb: '🧊' },
-    { a: 'MARS COLONY', ea: '🚀', b: 'DEEP OCEAN', eb: '🌊' },
-    { a: 'ZOMBIE WORLD', ea: '🧟', b: 'ALIEN INVASION', eb: '🛸' },
-    { a: 'NO INTERNET', ea: '📵', b: 'NO MUSIC', eb: '🔇' },
+    { a: 'GOLD', ea: '🥇', b: 'DIAMOND', eb: '💎' },
+    { a: 'FIRE', ea: '🔥', b: 'ICE', eb: '🧊' },
+    { a: 'MARS', ea: '🚀', b: 'DEEP OCEAN', eb: '🌊' },
+    { a: 'ZOMBIES', ea: '🧟', b: 'ALIENS', eb: '🛸' },
     { a: 'SNEAKERS', ea: '👟', b: 'BOOTS', eb: '🥾' },
     { a: 'PASTA', ea: '🍝', b: 'STEAK', eb: '🥩' },
     { a: 'DRAGONS', ea: '🐉', b: 'DINOSAURS', eb: '🦖' },
     { a: 'CYBERPUNK', ea: '🦾', b: 'MEDIEVAL', eb: '🛡️' },
-    { a: 'RAINY DAY', ea: '🌧️', b: 'SUNNY DAY', eb: '😎' },
     { a: 'GOKU', ea: '🟠', b: 'NARUTO', eb: '🍥' },
     { a: 'IRON MAN', ea: '🤖', b: 'THOR', eb: '⚡' },
-    { a: 'HOME COOKED', ea: '🍳', b: 'FAST FOOD', eb: '🛵' },
     { a: 'COMEDY', ea: '😂', b: 'HORROR', eb: '👻' },
-    { a: 'SUPERBIKE', ea: '🏍️', b: 'SUPERCARS', eb: '🚗' },
-    { a: 'HOT WEATHER', ea: '🥵', b: 'COLD WEATHER', eb: '🥶' },
-    { a: 'HEADPHONES', ea: '🎧', b: 'SPEAKERS', eb: '🔊' },
-    { a: 'WATERMELON', ea: '🍉', b: 'STRAWBERRY', eb: '🍓' },
-    { a: 'GREAT SHARK', ea: '🦈', b: 'KING LION', eb: '🦁' },
-    { a: 'EAGLE', ea: '🦅', b: 'LONE WOLF', eb: '🐺' },
-    { a: 'SAMURAI', ea: '🥷', b: 'VIKING', eb: '🪓' },
-    { a: 'PIRATES', ea: '🏴‍☠️', b: 'COWBOYS', eb: '🤠' },
-    { a: '100K NOW', ea: '💵', b: '1M IN 5 YEARS', eb: '🏦' },
-    { a: 'TELEPORT', ea: '🌀', b: 'SUPER SPEED', eb: '⚡' },
-    { a: 'TALK ANIMALS', ea: '🐾', b: 'ALL LANGUAGES', eb: '🌍' },
-    { a: 'NEVER SLEEP', ea: '🔋', b: 'NEVER EAT', eb: '🍽️' },
-    { a: 'MANSION', ea: '🏰', b: 'WORLD JET', eb: '✈️' },
-    { a: 'MEGA CITY', ea: '🏙️', b: 'FOREST CABIN', eb: '🌲' },
-    { a: 'ROCK STAR', ea: '🎸', b: 'RAP ICON', eb: '🎤' },
-    { a: 'DONUTS', ea: '🍩', b: 'CROISSANT', eb: '🥐' },
-    { a: 'POPCORN', ea: '🍿', b: 'NACHOS', eb: '🧀' },
-    { a: 'APPLE JUICE', ea: '🍎', b: 'ORANGE JUICE', eb: '🍊' },
-    { a: 'DAYZ', ea: '🎒', b: 'RUST', eb: '🪨' }
+    { a: 'SUPERBIKE', ea: '🏍️', b: 'SUPERCAR', eb: '🚗' },
+    { a: 'SHARK', ea: '🦈', b: 'LION', eb: '🦁' },
+    { a: 'SAMURAI', ea: '🥷', b: 'VIKING', eb: '🪓' }
   ];
 
   function createFallbackAvatar(seedStr, side) {
     const cnv = document.createElement('canvas');
     cnv.width = cnv.height = 128;
     const g = cnv.getContext('2d');
+    const h = hash(seedStr);
+    const palettes = [
+      ['#ff2a5f', '#be123c'],
+      ['#00d2ff', '#0284c7'],
+      ['#8b5cf6', '#4c1d95'],
+      ['#f59e0b', '#b45309'],
+      ['#ec4899', '#831843']
+    ];
+    const pal = palettes[h % palettes.length];
     const bgGrad = g.createLinearGradient(0, 0, 128, 128);
-    if (side === 'A') {
-      bgGrad.addColorStop(0, '#ff2a6d');
-      bgGrad.addColorStop(1, '#6e0627');
-    } else {
-      bgGrad.addColorStop(0, '#00f2fe');
-      bgGrad.addColorStop(1, '#073b6e');
-    }
+    bgGrad.addColorStop(0, side === 'A' ? '#ff2a5f' : pal[0]);
+    bgGrad.addColorStop(1, side === 'B' ? '#0284c7' : pal[1]);
     g.fillStyle = bgGrad;
     g.fillRect(0, 0, 128, 128);
 
-    g.fillStyle = '#ffdfc4';
-    g.beginPath(); g.arc(64, 52, 28, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#141e38';
-    g.beginPath(); g.arc(64, 124, 42, Math.PI, Math.PI * 2); g.fill();
+    // Subtle modern silhouette + initial
+    g.fillStyle = 'rgba(255,255,255,0.16)';
+    g.beginPath(); g.arc(64, 48, 24, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(64, 122, 42, Math.PI, Math.PI * 2); g.fill();
 
-    g.fillStyle = side === 'A' ? '#ffd84d' : '#00f2fe';
-    g.fillRect(42, 42, 44, 11);
-    g.strokeStyle = '#090e20'; g.lineWidth = 4;
-    g.strokeRect(42, 42, 44, 11);
-
-    g.beginPath();
-    g.arc(64, 60, 10, 0.15 * Math.PI, 0.85 * Math.PI);
-    g.stroke();
+    const letter = String(seedStr || 'P').replace(/^starter_\d+$/, 'S').charAt(0).toUpperCase();
+    g.font = '900 54px "Segoe UI", sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillStyle = '#ffffff';
+    g.fillText(letter, 64, 66);
     return cnv;
   }
 
@@ -317,7 +313,7 @@
     const msgId = d.msgId !== undefined ? d.msgId : (d.common && d.common.msgId);
     const unitCoins = d.diamondCount !== undefined ? d.diamondCount : (g.diamondCount !== undefined ? g.diamondCount : g.diamond_count);
     const coins = unitCoins == null ? num(d.coins !== undefined ? d.coins : g.coins) : num(unitCoins) * repeat;
-    const giftName = clean(d.giftName || g.giftName || g.name || 'GIFT');
+    const giftName = clean(d.giftName || g.giftName || g.name || 'Gift');
     return {
       type: type === 'roomuser' ? 'member' : type,
       id: String(id),
@@ -333,7 +329,7 @@
     };
   }
 
-  const SFX_NOTES = [293.665, 329.628, 369.994, 440, 493.883, 587.33, 659.25, 783.99];
+  const SFX_CHORD = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
   let sound = true, ttsEnabled = true, audioCtx = null, soundEvents = 0, soundLevel = 0.85;
   try {
     const saved = localStorage.getItem('galaxinko-sfx-volume');
@@ -341,31 +337,56 @@
   } catch (e) {}
 
   let lastSpokenAt = 0;
+  let cachedVoice = null;
+
+  function pickHumanVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || !voices.length) return null;
+    const preferred = [
+      /Natural/i, /Online/i, /Aria/i, /Guy/i, /Jenny/i, /Google US English/i, /Samantha/i, /Siri/i
+    ];
+    const enVoices = voices.filter(v => /^en[-_](US|GB|CA|AU)/i.test(v.lang) || /^en/i.test(v.lang));
+    for (let i = 0; i < preferred.length; i++) {
+      const match = enVoices.find(v => preferred[i].test(v.name));
+      if (match) return match;
+    }
+    return enVoices[0] || voices[0];
+  }
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => { cachedVoice = pickHumanVoice(); };
+  }
+
+  function formatSpokenWord(w) {
+    return String(w || '').toLowerCase()
+      .replace('gta 6', 'G T A six')
+      .replace('ps5', 'P S five')
+      .replace('100k', 'one hundred K')
+      .replace('1m', 'one million');
+  }
+
   function speakTTS(text, priority) {
     if (!ttsEnabled || !sound || soundLevel === 0) return;
     if (!('speechSynthesis' in window)) return;
     const now = performance.now();
-    if (!priority && now - lastSpokenAt < 2800) return;
+    if (!priority && now - lastSpokenAt < 3200) return;
     try {
       if (priority) window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(String(text));
+      if (!cachedVoice) cachedVoice = pickHumanVoice();
+      if (cachedVoice) utter.voice = cachedVoice;
       utter.lang = 'en-US';
-      utter.rate = 1.08;
-      utter.pitch = 1.05;
+      utter.rate = 0.98 + (Math.random() - 0.5) * 0.04;
+      utter.pitch = 0.98 + (Math.random() - 0.5) * 0.04;
       utter.volume = clamp(soundLevel, 0, 1);
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const enVoice = voices.find(v => /en[-_](US|GB)/i.test(v.lang) && /Google|Natural|Microsoft|Siri/i.test(v.name))
-                     || voices.find(v => /^en/i.test(v.lang));
-        if (enVoice) utter.voice = enVoice;
-      }
       window.speechSynthesis.speak(utter);
       lastSpokenAt = now;
     } catch (e) {}
   }
 
   const sfxMix = {
-    input: null, master: null, voices: new Set(), limit: 18,
+    input: null, master: null, voices: new Set(), limit: 14,
     resumeAt: -Infinity, error: '', uiKey: '', last: new Map()
   };
 
@@ -385,7 +406,7 @@
     const value = $('volumeValue');
     if (value) value.textContent = Math.round(soundLevel * 100) + '%';
     const info = $('audioStatus');
-    if (info) info.textContent = !available ? 'Web Audio unavailable.' : !sound ? 'Sound is off.' : running ? 'Audio & TTS active and running.' : 'Sound & TTS enabled (auto-starts on interaction/OBS).';
+    if (info) info.textContent = !available ? 'Web Audio unavailable.' : !sound ? 'Sound is off.' : running ? 'Soft ASMR Audio & Natural Voice active.' : 'Sound & TTS ready (auto-starts on click/OBS).';
   }
 
   function applySoundLevel() {
@@ -413,14 +434,12 @@
         const filter = audioCtx.createBiquadFilter();
         const compressor = audioCtx.createDynamicsCompressor();
         const master = audioCtx.createGain();
-        const limiter = audioCtx.createDynamicsCompressor();
-        filter.type = 'lowpass'; filter.frequency.value = 4800; filter.Q.value = 0.6;
-        compressor.threshold.value = -16; compressor.knee.value = 10; compressor.ratio.value = 4;
-        compressor.attack.value = 0.004; compressor.release.value = 0.14;
-        limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
-        limiter.attack.value = 0.001; limiter.release.value = 0.06;
+        // Warm lowpass filter removes harsh arcade/slot-machine highs
+        filter.type = 'lowpass'; filter.frequency.value = 1850; filter.Q.value = 0.5;
+        compressor.threshold.value = -20; compressor.knee.value = 14; compressor.ratio.value = 4;
+        compressor.attack.value = 0.008; compressor.release.value = 0.18;
         master.gain.value = soundLevel;
-        filter.connect(compressor); compressor.connect(master); master.connect(limiter); limiter.connect(audioCtx.destination);
+        filter.connect(compressor); compressor.connect(master); master.connect(audioCtx.destination);
         sfxMix.input = filter; sfxMix.master = master;
         audioCtx.onstatechange = updateSoundUI;
       }
@@ -449,9 +468,9 @@
       const voice = { osc: osc, gain: gain };
       osc.type = wave || 'sine';
       osc.frequency.setValueAtTime(freq, at);
-      osc.frequency.exponentialRampToValueAtTime(Math.max(35, freq * (endRatio || 1)), at + duration);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * (endRatio || 1)), at + duration);
       gain.gain.setValueAtTime(0.0001, at);
-      gain.gain.exponentialRampToValueAtTime(volume, at + 0.008);
+      gain.gain.exponentialRampToValueAtTime(volume, at + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
       osc.connect(gain);
       if (pan) { pan.pan.value = clamp(panVal || 0, -1, 1); gain.connect(pan); pan.connect(sfxMix.input); }
@@ -464,39 +483,43 @@
     } catch (e) { return false; }
   }
 
+  // Soft physical marimba/wood/water-drop ASMR sounds (no casino slot bleeps)
   function playSfx(kind, side, tier) {
     const t = performance.now();
-    const cd = { vote: 45, bounce: 55, bumper: 45, like: 70, crown: 400, shred: 500, cnc: 55, gift: 250, win: 600 }[kind] || 65;
+    const cd = { vote: 65, bounce: 75, bumper: 65, like: 85, crown: 500, shred: 600, cnc: 80, gift: 320, win: 700 }[kind] || 75;
     const prev = sfxMix.last.has(kind) ? sfxMix.last.get(kind) : -Infinity;
     if (t - prev < cd) return;
     sfxMix.last.set(kind, t);
-    const pan = side === 'A' ? -0.3 : side === 'B' ? 0.3 : 0;
+    const pan = side === 'A' ? -0.25 : side === 'B' ? 0.25 : 0;
+
     if (kind === 'vote') {
-      const f = side === 'A' ? 520 : 660;
-      sfxTone(f, 0.12, 0.065, pan, 'sine', 0, 1.32);
-      sfxTone(f * 1.5, 0.09, 0.035, pan, 'triangle', 0.03, 1.15);
+      // Soft water-drop pop
+      const base = side === 'A' ? 240 : 290;
+      sfxTone(base, 0.09, 0.055, pan, 'sine', 0, 1.65);
     } else if (kind === 'bumper') {
-      const note = SFX_NOTES[Math.floor(Math.random() * SFX_NOTES.length)] * 2;
-      sfxTone(note, 0.11, 0.055, pan, 'triangle', 0, 1.25);
+      // Warm wooden marimba tap
+      const note = SFX_CHORD[Math.floor(Math.random() * SFX_CHORD.length)];
+      sfxTone(note, 0.085, 0.045, pan, 'sine', 0, 0.96);
     } else if (kind === 'bounce') {
-      sfxTone(190 + Math.random() * 90, 0.06, 0.022, pan, 'sine', 0, 0.85);
+      sfxTone(135 + Math.random() * 45, 0.055, 0.02, pan, 'sine', 0, 0.78);
     } else if (kind === 'like') {
-      sfxTone(SFX_NOTES[Math.floor(Math.random() * SFX_NOTES.length)] * 2, 0.1, 0.045, pan, 'sine', 0, 1.2);
+      sfxTone(310 + Math.random() * 90, 0.08, 0.038, pan, 'sine', 0, 1.35);
     } else if (kind === 'crown') {
-      [0, 3, 5].forEach((n, i) => sfxTone(SFX_NOTES[n] * 2, 0.22, 0.06, pan, 'triangle', i * 0.055, 1.05));
+      [0, 2, 4].forEach((n, i) => sfxTone(SFX_CHORD[n], 0.18, 0.045, pan, 'sine', i * 0.06, 1.02));
     } else if (kind === 'shred') {
-      sfxTone(130, 0.65, 0.11, pan, 'sawtooth', 0, 0.38);
-      sfxTone(82, 0.75, 0.09, 0, 'triangle', 0.06, 0.45);
+      // Deep hydraulic press thud
+      sfxTone(95, 0.55, 0.09, pan, 'triangle', 0, 0.42);
+      sfxTone(62, 0.65, 0.08, 0, 'sine', 0.05, 0.5);
     } else if (kind === 'cnc') {
-      const f = 260 + (Math.random() * 120);
-      sfxTone(f, 0.065, 0.028, (Math.random() - 0.5) * 0.4, 'sawtooth', 0, 0.92);
+      // Soft muted carving hum
+      const f = 175 + (Math.random() * 45);
+      sfxTone(f, 0.06, 0.018, (Math.random() - 0.5) * 0.3, 'triangle', 0, 0.95);
     } else if (kind === 'gift') {
       const gt = tier || 1;
-      const notes = gt >= 4 ? [0, 2, 4, 5, 6, 7] : gt >= 2 ? [0, 2, 4, 6, 7] : [0, 3, 5];
-      notes.forEach((n, i) => sfxTone(SFX_NOTES[n] * (gt >= 3 ? 2.5 : 2), 0.38, 0.095, 0, gt >= 3 ? 'triangle' : 'sine', i * 0.06, 1.04));
-      if (gt >= 3) sfxTone(110, 0.7, 0.1, 0, 'sawtooth', 0, 0.5);
+      const notes = gt >= 3 ? [0, 2, 3, 5] : [0, 2, 4];
+      notes.forEach((n, i) => sfxTone(SFX_CHORD[n], 0.32, 0.065, 0, 'sine', i * 0.075, 1.01));
     } else if (kind === 'win') {
-      [0, 2, 4, 7].forEach((n, i) => sfxTone(SFX_NOTES[n] * 2, 0.4, 0.085, 0, 'triangle', i * 0.08, 1.02));
+      [0, 2, 3, 5].forEach((n, i) => sfxTone(SFX_CHORD[n], 0.38, 0.06, 0, 'sine', i * 0.09, 1.0));
     }
   }
 
@@ -507,7 +530,7 @@
     return unlockAudio(true).then(ready => {
       if (!ready) return false;
       playSfx('win');
-      speakTTS('Galaxinko Trophy Forge Three Point Oh is ready!', true);
+      speakTTS('Hey guys, welcome back! Let us see who takes the crown this round.', true);
       return true;
     });
   }
@@ -568,12 +591,11 @@
     const picEntry = p.avatar ? pics.get(p.avatar) : null;
     if (picEntry && picEntry.state === 'ready') return picEntry.img;
     if (!p.fallbackCanvas) {
-      p.fallbackCanvas = createFallbackAvatar(p.id, p.side || 'A');
+      p.fallbackCanvas = createFallbackAvatar(p.name || p.id, p.side || 'A');
     }
     return p.fallbackCanvas;
   }
 
-  // Builds a circular embossed metallic/gold/diamond/mythic relief of the MVP portrait
   function buildEngravedPortrait(p, forgeTier) {
     const picEntry = p.avatar ? pics.get(p.avatar) : null;
     const cacheKey = p.id + ':t' + forgeTier + ':' + (picEntry ? picEntry.state : 'fb');
@@ -596,11 +618,11 @@
           const i = (y * size + x) * 4;
           const iPrev = ((y - 1) * size + (x - 1)) * 4;
           const dist = Math.hypot(x - cx, y - cy);
-          const ringGroove = 0.9 + 0.1 * Math.sin(dist * 0.85);
+          const ringGroove = 0.92 + 0.08 * Math.sin(dist * 0.8);
           const lum = (0.299 * copy[i] + 0.587 * copy[i + 1] + 0.114 * copy[i + 2]) / 255;
           const lumPrev = (0.299 * copy[iPrev] + 0.587 * copy[iPrev + 1] + 0.114 * copy[iPrev + 2]) / 255;
-          const emboss = clamp((lum - lumPrev) * 2.4, -0.38, 0.48);
-          const val = clamp((Math.pow(lum, 0.86) * 0.84 + 0.16 + emboss) * ringGroove, 0, 1);
+          const emboss = clamp((lum - lumPrev) * 2.2, -0.35, 0.45);
+          const val = clamp((Math.pow(lum, 0.88) * 0.84 + 0.16 + emboss) * ringGroove, 0, 1);
 
           if (forgeTier >= 4) {
             const wave = 0.5 + 0.5 * Math.sin((x + y) * 0.035);
@@ -635,7 +657,7 @@
   }
 
   const VOTE_DURATION = 35.0;
-  const SHRED_DURATION = 3.6;
+  const SHRED_DURATION = 3.8;
   const CNC_DURATION = 8.5;
   const SHOW_DURATION = 4.2;
 
@@ -660,6 +682,9 @@
       this.cncProgress = 0;
       this.forgeSlide = 0;
       this.trapdoorAngle = 0;
+      this.crusherY = 0;
+      this.splitX = 540;
+      this.targetSplitX = 540;
       this.forgeTier = 0;
       this.mvp = null;
       this.leaderA = null;
@@ -670,25 +695,51 @@
       this.banner = null;
       this.round = 0;
       this.lastSpokenCountdown = 6;
-      this.pacerSpawned = false;
-      this.initBumpers();
+      this.startersSpawned = false;
       this.nextRound();
     }
 
-    initBumpers() {
-      this.bumpers = [];
-      const setups = [
-        { side: 'A', box: CHAMBER_A, col: TEAM_A },
-        { side: 'B', box: CHAMBER_B, col: TEAM_B }
-      ];
-      setups.forEach(s => {
-        const cx = (s.box.left + s.box.right) / 2;
-        this.bumpers.push(
-          { side: s.side, x: cx - 105, y: 690, r: 24, hitAt: -999, color: s.col },
-          { side: s.side, x: cx + 105, y: 690, r: 24, hitAt: -999, color: s.col },
-          { side: s.side, x: cx,       y: 865, r: 28, hitAt: -999, color: GOLD }
-        );
-      });
+    getChamberBox(side) {
+      if (side === 'A') {
+        return { left: ARENA_LEFT, right: Math.round(this.splitX - GAP_HALF), top: ARENA_TOP, bottom: ARENA_BOTTOM };
+      }
+      return { left: Math.round(this.splitX + GAP_HALF), right: ARENA_RIGHT, top: ARENA_TOP, bottom: ARENA_BOTTOM };
+    }
+
+    getCrowdScale(side) {
+      let count = 0;
+      for (let i = 0; i < this.balls.length; i++) {
+        if (this.balls[i].side === side) count++;
+      }
+      if (count <= 8) return 1.0;
+      return clamp(Math.pow(8 / count, 0.30), 0.44, 1.0);
+    }
+
+    updateBumpers() {
+      const boxA = this.getChamberBox('A');
+      const boxB = this.getChamberBox('B');
+      const cxA = (boxA.left + boxA.right) / 2;
+      const cxB = (boxB.left + boxB.right) / 2;
+      const spreadA = Math.min(100, (boxA.right - boxA.left) * 0.24);
+      const spreadB = Math.min(100, (boxB.right - boxB.left) * 0.24);
+
+      if (this.bumpers.length !== 6) {
+        this.bumpers = [
+          { side: 'A', x: cxA - spreadA, y: 690, r: 22, hitAt: -999, color: TEAM_A },
+          { side: 'A', x: cxA + spreadA, y: 690, r: 22, hitAt: -999, color: TEAM_A },
+          { side: 'A', x: cxA,           y: 865, r: 26, hitAt: -999, color: GOLD },
+          { side: 'B', x: cxB - spreadB, y: 690, r: 22, hitAt: -999, color: TEAM_B },
+          { side: 'B', x: cxB + spreadB, y: 690, r: 22, hitAt: -999, color: TEAM_B },
+          { side: 'B', x: cxB,           y: 865, r: 26, hitAt: -999, color: GOLD }
+        ];
+      } else {
+        this.bumpers[0].x = cxA - spreadA;
+        this.bumpers[1].x = cxA + spreadA;
+        this.bumpers[2].x = cxA;
+        this.bumpers[3].x = cxB - spreadB;
+        this.bumpers[4].x = cxB + spreadB;
+        this.bumpers[5].x = cxB;
+      }
     }
 
     nextRound() {
@@ -701,6 +752,8 @@
       this.cncProgress = 0;
       this.forgeSlide = 0;
       this.trapdoorAngle = 0;
+      this.crusherY = 0;
+      this.targetSplitX = 540;
       this.forgeTier = 0;
       this.mvp = null;
       this.leaderA = null;
@@ -711,7 +764,8 @@
       this.popups = [];
       this.laserBeams = [];
       this.giftMeteors = [];
-      this.pacerSpawned = false;
+      this.startersSpawned = false;
+      this.updateBumpers();
 
       this.players.forEach(p => {
         p.side = null;
@@ -721,7 +775,14 @@
         p.giftTier = 0;
       });
 
-      speakTTS('Round ' + this.round + '! ' + this.question.a + ', or ' + this.question.b + '? Type A or B!', false);
+      const aWord = formatSpokenWord(this.question.a);
+      const bWord = formatSpokenWord(this.question.b);
+      const prompts = [
+        'Alright guys, ' + aWord + ', or ' + bWord + '? Drop an A or B in the chat!',
+        'New match! Would you pick ' + aWord + ', or ' + bWord + '? Type A or B!',
+        'Here we go, ' + aWord + ' versus ' + bWord + '! Which side are you on?'
+      ];
+      speakTTS(prompts[this.round % prompts.length], false);
 
       if (this.nextRoundQueue.length > 0) {
         const queued = this.nextRoundQueue.slice(0, 40);
@@ -737,17 +798,17 @@
     }
 
     addPopup(x, y, text, color, size) {
-      if (this.popups.length > 40) this.popups.shift();
+      if (this.popups.length > 35) this.popups.shift();
       this.popups.push({ x: x, y: y, text: text, color: color || WHITE, size: size || 24, life: 1.0 });
     }
 
     addShockwave(x, y, maxR, color) {
-      if (this.shockwaves.length > 30) this.shockwaves.shift();
-      this.shockwaves.push({ x: x, y: y, r: 10, maxR: maxR || 95, color: color || WHITE, life: 1.0 });
+      if (this.shockwaves.length > 28) this.shockwaves.shift();
+      this.shockwaves.push({ x: x, y: y, r: 12, maxR: maxR || 95, color: color || WHITE, life: 1.0 });
     }
 
     addLaserBeam(fromX, fromY, toX, toY, color, label) {
-      if (this.laserBeams.length > 16) this.laserBeams.shift();
+      if (this.laserBeams.length > 14) this.laserBeams.shift();
       this.laserBeams.push({ fromX: fromX, fromY: fromY, toX: toX, toY: toY, color: color, label: label, life: 1.0 });
     }
 
@@ -757,7 +818,7 @@
 
       for (let i = 0; i < this.balls.length; i++) {
         const b = this.balls[i];
-        if (b.isPacer || b.isClone) continue;
+        if (b.isStarter || b.isClone) continue;
         const p = this.players.get(b.playerId);
         if (!p) continue;
         if (b.side === 'A' && p.roundScore > maxA) {
@@ -771,15 +832,17 @@
 
       if (bestA && bestA !== this.leaderA && this.leaderA !== null) {
         const pA = this.players.get(bestA);
+        const boxA = this.getChamberBox('A');
         if (pA) {
-          this.addPopup((CHAMBER_A.left + CHAMBER_A.right) / 2, 535, '👑 ' + pA.name + ' TOOK #1 IN [A]!', GOLD, 24);
+          this.addPopup((boxA.left + boxA.right) / 2, 515, '👑 ' + pA.name + ' #1!', GOLD, 24);
           playSfx('crown', 'A');
         }
       }
       if (bestB && bestB !== this.leaderB && this.leaderB !== null) {
         const pB = this.players.get(bestB);
+        const boxB = this.getChamberBox('B');
         if (pB) {
-          this.addPopup((CHAMBER_B.left + CHAMBER_B.right) / 2, 535, '👑 ' + pB.name + ' TOOK #1 IN [B]!', GOLD, 24);
+          this.addPopup((boxB.left + boxB.right) / 2, 515, '👑 ' + pB.name + ' #1!', GOLD, 24);
           playSfx('crown', 'B');
         }
       }
@@ -826,72 +889,66 @@
       return p;
     }
 
-    spawnPacerBots() {
-      if (this.pacerSpawned || this.phase !== 'VOTE') return;
-      this.pacerSpawned = true;
-      const pacers = [
-        { id: 'pacer_a1', name: 'PACER_A1', side: 'A' },
-        { id: 'pacer_b1', name: 'PACER_B1', side: 'B' },
-        { id: 'pacer_a2', name: 'PACER_A2', side: 'A' },
-        { id: 'pacer_b2', name: 'PACER_B2', side: 'B' }
-      ];
-      pacers.forEach(bot => {
-        const box = bot.side === 'A' ? CHAMBER_A : CHAMBER_B;
-        const x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 160;
+    spawnStarterBalls() {
+      if (this.startersSpawned || this.phase !== 'VOTE') return;
+      this.startersSpawned = true;
+      STARTER_PROFILES.forEach(st => {
+        const box = this.getChamberBox(st.side);
+        const x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 140;
         this.balls.push({
-          playerId: bot.id,
-          name: bot.name,
-          side: bot.side,
-          x: x, y: box.top + 40 + Math.random() * 40,
-          vx: (Math.random() - 0.5) * 380,
-          vy: 160 + Math.random() * 120,
-          r: 34, targetR: 34,
-          angle: 0, omega: (Math.random() - 0.5) * 6,
+          playerId: st.id,
+          name: st.name,
+          side: st.side,
+          x: x, y: box.top + 45 + Math.random() * 40,
+          vx: (Math.random() - 0.5) * 340,
+          vy: 140 + Math.random() * 100,
+          r: 38, baseR: 38,
+          angle: 0, omega: (Math.random() - 0.5) * 5,
           squashX: 1, squashY: 1,
+          likeGlowUntil: 0,
           trail: [], giftTier: 0,
-          isPacer: true, isClone: false, shredded: false
+          isStarter: true, isClone: false, shredded: false
         });
       });
     }
 
-    removePacerBots() {
+    removeStarterBalls() {
       for (let i = this.balls.length - 1; i >= 0; i--) {
-        if (this.balls[i].isPacer) this.balls.splice(i, 1);
+        if (this.balls[i].isStarter) this.balls.splice(i, 1);
       }
     }
 
     spawnBall(p, side, bonusRadius, isClone) {
       if (this.balls.length >= 160) return;
-      if (!isClone) this.removePacerBots();
-      const box = side === 'A' ? CHAMBER_A : CHAMBER_B;
-      const baseR = clamp((isClone ? 28 : 38) + (bonusRadius || 0), 26, 84);
-      const x = box.left + baseR + 24 + Math.random() * (box.right - box.left - (baseR + 24) * 2);
-      const y = box.top + 38 + (isClone ? Math.random() * 35 : 0);
+      if (!isClone) this.removeStarterBalls();
+      const box = this.getChamberBox(side);
+      const baseR = clamp((isClone ? 30 : 42) + (bonusRadius || 0), 28, 92);
+      const rScaled = baseR * this.getCrowdScale(side);
+      const x = box.left + rScaled + 20 + Math.random() * Math.max(20, (box.right - box.left - (rScaled + 20) * 2));
+      const y = box.top + 42 + (isClone ? Math.random() * 35 : 0);
       const b = {
         playerId: p.id,
         name: p.name,
         side: side,
         x: x, y: y,
-        vx: (Math.random() - 0.5) * 380,
-        vy: 150 + Math.random() * 150,
-        r: baseR,
-        targetR: baseR,
-        angle: (Math.random() - 0.5) * 0.8,
-        omega: (Math.random() - 0.5) * 7,
-        squashX: 1.22,
-        squashY: 0.78,
+        vx: (Math.random() - 0.5) * 360,
+        vy: 140 + Math.random() * 140,
+        r: rScaled * 0.5,
+        baseR: baseR,
+        angle: (Math.random() - 0.5) * 0.6,
+        omega: (Math.random() - 0.5) * 6,
+        squashX: 1.2,
+        squashY: 0.8,
+        likeGlowUntil: 0,
         trail: [],
         giftTier: p.giftTier || 0,
-        isPacer: false,
+        isStarter: false,
         isClone: !!isClone,
         shredded: false
       };
       this.balls.push(b);
-      this.addShockwave(x, y, 80, side === 'A' ? TEAM_A : TEAM_B);
-      if (!isClone) {
-        this.addPopup(x, y + 30, side === 'A' ? 'VOTE A!' : 'VOTE B!', side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW, 24);
-        playSfx('vote', side);
-      }
+      this.addShockwave(x, y, 75, side === 'A' ? TEAM_A : TEAM_B);
+      if (!isClone) playSfx('vote', side);
       this.updateChamberLeaders();
     }
 
@@ -905,11 +962,11 @@
       } else if (this.nextRoundQueue.length < 40) {
         this.nextRoundQueue.push({ playerId: p.id, name: p.name, side: side });
       }
-      const fromX = side === 'A' ? 180 : 900;
-      this.addLaserBeam(fromX, 1380, 540, 680, side === 'A' ? TEAM_A : TEAM_B, p.name + ' QUEUED [' + side + ']!');
+      const fromX = side === 'A' ? 200 : 880;
+      this.addLaserBeam(fromX, 1360, 540, 680, side === 'A' ? TEAM_A : TEAM_B, p.name + ' [' + side + ']');
       if (this.phase === 'CNC') {
         this.cncProgress = clamp(this.cncProgress + 0.018, 0, 1);
-        this.spawnCNCChips(540 + (Math.random() - 0.5) * 140, 680, 8);
+        this.spawnCNCChips(540 + (Math.random() - 0.5) * 140, 680, 7);
       }
       playSfx('vote', side);
     }
@@ -930,24 +987,22 @@
       p.roundScore += fromQueue ? 40 : 20;
       if (existingBall) {
         if (existingBall.side !== side) {
-          const box = side === 'A' ? CHAMBER_A : CHAMBER_B;
+          const box = this.getChamberBox(side);
           existingBall.side = side;
-          existingBall.x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 110;
+          existingBall.x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 90;
           existingBall.y = box.top + 45;
-          existingBall.vx = (Math.random() - 0.5) * 320;
+          existingBall.vx = (Math.random() - 0.5) * 300;
           existingBall.vy = 120;
-          existingBall.squashX = 1.25;
-          existingBall.squashY = 0.75;
-          this.addPopup(existingBall.x, existingBall.y, 'SWITCHED TO ' + side + '!', GOLD, 24);
+          existingBall.squashX = 1.22;
+          existingBall.squashY = 0.78;
         } else {
-          existingBall.targetR = Math.min(82, existingBall.targetR + 4.5);
-          existingBall.vy = -650 - Math.random() * 180;
-          existingBall.vx += (Math.random() - 0.5) * 380;
-          existingBall.omega = (Math.random() - 0.5) * 12;
-          existingBall.squashX = 0.76;
-          existingBall.squashY = 1.28;
-          this.addShockwave(existingBall.x, existingBall.y, 90, side === 'A' ? TEAM_A : TEAM_B);
-          this.addPopup(existingBall.x, existingBall.y - 30, 'BOUNCE +SCORE!', GOLD, 22);
+          existingBall.baseR = Math.min(92, existingBall.baseR + 5);
+          existingBall.vy = -620 - Math.random() * 160;
+          existingBall.vx += (Math.random() - 0.5) * 340;
+          existingBall.omega = (Math.random() - 0.5) * 10;
+          existingBall.squashX = 0.78;
+          existingBall.squashY = 1.24;
+          this.addShockwave(existingBall.x, existingBall.y, 85, side === 'A' ? TEAM_A : TEAM_B);
         }
         playSfx('vote', side);
         this.updateChamberLeaders();
@@ -970,8 +1025,8 @@
 
       if (e.type === 'member') {
         if (this.phase === 'VOTE' && !p.side) {
-          const countA = this.balls.filter(b => b.side === 'A' && !b.isPacer).length;
-          const countB = this.balls.filter(b => b.side === 'B' && !b.isPacer).length;
+          const countA = this.balls.filter(b => b.side === 'A' && !b.isStarter).length;
+          const countB = this.balls.filter(b => b.side === 'B' && !b.isStarter).length;
           this.castVote(p, countA <= countB ? 'A' : 'B', false);
         }
         return true;
@@ -979,8 +1034,8 @@
 
       if (e.type === 'chat') {
         const msg = String(e.text || '').trim().toUpperCase();
-        const countA = this.balls.filter(b => b.side === 'A' && !b.isPacer).length;
-        const countB = this.balls.filter(b => b.side === 'B' && !b.isPacer).length;
+        const countA = this.balls.filter(b => b.side === 'A' && !b.isStarter).length;
+        const countB = this.balls.filter(b => b.side === 'B' && !b.isStarter).length;
         const defaultSide = p.side || (countA <= countB ? 'A' : 'B');
         if (msg === 'A' || msg === '1' || msg.indexOf('A ') === 0 || msg === this.question.a) {
           this.castVote(p, 'A', false);
@@ -995,32 +1050,34 @@
       if (e.type === 'like') {
         const count = clamp(e.count || 1, 1, 200);
         p.roundLikes += count;
-        p.roundScore += count * 6;
+        p.roundScore += count * 8;
         if (this.phase === 'VOTE') {
           if (!p.side) {
-            const countA = this.balls.filter(b => b.side === 'A' && !b.isPacer).length;
-            const countB = this.balls.filter(b => b.side === 'B' && !b.isPacer).length;
+            const countA = this.balls.filter(b => b.side === 'A' && !b.isStarter).length;
+            const countB = this.balls.filter(b => b.side === 'B' && !b.isStarter).length;
             this.castVote(p, countA <= countB ? 'A' : 'B', false);
           }
           for (let i = 0; i < this.balls.length; i++) {
             const b = this.balls[i];
             if (b.playerId === p.id && !b.isClone) {
               const tierBonus = GIFT_TIERS[p.giftTier || 0].ballBonusR;
-              b.targetR = clamp(38 + tierBonus + Math.sqrt(p.roundLikes) * 3.5, 38, 86);
-              b.vy = -520 - Math.random() * 220;
-              b.vx += (Math.random() - 0.5) * 360;
-              b.omega = (Math.random() - 0.5) * 14;
-              b.squashX = 0.78;
-              b.squashY = 1.25;
-              this.addShockwave(b.x, b.y, b.r + 45, GOLD);
-              this.addPopup(b.x, b.y - b.r, '♥ +' + count * 6 + ' PTS!', GOLD, 24);
+              // Likes visibly inflate the player's ball and trigger a golden supercharge ring
+              b.baseR = clamp(42 + tierBonus + Math.pow(p.roundLikes, 0.58) * 5.2, 42, 96);
+              b.likeGlowUntil = now + 2200;
+              b.vy = -540 - Math.random() * 200;
+              b.vx += (Math.random() - 0.5) * 340;
+              b.omega = (Math.random() - 0.5) * 12;
+              b.squashX = 0.76;
+              b.squashY = 1.26;
+              this.addShockwave(b.x, b.y, b.r + 52, GOLD);
+              this.addPopup(b.x, b.y - b.r, '♥ +' + count, GOLD_HOT, 24);
             }
           }
           this.updateChamberLeaders();
           playSfx('like', p.side || 'A');
         } else if (this.phase === 'CNC') {
           this.cncProgress = clamp(this.cncProgress + count * 0.006, 0, 1);
-          this.addLaserBeam(540 + (Math.random() - 0.5) * 600, 1380, 540, 680, GOLD, p.name + ' ♥ BOOST!');
+          this.addLaserBeam(540 + (Math.random() - 0.5) * 500, 1360, 540, 680, GOLD, '♥ ' + p.name);
           playSfx('like', 'A');
         }
         return true;
@@ -1029,17 +1086,16 @@
       if (e.type === 'share' || e.type === 'follow') {
         if (now - p.lastShareAt > 5000) {
           p.lastShareAt = now;
-          const countA = this.balls.filter(b => b.side === 'A' && !b.isPacer).length;
-          const countB = this.balls.filter(b => b.side === 'B' && !b.isPacer).length;
+          const countA = this.balls.filter(b => b.side === 'A' && !b.isStarter).length;
+          const countB = this.balls.filter(b => b.side === 'B' && !b.isStarter).length;
           const side = p.side || (countA <= countB ? 'A' : 'B');
           p.side = side;
           p.roundScore += 65;
           if (this.phase === 'VOTE') {
-            this.spawnBall(p, side, 12, false);
+            this.spawnBall(p, side, 14, false);
           } else {
             this.queueForNextRound(p, side);
           }
-          this.banner = { text: '⚡ ' + p.name + ' DROPPED A SUPER ORB!', color: GOLD, until: now + 2400 };
         }
         return true;
       }
@@ -1051,15 +1107,15 @@
         p.roundScore += coins * tierInfo.scoreMult;
         p.giftTier = Math.max(p.giftTier || 0, tierInfo.tier);
         this.forgeTier = Math.max(this.forgeTier, tierInfo.tier);
-        this.shake = 10 + tierInfo.tier * 5;
+        this.shake = 8 + tierInfo.tier * 4;
         playSfx('gift', p.side || 'A', tierInfo.tier);
 
-        const countA = this.balls.filter(b => b.side === 'A' && !b.isPacer).length;
-        const countB = this.balls.filter(b => b.side === 'B' && !b.isPacer).length;
+        const countA = this.balls.filter(b => b.side === 'A' && !b.isStarter).length;
+        const countB = this.balls.filter(b => b.side === 'B' && !b.isStarter).length;
         const side = p.side || (countA <= countB ? 'A' : 'B');
         p.side = side;
 
-        const targetBox = side === 'A' ? CHAMBER_A : CHAMBER_B;
+        const targetBox = this.getChamberBox(side);
         const targetX = (targetBox.left + targetBox.right) / 2;
         if (this.giftMeteors.length < 8) {
           this.giftMeteors.push({
@@ -1068,7 +1124,7 @@
             tier: tierInfo.tier,
             badge: tierInfo.badge,
             coins: coins,
-            fromX: 540, fromY: 90,
+            fromX: 540, fromY: 110,
             toX: this.phase === 'VOTE' ? targetX : 540,
             toY: this.phase === 'VOTE' ? 660 : 690,
             progress: 0
@@ -1084,11 +1140,11 @@
             this.spawnBall(p, side, tierInfo.ballBonusR, false);
           } else {
             mainBall.giftTier = p.giftTier;
-            mainBall.targetR = clamp(38 + tierInfo.ballBonusR + Math.sqrt(p.roundLikes) * 3, 48, 88);
-            mainBall.vy = -740;
-            mainBall.squashX = 0.72; mainBall.squashY = 1.34;
-            this.addShockwave(mainBall.x, mainBall.y, 175, tierInfo.border);
-            this.addPopup(mainBall.x, mainBall.y - 45, tierInfo.badge + '!', tierInfo.glow, 28);
+            mainBall.baseR = clamp(42 + tierInfo.ballBonusR + Math.sqrt(p.roundLikes) * 3, 52, 98);
+            mainBall.vy = -700;
+            mainBall.squashX = 0.72; mainBall.squashY = 1.32;
+            this.addShockwave(mainBall.x, mainBall.y, 165, tierInfo.border);
+            this.addPopup(mainBall.x, mainBall.y - 45, tierInfo.badge, tierInfo.glow, 28);
           }
           for (let c = 0; c < tierInfo.clones; c++) {
             this.spawnBall(p, side, Math.max(0, tierInfo.ballBonusR - 14), true);
@@ -1097,24 +1153,24 @@
             for (let i = 0; i < this.balls.length; i++) {
               const b = this.balls[i];
               if (b.side === side) {
-                b.vy = -450 - Math.random() * 300;
-                b.vx += (Math.random() - 0.5) * 420;
+                b.vy = -420 - Math.random() * 280;
+                b.vx += (Math.random() - 0.5) * 380;
               }
             }
           }
           this.updateChamberLeaders();
         } else {
           this.queueForNextRound(p, side);
-          this.spawnCNCChips(540, 680, 24);
+          this.spawnCNCChips(540, 680, 22);
         }
 
         this.banner = {
-          text: tierInfo.badge + ' UNLOCKED BY ' + p.name + '!',
+          text: tierInfo.badge + ' · ' + p.name,
           color: tierInfo.glow,
-          until: now + 3800
+          until: now + 3400
         };
         if (tierInfo.tier >= 2) {
-          speakTTS(tierInfo.name + ' unlocked by ' + p.name + '!', false);
+          speakTTS('Huge shoutout to ' + p.name + ' for unlocking the ' + tierInfo.name + ' forge!', false);
         }
         return true;
       }
@@ -1126,9 +1182,9 @@
       let a = 0, b = 0;
       for (let i = 0; i < this.balls.length; i++) {
         const ball = this.balls[i];
-        const tierWeight = (ball.giftTier || 0) * 2;
-        const sizeWeight = ball.r > 54 ? 2 : 1;
-        const weight = ball.isClone ? 1 : (sizeWeight + tierWeight);
+        const tierWeight = (ball.giftTier || 0) * 3;
+        const likeWeight = ball.baseR > 54 ? Math.floor((ball.baseR - 40) / 10) : 0;
+        const weight = ball.isClone ? 1 : (1 + likeWeight + tierWeight);
         if (ball.side === 'A') a += weight;
         else b += weight;
       }
@@ -1139,9 +1195,10 @@
       this.phase = 'SHRED';
       this.timer = SHRED_DURATION;
       this.trapdoorAngle = 0;
+      this.crusherY = 0;
       const counts = this.getCounts();
       this.winningSide = counts.a >= counts.b ? 'A' : 'B';
-      this.shake = 16;
+      this.shake = 14;
       playSfx('shred');
 
       this.players.forEach(p => {
@@ -1150,7 +1207,7 @@
       });
 
       const winners = this.balls
-        .filter(b => b.side === this.winningSide && !b.isPacer && !b.isClone)
+        .filter(b => b.side === this.winningSide && !b.isStarter && !b.isClone)
         .map(b => this.players.get(b.playerId))
         .filter(Boolean);
 
@@ -1173,8 +1230,8 @@
       for (let i = 0; i < this.balls.length; i++) {
         const b = this.balls[i];
         if (b.side === this.winningSide) {
-          b.vy = -480 - Math.random() * 250;
-          b.vx = (Math.random() - 0.5) * 320;
+          b.vy = -450 - Math.random() * 220;
+          b.vx = (Math.random() - 0.5) * 300;
         }
       }
     }
@@ -1184,10 +1241,11 @@
       this.timer = CNC_DURATION;
       this.cncProgress = 0;
       this.forgeSlide = 0;
-      this.shake = 10;
+      this.shake = 8;
       playSfx('vote', this.winningSide);
       if (this.mvp) {
-        speakTTS('Team ' + this.winningSide + ' wins! Forging medallion for ' + this.mvp.name + '!', false);
+        const winWord = formatSpokenWord(this.winningSide === 'A' ? this.question.a : this.question.b);
+        speakTTS(winWord + ' takes the win! Engraving the medallion for ' + this.mvp.name + '.', false);
       }
     }
 
@@ -1195,10 +1253,10 @@
       this.phase = 'SHOWCASE';
       this.timer = SHOW_DURATION;
       this.cncProgress = 1;
-      this.shake = 12;
+      this.shake = 10;
       playSfx('win');
-      for (let i = 0; i < 6; i++) {
-        this.spawnCNCChips(320 + i * 88, 660, 14);
+      for (let i = 0; i < 5; i++) {
+        this.spawnCNCChips(320 + i * 95, 660, 12);
       }
       if (this.mvp) {
         this.hallOfFame.unshift({
@@ -1213,35 +1271,48 @@
       }
     }
 
-    spawnCNCChips(x, y, count) {
+    spawnCNCChips(x, y, count, customCol) {
       if (this.chips.length > 240) return;
       const tierInfo = GIFT_TIERS[this.forgeTier || 0];
       const n = count || 4;
       for (let i = 0; i < n; i++) {
         const isSpark = Math.random() < 0.68;
         this.chips.push({
-          x: x + (Math.random() - 0.5) * 16,
-          y: y + (Math.random() - 0.5) * 8,
-          vx: (Math.random() - 0.5) * 760,
-          vy: -220 - Math.random() * 580,
+          x: x + (Math.random() - 0.5) * 18,
+          y: y + (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 720,
+          vy: -200 - Math.random() * 540,
           rot: Math.random() * Math.PI * 2,
-          vrot: (Math.random() - 0.5) * 22,
+          vrot: (Math.random() - 0.5) * 20,
           life: 1.0,
           isSpark: isSpark,
-          color: isSpark ? tierInfo.spark1 : tierInfo.spark2
+          color: customCol || (isSpark ? tierInfo.spark1 : tierInfo.spark2)
         });
       }
     }
 
     tick(dt) {
-      this.sawAngle += dt * 18;
-      this.shake = Math.max(0, this.shake - dt * 28);
+      this.sawAngle += dt * 16;
+      this.shake = Math.max(0, this.shake - dt * 26);
+
+      // Smooth Dynamic Squeeze: dominant side physically pushes the center wall!
+      const counts = this.getCounts();
+      const ratioA = counts.total > 0 ? clamp(counts.a / counts.total, 0.22, 0.78) : 0.5;
+      if (this.phase === 'VOTE') {
+        this.targetSplitX = lerp(310, 770, ratioA);
+      } else if (this.phase === 'SHRED') {
+        this.targetSplitX = this.winningSide === 'A' ? 670 : 410;
+      } else {
+        this.targetSplitX = 540;
+      }
+      this.splitX += (this.targetSplitX - this.splitX) * Math.min(1, dt * 4.5);
+      this.updateBumpers();
 
       if (this.phase === 'VOTE') {
         this.timer -= dt;
 
-        if (this.timer < VOTE_DURATION - 2.2 && !this.pacerSpawned && this.balls.length === 0) {
-          this.spawnPacerBots();
+        if (this.timer < VOTE_DURATION - 1.8 && !this.startersSpawned && this.balls.length === 0) {
+          this.spawnStarterBalls();
         }
 
         const secLeft = Math.ceil(this.timer);
@@ -1252,16 +1323,17 @@
 
         if (this.timer <= 8 && Math.random() < dt * 3.8 && this.balls.length > 0) {
           const b = this.balls[Math.floor(Math.random() * this.balls.length)];
-          if (b.y > CHAMBER_A.bottom - 180) {
-            b.vy = -390 - Math.random() * 190;
-            b.vx += (Math.random() - 0.5) * 240;
-            b.squashX = 0.84; b.squashY = 1.18;
+          if (b.y > ARENA_BOTTOM - 180) {
+            b.vy = -380 - Math.random() * 180;
+            b.vx += (Math.random() - 0.5) * 220;
+            b.squashX = 0.85; b.squashY = 1.16;
           }
         }
         if (this.timer <= 0) this.startShredPhase();
       } else if (this.phase === 'SHRED') {
         this.timer -= dt;
-        this.trapdoorAngle = clamp(this.trapdoorAngle + dt * 3.4, 0, 1);
+        this.trapdoorAngle = clamp(this.trapdoorAngle + dt * 3.2, 0, 1);
+        this.crusherY = clamp(this.crusherY + dt * 0.72, 0, 1);
         if (this.timer <= 0) this.startCNCPhase();
       } else if (this.phase === 'CNC') {
         this.forgeSlide = clamp(this.forgeSlide + dt * 3.5, 0, 1);
@@ -1277,22 +1349,26 @@
       }
 
       const loseSide = this.winningSide === 'A' ? 'B' : 'A';
+      const scaleA = this.getCrowdScale('A');
+      const scaleB = this.getCrowdScale('B');
       const now = performance.now();
 
       for (let i = this.balls.length - 1; i >= 0; i--) {
         const b = this.balls[i];
-        b.r += (b.targetR - b.r) * Math.min(1, dt * 9);
-        b.squashX += (1 - b.squashX) * Math.min(1, dt * 14);
-        b.squashY += (1 - b.squashY) * Math.min(1, dt * 14);
+        const cScale = b.side === 'A' ? scaleA : scaleB;
+        const desiredR = clamp(b.baseR * cScale, 20, 92);
+        b.r += (desiredR - b.r) * Math.min(1, dt * 7);
+        b.squashX += (1 - b.squashX) * Math.min(1, dt * 12);
+        b.squashY += (1 - b.squashY) * Math.min(1, dt * 12);
 
-        if (Math.hypot(b.vx, b.vy) > 260) {
-          b.trail.push({ x: b.x, y: b.y, r: b.r * 0.88 });
+        if (Math.hypot(b.vx, b.vy) > 250) {
+          b.trail.push({ x: b.x, y: b.y, r: b.r * 0.85 });
           if (b.trail.length > 5) b.trail.shift();
         } else if (b.trail.length > 0) {
           b.trail.shift();
         }
 
-        b.vy += 1780 * dt;
+        b.vy += 1720 * dt;
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         b.angle += b.omega * dt;
@@ -1300,19 +1376,19 @@
         b.vy *= Math.pow(0.995, dt * 60);
         b.omega *= Math.pow(0.98, dt * 60);
 
-        const box = b.side === 'A' ? CHAMBER_A : CHAMBER_B;
+        const box = this.getChamberBox(b.side);
 
         if (b.x < box.left + b.r + 10) {
           b.x = box.left + b.r + 10;
-          if (b.vx < -120) { b.squashX = 0.78; b.squashY = 1.24; playSfx('bounce', b.side); }
+          if (b.vx < -120) { b.squashX = 0.80; b.squashY = 1.20; playSfx('bounce', b.side); }
           b.vx = Math.abs(b.vx) * 0.74;
-          b.omega = b.vy * 0.012;
+          b.omega = b.vy * 0.011;
         }
         if (b.x > box.right - b.r - 10) {
           b.x = box.right - b.r - 10;
-          if (b.vx > 120) { b.squashX = 0.78; b.squashY = 1.24; playSfx('bounce', b.side); }
+          if (b.vx > 120) { b.squashX = 0.80; b.squashY = 1.20; playSfx('bounce', b.side); }
           b.vx = -Math.abs(b.vx) * 0.74;
-          b.omega = -b.vy * 0.012;
+          b.omega = -b.vy * 0.011;
         }
 
         for (let k = 0; k < this.bumpers.length; k++) {
@@ -1327,14 +1403,14 @@
             const ny = dy / dist;
             b.x = bmp.x + nx * (minD + 1);
             b.y = bmp.y + ny * (minD + 1);
-            const speed = Math.max(360, Math.hypot(b.vx, b.vy) * 0.92);
-            b.vx = nx * speed + (Math.random() - 0.5) * 90;
+            const speed = Math.max(350, Math.hypot(b.vx, b.vy) * 0.90);
+            b.vx = nx * speed + (Math.random() - 0.5) * 80;
             b.vy = ny * speed;
-            b.omega = (Math.random() - 0.5) * 14;
-            b.squashX = 1.26;
-            b.squashY = 0.74;
+            b.omega = (Math.random() - 0.5) * 12;
+            b.squashX = 1.24;
+            b.squashY = 0.76;
             bmp.hitAt = now;
-            this.addShockwave(bmp.x, bmp.y, bmp.r + 42, bmp.color);
+            this.addShockwave(bmp.x, bmp.y, bmp.r + 40, bmp.color);
             playSfx('bumper', b.side);
           }
         }
@@ -1344,29 +1420,37 @@
           if (b.y > box.bottom - b.r - 10) {
             b.y = box.bottom - b.r - 10;
             if (b.vy > 160) {
-              b.squashX = clamp(1 + b.vy / 2200, 1.06, 1.34);
-              b.squashY = clamp(1 - b.vy / 2600, 0.68, 0.94);
+              b.squashX = clamp(1 + b.vy / 2300, 1.05, 1.30);
+              b.squashY = clamp(1 - b.vy / 2700, 0.72, 0.95);
               if (b.vy > 280) playSfx('bounce', b.side);
             }
             b.vy = -Math.abs(b.vy) * 0.68;
             if (Math.abs(b.vy) < 55) b.vy = 0;
-            b.omega = b.vx * 0.018;
+            b.omega = b.vx * 0.016;
           }
         } else {
-          if (!b.shredded && b.y >= box.bottom - 5) {
+          // Hydraulic press pushes losing balls down into the plasma shredder
+          const pressBottomY = lerp(box.top + 80, box.bottom - 35, this.crusherY);
+          if (b.y - b.r < pressBottomY) {
+            b.y = pressBottomY + b.r;
+            b.vy = Math.max(b.vy, 560);
+            b.squashX = 1.32;
+            b.squashY = 0.68;
+          }
+          if (!b.shredded && b.y >= box.bottom - 12) {
             b.shredded = true;
             this.shake = Math.max(this.shake, 9);
-            this.spawnCNCChips(b.x, box.bottom + 10, 14);
-            this.addShockwave(b.x, box.bottom + 10, 95, TEAM_A);
+            const burstCol = loseSide === 'A' ? TEAM_A : TEAM_B;
+            this.spawnCNCChips(b.x, box.bottom + 8, 18, burstCol);
+            this.addShockwave(b.x, box.bottom + 8, 110, burstCol);
             playSfx('cnc', loseSide);
-          }
-          if (b.y > 1580) {
             this.balls.splice(i, 1);
             continue;
           }
         }
       }
 
+      // Multi-pass elastic ball-to-ball collision
       for (let pass = 0; pass < 4; pass++) {
         for (let i = 0; i < this.balls.length; i++) {
           const b1 = this.balls[i];
@@ -1389,16 +1473,14 @@
             const rvy = b2.vy - b1.vy;
             const velAlongNormal = rvx * nx + rvy * ny;
             if (velAlongNormal < 0) {
-              const restitution = pass === 0 ? 0.66 : 0.35;
+              const restitution = pass === 0 ? 0.64 : 0.34;
               const imp = -(1 + restitution) * velAlongNormal * 0.5;
               b1.vx -= nx * imp; b1.vy -= ny * imp;
               b2.vx += nx * imp; b2.vy += ny * imp;
 
-              if (pass === 0 && Math.abs(velAlongNormal) > 210) {
-                b1.squashX = 1.15; b1.squashY = 0.86;
-                b2.squashX = 1.15; b2.squashY = 0.86;
-                b1.omega = (b1.vx - b2.vx) * 0.012;
-                b2.omega = -b1.omega;
+              if (pass === 0 && Math.abs(velAlongNormal) > 220) {
+                b1.squashX = 1.14; b1.squashY = 0.87;
+                b2.squashX = 1.14; b2.squashY = 0.87;
               }
             }
           }
@@ -1407,7 +1489,7 @@
 
       for (let i = this.chips.length - 1; i >= 0; i--) {
         const ch = this.chips[i];
-        ch.vy += 1750 * dt;
+        ch.vy += 1720 * dt;
         ch.x += ch.vx * dt;
         ch.y += ch.vy * dt;
         ch.rot += ch.vrot * dt;
@@ -1425,7 +1507,7 @@
       for (let i = this.popups.length - 1; i >= 0; i--) {
         const pp = this.popups[i];
         pp.y -= 65 * dt;
-        pp.life -= dt * 1.35;
+        pp.life -= dt * 1.4;
         if (pp.life <= 0) this.popups.splice(i, 1);
       }
 
@@ -1439,8 +1521,8 @@
         const gm = this.giftMeteors[i];
         gm.progress += dt * 2.2;
         if (gm.progress >= 1) {
-          this.addShockwave(gm.toX, gm.toY, 160, GIFT_TIERS[gm.tier].glow);
-          this.spawnCNCChips(gm.toX, gm.toY, 18);
+          this.addShockwave(gm.toX, gm.toY, 155, GIFT_TIERS[gm.tier].glow);
+          this.spawnCNCChips(gm.toX, gm.toY, 16);
           this.giftMeteors.splice(i, 1);
         }
       }
@@ -1481,11 +1563,11 @@
     const col = color || WHITE;
     const al = align || 'center';
     const mw = maxW || 950;
-    ctx.font = '900 ' + size + 'px "Segoe UI", "Trebuchet MS", Arial, sans-serif';
+    ctx.font = '900 ' + size + 'px "Segoe UI", system-ui, sans-serif';
     ctx.textAlign = al;
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(6, Math.round(size * 0.22));
+    ctx.lineWidth = Math.max(5, Math.round(size * 0.20));
     ctx.strokeStyle = outlineCol || OUTLINE;
     let text = String(str);
     while (text.length > 1 && ctx.measureText(text).width > mw) text = text.slice(0, -1);
@@ -1499,7 +1581,7 @@
     ctx.translate(cx, cy);
     ctx.rotate(angle);
     ctx.beginPath();
-    const teeth = 16;
+    const teeth = 14;
     for (let i = 0; i < teeth * 2; i++) {
       const a = (i * Math.PI) / teeth;
       const rad = i % 2 === 0 ? r : r * 0.68;
@@ -1508,18 +1590,14 @@
     }
     ctx.closePath();
     const g = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(0.45, accentCol);
-    g.addColorStop(1, '#26334d');
+    g.addColorStop(0, WHITE);
+    g.addColorStop(0.5, accentCol);
+    g.addColorStop(1, DARK_SLATE);
     ctx.fillStyle = g;
     ctx.fill();
     ctx.lineWidth = 4;
     ctx.strokeStyle = OUTLINE;
     ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.26, 0, Math.PI * 2);
-    ctx.fillStyle = OUTLINE;
-    ctx.fill();
     ctx.restore();
   }
 
@@ -1537,27 +1615,22 @@
 
     const g = ctx.createRadialGradient(-r * 0.25, -r * 0.25, 2, 0, 0, r);
     g.addColorStop(0, WHITE);
-    g.addColorStop(0.5, age < 220 ? GOLD_HOT : bmp.color);
-    g.addColorStop(1, '#121c38');
+    g.addColorStop(0.55, age < 220 ? GOLD_HOT : bmp.color);
+    g.addColorStop(1, DARK_SLATE);
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fillStyle = g;
     ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.52, 0, Math.PI * 2);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = WHITE;
-    ctx.stroke();
     ctx.restore();
   }
 
   function drawVoterBall(b, now) {
-    const p = game.players.get(b.playerId) || { id: b.playerId, name: b.name, side: b.side, winStreak: 0, giftTier: 0 };
+    const p = game.players.get(b.playerId) || { id: b.playerId, name: b.name, side: b.side, winStreak: 0, giftTier: 0, roundLikes: 0 };
     const img = getPlayerImage(p);
     const gTier = b.giftTier || p.giftTier || 0;
     const tierInfo = GIFT_TIERS[gTier];
-    const isLeader = !b.isClone && !b.isPacer && ((b.side === 'A' && game.leaderA === b.playerId) || (b.side === 'B' && game.leaderB === b.playerId));
+    const isLeader = !b.isClone && !b.isStarter && ((b.side === 'A' && game.leaderA === b.playerId) || (b.side === 'B' && game.leaderB === b.playerId));
+    const isLiked = now < (b.likeGlowUntil || 0) || (p.roundLikes >= 10);
 
     const col = gTier > 0 ? tierInfo.border : (b.side === 'A' ? TEAM_A : TEAM_B);
     const glowCol = gTier > 0 ? tierInfo.glow : (b.side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW);
@@ -1565,7 +1638,7 @@
     for (let i = 0; i < b.trail.length; i++) {
       const tr = b.trail[i];
       ctx.beginPath();
-      ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.65, 0, Math.PI * 2);
+      ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.55, 0, Math.PI * 2);
       ctx.fillStyle = col;
       ctx.fill();
     }
@@ -1574,12 +1647,13 @@
     ctx.translate(b.x, b.y);
     ctx.scale(b.squashX, b.squashY);
 
-    if (isLeader || gTier >= 2) {
-      const auraR = b.r + 10 + Math.sin(now * 0.015) * 4;
+    // Supercharged Like Aura or Leader Aura
+    if (isLeader || gTier >= 2 || isLiked) {
+      const auraR = b.r + 8 + Math.sin(now * 0.016) * 3.5;
       ctx.beginPath();
       ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = isLeader ? GOLD : tierInfo.glow;
+      ctx.lineWidth = isLeader ? 5 : 4;
+      ctx.strokeStyle = isLeader ? GOLD : (gTier >= 2 ? tierInfo.glow : GOLD_HOT);
       ctx.stroke();
     }
 
@@ -1591,16 +1665,16 @@
     ctx.save();
     ctx.rotate(b.angle);
     ctx.beginPath();
-    ctx.arc(0, 0, b.r - 3, 0, Math.PI * 2);
+    ctx.arc(0, 0, b.r - 2.5, 0, Math.PI * 2);
     ctx.clip();
-    ctx.drawImage(img, -b.r + 3, -b.r + 3, (b.r - 3) * 2, (b.r - 3) * 2);
+    ctx.drawImage(img, -b.r + 2.5, -b.r + 2.5, (b.r - 2.5) * 2, (b.r - 2.5) * 2);
     ctx.restore();
 
     const shine = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.38, b.r * 0.06, 0, 0, b.r);
-    shine.addColorStop(0, 'rgba(255,255,255,0.65)');
-    shine.addColorStop(0.35, 'rgba(255,255,255,0.12)');
+    shine.addColorStop(0, 'rgba(255,255,255,0.60)');
+    shine.addColorStop(0.35, 'rgba(255,255,255,0.10)');
     shine.addColorStop(0.75, 'rgba(0,0,0,0)');
-    shine.addColorStop(1, 'rgba(8,14,34,0.55)');
+    shine.addColorStop(1, 'rgba(9,13,22,0.50)');
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 2, 0, Math.PI * 2);
     ctx.fillStyle = shine;
@@ -1608,8 +1682,8 @@
 
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 1, 0, Math.PI * 2);
-    ctx.lineWidth = gTier > 0 ? 6.5 : 4.5;
-    ctx.strokeStyle = col;
+    ctx.lineWidth = (gTier > 0 || isLiked) ? 6 : 4.5;
+    ctx.strokeStyle = isLiked && gTier === 0 ? GOLD : col;
     ctx.stroke();
 
     ctx.beginPath();
@@ -1622,124 +1696,123 @@
 
     if (isLeader && game.phase === 'VOTE') {
       const bob = Math.sin(now * 0.012) * 4;
-      drawText('👑 #1 MVP', b.x, b.y - b.r * b.squashY - 18 + bob, 20, GOLD, 'center', 170);
-    } else if (game.phase === 'SHRED' && game.mvp && b.playerId === game.mvp.id && !b.isClone) {
-      const pulseR = b.r + 15 + Math.sin(now * 0.02) * 6;
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, pulseR, 0, Math.PI * 2);
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = GOLD;
-      ctx.stroke();
-      drawText('★ MVP LOCK ★', b.x, b.y - b.r - 22, 22, GOLD, 'center', 200);
+      drawText('👑 #1', b.x, b.y - b.r * b.squashY - 16 + bob, 22, GOLD, 'center', 140);
     }
 
     if (!b.isClone) {
-      const streakStr = (p.winStreak && p.winStreak >= 2) ? (' 🔥' + p.winStreak + 'x') : '';
-      drawText(b.name + streakStr, b.x, b.y + b.r * b.squashY + 14, 17, gTier > 0 ? GOLD_HOT : WHITE, 'center', b.r * 3.1);
+      const streakStr = (p.winStreak && p.winStreak >= 2) ? (' 🔥' + p.winStreak) : '';
+      drawText(b.name + streakStr, b.x, b.y + b.r * b.squashY + 14, 17, (gTier > 0 || isLiked) ? GOLD_HOT : WHITE, 'center', Math.max(95, b.r * 2.9));
     }
   }
 
-  function drawTugOfWarBar(counts, pctA, pctB, now) {
-    const x = 44, y = 266, w = 992, h = 58;
-    roundPath(x - 4, y - 4, w + 8, h + 8, 22);
+  function drawTopBarAndHeaders(pctA, pctB, now) {
+    // 1. Minimalist Hall of Champions Strip + Center Timer Pill
+    gradPanel(42, 32, 996, 86, 24, '#1e293b', '#0f172a', '#334155', 4);
+    drawText('🏆 CHAMPIONS', 155, 75, 22, GOLD, 'center', 200);
+
+    if (game.hallOfFame.length === 0) {
+      drawText('WIN #1 MVP TO MINT YOUR MEDALLION', 510, 75, 20, '#94a3b8', 'center', 480);
+    } else {
+      for (let idx = 0; idx < game.hallOfFame.length; idx++) {
+        const h = game.hallOfFame[idx];
+        const hx = 305 + idx * 112;
+        const hy = 75;
+        const img = getPlayerImage(h);
+        const hTier = GIFT_TIERS[h.tier || 0];
+        ctx.save();
+        ctx.beginPath(); ctx.arc(hx, hy, 25, 0, Math.PI * 2);
+        ctx.fillStyle = OUTLINE; ctx.fill();
+        ctx.clip();
+        ctx.drawImage(img, hx - 25, hy - 25, 50, 50);
+        ctx.restore();
+        ctx.beginPath(); ctx.arc(hx, hy, 25, 0, Math.PI * 2);
+        ctx.lineWidth = 3.5; ctx.strokeStyle = hTier.border; ctx.stroke();
+      }
+    }
+
+    // Sleek Timer Badge on the right of the top bar
+    const isUrgent = game.phase === 'VOTE' && game.timer <= 5;
+    const timerCol = isUrgent ? TEAM_A : GOLD;
+    gradPanel(865, 44, 158, 62, 18, isUrgent ? '#7f1d1d' : '#090d16', '#090d16', timerCol, 4);
+    const timeStr = game.phase === 'VOTE' ? (Math.ceil(game.timer) + 's') : game.phase;
+    drawText(timeStr, 944, 75, 32, isUrgent ? WHITE : GOLD, 'center', 140);
+
+    // 2. Dynamic Split A / B Option Cards (move with game.splitX!)
+    const boxA = game.getChamberBox('A');
+    const boxB = game.getChamberBox('B');
+    const wA = boxA.right - boxA.left;
+    const wB = boxB.right - boxB.left;
+    const cxA = boxA.left + wA / 2;
+    const cxB = boxB.left + wB / 2;
+
+    const hdrY = 136, hdrH = 228;
+
+    // Card A (Vibrant Crimson)
+    gradPanel(boxA.left, hdrY, wA, hdrH, 28, TEAM_A, TEAM_A_DARK, '#fda4af', 5);
+    drawText(game.question.ea + ' ' + game.question.a, cxA, hdrY + 56, 38, WHITE, 'center', wA - 28);
+    drawText(pctA + '%', cxA, hdrY + 132, 66, WHITE, 'center', wA - 24);
+    gradPanel(cxA - Math.min(115, wA * 0.38), hdrY + 174, Math.min(230, wA * 0.76), 40, 14, '#090d16', '#1e293b', GOLD, 3);
+    drawText('TYPE A', cxA, hdrY + 194, 22, GOLD, 'center', wA - 40);
+
+    // Card B (Vibrant Electric Cyan)
+    gradPanel(boxB.left, hdrY, wB, hdrH, 28, TEAM_B, TEAM_B_DARK, '#a5f3fc', 5);
+    drawText(game.question.eb + ' ' + game.question.b, cxB, hdrY + 56, 38, WHITE, 'center', wB - 28);
+    drawText(pctB + '%', cxB, hdrY + 132, 66, WHITE, 'center', wB - 24);
+    gradPanel(cxB - Math.min(115, wB * 0.38), hdrY + 174, Math.min(230, wB * 0.76), 40, 14, '#090d16', '#1e293b', GOLD, 3);
+    drawText('TYPE B', cxB, hdrY + 194, 22, GOLD, 'center', wB - 40);
+
+    // Center VS / Balance Fulcrum Badge
+    const splitX = game.splitX;
+    const pulse = Math.sin(now * 0.015) * 3;
+    ctx.beginPath();
+    ctx.arc(splitX, hdrY + hdrH / 2, 34 + pulse, 0, Math.PI * 2);
     ctx.fillStyle = OUTLINE;
     ctx.fill();
-
-    const ratioA = counts.total ? clamp(counts.a / counts.total, 0.12, 0.88) : 0.5;
-    const splitX = x + w * ratioA;
-
-    ctx.save();
-    roundPath(x, y, w, h, 18);
-    ctx.clip();
-
-    const gA = ctx.createLinearGradient(x, y, splitX, y + h);
-    gA.addColorStop(0, '#ff1e56');
-    gA.addColorStop(1, '#ff6b8b');
-    ctx.fillStyle = gA;
-    ctx.fillRect(x, y, splitX - x, h);
-
-    const gB = ctx.createLinearGradient(splitX, y, x + w, y + h);
-    gB.addColorStop(0, '#00b4d8');
-    gB.addColorStop(1, '#00f2fe');
-    ctx.fillStyle = gB;
-    ctx.fillRect(splitX, y, x + w - splitX, h);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.fillRect(x, y, w, h * 0.42);
-    ctx.restore();
-
-    roundPath(x, y, w, h, 18);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = WHITE;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = GOLD;
     ctx.stroke();
-
-    const pulse = 18 + Math.sin(now * 0.02) * 5;
-    ctx.beginPath();
-    ctx.arc(splitX, y + h / 2, pulse, 0, Math.PI * 2);
-    ctx.fillStyle = GOLD;
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    drawText('⚡', splitX, y + h / 2 + 1, 24, WHITE);
-
-    drawText('A: ' + pctA + '% (' + counts.a + ')', x + 22, y + h / 2, 27, WHITE, 'left', 340);
-    drawText('(' + counts.b + ') ' + pctB + '% :B', x + w - 22, y + h / 2, 27, WHITE, 'right', 340);
+    drawText('VS', splitX, hdrY + hdrH / 2 + 1, 25, GOLD);
   }
 
-  function drawChamber(side, pct, now) {
-    const box = side === 'A' ? CHAMBER_A : CHAMBER_B;
+  function drawChamber(side) {
+    const box = game.getChamberBox(side);
     const col = side === 'A' ? TEAM_A : TEAM_B;
     const glow = side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW;
     const emoji = side === 'A' ? game.question.ea : game.question.eb;
-    const title = side === 'A' ? game.question.a : game.question.b;
     const w = box.right - box.left;
     const cx = box.left + w / 2;
 
-    const hdrY = 338, hdrH = 114;
-    gradPanel(
-      box.left, hdrY, w, hdrH, 22,
-      side === 'A' ? '#d91652' : '#0077b6',
-      side === 'A' ? '#6e0729' : '#023e8a',
-      col, 6
-    );
-    roundPath(box.left + 8, hdrY + 6, w - 16, 34, 12);
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.fill();
-
-    drawText('CHAT [' + side + ']  ·  ' + pct + '%', cx, hdrY + 32, 25, GOLD, 'center', w - 24);
-    drawText(emoji + ' ' + title, cx, hdrY + 79, 39, WHITE, 'center', w - 24);
-
     if (game.phase === 'VOTE') {
-      // Compact #1 MVP Leader Pill at the top of each chamber
-      const leaderId = side === 'A' ? game.leaderA : game.leaderB;
-      const leader = leaderId ? game.players.get(leaderId) : null;
-      gradPanel(box.left + 32, box.top + 14, w - 64, 42, 14, '#131f42', '#0a1126', GOLD, 3);
-      if (leader) {
-        drawText('👑 #1: ' + leader.name + ' (' + leader.roundScore + ' pts)', cx, box.top + 35, 19, GOLD_HOT, 'center', w - 84);
-      } else {
-        drawText('👑 TYPE [' + side + '] TO CLAIM #1 MVP!', cx, box.top + 35, 18, WHITE, 'center', w - 84);
-      }
-
-      // Chroma-Safe Central Holo-Emblem inside each chamber
+      // Clean Chroma-Safe Center Medallion Emblem inside each chamber
       ctx.save();
       ctx.translate(cx, 1085);
       ctx.beginPath();
-      ctx.arc(0, 0, 68, 0, Math.PI * 2);
-      ctx.fillStyle = '#0e1730';
+      ctx.arc(0, 0, 58, 0, Math.PI * 2);
+      ctx.fillStyle = DARK_SLATE;
       ctx.fill();
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 5;
       ctx.strokeStyle = OUTLINE;
       ctx.stroke();
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 3;
       ctx.strokeStyle = col;
       ctx.stroke();
-      drawText(emoji, 0, -6, 56, WHITE);
-      drawText('[' + side + ']', 0, 44, 22, GOLD);
+      drawText(emoji, 0, 2, 52, WHITE);
       ctx.restore();
     }
 
     const isLosingShred = game.phase === 'SHRED' && game.winningSide !== side;
+
+    // Hydraulic Crusher Press descending from the top of the losing chamber!
+    if (isLosingShred) {
+      const pressBottomY = lerp(box.top + 80, box.bottom - 35, game.crusherY);
+      const pressH = Math.max(55, pressBottomY - box.top);
+      // Hydraulic vertical shafts
+      gradPanel(cx - 85, box.top, 34, pressH, 6, '#64748b', '#1e293b', OUTLINE, 4);
+      gradPanel(cx + 51, box.top, 34, pressH, 6, '#64748b', '#1e293b', OUTLINE, 4);
+      // Heavy crusher head block
+      gradPanel(box.left + 12, pressBottomY - 68, w - 24, 68, 14, '#ef4444', '#7f1d1d', GOLD, 5);
+      drawText('CRUSHING', cx, pressBottomY - 34, 28, GOLD, 'center', w - 40);
+    }
 
     ctx.save();
     ctx.lineCap = 'round';
@@ -1747,15 +1820,15 @@
 
     ctx.beginPath();
     ctx.moveTo(box.left, box.bottom);
-    ctx.lineTo(box.left, box.top + 20);
-    ctx.arcTo(box.left, box.top, box.left + 20, box.top, 20);
-    ctx.lineTo(box.right - 20, box.top);
-    ctx.arcTo(box.right, box.top, box.right, box.top + 20, 20);
+    ctx.lineTo(box.left, box.top + 22);
+    ctx.arcTo(box.left, box.top, box.left + 22, box.top, 22);
+    ctx.lineTo(box.right - 22, box.top);
+    ctx.arcTo(box.right, box.top, box.right, box.top + 22, 22);
     ctx.lineTo(box.right, box.bottom);
-    ctx.lineWidth = 16;
+    ctx.lineWidth = 15;
     ctx.strokeStyle = OUTLINE;
     ctx.stroke();
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 6.5;
     ctx.strokeStyle = col;
     ctx.stroke();
 
@@ -1768,8 +1841,8 @@
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(halfW - 4, 0);
-    ctx.lineWidth = 16; ctx.strokeStyle = OUTLINE; ctx.stroke();
-    ctx.lineWidth = 8; ctx.strokeStyle = isLosingShred ? GOLD : glow; ctx.stroke();
+    ctx.lineWidth = 15; ctx.strokeStyle = OUTLINE; ctx.stroke();
+    ctx.lineWidth = 7; ctx.strokeStyle = isLosingShred ? GOLD : glow; ctx.stroke();
     ctx.restore();
 
     ctx.save();
@@ -1778,48 +1851,20 @@
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(-halfW + 4, 0);
-    ctx.lineWidth = 16; ctx.strokeStyle = OUTLINE; ctx.stroke();
-    ctx.lineWidth = 8; ctx.strokeStyle = isLosingShred ? GOLD : glow; ctx.stroke();
+    ctx.lineWidth = 15; ctx.strokeStyle = OUTLINE; ctx.stroke();
+    ctx.lineWidth = 7; ctx.strokeStyle = isLosingShred ? GOLD : glow; ctx.stroke();
     ctx.restore();
 
     ctx.restore();
 
     if (isLosingShred) {
-      for (let sx = box.left + 58; sx <= box.right - 58; sx += 88) {
-        drawPlasmaSaw(sx, box.bottom + 26, 40, game.sawAngle * (sx % 2 === 0 ? 1 : -1), TEAM_A);
+      const step = Math.max(70, w / 4);
+      for (let sx = box.left + 48; sx <= box.right - 48; sx += step) {
+        drawPlasmaSaw(sx, box.bottom + 24, 36, game.sawAngle * (Math.round(sx) % 2 === 0 ? 1 : -1), TEAM_A);
       }
-      drawText('⚠️ CRUSHING LOSERS ⚠️', cx, box.top + 115, 32, GOLD, 'center', w - 30);
     } else if (game.phase === 'SHRED' && game.winningSide === side) {
-      drawText('🏆 WINNING SIDE 🏆', cx, box.top + 115, 34, GOLD, 'center', w - 30);
+      drawText('🏆 WINNER 🏆', cx, box.top + 65, 36, GOLD, 'center', w - 30);
     }
-  }
-
-  function drawCenterElectricDivider(now) {
-    if (game.phase !== 'VOTE' && game.phase !== 'SHRED') return;
-    const cx = 540;
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(cx, 485);
-    for (let y = 510; y <= 1450; y += 45) {
-      const jitter = Math.sin(now * 0.025 + y * 0.1) * 9;
-      ctx.lineTo(cx + jitter, y);
-    }
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    ctx.lineWidth = 3.5;
-    ctx.strokeStyle = GOLD;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, 960, 32, 0, Math.PI * 2);
-    ctx.fillStyle = OUTLINE;
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = GOLD;
-    ctx.stroke();
-    drawText('VS', cx, 961, 26, GOLD);
-    ctx.restore();
   }
 
   function drawCNCForgeModal(now) {
@@ -1830,30 +1875,24 @@
     const tierInfo = GIFT_TIERS[game.forgeTier || 0];
     const s = clamp(game.forgeSlide, 0, 1);
     const ease = 1 - Math.pow(1 - s, 3);
-    const scale = 0.82 + 0.18 * ease;
+    const scale = 0.85 + 0.15 * ease;
 
     ctx.save();
-    ctx.translate(540, 920);
+    ctx.translate(540, 910);
     ctx.scale(scale, scale);
-    ctx.translate(-540, -920);
+    ctx.translate(-540, -910);
 
-    const px = 125, py = 385, pw = 830, ph = 1030;
+    const px = 130, py = 385, pw = 820, ph = 1010;
 
-    const pistonOffset = (1 - ease) * 160;
-    gradPanel(30 - pistonOffset, py + 170, 105, 68, 10, '#4a5d80', '#1d273b', tierInfo.border, 4);
-    gradPanel(30 - pistonOffset, py + 680, 105, 68, 10, '#4a5d80', '#1d273b', tierInfo.border, 4);
-    gradPanel(px + pw - 10 + pistonOffset, py + 170, 105, 68, 10, '#4a5d80', '#1d273b', tierInfo.border, 4);
-    gradPanel(px + pw - 10 + pistonOffset, py + 680, 105, 68, 10, '#4a5d80', '#1d273b', tierInfo.border, 4);
-
-    gradPanel(px - 18, py - 18, pw + 36, ph + 36, 34, tierInfo.coinOuter, '#0d1426', OUTLINE, 10);
-    gradPanel(px, py, pw, ph, 24, tierInfo.bgTop, tierInfo.bgBot, tierInfo.border, 6);
+    gradPanel(px - 14, py - 14, pw + 28, ph + 28, 34, tierInfo.coinOuter, OUTLINE, OUTLINE, 8);
+    gradPanel(px, py, pw, ph, 26, tierInfo.bgTop, tierInfo.bgBot, tierInfo.border, 5);
 
     drawText(
-      '👑 ' + tierInfo.name + ' FORGE 👑',
-      540, py + 48, 36, tierInfo.glow, 'center', pw - 50
+      tierInfo.badge + ' MEDALLION FORGE',
+      540, py + 48, 35, tierInfo.glow, 'center', pw - 50
     );
 
-    const coinCX = 540, coinCY = py + 310, coinR = 228;
+    const coinCX = 540, coinCY = py + 310, coinR = 225;
 
     ctx.save();
     ctx.translate(coinCX, coinCY);
@@ -1861,7 +1900,7 @@
     const ridges = 36;
     for (let i = 0; i < ridges * 2; i++) {
       const a = (i * Math.PI) / ridges;
-      const r = i % 2 === 0 ? coinR + 12 : coinR + 2;
+      const r = i % 2 === 0 ? coinR + 11 : coinR + 2;
       if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
       else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
     }
@@ -1884,7 +1923,7 @@
     ctx.stroke();
     ctx.restore();
 
-    const portraitR = coinR - 26;
+    const portraitR = coinR - 24;
     const artX = coinCX - portraitR;
     const artY = coinCY - portraitR;
     const artSize = portraitR * 2;
@@ -1922,7 +1961,7 @@
         const hotGrad = ctx.createLinearGradient(artX, artY + revealH - 12, artX, artY + revealH + 6);
         hotGrad.addColorStop(0, 'rgba(255,120,0,0)');
         hotGrad.addColorStop(0.65, tierInfo.spark1);
-        hotGrad.addColorStop(1, '#ffffff');
+        hotGrad.addColorStop(1, WHITE);
         ctx.fillStyle = hotGrad;
         ctx.fillRect(artX, artY + revealH - 12, artSize, 16);
         ctx.restore();
@@ -1934,8 +1973,6 @@
     ctx.lineWidth = 6;
     ctx.strokeStyle = tierInfo.glow;
     ctx.stroke();
-
-    drawText('★ ROUND #' + game.round + ' CHAMPION ★', coinCX, coinCY - portraitR + 22, 20, GOLD_HOT, 'center', 300);
 
     if (game.phase === 'CNC' && ease > 0.8) {
       const rows = 26;
@@ -1959,30 +1996,18 @@
         ctx.moveTo(px + pw - 24, py + 480);
         ctx.lineTo(toolX, toolY);
       }
-      ctx.lineWidth = 9;
+      ctx.lineWidth = 8;
       ctx.strokeStyle = tierInfo.border;
       ctx.stroke();
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 3;
       ctx.strokeStyle = WHITE;
       ctx.stroke();
       ctx.restore();
 
-      gradPanel(px + 14, toolY - 76, pw - 28, 28, 8, '#5c7399', '#25324a', OUTLINE, 5);
-      gradPanel(toolX - 42, toolY - 134, 84, 84, 14, '#3c5278', '#182338', tierInfo.border, 4);
-      gradPanel(toolX - 22, toolY - 50, 44, 24, 6, GOLD, '#9e6b00', OUTLINE, 4);
+      gradPanel(px + 16, toolY - 72, pw - 32, 24, 8, '#475569', '#1e293b', OUTLINE, 4);
+      gradPanel(toolX - 38, toolY - 126, 76, 78, 14, '#334155', '#0f172a', tierInfo.border, 4);
 
-      ctx.beginPath();
-      ctx.moveTo(toolX - 12, toolY - 26);
-      ctx.lineTo(toolX + 12, toolY - 26);
-      ctx.lineTo(toolX, toolY + 4);
-      ctx.closePath();
-      ctx.fillStyle = WHITE;
-      ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-
-      const flareR = 16 + Math.sin(now * 0.08) * 5;
+      const flareR = 15 + Math.sin(now * 0.08) * 4;
       const flare = ctx.createRadialGradient(toolX, toolY, 2, toolX, toolY, flareR * 2);
       flare.addColorStop(0, WHITE);
       flare.addColorStop(0.45, tierInfo.spark1);
@@ -1992,52 +2017,50 @@
       ctx.fillStyle = flare;
       ctx.fill();
 
-      game.spawnCNCChips(toolX, toolY, 4);
+      game.spawnCNCChips(toolX, toolY, 3);
       playSfx('cnc');
     }
 
-    gradPanel(px + 42, py + 560, pw - 84, 195, 20, '#162647', '#0b1326', tierInfo.border, 5);
-    const teamBadge = game.winningSide === 'A' ? ('TEAM [A] ' + game.question.a) : ('TEAM [B] ' + game.question.b);
-    const streakBadge = (mvp.winStreak && mvp.winStreak >= 1) ? ('  ·  🔥 ' + mvp.winStreak + 'x WIN STREAK') : '';
-    drawText('🏆 ' + teamBadge + streakBadge, 540, py + 602, 24, GOLD, 'center', pw - 110);
-    drawText(mvp.name, 540, py + 662, 52, WHITE, 'center', pw - 110);
+    // Clean MVP Winner Card
+    gradPanel(px + 48, py + 565, pw - 96, 175, 22, '#0f172a', '#090d16', tierInfo.border, 4);
+    const streakBadge = (mvp.winStreak && mvp.winStreak >= 2) ? ('  ·  🔥 ' + mvp.winStreak + 'x STREAK') : '';
+    drawText('👑 #1 MVP CHAMPION' + streakBadge, 540, py + 606, 23, GOLD, 'center', pw - 120);
+    drawText(mvp.name, 540, py + 662, 50, WHITE, 'center', pw - 120);
 
     const pct = Math.round(game.cncProgress * 100);
-    const rpm = 18000 + Math.round((mvp.roundLikes || 0) * 280 + game.forgeTier * 4000 + Math.sin(now * 0.03) * 450);
     drawText(
-      game.phase === 'CNC'
-        ? ('MILLING COIN: ' + pct + '%  ·  ' + rpm.toLocaleString() + ' RPM  ·  TYPE A/B FOR NEXT ROUND!')
-        : '★ MEDALLION COMPLETE! SCREENSHOT YOUR TROPHY! ★',
-      540, py + 722, 21, tierInfo.glow, 'center', pw - 100
+      game.phase === 'CNC' ? ('FORGING MEDALLION: ' + pct + '%') : '★ MEDALLION READY! ★',
+      540, py + 714, 21, tierInfo.glow, 'center', pw - 120
     );
 
-    gradPanel(px + 58, py + 774, pw - 116, 38, 19, '#091021', '#142240', tierInfo.border, 4);
-    const fillW = Math.max(18, (pw - 128) * clamp(game.cncProgress, 0, 1));
-    gradPanel(px + 64, py + 780, fillW, 26, 13, tierInfo.glow, tierInfo.border, null, 0);
+    gradPanel(px + 48, py + 765, pw - 96, 34, 17, '#090d16', '#1e293b', tierInfo.border, 3);
+    const fillW = Math.max(18, (pw - 108) * clamp(game.cncProgress, 0, 1));
+    gradPanel(px + 54, py + 770, fillW, 24, 12, tierInfo.glow, tierInfo.border, null, 0);
 
-    gradPanel(px + 42, py + 830, pw - 84, 168, 18, '#0f1a36', '#080e1f', GOLD, 4);
-    drawText('⚡ NEXT ROUND QUEUE (' + game.nextRoundQueue.length + ') — TYPE [A] OR [B] NOW FOR HEAD START! ⚡', 540, py + 862, 20, GOLD, 'center', pw - 100);
+    // Next Round Queue Strip
+    gradPanel(px + 48, py + 820, pw - 96, 155, 20, '#0f172a', '#090d16', GOLD, 3);
+    drawText('NEXT ROUND QUEUE — TYPE A OR B NOW', 540, py + 852, 20, GOLD, 'center', pw - 120);
 
     if (game.nextRoundQueue.length === 0) {
-      drawText('Type A or B in chat right now to boost the laser & spawn first next round!', 540, py + 932, 20, TEAM_B_GLOW, 'center', pw - 110);
+      drawText('Type A or B in chat for an instant head start!', 540, py + 918, 20, '#94a3b8', 'center', pw - 120);
     } else {
       const visibleQueue = game.nextRoundQueue.slice(-7);
-      const startX = 540 - ((visibleQueue.length - 1) * 98) / 2;
+      const startX = 540 - ((visibleQueue.length - 1) * 96) / 2;
       for (let i = 0; i < visibleQueue.length; i++) {
         const q = visibleQueue[i];
         const qp = game.players.get(q.playerId) || { id: q.playerId, name: q.name, side: q.side };
-        const qx = startX + i * 98;
-        const qy = py + 925;
+        const qx = startX + i * 96;
+        const qy = py + 912;
         const qImg = getPlayerImage(qp);
         ctx.save();
-        ctx.beginPath(); ctx.arc(qx, qy, 26, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(qx, qy, 25, 0, Math.PI * 2);
         ctx.fillStyle = OUTLINE; ctx.fill();
         ctx.clip();
-        ctx.drawImage(qImg, qx - 26, qy - 26, 52, 52);
+        ctx.drawImage(qImg, qx - 25, qy - 25, 50, 50);
         ctx.restore();
-        ctx.beginPath(); ctx.arc(qx, qy, 26, 0, Math.PI * 2);
-        ctx.lineWidth = 4; ctx.strokeStyle = q.side === 'A' ? TEAM_A : TEAM_B; ctx.stroke();
-        drawText('[' + q.side + '] ' + q.name, qx, qy + 40, 14, WHITE, 'center', 92);
+        ctx.beginPath(); ctx.arc(qx, qy, 25, 0, Math.PI * 2);
+        ctx.lineWidth = 3.5; ctx.strokeStyle = q.side === 'A' ? TEAM_A : TEAM_B; ctx.stroke();
+        drawText(q.name, qx, qy + 38, 14, WHITE, 'center', 88);
       }
     }
 
@@ -2045,7 +2068,7 @@
   }
 
   function render(now) {
-    ctx.fillStyle = darkPreview ? '#080e1f' : GREEN;
+    ctx.fillStyle = darkPreview ? '#090d16' : GREEN;
     ctx.fillRect(0, 0, 1080, 1920);
 
     ctx.save();
@@ -2053,60 +2076,13 @@
       ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
     }
 
-    const tierInfo = GIFT_TIERS[game.forgeTier || 0];
-
-    gradPanel(44, 28, 992, 114, 24, '#1e3163', '#0d1736', tierInfo.border, 5);
-    roundPath(56, 36, 968, 36, 14);
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fill();
-
-    const isFrenzy = game.phase === 'VOTE' && game.timer <= 8;
-    drawText(
-      isFrenzy
-        ? '🔥 FINAL SECONDS OVERDRIVE! STEAL THE 👑 #1 CROWN NOW! 🔥'
-        : ('ROUND #' + game.round + '  ·  FORGE TIER: ' + tierInfo.badge + '  ·  TYPE [A] OR [B]!'),
-      540, 62, 25, isFrenzy ? GOLD_HOT : tierInfo.glow, 'center', 940
-    );
-
-    let statusLine = '';
-    if (game.phase === 'VOTE') statusLine = '⏱️ ' + Math.ceil(game.timer) + 's LEFT  ·  TAP ♥ & SEND GIFTS TO TAKE 👑 #1 MVP!';
-    else if (game.phase === 'SHRED') statusLine = '💥 TEAM [' + game.winningSide + '] WINS! SHREDDING LOSERS! 💥';
-    else if (game.phase === 'CNC') statusLine = '⚙️ FORGING ' + tierInfo.name + ' MEDALLION FOR: ' + (game.mvp ? game.mvp.name : '');
-    else statusLine = '🏆 CHAMPION IMMORTALIZED! NEXT MATCH IN ' + Math.ceil(game.timer) + 's';
-    drawText(statusLine, 540, 108, 30, WHITE, 'center', 940);
-
-    gradPanel(44, 154, 992, 98, 20, '#192852', '#0e1730', GOLD, 4);
-    drawText('🏆 MEDALLIONS:', 175, 203, 24, GOLD, 'center', 235);
-    if (game.hallOfFame.length === 0) {
-      drawText('GET 👑 #1 MVP IN WINNING CHAMBER TO FORGE YOUR 3D COIN!', 645, 203, 22, TEAM_B_GLOW, 'center', 660);
-    } else {
-      for (let idx = 0; idx < game.hallOfFame.length; idx++) {
-        const h = game.hallOfFame[idx];
-        const hx = 355 + idx * 145;
-        const hy = 203;
-        const img = getPlayerImage(h);
-        const hTier = GIFT_TIERS[h.tier || 0];
-        ctx.save();
-        ctx.beginPath(); ctx.arc(hx, hy - 8, 28, 0, Math.PI * 2);
-        ctx.fillStyle = OUTLINE; ctx.fill();
-        ctx.clip();
-        ctx.drawImage(img, hx - 28, hy - 36, 56, 56);
-        ctx.restore();
-        ctx.beginPath(); ctx.arc(hx, hy - 8, 28, 0, Math.PI * 2);
-        ctx.lineWidth = 4; ctx.strokeStyle = hTier.border; ctx.stroke();
-        const stTxt = (h.streak && h.streak >= 2) ? (' 🔥' + h.streak) : '';
-        drawText(h.name + stTxt, hx, hy + 31, 15, WHITE, 'center', 135);
-      }
-    }
-
     const counts = game.getCounts();
     const pctA = counts.total ? Math.round((counts.a / counts.total) * 100) : 50;
     const pctB = counts.total ? 100 - pctA : 50;
-    drawTugOfWarBar(counts, pctA, pctB, now);
 
-    drawChamber('A', pctA, now);
-    drawChamber('B', pctB, now);
-    drawCenterElectricDivider(now);
+    drawTopBarAndHeaders(pctA, pctB, now);
+    drawChamber('A');
+    drawChamber('B');
 
     for (let i = 0; i < game.bumpers.length; i++) {
       drawBumperPeg(game.bumpers[i], now);
@@ -2116,7 +2092,7 @@
       const sw = game.shockwaves[i];
       ctx.beginPath();
       ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
-      ctx.lineWidth = Math.max(2, 7 * sw.life);
+      ctx.lineWidth = Math.max(2, 6 * sw.life);
       ctx.strokeStyle = sw.color;
       ctx.stroke();
     }
@@ -2133,17 +2109,16 @@
       ctx.beginPath();
       ctx.moveTo(lb.fromX, lb.fromY);
       ctx.lineTo(lb.toX, lb.toY);
-      ctx.lineWidth = 10 * lb.life;
+      ctx.lineWidth = 9 * lb.life;
       ctx.strokeStyle = lb.color;
       ctx.stroke();
-      ctx.lineWidth = 4 * lb.life;
+      ctx.lineWidth = 3.5 * lb.life;
       ctx.strokeStyle = WHITE;
       ctx.stroke();
-      drawText(lb.label, lb.fromX, lb.fromY - 25, 22, lb.color, 'center', 300);
+      drawText(lb.label, lb.fromX, lb.fromY - 24, 21, lb.color, 'center', 280);
       ctx.restore();
     }
 
-    // Orbital Gift Meteors streaking into the chambers
     for (let i = 0; i < game.giftMeteors.length; i++) {
       const gm = game.giftMeteors[i];
       const gt = GIFT_TIERS[gm.tier || 1];
@@ -2154,20 +2129,20 @@
       ctx.beginPath();
       ctx.moveTo(lerp(gm.fromX, mx, 0.45), lerp(gm.fromY, my, 0.45));
       ctx.lineTo(mx, my);
-      ctx.lineWidth = 16;
+      ctx.lineWidth = 14;
       ctx.strokeStyle = gt.border;
       ctx.stroke();
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 5;
       ctx.strokeStyle = WHITE;
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(mx, my, 32, 0, Math.PI * 2);
+      ctx.arc(mx, my, 28, 0, Math.PI * 2);
       ctx.fillStyle = gt.glow;
       ctx.fill();
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 4;
       ctx.strokeStyle = OUTLINE;
       ctx.stroke();
-      drawText( gm.badge + ' · ' + gm.name, mx, my - 46, 24, gt.glow, 'center', 340);
+      drawText(gm.badge + ' · ' + gm.name, mx, my - 42, 23, gt.glow, 'center', 320);
       ctx.restore();
     }
 
@@ -2198,12 +2173,12 @@
 
     for (let i = 0; i < game.popups.length; i++) {
       const pp = game.popups[i];
-      drawText(pp.text, pp.x, pp.y, pp.size, pp.color, 'center', 360);
+      drawText(pp.text, pp.x, pp.y, pp.size, pp.color, 'center', 340);
     }
 
     if (game.banner && now < game.banner.until) {
-      gradPanel(110, 1478, 860, 62, 18, '#1d2d5c', '#0c142b', game.banner.color, 5);
-      drawText(game.banner.text, 540, 1509, 28, game.banner.color, 'center', 820);
+      gradPanel(160, 1475, 760, 58, 18, '#1e293b', '#090d16', game.banner.color, 4);
+      drawText(game.banner.text, 540, 1504, 26, game.banner.color, 'center', 720);
     }
 
     ctx.restore();
@@ -2275,7 +2250,7 @@
         fpsAt = t;
         fpsCount = 0;
         if (panelEl.style.display === 'block') {
-          statusEl.textContent = (connected ? 'SOCKET OPEN' : 'SOCKET OFF') + ' · Mode: ' + mode.toUpperCase() + ' · Phase: ' + game.phase + ' · Tier: T' + game.forgeTier + ' · Balls: ' + game.balls.length + ' · Queue: ' + game.nextRoundQueue.length + ' · ' + fps + ' FPS';
+          statusEl.textContent = (connected ? 'SOCKET OPEN' : 'SOCKET OFF') + ' · Mode: ' + mode.toUpperCase() + ' · Phase: ' + game.phase + ' · Tier: T' + game.forgeTier + ' · Balls: ' + game.balls.length + ' · SplitX: ' + Math.round(game.splitX) + ' · ' + fps + ' FPS';
         }
       }
     } catch (err) {
@@ -2288,17 +2263,17 @@
   }
 
   let testSeq = 1;
-  const TEST_NAMES = ['Alex', 'Mia', 'Lucas', 'Emma', 'Noah', 'Chloe', 'Leo', 'Zoe', 'Max', 'Lily', 'Sam', 'Ruby'];
+  const TEST_NAMES = ['alex_99', 'mia.vibes', 'lucas_gg', 'emma.xo', 'noah_7', 'chloe.tt', 'leo_king', 'zoe.star', 'max_pro', 'lily.lu', 'sam_live', 'ruby_x'];
 
   function spawnTestVoter(side) {
     const id = 'tester_' + (testSeq++);
-    const name = TEST_NAMES[testSeq % TEST_NAMES.length] + '_' + (testSeq % 99);
+    const name = TEST_NAMES[testSeq % TEST_NAMES.length];
     game.accept({ type: 'chat', id: id, name: name, text: side, eventId: 'test:' + performance.now() + ':' + Math.random() });
   }
 
   function triggerTestGift(coins) {
     const humanList = Array.from(game.players.values());
-    const p = humanList[humanList.length - 1] || { id: 'vip_you', name: 'VIP_HERO' };
+    const p = humanList[humanList.length - 1] || { id: 'vip_you', name: 'max_pro' };
     game.accept({ type: 'gift', id: p.id, name: p.name, coins: coins, eventId: 'tgift:' + performance.now() + ':' + Math.random() });
   }
 
@@ -2308,7 +2283,7 @@
   $('ttsBtn').onclick = () => {
     ttsEnabled = !ttsEnabled;
     updateSoundUI();
-    if (ttsEnabled) speakTTS('Voice announcer enabled!', true);
+    if (ttsEnabled) speakTTS('Voice commentary is on.', true);
   };
   $('audioTest').onclick = testSound;
   $('volume').oninput = e => setSoundLevel(Number(e.target.value) / 100);
@@ -2320,7 +2295,7 @@
   $('voteB').onclick = () => spawnTestVoter('B');
   $('heart').onclick = () => {
     const list = Array.from(game.players.values());
-    const p = list[list.length - 1] || { id: 'you', name: 'YOU' };
+    const p = list[list.length - 1] || { id: 'you', name: 'alex_99' };
     game.accept({ type: 'like', id: p.id, name: p.name, count: 15 });
   };
   $('gift1').onclick = () => triggerTestGift(1);
@@ -2329,7 +2304,7 @@
   $('gift4').onclick = () => triggerTestGift(600);
 
   $('crowd').onclick = () => {
-    for (let i = 0; i < 24; i++) spawnTestVoter(i % 2 === 0 ? 'A' : 'B');
+    for (let i = 0; i < 30; i++) spawnTestVoter(i % 3 === 0 ? 'A' : 'B');
   };
   $('skipPhase').onclick = () => {
     if (game.phase === 'VOTE') game.startShredPhase();
