@@ -228,7 +228,7 @@
     { a: 'ANIME', ea: '⚔️', b: 'MOVIES', eb: '🍿', fa: 'female', fb: 'male' },
     { a: 'FIRE', ea: '🔥', b: 'ICE', eb: '🧊', fa: 'male', fb: 'female' },
     { a: 'ZOMBIES', ea: '🧟', b: 'ALIENS', eb: '🛸', fa: 'male', fb: 'female' },
-    { a: 'DRAGONS', ea: '🐉', b: 'DINOSAURS', eb: '🦖', fa: 'male', fb: 'female' },
+    { a: 'DRAGONS', ea: '🐉', b: 'DINOSAURS', eb: '🦖', fa: 'male', fb: 'male_alt' },
     { a: 'GOKU', ea: '🟠', b: 'NARUTO', eb: '🍥', fa: 'male', fb: 'male_alt' },
     { a: 'SHARK', ea: '🦈', b: 'LION', eb: '🦁', fa: 'male', fb: 'male_alt' },
     { a: 'SAMURAI', ea: '🥷', b: 'VIKING', eb: '🪓', fa: 'male', fb: 'male_alt' }
@@ -651,6 +651,7 @@
     }
     return p.fallbackCanvas;
   }
+
   const SHRED_DURATION = 3.8;
   const FORGE_DURATION = 6.2;
   const SHOW_DURATION = 4.6;
@@ -778,7 +779,6 @@
       const isShredWinner = this.phase === 'SHRED' && this.winningSide === side;
 
       const stepPhase = now * 0.0105 + (isLeft ? 0 : Math.PI);
-      // Visual bobbing is kept smooth, while physics colliders use stable un-bobbed anchors so balls never vibrate!
       const bobY = isShredLoser ? 0 : Math.sin(stepPhase * 2) * (6 + shove * 8);
       const pushLean = (isWinning ? 26 : 8) + shove * 22;
 
@@ -832,7 +832,6 @@
       const footVx = Math.cos(stepPhase) * dir * 560;
       const backFootVx = -Math.sin(stepPhase) * dir * 520;
 
-      // Colliders use non-bobbing Y coordinates for upper body + outward slide deflection so balls never jitter on the head!
       const colliders = isShredLoser && this.loseTitanY > 420 ? [] : [
         { x: headX, y: baseHeadY, r: 52, vx: -dir * 240, vy: -220, isFoot: false, isUpper: true },
         { x: chestX, y: baseChestY, r: 58, vx: -dir * 200, vy: -120, isFoot: false, isUpper: true },
@@ -1261,7 +1260,7 @@
           p.side = side;
           p.roundScore += 140;
           if (this.phase === 'VOTE') {
-            this.spawnBall(p, side, 16, false, false);
+            this.spawnBall(p, side, 16, false, false, false);
           } else {
             this.queueForNextRound(p, side);
           }
@@ -1309,18 +1308,18 @@
             if (this.balls[i].playerId === p.id && !this.balls[i].isClone) { mainBall = this.balls[i]; break; }
           }
           if (!mainBall) {
-            this.spawnBall(p, side, tierInfo.ballBonusR, false, false);
+            this.spawnBall(p, side, tierInfo.ballBonusR, false, false, false);
           } else {
             mainBall.isBot = false;
             mainBall.giftTier = p.giftTier;
-            mainBall.baseR = clamp(62 + tierInfo.ballBonusR + Math.sqrt(p.roundLikes) * 3, 68, 114);
+            mainBall.baseR = clamp(78 + tierInfo.ballBonusR + Math.sqrt(p.roundLikes) * 3, 78, 114);
             mainBall.vy = -700;
             mainBall.squashX = 0.72; mainBall.squashY = 1.32;
             this.addShockwave(mainBall.x, mainBall.y, 165, tierInfo.border);
             this.addPopup(mainBall.x, mainBall.y - 45, tierInfo.badge, tierInfo.glow, 28);
           }
           for (let c = 0; c < tierInfo.clones; c++) {
-            this.spawnBall(p, side, Math.max(0, tierInfo.ballBonusR - 14), true, false);
+            this.spawnBall(p, side, Math.max(0, tierInfo.ballBonusR - 14), true, false, false);
           }
           if (tierInfo.tier >= 2) {
             for (let i = 0; i < this.balls.length; i++) {
@@ -1570,52 +1569,6 @@
 
         if (this.timer <= 0) this.startShredPhase(false);
       } else if (this.phase === 'SHRED') {
-        this.targetSplitX = this.winningSide === 'A' ? 700 : 380;
-      } else {
-        this.targetSplitX = 540;
-      }
-      this.splitX += (this.targetSplitX - this.splitX) * Math.min(1, dt * 4.8);
-      this.updateBumpers();
-
-      const loseSide = this.winningSide === 'A' ? 'B' : 'A';
-
-      if (this.phase === 'VOTE') {
-        this.timer -= dt;
-
-        const elapsed = this.roundDuration - this.timer;
-        const currentBots = this.balls.filter(b => b.isBot).length;
-        const targetBots = this.getTargetBotCrowd();
-        if (elapsed >= this.nextBotAt && this.timer > 4.0 && currentBots < targetBots) {
-          this.spawnRandomBotVoter();
-          this.nextBotAt = elapsed + 1.2 + Math.random() * 2.2;
-        }
-
-        if (elapsed >= this.nextBotLikeAt && this.timer > 3.5 && currentBots > 0 && this.getRealPlayerCount() < 4) {
-          const botBalls = this.balls.filter(b => b.isBot);
-          if (botBalls.length > 0) {
-            const pick = botBalls[Math.floor(Math.random() * botBalls.length)];
-            pick.baseR = Math.min(82, pick.baseR + 5);
-            pick.botScore = (pick.botScore || 12) + 10;
-            pick.vy = -460 - Math.random() * 140;
-            pick.vx += (Math.random() - 0.5) * 260;
-            pick.squashX = 0.80; pick.squashY = 1.22;
-            if (pick.side === 'A') this.shovePulseA = 0.85;
-            else this.shovePulseB = 0.85;
-            this.addShockwave(pick.x, pick.y, pick.r + 35, GOLD);
-            this.addShockwave(this.splitX, 980, 95, pick.side === 'A' ? TEAM_A : TEAM_B);
-            this.updateChamberLeaders();
-          }
-          this.nextBotLikeAt = elapsed + 2.2 + Math.random() * 2.4;
-        }
-
-        const secLeft = Math.ceil(this.timer);
-        if (secLeft <= 5 && secLeft >= 1 && secLeft < this.lastSpokenCountdown) {
-          this.lastSpokenCountdown = secLeft;
-          speakTTS(String(secLeft), true);
-        }
-
-        if (this.timer <= 0) this.startShredPhase();
-      } else if (this.phase === 'SHRED') {
         this.timer -= dt;
         this.trapdoorAngle = clamp(this.trapdoorAngle + dt * 3.2, 0, 1);
         this.crusherY = clamp(this.crusherY + dt * 0.72, 0, 1);
@@ -1664,7 +1617,7 @@
       for (let i = this.balls.length - 1; i >= 0; i--) {
         const b = this.balls[i];
         const cScale = b.side === 'A' ? scaleA : scaleB;
-        const desiredR = clamp(b.baseR * cScale, 28, 108);
+        const desiredR = b.isBot ? b.baseR : clamp(b.baseR * cScale, 32, 114);
         b.r += (desiredR - b.r) * Math.min(1, dt * 7);
         b.squashX += (1 - b.squashX) * Math.min(1, dt * 12);
         b.squashY += (1 - b.squashY) * Math.min(1, dt * 12);
@@ -1715,20 +1668,18 @@
         if (this.phase === 'VOTE' || this.phase === 'SHRED') {
           const pose = this.titanPoses[b.side];
           if (pose && pose.colliders) {
-            const openDir = -pose.dir; // Direction away from splitX toward open chamber space
+            const openDir = -pose.dir;
             for (let c = 0; c < pose.colliders.length; c++) {
               const col = pose.colliders[c];
-              let dx = b.x - col.x;
-              let dy = b.y - col.y;
+              const dx = b.x - col.x;
+              const dy = b.y - col.y;
               const dist = Math.hypot(dx, dy);
               const minD = b.r + col.r;
               if (dist < minD && dist > 0.001) {
                 let nx = dx / dist;
                 let ny = dy / dist;
 
-                // Prevent any ball from getting trapped on top of the head or wedged between the Titan and the center wall
                 if (col.isUpper) {
-                  // If the ball is on the inner side (between Titan and center wall) or landing on top of the head, deflect it outward into the arena!
                   if ((pose.isLeft && nx > -0.25) || (!pose.isLeft && nx < 0.25)) {
                     nx = openDir * 0.78;
                     ny = -0.62;
@@ -1757,7 +1708,6 @@
                     b.vx -= (1 + 0.65) * vn * nx;
                     b.vy -= (1 + 0.65) * vn * ny;
                   }
-                  // Guarantee horizontal roll-off toward the open chamber when hitting head/shoulders
                   if (col.isUpper) {
                     if (pose.isLeft) b.vx = Math.min(b.vx, -240 - Math.random() * 120);
                     else b.vx = Math.max(b.vx, 240 + Math.random() * 120);
@@ -2236,11 +2186,6 @@
       ctx.arc(splitX, 985, clashR, 0, Math.PI * 2);
       ctx.fillStyle = coreGrad;
       ctx.fill();
-
-      const pushDir = pctA >= pctB ? '>>> PUSHING >>>' : '<<< PUSHING <<<';
-      const pushCol = pctA >= pctB ? TEAM_A_GLOW : TEAM_B_GLOW;
-      gradPanel(splitX - 115, 488, 230, 44, 14, '#090d16', '#1e293b', GOLD, 3);
-      drawText(pushDir, splitX, 510, 21, pushCol, 'center', 210);
       ctx.restore();
     }
   }
@@ -2974,7 +2919,7 @@
     for (let i = 0; i < 16; i++) spawnTestVoter(i % 3 === 0 ? 'A' : 'B');
   };
   $('skipPhase').onclick = () => {
-    if (game.phase === 'VOTE') game.startShredPhase();
+    if (game.phase === 'VOTE') game.startShredPhase(false);
     else if (game.phase === 'SHRED') game.startForgePhase();
     else if (game.phase === 'FORGE') game.startShowcasePhase();
     else game.nextRound();
