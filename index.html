@@ -3,27 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Galaxinko CNC Judge 1.0</title>
+<title>Galaxinko CNC Judge 1.1</title>
 <style>
   html, body {
-    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
     background: #00ff00; font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   }
   #game-container {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
   }
   canvas {
-    display: block; width: min(100vw, 56.25vh); height: min(100vh, 177.777778vw);
-    aspect-ratio: 9/16;
+    display: block;
+    width: min(100vw, 56.25vh);
+    height: min(100vh, 177.777778vw);
+    aspect-ratio: 9 / 16;
+    pointer-events: auto;
   }
   #panel {
-    position: fixed; z-index: 5; inset: 12px auto auto 12px;
+    position: fixed; z-index: 10; top: 12px; left: 12px;
     max-width: min(820px, 94vw); max-height: 90vh; overflow: auto;
     padding: 18px; background: #101326; color: #fff;
     border: 4px solid #ffd45c; border-radius: 18px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.75);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.8);
   }
-  #panel[hidden] { display: none; }
+  #panel[hidden] { display: none !important; }
   button, input {
     padding: 9px 13px; margin: 4px; border-radius: 10px;
     background: #24304e; color: #fff; border: 2px solid #ffd45c;
@@ -32,11 +36,6 @@
   button { cursor: pointer; }
   button:hover { background: #ffd45c; color: #080d20; }
   input { width: 290px; max-width: 70vw; }
-  #audioStart {
-    position: fixed; z-index: 6; right: 14px; bottom: 14px;
-    border-color: #42dbff; background: #101326; font-size: 15px;
-  }
-  #audioStart[hidden] { display: none; }
   #volume { width: 160px; vertical-align: middle; padding: 0; border: 0; }
   #audioStatus { max-width: 680px; font-size: 14px; color: #b9eaff; margin: 6px 0; }
 </style>
@@ -45,35 +44,34 @@
 <div id="game-container">
   <canvas id="arena" width="1080" height="1920"></canvas>
 </div>
-<button id="audioStart" type="button">ENABLE SOUND</button>
 
 <section id="panel" hidden>
-  <b>GALAXINKO: THE CNC JUDGE 1.0 (Press H to Hide)</b>
+  <b>GALAXINKO: THE CNC JUDGE 1.1 (Press H to Hide)</b>
   <p>
-    <button id="toggle">Hide · H</button>
-    <button id="dark">Chroma / Dark Preview</button>
-    <button id="sfx">ENABLE SOUND</button>
-    <button id="audioTest">TEST SOUND</button>
+    <button id="toggle" type="button">Hide · H</button>
+    <button id="dark" type="button">Chroma / Dark Preview</button>
+    <button id="sfx" type="button">SOUND ON</button>
+    <button id="audioTest" type="button">TEST SOUND</button>
   </p>
   <p>
     <label for="volume">SOUND VOLUME</label>
     <input id="volume" type="range" min="0" max="100" step="5" value="80">
     <output id="volumeValue" for="volume">80%</output>
   </p>
-  <p id="audioStatus" role="status">Click ENABLE SOUND to allow browser playback.</p>
+  <p id="audioStatus" role="status">Sound is enabled by default.</p>
   <p>
-    <button id="test">START TEST MODE</button>
-    <button id="live">RETURN TO LIVE</button>
-    <button id="voteA">VOTE A · [A]</button>
-    <button id="voteB">VOTE B · [B]</button>
-    <button id="heart">LIKE BOOST · [SPACE]</button>
-    <button id="gift">24K GOLD GIFT · [G]</button>
-    <button id="crowd">SPAWN 30 VOTERS</button>
-    <button id="skipPhase">NEXT PHASE · [N]</button>
+    <button id="test" type="button">START TEST MODE</button>
+    <button id="live" type="button">RETURN TO LIVE</button>
+    <button id="voteA" type="button">VOTE A · [A]</button>
+    <button id="voteB" type="button">VOTE B · [B]</button>
+    <button id="heart" type="button">LIKE BOOST · [SPACE]</button>
+    <button id="gift" type="button">24K GOLD GIFT · [G]</button>
+    <button id="crowd" type="button">SPAWN 30 VOTERS</button>
+    <button id="skipPhase" type="button">NEXT PHASE · [N]</button>
   </p>
   <p>
     <input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/">
-    <button id="connect">Connect</button>
+    <button id="connect" type="button">Connect</button>
   </p>
   <p id="status"></p>
 </section>
@@ -82,7 +80,6 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.0-CNC';
   const MAX = 600;
   const GREEN = '#00ff00';
   const INK = '#070b18';
@@ -90,10 +87,7 @@
   const GOLD = '#ffd45c';
   const RED_A = '#ff3864';
   const BLUE_B = '#2de2e6';
-  const VIOLET = '#ab83ff';
 
-  // Layout preserves top HUD and leaves y > 1510 free for Veadotube avatar & TikTok chat
-  const ARENA = { left: 36, right: 1044, top: 280, bottom: 1500 };
   const CHAMBER_A = { left: 48, right: 522, top: 430, bottom: 1475 };
   const CHAMBER_B = { left: 558, right: 1032, top: 430, bottom: 1475 };
 
@@ -108,7 +102,7 @@
   };
 
   // ==========================================
-  // 72 VIRAL SIMPLE ENGLISH QUESTIONS
+  // 60 VIRAL SIMPLE ENGLISH QUESTIONS
   // ==========================================
   const QUESTIONS = [
     { a: 'PIZZA', ea: '🍕', b: 'BURGER', eb: '🍔' },
@@ -173,7 +167,6 @@
     { a: 'DAYZ', ea: '🎒', b: 'RUST', eb: '🪨' }
   ];
 
-  // Test fallback SVG portraits so offline testing always renders crisp faces
   function createFallbackAvatar(seedStr, colorHex) {
     const cnv = document.createElement('canvas');
     cnv.width = cnv.height = 96;
@@ -196,7 +189,7 @@
   }
 
   // ==========================================
-  // TIKFINITY ROBUST PARSER (FROM 32.14)
+  // TIKFINITY ROBUST PARSER
   // ==========================================
   function avatarUrl(d) {
     const u = d.user || d;
@@ -249,7 +242,7 @@
   }
 
   // ==========================================
-  // WEB AUDIO ENGINE (FROM 32.14 + CNC SFX)
+  // WEB AUDIO ENGINE (DEFAULT ON, AUTO-UNLOCK)
   // ==========================================
   const SFX_NOTES = [293.665, 329.628, 369.994, 440, 493.883, 587.33];
   let sound = true, audioCtx = null, soundEvents = 0, soundLevel = 0.8;
@@ -259,28 +252,25 @@
   } catch {}
 
   const sfxMix = {
-    input: null, master: null, voices: new Set(), limit: 16, peakVoices: 0,
-    resumeAt: -Infinity, checkAt: -Infinity, error: '', uiKey: '', last: new Map()
+    input: null, master: null, voices: new Set(), limit: 16,
+    resumeAt: -Infinity, error: '', uiKey: '', last: new Map()
   };
 
   function updateSoundUI() {
     const available = !!(window.AudioContext || window.webkitAudioContext);
     const running = audioCtx?.state === 'running';
-    const ready = sound && running;
     const muted = soundLevel === 0;
     const key = [available, sound, audioCtx?.state, soundLevel, sfxMix.error].join('|');
     if (key === sfxMix.uiKey) return;
     sfxMix.uiKey = key;
     const button = $('sfx');
-    if (button) button.textContent = !available ? 'AUDIO UNAVAILABLE' : !sound ? 'SOUND OFF' : !running ? 'ENABLE SOUND' : muted ? 'SOUND MUTED' : 'SOUND ON';
-    const start = $('audioStart');
-    if (start) start.hidden = !sound || ready || !available;
+    if (button) button.textContent = !available ? 'AUDIO UNAVAILABLE' : !sound ? 'SOUND OFF' : muted ? 'SOUND MUTED' : 'SOUND ON';
     const volume = $('volume');
     if (volume) volume.value = String(Math.round(soundLevel * 100));
     const value = $('volumeValue');
     if (value) value.textContent = Math.round(soundLevel * 100) + '%';
     const info = $('audioStatus');
-    if (info) info.textContent = !available ? 'Web Audio unavailable.' : sfxMix.error ? 'AUDIO: ' + sfxMix.error : !sound ? 'Sound is off.' : !running ? 'Click ENABLE SOUND to allow browser playback.' : muted ? 'Volume is zero.' : 'Audio ready and active.';
+    if (info) info.textContent = !available ? 'Web Audio unavailable.' : !sound ? 'Sound is off.' : running ? 'Audio active and running.' : 'Sound enabled (auto-activates on first interaction/OBS).';
   }
 
   function applySoundLevel() {
@@ -321,22 +311,21 @@
       }
       if (audioCtx.state === 'running') { sfxMix.error = ''; updateSoundUI(); return Promise.resolve(true); }
       const t = performance.now();
-      if (audioCtx.state === 'closed' || (!gesture && t - sfxMix.resumeAt < 500)) { updateSoundUI(); return Promise.resolve(false); }
+      if (audioCtx.state === 'closed' || (!gesture && t - sfxMix.resumeAt < 400)) { updateSoundUI(); return Promise.resolve(false); }
       sfxMix.resumeAt = t;
       updateSoundUI();
       return Promise.resolve(audioCtx.resume()).then(() => {
         sfxMix.error = ''; updateSoundUI(); return audioCtx.state === 'running';
-      }, err => {
-        sfxMix.error = String(err?.message || 'Click ENABLE SOUND.'); updateSoundUI(); return false;
-      });
-    } catch (err) {
-      sfxMix.error = String(err?.message || 'Audio error.'); updateSoundUI(); return Promise.resolve(false);
+      }, () => { updateSoundUI(); return false; });
+    } catch {
+      updateSoundUI(); return Promise.resolve(false);
     }
   }
 
   function sfxTone(freq, duration, volume, panVal = 0, wave = 'sine', delay = 0, endRatio = 1) {
-    if (!sound || audioCtx?.state !== 'running' || !sfxMix.input) return false;
-    if (sfxMix.voices.size >= sfxMix.limit) return false;
+    if (!sound) return false;
+    if (audioCtx?.state !== 'running') unlockAudio(false);
+    if (audioCtx?.state !== 'running' || !sfxMix.input || sfxMix.voices.size >= sfxMix.limit) return false;
     try {
       const at = audioCtx.currentTime + delay;
       const osc = audioCtx.createOscillator();
@@ -364,8 +353,6 @@
     const t = performance.now();
     const cd = { vote: 55, like: 90, shred: 800, cnc: 65, gift: 600, win: 800 }[kind] || 80;
     if (t - (sfxMix.last.get(kind) ?? -Infinity) < cd) return;
-    if (audioCtx?.state !== 'running') unlockAudio();
-    if (audioCtx?.state !== 'running') return;
     sfxMix.last.set(kind, t);
     const pan = side === 'A' ? -0.25 : side === 'B' ? 0.25 : 0;
     if (kind === 'vote') {
@@ -398,7 +385,7 @@
   }
 
   function toggleSound() {
-    if (!sound || audioCtx?.state !== 'running' || soundLevel === 0) {
+    if (!sound || soundLevel === 0) {
       sound = true; applySoundLevel(); return testSound();
     }
     sound = false; applySoundLevel(); return Promise.resolve(false);
@@ -461,7 +448,6 @@
     return p.fallbackCanvas;
   }
 
-  // Creates a realistic metallic/gold CNC relief texture from the winner's avatar
   function buildEngravedPortrait(p, goldMode) {
     const cacheKey = p.id + ':' + (goldMode ? 'gold' : 'steel') + ':' + (pics.get(p.avatar)?.state || 'fb');
     if (engravedCache.has(cacheKey)) return engravedCache.get(cacheKey);
@@ -477,16 +463,15 @@
       const imgData = g.getImageData(0, 0, size, size);
       const d = imgData.data;
       for (let y = 0; y < size; y++) {
-        const groove = (y % 4 === 0) ? 0.82 : 1.0; // Horizontal CNC toolpath lines
+        const groove = (y % 4 === 0) ? 0.82 : 1.0;
         for (let x = 0; x < size; x++) {
           const i = (y * size + x) * 4;
           const lum = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
-          // High-contrast relief curve
           const cVal = Math.pow(clamp((lum - 0.12) * 1.28, 0, 1), 0.9) * groove;
           if (goldMode) {
-            d[i]     = Math.round(55 + cVal * 200); // R
-            d[i + 1] = Math.round(35 + cVal * 155); // G
-            d[i + 2] = Math.round(8  + cVal * 45);  // B
+            d[i]     = Math.round(55 + cVal * 200);
+            d[i + 1] = Math.round(35 + cVal * 155);
+            d[i + 2] = Math.round(8  + cVal * 45);
           } else {
             d[i]     = Math.round(28 + cVal * 175);
             d[i + 1] = Math.round(36 + cVal * 190);
@@ -505,10 +490,10 @@
   // ==========================================
   // GAME STATE & PHYSICS ENGINE
   // ==========================================
-  const VOTE_DURATION = 35;    // 35s fast-paced A/B voting
-  const SHRED_DURATION = 3.5;  // 3.5s shredding the losing side
-  const CNC_DURATION = 13.0;   // 13s CNC engraving the MVP portrait
-  const SHOW_DURATION = 4.5;   // 4.5s admiring the finished masterpiece
+  const VOTE_DURATION = 35;
+  const SHRED_DURATION = 3.5;
+  const CNC_DURATION = 13.0;
+  const SHOW_DURATION = 4.5;
 
   class CNCJudgeGame {
     constructor() {
@@ -520,7 +505,7 @@
       this.hallOfFame = [];
       this.qIndex = -1;
       this.question = QUESTIONS[0];
-      this.phase = 'VOTE'; // VOTE, SHRED, CNC, SHOWCASE
+      this.phase = 'VOTE';
       this.timer = VOTE_DURATION;
       this.cncProgress = 0;
       this.goldMode = false;
@@ -544,7 +529,6 @@
       this.balls = [];
       this.chips = [];
 
-      // Reset round stats while keeping session roster
       for (const p of this.players.values()) {
         p.side = null;
         p.roundLikes = 0;
@@ -642,7 +626,6 @@
       const p = this.ensurePlayer(e);
 
       if (e.type === 'member') {
-        // Auto-spawn new viewer into the side with fewer balls so they immediately see their photo!
         if (this.phase === 'VOTE' && !p.side) {
           const countA = this.balls.filter(b => b.side === 'A').length;
           const countB = this.balls.filter(b => b.side === 'B').length;
@@ -658,7 +641,6 @@
         } else if (msg === 'B' || msg === '2' || msg.startsWith('B ') || msg === this.question.b) {
           this.castVote(p, 'B');
         } else if (this.phase === 'VOTE' && !p.side) {
-          // Any comment puts the player in the game
           const countA = this.balls.filter(b => b.side === 'A').length;
           const countB = this.balls.filter(b => b.side === 'B').length;
           this.castVote(p, countA <= countB ? 'A' : 'B');
@@ -684,7 +666,6 @@
           }
           playSfx('like', p.side || 'A');
         } else if (this.phase === 'CNC') {
-          // Likes boost CNC spindle speed!
           this.cncProgress = clamp(this.cncProgress + count * 0.0045, 0, 1);
           playSfx('like', 'A');
         }
@@ -746,7 +727,6 @@
       this.timer = CNC_DURATION;
       this.cncProgress = 0;
 
-      // Pick MVP from the winning side (highest roundScore)
       const winners = this.balls
         .filter(b => b.side === this.winningSide)
         .map(b => this.players.get(b.playerId))
@@ -819,7 +799,6 @@
         if (this.timer <= 0) this.nextRound();
       }
 
-      // Physics step for balls
       const loseSide = this.winningSide === 'A' ? 'B' : 'A';
       for (let i = this.balls.length - 1; i >= 0; i--) {
         const b = this.balls[i];
@@ -841,7 +820,6 @@
             b.vy = -Math.abs(b.vy) * 0.32;
           }
         } else {
-          // Losing side falls into the shredder blades!
           if (!b.shredded && b.y >= box.bottom - 10) {
             b.shredded = true;
             this.spawnCNCChips(b.x, box.bottom, 10);
@@ -854,7 +832,6 @@
         }
       }
 
-      // Deterministic multi-pass collision resolution (zero jitter on 144Hz)
       for (let pass = 0; pass < 4; pass++) {
         for (let i = 0; i < this.balls.length; i++) {
           const b1 = this.balls[i];
@@ -884,7 +861,6 @@
         }
       }
 
-      // Update CNC flying metal chips & sparks
       for (let i = this.chips.length - 1; i >= 0; i--) {
         const ch = this.chips[i];
         ch.vy += 1800 * dt;
@@ -898,7 +874,7 @@
   }
 
   // ==========================================
-  // RENDERER (1080x1920 PORTRAIT, CHROMA SAFE)
+  // RENDERER (CROSS-BROWSER SAFE ROUNDED BOX)
   // ==========================================
   const canvas = $('arena');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -906,8 +882,14 @@
   const game = new CNCJudgeGame();
 
   function roundBox(x, y, w, h, r, fill, stroke = INK, lineW = 6) {
+    const rad = Math.max(0, Math.min(r, w / 2, h / 2));
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, r);
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad);
+    ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (lineW > 0 && stroke) { ctx.lineWidth = lineW; ctx.strokeStyle = stroke; ctx.stroke(); }
   }
@@ -959,20 +941,17 @@
     ctx.save();
     ctx.translate(b.x, b.y);
 
-    // Outer solid border for zero green bleed on Chroma Key
     ctx.beginPath();
     ctx.arc(0, 0, b.r + 3, 0, Math.PI * 2);
     ctx.fillStyle = INK;
     ctx.fill();
 
-    // Clipped avatar photo
     ctx.save();
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 3, 0, Math.PI * 2);
     ctx.clip();
     ctx.drawImage(img, -b.r + 3, -b.r + 3, (b.r - 3) * 2, (b.r - 3) * 2);
 
-    // 3D Glass sphere specular highlight
     const grad = ctx.createRadialGradient(-b.r * 0.32, -b.r * 0.35, b.r * 0.08, 0, 0, b.r);
     grad.addColorStop(0, 'rgba(255,255,255,0.48)');
     grad.addColorStop(0.55, 'rgba(255,255,255,0)');
@@ -981,7 +960,6 @@
     ctx.fillRect(-b.r, -b.r, b.r * 2, b.r * 2);
     ctx.restore();
 
-    // Team ring
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 1, 0, Math.PI * 2);
     ctx.lineWidth = 5;
@@ -990,7 +968,6 @@
 
     ctx.restore();
 
-    // Always visible player name
     drawText(b.name, b.x, b.y + b.r + 12, 17, WHITE, 'center', b.r * 2.6);
   }
 
@@ -1001,16 +978,13 @@
     const w = box.right - box.left;
     const h = box.bottom - box.top;
 
-    // Chamber interior is pure #00FF00 so OBS background stays 100% visible!
     roundBox(box.left, box.top, w, h, 22, null, INK, 14);
     roundBox(box.left, box.top, w, h, 22, null, col, 6);
 
-    // Top option header card
     roundBox(box.left, box.top - 118, w, 104, 20, INK, col, 6);
     drawText(`TYPE [${side}]`, box.left + w / 2, box.top - 86, 25, GOLD, 'center', w - 20);
     drawText(qTitle, box.left + w / 2, box.top - 42, 38, WHITE, 'center', w - 24);
 
-    // Bottom Shredder Saws when floor opens for the losing side
     const isLosingShred = game.phase === 'SHRED' && game.winningSide !== side;
     if (isLosingShred) {
       for (let sx = box.left + 48; sx <= box.right - 48; sx += 76) {
@@ -1026,13 +1000,11 @@
 
     const px = 150, py = 420, pw = 780, ph = 920;
 
-    // Heavy industrial CNC frame
     roundBox(px - 22, py - 22, pw + 44, ph + 44, 28, '#141b2d', INK, 12);
     const plateFill = game.goldMode ? '#5e430b' : '#1d2636';
     const plateStroke = game.goldMode ? GOLD : '#7e93b0';
     roundBox(px, py, pw, ph, 18, plateFill, plateStroke, 8);
 
-    // Corner bolts
     for (const [bx, by] of [[px + 26, py + 26], [px + pw - 26, py + 26], [px + 26, py + ph - 26], [px + pw - 26, py + ph - 26]]) {
       ctx.beginPath(); ctx.arc(bx, by, 11, 0, Math.PI * 2);
       ctx.fillStyle = '#0b101d'; ctx.fill();
@@ -1045,10 +1017,8 @@
     );
 
     const artX = 320, artY = py + 110, artSize = 440;
-    // Uncarved raw metal/gold block
     roundBox(artX, artY, artSize, artSize, 12, game.goldMode ? '#3d2b05' : '#121824', INK, 6);
 
-    // Progressive CNC scanline reveal
     const engravedCanvas = buildEngravedPortrait(mvp, game.goldMode);
     const revealH = Math.floor(artSize * clamp(game.cncProgress, 0, 1));
 
@@ -1061,7 +1031,6 @@
       ctx.restore();
     }
 
-    // CNC Gantry & Rotating Spindle Head
     if (game.phase === 'CNC') {
       const rows = 28;
       const rowFloat = game.cncProgress * rows;
@@ -1070,14 +1039,10 @@
       const toolX = artX + (rowIndex % 2 === 0 ? rowFrac * artSize : (1 - rowFrac) * artSize);
       const toolY = artY + revealH;
 
-      // Horizontal gantry rail
       roundBox(px + 12, toolY - 72, pw - 24, 26, 6, '#28334a', INK, 5);
-
-      // Spindle housing
       roundBox(toolX - 38, toolY - 125, 76, 82, 10, '#3a4968', INK, 6);
       roundBox(toolX - 20, toolY - 45, 40, 24, 4, GOLD, INK, 4);
 
-      // Spinning end-mill bit
       ctx.beginPath();
       ctx.moveTo(toolX - 11, toolY - 21);
       ctx.lineTo(toolX + 11, toolY - 21);
@@ -1089,7 +1054,6 @@
       ctx.strokeStyle = INK;
       ctx.stroke();
 
-      // Hot cutting spot
       ctx.beginPath();
       ctx.arc(toolX, toolY, 13, 0, Math.PI * 2);
       ctx.fillStyle = game.goldMode ? '#fff8b8' : '#ff9d42';
@@ -1099,7 +1063,6 @@
       playSfx('cnc');
     }
 
-    // Engraved Nameplate at bottom of plaque
     roundBox(px + 65, py + 585, pw - 130, 190, 16, '#0d1322', plateStroke, 5);
     drawText('WINNING MVP CHAMPION', 540, py + 632, 26, GOLD, 'center', pw - 160);
     drawText(mvp.name, 540, py + 692, 52, WHITE, 'center', pw - 160);
@@ -1109,18 +1072,15 @@
       540, py + 744, 24, game.goldMode ? GOLD : BLUE_B, 'center', pw - 160
     );
 
-    // Progress bar
     roundBox(px + 85, py + 810, pw - 170, 38, 19, INK, plateStroke, 4);
     const fillW = Math.max(12, (pw - 182) * clamp(game.cncProgress, 0, 1));
     roundBox(px + 91, py + 816, fillW, 26, 13, game.goldMode ? GOLD : BLUE_B, null, 0);
   }
 
   function render() {
-    // 1. Chroma Key Green Floor (#00FF00)
     ctx.fillStyle = darkPreview ? '#070b16' : GREEN;
     ctx.fillRect(0, 0, 1080, 1920);
 
-    // 2. Top Header & Question Banner
     roundBox(48, 36, 984, 118, 22, INK, GOLD, 6);
     drawText('THE CNC JUDGE · TYPE A OR B IN CHAT', 540, 72, 27, GOLD, 'center', 940);
 
@@ -1131,7 +1091,6 @@
     else statusLine = `MASTERPIECE COMPLETE · NEXT ROUND IN ${Math.ceil(game.timer)}s`;
     drawText(statusLine, 540, 118, 31, WHITE, 'center', 940);
 
-    // 3. Hall of Fame strip (Last engraved MVPs)
     roundBox(48, 170, 984, 118, 18, INK, '#394b6e', 4);
     drawText('HALL OF MASTERPIECES:', 215, 229, 23, GOLD, 'center', 300);
     if (game.hallOfFame.length === 0) {
@@ -1153,13 +1112,11 @@
       });
     }
 
-    // 4. Chambers & Balls
     drawChamber('A');
     drawChamber('B');
 
     for (const b of game.balls) drawVoterBall(b);
 
-    // Live Vote Percentages at bottom of chambers
     const counts = game.getCounts();
     const pctA = counts.total ? Math.round((counts.a / counts.total) * 100) : 50;
     const pctB = counts.total ? 100 - pctA : 50;
@@ -1170,10 +1127,8 @@
     roundBox(CHAMBER_B.left + 70, CHAMBER_B.bottom - 92, 334, 74, 16, INK, BLUE_B, 5);
     drawText(`${pctB}% (${counts.b})`, (CHAMBER_B.left + CHAMBER_B.right) / 2, CHAMBER_B.bottom - 55, 38, BLUE_B);
 
-    // 5. CNC Engraving Centerpiece (during CNC & SHOWCASE phases)
     drawCNCEngraverModal();
 
-    // 6. Flying Metal Chips & Sparks
     for (const ch of game.chips) {
       ctx.save();
       ctx.translate(ch.x, ch.y);
@@ -1181,7 +1136,6 @@
       if (ch.isSpark) {
         roundBox(-4, -4, 8, 8, 4, ch.color, INK, 2);
       } else {
-        // Curled CNC metal shaving
         ctx.beginPath();
         ctx.arc(0, 0, 7, 0, Math.PI * 1.35);
         ctx.lineWidth = 5;
@@ -1194,7 +1148,6 @@
       ctx.restore();
     }
 
-    // 7. Activity Banner (above avatar zone at y = 1500)
     if (game.banner && performance.now() < game.banner.until) {
       roundBox(140, 1485, 800, 64, 16, INK, game.banner.color, 5);
       drawText(game.banner.text, 540, 1517, 29, game.banner.color, 'center', 760);
@@ -1212,7 +1165,9 @@
 
   function connect() {
     clearTimeout(retry);
-    if (ws) { ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null; ws.close(); }
+    try {
+      if (ws) { ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null; ws.close(); }
+    } catch {}
     connected = false;
     let target;
     try {
@@ -1224,7 +1179,7 @@
       ws = new WebSocket(target.href);
       const current = ws;
       const handshake = setTimeout(() => {
-        if (current.readyState === WebSocket.CONNECTING) current.close();
+        try { if (current.readyState === WebSocket.CONNECTING) current.close(); } catch {}
       }, 12000);
       ws.onopen = () => { clearTimeout(handshake); connected = true; attempt = 0; };
       ws.onmessage = e => {
@@ -1248,36 +1203,38 @@
     }
   }
 
-  // Fixed 60Hz physics step decoupled from monitor refresh rate (144Hz/240Hz smooth)
   let lastTime = performance.now(), acc = 0, fpsCount = 0, fps = 60, fpsAt = lastTime;
   const STEP = 1 / 60;
 
   function loop(t) {
-    const dt = clamp((t - lastTime) / 1000, 0, 0.1);
-    lastTime = t;
-    acc += dt;
-    let steps = 0;
-    while (acc >= STEP && steps++ < 4) {
-      game.tick(STEP);
-      acc -= STEP;
-    }
-    if (steps >= 4) acc = 0;
-
-    render();
-    fpsCount++;
-    if (t - fpsAt >= 1000) {
-      fps = Math.round((fpsCount * 1000) / (t - fpsAt));
-      fpsAt = t;
-      fpsCount = 0;
-      if (!panelEl.hidden) {
-        statusEl.textContent = `${connected ? 'SOCKET OPEN' : 'SOCKET OFF'} · Mode: ${mode.toUpperCase()} · Phase: ${game.phase} · Balls: ${game.balls.length} · Players: ${game.players.size} · Accepted: ${accepted} · ${fps} FPS`;
+    try {
+      const dt = clamp((t - lastTime) / 1000, 0, 0.1);
+      lastTime = t;
+      acc += dt;
+      let steps = 0;
+      while (acc >= STEP && steps++ < 4) {
+        game.tick(STEP);
+        acc -= STEP;
       }
+      if (steps >= 4) acc = 0;
+      render();
+      fpsCount++;
+      if (t - fpsAt >= 1000) {
+        fps = Math.round((fpsCount * 1000) / (t - fpsAt));
+        fpsAt = t;
+        fpsCount = 0;
+        if (!panelEl.hidden) {
+          statusEl.textContent = `${connected ? 'SOCKET OPEN' : 'SOCKET OFF'} · Mode: ${mode.toUpperCase()} · Phase: ${game.phase} · Balls: ${game.balls.length} · Players: ${game.players.size} · Accepted: ${accepted} · ${fps} FPS`;
+        }
+      }
+    } catch (err) {
+      console.error('Loop error:', err);
     }
     requestAnimationFrame(loop);
   }
 
   // ==========================================
-  // CONTROLS & TEST HARNESS
+  // CONTROLS & AUTO-SOUND UNLOCK
   // ==========================================
   let testSeq = 1;
   const TEST_NAMES = ['Alex', 'Mia', 'Lucas', 'Emma', 'Noah', 'Chloe', 'Leo', 'Zoe', 'Max', 'Lily', 'Sam', 'Ruby'];
@@ -1290,7 +1247,6 @@
 
   $('toggle').onclick = () => { panelEl.hidden = true; };
   $('dark').onclick = () => { darkPreview = !darkPreview; };$('sfx').onclick = toggleSound;
-  $('audioStart').onclick = testSound;
   $('audioTest').onclick = testSound;
   $('volume').oninput = e => setSoundLevel(Number(e.target.value) / 100);$('connect').onclick = connect;
 
@@ -1308,13 +1264,14 @@
     else game.nextRound();
   };
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest?.('#sfx,#audioStart,#audioTest') && sound) unlockAudio(true);
-  }, { passive: true });
+  for (const evtName of ['click', 'pointerdown', 'keydown', 'mousemove', 'touchstart']) {
+    window.addEventListener(evtName, () => {
+      if (sound && audioCtx?.state !== 'running') unlockAudio(true);
+    }, { passive: true });
+  }
 
   document.addEventListener('keydown', e => {
     if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-    if (sound) unlockAudio(true);
     const k = e.key.toLowerCase();
     if (k === 'h') panelEl.hidden = !panelEl.hidden;
     else if (k === 'a') $('voteA').click();
@@ -1324,8 +1281,11 @@
     else if (k === 'n') $('skipPhase').click();
   });
 
-  window.addEventListener('beforeunload', () => { closed = true; clearTimeout(retry); ws?.close(); });
+  window.addEventListener('beforeunload', () => { closed = true; clearTimeout(retry); try { ws?.close(); } catch {} });
 
+  // Immediate first draw + start audio & loop
+  render();
+  unlockAudio(false);
   updateSoundUI();
   connect();
   requestAnimationFrame(loop);
