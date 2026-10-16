@@ -1,552 +1,1335 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Galaxinko: Realistic CNC Judge</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galaxinko CNC Judge 1.0</title>
 <style>
-  body, html {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    background-color: #00FF00; /* Chroma Key Green */
-    overflow: hidden; font-family: 'Arial Black', Arial, sans-serif;
+  html, body {
+    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    background: #00ff00; font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
   }
   #game-container {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    display: flex; justify-content: center; align-items: center;
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
   }
   canvas {
-    display: block; width: min(100vw, 56.25vh); height: min(100vh, 177.77vw);
+    display: block; width: min(100vw, 56.25vh); height: min(100vh, 177.777778vw);
     aspect-ratio: 9/16;
   }
-  /* Admin Panel */
-  #admin-panel {
-    position: fixed; top: 10px; left: 10px; z-index: 100;
-    background: rgba(10, 15, 30, 0.9); padding: 15px; border-radius: 10px;
-    border: 2px solid #00f2fe; color: white; font-family: Arial, sans-serif;
-    display: none;
+  #panel {
+    position: fixed; z-index: 5; inset: 12px auto auto 12px;
+    max-width: min(820px, 94vw); max-height: 90vh; overflow: auto;
+    padding: 18px; background: #101326; color: #fff;
+    border: 4px solid #ffd45c; border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.75);
   }
-  #admin-panel button {
-    background: #24304e; color: white; border: 1px solid #00f2fe;
-    padding: 8px 12px; margin: 4px; border-radius: 5px; cursor: pointer; font-weight: bold;
+  #panel[hidden] { display: none; }
+  button, input {
+    padding: 9px 13px; margin: 4px; border-radius: 10px;
+    background: #24304e; color: #fff; border: 2px solid #ffd45c;
+    font: 700 14px Arial, sans-serif;
   }
-  #admin-panel button:hover { background: #00f2fe; color: black; }
-  .hotkey-hint { position: fixed; top: 10px; right: 10px; color: white; background: rgba(0,0,0,0.5); padding: 5px; font-size: 12px; z-index: 99;}
+  button { cursor: pointer; }
+  button:hover { background: #ffd45c; color: #080d20; }
+  input { width: 290px; max-width: 70vw; }
+  #audioStart {
+    position: fixed; z-index: 6; right: 14px; bottom: 14px;
+    border-color: #42dbff; background: #101326; font-size: 15px;
+  }
+  #audioStart[hidden] { display: none; }
+  #volume { width: 160px; vertical-align: middle; padding: 0; border: 0; }
+  #audioStatus { max-width: 680px; font-size: 14px; color: #b9eaff; margin: 6px 0; }
 </style>
 </head>
 <body>
-
 <div id="game-container">
   <canvas id="arena" width="1080" height="1920"></canvas>
 </div>
+<button id="audioStart" type="button">ENABLE SOUND</button>
 
-<div class="hotkey-hint">Press 'H' for Admin Panel</div>
-
-<div id="admin-panel">
-  <h3>Admin Panel (Live TEST)</h3>
-  <button id="btn-sound">Enable Sound</button><br><br>
-  <button id="btn-voteA">Vote A (Photo)</button>
-  <button id="btn-voteB">Vote B (Photo)</button><br>
-  <button id="btn-like">Add Like (SpeedUp)</button>
-  <button id="btn-gift">Add Gift (Gold Plating)</button><br><br>
-  <button id="btn-end">Force End Round</button>
-</div>
+<section id="panel" hidden>
+  <b>GALAXINKO: THE CNC JUDGE 1.0 (Press H to Hide)</b>
+  <p>
+    <button id="toggle">Hide · H</button>
+    <button id="dark">Chroma / Dark Preview</button>
+    <button id="sfx">ENABLE SOUND</button>
+    <button id="audioTest">TEST SOUND</button>
+  </p>
+  <p>
+    <label for="volume">SOUND VOLUME</label>
+    <input id="volume" type="range" min="0" max="100" step="5" value="80">
+    <output id="volumeValue" for="volume">80%</output>
+  </p>
+  <p id="audioStatus" role="status">Click ENABLE SOUND to allow browser playback.</p>
+  <p>
+    <button id="test">START TEST MODE</button>
+    <button id="live">RETURN TO LIVE</button>
+    <button id="voteA">VOTE A · [A]</button>
+    <button id="voteB">VOTE B · [B]</button>
+    <button id="heart">LIKE BOOST · [SPACE]</button>
+    <button id="gift">24K GOLD GIFT · [G]</button>
+    <button id="crowd">SPAWN 30 VOTERS</button>
+    <button id="skipPhase">NEXT PHASE · [N]</button>
+  </p>
+  <p>
+    <input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/">
+    <button id="connect">Connect</button>
+  </p>
+  <p id="status"></p>
+</section>
 
 <script>
-// ==========================================
-// KONFIGURACE HRY A ROZLOŽENÍ
-// ==========================================
-const OPTIONS = {
-    A: { title: "PIZZA", emoji: "🍕", color: "#FF4136", x: 90, w: 400 },
-    B: { title: "BURGER", emoji: "🍔", color: "#0074D9", x: 590, w: 400 }
-};
-const ROUND_TIME = 45; 
-const W = 1080, H = 1920;
-const TUBES_Y = 1100; // Horní hrana zkumavek
-const TUBES_H = 700;  // Výška zkumavek
-const FLOOR_Y = TUBES_Y + TUBES_H - 40; // Kde se kuličky zastaví
+(() => {
+  'use strict';
 
-const canvas = document.getElementById('arena');
-const ctx = canvas.getContext('2d', { alpha: false });
+  const VERSION = '1.0-CNC';
+  const MAX = 600;
+  const GREEN = '#00ff00';
+  const INK = '#070b18';
+  const WHITE = '#f3fbff';
+  const GOLD = '#ffd45c';
+  const RED_A = '#ff3864';
+  const BLUE_B = '#2de2e6';
+  const VIOLET = '#ab83ff';
 
-let audioCtx = null;
-let soundEnabled = false;
+  // Layout preserves top HUD and leaves y > 1510 free for Veadotube avatar & TikTok chat
+  const ARENA = { left: 36, right: 1044, top: 280, bottom: 1500 };
+  const CHAMBER_A = { left: 48, right: 522, top: 430, bottom: 1475 };
+  const CHAMBER_B = { left: 558, right: 1032, top: 430, bottom: 1475 };
 
-let state = "VOTE"; // VOTE, SHRED, CNC, RESULTS
-let roundTimer = ROUND_TIME;
-let lastTime = performance.now();
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const num = (v, f = 0) => Number.isFinite(Number(v)) ? Number(v) : f;
+  const clean = s => Array.from(String(s ?? 'PILOT').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, '').trim()).slice(0, 18).join('') || 'PILOT';
+  const hash = s => {
+    let h = 2166136261;
+    for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    return h >>> 0;
+  };
 
-let balls = [];
-let particles = [];
-let players = {}; 
-let avatarCache = {};
+  // ==========================================
+  // 72 VIRAL SIMPLE ENGLISH QUESTIONS
+  // ==========================================
+  const QUESTIONS = [
+    { a: 'PIZZA', ea: '🍕', b: 'BURGER', eb: '🍔' },
+    { a: 'DOGS', ea: '🐶', b: 'CATS', eb: '🐱' },
+    { a: 'MESSI', ea: '🐐', b: 'RONALDO', eb: '⚡' },
+    { a: 'MINECRAFT', ea: '⛏️', b: 'GTA 6', eb: '🚓' },
+    { a: 'IPHONE', ea: '🍎', b: 'ANDROID', eb: '🤖' },
+    { a: 'SUMMER', ea: '☀️', b: 'WINTER', eb: '❄️' },
+    { a: 'COFFEE', ea: '☕', b: 'TEA', eb: '🍵' },
+    { a: 'PC GAMING', ea: '🖥️', b: 'CONSOLE', eb: '🎮' },
+    { a: 'MORNING', ea: '🌅', b: 'NIGHT OWL', eb: '🌙' },
+    { a: 'COCA-COLA', ea: '🥤', b: 'PEPSI', eb: '🧊' },
+    { a: 'NETFLIX', ea: '🎬', b: 'YOUTUBE', eb: '▶️' },
+    { a: 'SUPER STRENGTH', ea: '💪', b: 'FLYING', eb: '🦅' },
+    { a: 'INVISIBILITY', ea: '👻', b: 'TIME TRAVEL', eb: '⏳' },
+    { a: 'BEACH', ea: '🏖️', b: 'MOUNTAINS', eb: '🏔️' },
+    { a: 'SWEET', ea: '🍩', b: 'SALTY', eb: '🥨' },
+    { a: 'TACOS', ea: '🌮', b: 'SUSHI', eb: '🍣' },
+    { a: 'BATMAN', ea: '🦇', b: 'SPIDER-MAN', eb: '🕷️' },
+    { a: 'RICH & ALONE', ea: '💰', b: 'BROKE & LOVED', eb: '❤️' },
+    { a: 'LAMBORGHINI', ea: '🏎️', b: 'FERRARI', eb: '🐎' },
+    { a: 'PANCAKES', ea: '🥞', b: 'WAFFLES', eb: '🧇' },
+    { a: 'ICE CREAM', ea: '🍦', b: 'CHOCOLATE', eb: '🍫' },
+    { a: 'FOOTBALL', ea: '⚽', b: 'BASKETBALL', eb: '🏀' },
+    { a: 'ROBLOX', ea: '🧱', b: 'FORTNITE', eb: '🪂' },
+    { a: 'PAUSE TIME', ea: '⏸️', b: 'REWIND TIME', eb: '⏪' },
+    { a: 'READ MINDS', ea: '🧠', b: 'SEE FUTURE', eb: '🔮' },
+    { a: 'KFC', ea: '🍗', b: 'MCDONALDS', eb: '🍟' },
+    { a: 'ANIME', ea: '⚔️', b: 'MOVIES', eb: '🍿' },
+    { a: 'GOLD', ea: '🥇', b: 'DIAMOND', eb: '💎' },
+    { a: 'FIRE POWER', ea: '🔥', b: 'ICE POWER', eb: '🧊' },
+    { a: 'MARS COLONY', ea: '🚀', b: 'DEEP OCEAN', eb: '🌊' },
+    { a: 'ZOMBIE WORLD', ea: '🧟', b: 'ALIEN INVASION', eb: '🛸' },
+    { a: 'NO INTERNET', ea: '📵', b: 'NO MUSIC', eb: '🔇' },
+    { a: 'SNEAKERS', ea: '👟', b: 'BOOTS', eb: '🥾' },
+    { a: 'PASTA', ea: '🍝', b: 'STEAK', eb: '🥩' },
+    { a: 'DRAGONS', ea: '🐉', b: 'DINOSAURS', eb: '🦖' },
+    { a: 'CYBERPUNK', ea: '🦾', b: 'MEDIEVAL', eb: '🛡️' },
+    { a: 'RAINY DAY', ea: '🌧️', b: 'SUNNY DAY', eb: '😎' },
+    { a: 'GOKU', ea: '🟠', b: 'NARUTO', eb: '🍥' },
+    { a: 'IRON MAN', ea: '🤖', b: 'THOR', eb: '⚡' },
+    { a: 'COOK AT HOME', ea: '🍳', b: 'ORDER FOOD', eb: '🛵' },
+    { a: 'COMEDY', ea: '😂', b: 'HORROR', eb: '👻' },
+    { a: 'MOTORCYCLE', ea: '🏍️', b: 'SPORTS CAR', eb: '🚗' },
+    { a: 'HOT WEATHER', ea: '🥵', b: 'COLD WEATHER', eb: '🥶' },
+    { a: 'HEADPHONES', ea: '🎧', b: 'SPEAKERS', eb: '🔊' },
+    { a: 'WATERMELON', ea: '🍉', b: 'STRAWBERRY', eb: '🍓' },
+    { a: 'SHARK', ea: '🦈', b: 'LION', eb: '🦁' },
+    { a: 'EAGLE', ea: '🦅', b: 'WOLF', eb: '🐺' },
+    { a: 'SAMURAI', ea: '🥷', b: 'VIKING', eb: '🪓' },
+    { a: 'PIRATES', ea: '🏴‍☠️', b: 'COWBOYS', eb: '🤠' },
+    { a: '100K NOW', ea: '💵', b: '1M IN 5 YEARS', eb: '🏦' },
+    { a: 'TELEPORT', ea: '🌀', b: 'SUPER SPEED', eb: '⚡' },
+    { a: 'TALK TO ANIMALS', ea: '🐾', b: 'SPEAK ALL LANGS', eb: '🌍' },
+    { a: 'NEVER SLEEP', ea: '🔋', b: 'NEVER EAT', eb: '🍽️' },
+    { a: 'BIG HOUSE', ea: '🏰', b: 'WORLD TRAVEL', eb: '✈️' },
+    { a: 'CITY LIFE', ea: '🏙️', b: 'CABIN WOODS', eb: '🌲' },
+    { a: 'ROCK MUSIC', ea: '🎸', b: 'HIP HOP', eb: '🎤' },
+    { a: 'DONUTS', ea: '🍩', b: 'CROISSANT', eb: '🥐' },
+    { a: 'POPCORN', ea: '🍿', b: 'NACHOS', eb: '🧀' },
+    { a: 'APPLE JUICE', ea: '🍎', b: 'ORANGE JUICE', eb: '🍊' },
+    { a: 'DAYZ', ea: '🎒', b: 'RUST', eb: '🪨' }
+  ];
 
-let mvpPlayer = null;
-let cncProgress = 0; 
-let laserPos = { x: 0, y: 0 };
-let isGoldPlated = false;
+  // Test fallback SVG portraits so offline testing always renders crisp faces
+  function createFallbackAvatar(seedStr, colorHex) {
+    const cnv = document.createElement('canvas');
+    cnv.width = cnv.height = 96;
+    const g = cnv.getContext('2d');
+    const h = hash(seedStr);
+    g.fillStyle = colorHex;
+    g.fillRect(0, 0, 96, 96);
+    g.fillStyle = '#ffe0bd';
+    g.beginPath(); g.arc(48, 42, 24, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#101326';
+    g.beginPath(); g.arc(39, 38, 4, 0, Math.PI * 2); g.arc(57, 38, 4, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#101326'; g.lineWidth = 4; g.lineCap = 'round';
+    g.beginPath();
+    if (h % 2 === 0) g.arc(48, 46, 9, 0.15 * Math.PI, 0.85 * Math.PI);
+    else { g.moveTo(40, 50); g.lineTo(56, 48); }
+    g.stroke();
+    g.fillStyle = '#182238';
+    g.beginPath(); g.arc(48, 92, 30, Math.PI, Math.PI * 2); g.fill();
+    return cnv;
+  }
 
-// ==========================================
-// ZVUKY
-// ==========================================
-function unlockAudio() {
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-    soundEnabled = true;
-    document.getElementById('btn-sound').innerText = "Sound ON";
-}
+  // ==========================================
+  // TIKFINITY ROBUST PARSER (FROM 32.14)
+  // ==========================================
+  function avatarUrl(d) {
+    const u = d.user || d;
+    for (const owner of [u, d, u.userDetails, d.userDetails]) {
+      if (owner) {
+        for (const key of ['profilePictureUrl', 'profilePictureUrls', 'avatarThumb', 'avatarMedium', 'avatarLarger', 'avatarUrl', 'avatar']) {
+          const raw = owner[key];
+          const values = typeof raw === 'string' ? [raw] : Array.isArray(raw) ? raw : raw?.urlList || raw?.url_list || [raw?.url];
+          for (const value of values || []) {
+            if (typeof value === 'string' && value.length < 4096) {
+              try {
+                const parsed = new URL(value);
+                if (parsed.protocol === 'https:' && !parsed.username && !parsed.password) return parsed.href;
+              } catch {}
+            }
+          }
+        }
+      }
+    }
+    return '';
+  }
 
-function playTone(freq, type, duration, vol=0.1) {
-    if(!soundEnabled || !audioCtx) return;
+  function packet(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const type = String(raw.event || raw.type || '').toLowerCase();
+    if (type === 'streamend') return { type };
+    const d = raw.data;
+    if (!d || typeof d !== 'object' || !['member', 'roomuser', 'chat', 'like', 'gift', 'share', 'follow', 'subscribe'].includes(type)) return null;
+    const u = d.user || d;
+    const g = d.giftDetails || d.extendedGiftInfo || d.gift || {};
+    const id = u.uniqueId ?? u.unique_id ?? d.uniqueId ?? d.unique_id ?? u.userId ?? u.id ?? d.userId;
+    if (id == null || !String(id).length || String(id).length > 180) return null;
+    const repeat = Math.floor(clamp(num(d.repeatCount, 1), 1, 1000000));
+    if (type === 'gift' && num(d.giftType ?? g.giftType ?? g.type) === 1 && ![true, 1, 'true'].includes(d.repeatEnd)) return null;
+    const msgId = d.msgId ?? d.common?.msgId;
+    const unitCoins = d.diamondCount ?? g.diamondCount ?? g.diamond_count;
+    const coins = unitCoins == null ? num(d.coins ?? g.coins) : num(unitCoins) * repeat;
+    return {
+      type: type === 'roomuser' ? 'member' : type,
+      id: String(id),
+      userId: String(u.userId ?? u.id ?? d.userId ?? ''),
+      name: clean(u.nickname || d.nickname || id),
+      avatar: avatarUrl(d),
+      text: String(d.comment ?? d.text ?? '').slice(0, 160),
+      count: Math.floor(clamp(num(d.likeCount, 1), 1, 10000)),
+      repeat,
+      coins: clamp(coins, 0, 1e9),
+      eventId: msgId == null ? '' : type + ':' + msgId + (type === 'gift' ? ':' + repeat : '')
+    };
+  }
+
+  // ==========================================
+  // WEB AUDIO ENGINE (FROM 32.14 + CNC SFX)
+  // ==========================================
+  const SFX_NOTES = [293.665, 329.628, 369.994, 440, 493.883, 587.33];
+  let sound = true, audioCtx = null, soundEvents = 0, soundLevel = 0.8;
+  try {
+    const saved = localStorage.getItem('galaxinko-sfx-volume');
+    if (saved !== null && Number.isFinite(Number(saved))) soundLevel = clamp(Number(saved), 0, 1);
+  } catch {}
+
+  const sfxMix = {
+    input: null, master: null, voices: new Set(), limit: 16, peakVoices: 0,
+    resumeAt: -Infinity, checkAt: -Infinity, error: '', uiKey: '', last: new Map()
+  };
+
+  function updateSoundUI() {
+    const available = !!(window.AudioContext || window.webkitAudioContext);
+    const running = audioCtx?.state === 'running';
+    const ready = sound && running;
+    const muted = soundLevel === 0;
+    const key = [available, sound, audioCtx?.state, soundLevel, sfxMix.error].join('|');
+    if (key === sfxMix.uiKey) return;
+    sfxMix.uiKey = key;
+    const button = $('sfx');
+    if (button) button.textContent = !available ? 'AUDIO UNAVAILABLE' : !sound ? 'SOUND OFF' : !running ? 'ENABLE SOUND' : muted ? 'SOUND MUTED' : 'SOUND ON';
+    const start = $('audioStart');
+    if (start) start.hidden = !sound || ready || !available;
+    const volume = $('volume');
+    if (volume) volume.value = String(Math.round(soundLevel * 100));
+    const value = $('volumeValue');
+    if (value) value.textContent = Math.round(soundLevel * 100) + '%';
+    const info = $('audioStatus');
+    if (info) info.textContent = !available ? 'Web Audio unavailable.' : sfxMix.error ? 'AUDIO: ' + sfxMix.error : !sound ? 'Sound is off.' : !running ? 'Click ENABLE SOUND to allow browser playback.' : muted ? 'Volume is zero.' : 'Audio ready and active.';
+  }
+
+  function applySoundLevel() {
+    if (sfxMix.master && audioCtx) {
+      const at = audioCtx.currentTime;
+      sfxMix.master.gain.cancelScheduledValues(at);
+      sfxMix.master.gain.setTargetAtTime(sound && soundLevel > 0 ? soundLevel : 0.0001, at, 0.02);
+    }
+    updateSoundUI();
+  }
+
+  function setSoundLevel(val) {
+    soundLevel = clamp(num(val, 0.8), 0, 1);
+    try { localStorage.setItem('galaxinko-sfx-volume', String(soundLevel)); } catch {}
+    applySoundLevel();
+  }
+
+  function unlockAudio(gesture = false) {
+    if (!sound) { updateSoundUI(); return Promise.resolve(false); }
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    if (!Audio) { updateSoundUI(); return Promise.resolve(false); }
     try {
-        let osc = audioCtx.createOscillator();
-        let gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
-    } catch(e) {}
-}
+      if (!audioCtx) {
+        audioCtx = new Audio();
+        const filter = audioCtx.createBiquadFilter();
+        const compressor = audioCtx.createDynamicsCompressor();
+        const master = audioCtx.createGain();
+        const limiter = audioCtx.createDynamicsCompressor();
+        filter.type = 'lowpass'; filter.frequency.value = 4400; filter.Q.value = 0.5;
+        compressor.threshold.value = -18; compressor.knee.value = 12; compressor.ratio.value = 4;
+        compressor.attack.value = 0.005; compressor.release.value = 0.16;
+        limiter.threshold.value = -4; limiter.knee.value = 0; limiter.ratio.value = 20;
+        limiter.attack.value = 0.001; limiter.release.value = 0.08;
+        master.gain.value = soundLevel;
+        filter.connect(compressor); compressor.connect(master); master.connect(limiter); limiter.connect(audioCtx.destination);
+        sfxMix.input = filter; sfxMix.master = master;
+        audioCtx.onstatechange = updateSoundUI;
+      }
+      if (audioCtx.state === 'running') { sfxMix.error = ''; updateSoundUI(); return Promise.resolve(true); }
+      const t = performance.now();
+      if (audioCtx.state === 'closed' || (!gesture && t - sfxMix.resumeAt < 500)) { updateSoundUI(); return Promise.resolve(false); }
+      sfxMix.resumeAt = t;
+      updateSoundUI();
+      return Promise.resolve(audioCtx.resume()).then(() => {
+        sfxMix.error = ''; updateSoundUI(); return audioCtx.state === 'running';
+      }, err => {
+        sfxMix.error = String(err?.message || 'Click ENABLE SOUND.'); updateSoundUI(); return false;
+      });
+    } catch (err) {
+      sfxMix.error = String(err?.message || 'Audio error.'); updateSoundUI(); return Promise.resolve(false);
+    }
+  }
 
-// ==========================================
-// AVATARY A TEXTURY
-// ==========================================
-function loadAvatar(url) {
-    if(!url) return null;
-    if(avatarCache[url]) return avatarCache[url] === 'loading' ? null : avatarCache[url];
-    avatarCache[url] = 'loading';
-    let img = new Image();
-    img.crossOrigin = "Anonymous"; // Zásadní pro TikTok obrázky na Canvasu
-    img.onload = () => { avatarCache[url] = img; };
-    img.onerror = () => { avatarCache[url] = null; };
-    img.src = url;
-    return null;
-}
+  function sfxTone(freq, duration, volume, panVal = 0, wave = 'sine', delay = 0, endRatio = 1) {
+    if (!sound || audioCtx?.state !== 'running' || !sfxMix.input) return false;
+    if (sfxMix.voices.size >= sfxMix.limit) return false;
+    try {
+      const at = audioCtx.currentTime + delay;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const pan = audioCtx.createStereoPanner?.();
+      const voice = { osc, gain };
+      osc.type = wave;
+      osc.frequency.setValueAtTime(freq, at);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * endRatio), at + duration);
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(volume, at + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+      osc.connect(gain);
+      if (pan) { pan.pan.value = clamp(panVal, -1, 1); gain.connect(pan); pan.connect(sfxMix.input); }
+      else gain.connect(sfxMix.input);
+      sfxMix.voices.add(voice);
+      osc.onended = () => { sfxMix.voices.delete(voice); osc.disconnect(); gain.disconnect(); pan?.disconnect(); };
+      osc.start(at); osc.stop(at + duration + 0.02);
+      soundEvents++;
+      return true;
+    } catch { return false; }
+  }
 
-// ==========================================
-// FYZIKA A SPAWNOVÁNÍ KULIČEK
-// ==========================================
-function spawnBall(userId, name, avatarUrl, side) {
-    let opt = OPTIONS[side];
-    // Spawnuje se přesně nad daným skleněným tubusem
-    let x = opt.x + opt.w/2 + (Math.random()*100 - 50);
-    let y = TUBES_Y - 150 - Math.random() * 100;
-    let r = 38; // Zvětšené fotky
-    
-    balls.push({
-        userId: userId, name: name, avatar: avatarUrl, side: side,
-        x: x, y: y, vx: (Math.random()-0.5)*100, vy: Math.random()*100, r: r, active: true
+  function playSfx(kind, side = 'A') {
+    const t = performance.now();
+    const cd = { vote: 55, like: 90, shred: 800, cnc: 65, gift: 600, win: 800 }[kind] || 80;
+    if (t - (sfxMix.last.get(kind) ?? -Infinity) < cd) return;
+    if (audioCtx?.state !== 'running') unlockAudio();
+    if (audioCtx?.state !== 'running') return;
+    sfxMix.last.set(kind, t);
+    const pan = side === 'A' ? -0.25 : side === 'B' ? 0.25 : 0;
+    if (kind === 'vote') {
+      const f = side === 'A' ? SFX_NOTES[1] * 1.5 : SFX_NOTES[3] * 1.5;
+      sfxTone(f, 0.13, 0.06, pan, 'sine', 0, 1.18);
+    } else if (kind === 'like') {
+      sfxTone(SFX_NOTES[Math.floor(Math.random() * SFX_NOTES.length)] * 2, 0.09, 0.04, pan, 'triangle', 0, 1.12);
+    } else if (kind === 'shred') {
+      sfxTone(140, 0.55, 0.09, pan, 'sawtooth', 0, 0.45);
+      sfxTone(95, 0.65, 0.08, 0, 'triangle', 0.08, 0.5);
+    } else if (kind === 'cnc') {
+      const f = 210 + (Math.random() * 55);
+      sfxTone(f, 0.075, 0.025, (Math.random() - 0.5) * 0.3, 'sawtooth', 0, 0.94);
+    } else if (kind === 'gift') {
+      [0, 2, 3, 5].forEach((n, i) => sfxTone(SFX_NOTES[n] * 2, 0.32, 0.085, 0, 'sine', i * 0.07, 1.02));
+    } else if (kind === 'win') {
+      [0, 2, 4, 5].forEach((n, i) => sfxTone(SFX_NOTES[n] * 2, 0.36, 0.08, 0, 'triangle', i * 0.085, 1));
+    }
+  }
+
+  function testSound() {
+    sound = true;
+    if (soundLevel === 0) setSoundLevel(0.8);
+    applySoundLevel();
+    return unlockAudio(true).then(ready => {
+      if (!ready) return false;
+      playSfx('win');
+      return true;
     });
-    
-    playTone(side === 'A' ? 500 : 700, 'sine', 0.1, 0.05);
-}
+  }
 
-function updatePhysics(dt) {
-    let winningSide = getWinningSide();
-    
-    for(let b of balls) {
-        if(!b.active) continue;
-        b.vy += 3000 * dt; // Silnější gravitace
+  function toggleSound() {
+    if (!sound || audioCtx?.state !== 'running' || soundLevel === 0) {
+      sound = true; applySoundLevel(); return testSound();
+    }
+    sound = false; applySoundLevel(); return Promise.resolve(false);
+  }
+
+  // ==========================================
+  // PORTRAIT & CNC ENGRAVING MAP CACHE
+  // ==========================================
+  const pics = new Map();
+  const engravedCache = new Map();
+  let portraitJobs = 0;
+
+  function requestPic(url) {
+    if (!url || pics.has(url) || pics.size >= MAX) return;
+    pics.set(url, { state: 'waiting' });
+    pumpPics();
+  }
+
+  function pumpPics() {
+    for (const [u, entry] of pics) {
+      if (portraitJobs >= 4) break;
+      if (entry.state !== 'waiting') continue;
+      entry.state = 'loading';
+      portraitJobs++;
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.referrerPolicy = 'no-referrer';
+      let done = false;
+      const finish = ok => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        img.onload = img.onerror = null;
+        if (ok && img.naturalWidth) {
+          const thumb = document.createElement('canvas');
+          thumb.width = thumb.height = 128;
+          const g = thumb.getContext('2d');
+          const side = Math.min(img.naturalWidth, img.naturalHeight);
+          g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 128, 128);
+          entry.img = thumb;
+          entry.state = 'ready';
+        } else {
+          entry.state = 'failed';
+        }
+        portraitJobs--;
+        pumpPics();
+      };
+      const timer = setTimeout(() => finish(false), 7500);
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      img.src = u;
+    }
+  }
+
+  function getPlayerImage(p) {
+    if (p.avatar && pics.get(p.avatar)?.state === 'ready') return pics.get(p.avatar).img;
+    if (!p.fallbackCanvas) {
+      p.fallbackCanvas = createFallbackAvatar(p.id, p.side === 'A' ? RED_A : BLUE_B);
+    }
+    return p.fallbackCanvas;
+  }
+
+  // Creates a realistic metallic/gold CNC relief texture from the winner's avatar
+  function buildEngravedPortrait(p, goldMode) {
+    const cacheKey = p.id + ':' + (goldMode ? 'gold' : 'steel') + ':' + (pics.get(p.avatar)?.state || 'fb');
+    if (engravedCache.has(cacheKey)) return engravedCache.get(cacheKey);
+
+    const size = 440;
+    const cnv = document.createElement('canvas');
+    cnv.width = cnv.height = size;
+    const g = cnv.getContext('2d');
+    const srcImg = getPlayerImage(p);
+
+    g.drawImage(srcImg, 0, 0, size, size);
+    try {
+      const imgData = g.getImageData(0, 0, size, size);
+      const d = imgData.data;
+      for (let y = 0; y < size; y++) {
+        const groove = (y % 4 === 0) ? 0.82 : 1.0; // Horizontal CNC toolpath lines
+        for (let x = 0; x < size; x++) {
+          const i = (y * size + x) * 4;
+          const lum = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+          // High-contrast relief curve
+          const cVal = Math.pow(clamp((lum - 0.12) * 1.28, 0, 1), 0.9) * groove;
+          if (goldMode) {
+            d[i]     = Math.round(55 + cVal * 200); // R
+            d[i + 1] = Math.round(35 + cVal * 155); // G
+            d[i + 2] = Math.round(8  + cVal * 45);  // B
+          } else {
+            d[i]     = Math.round(28 + cVal * 175);
+            d[i + 1] = Math.round(36 + cVal * 190);
+            d[i + 2] = Math.round(48 + cVal * 205);
+          }
+        }
+      }
+      g.putImageData(imgData, 0, 0);
+    } catch {}
+
+    if (engravedCache.size > 20) engravedCache.delete(engravedCache.keys().next().value);
+    engravedCache.set(cacheKey, cnv);
+    return cnv;
+  }
+
+  // ==========================================
+  // GAME STATE & PHYSICS ENGINE
+  // ==========================================
+  const VOTE_DURATION = 35;    // 35s fast-paced A/B voting
+  const SHRED_DURATION = 3.5;  // 3.5s shredding the losing side
+  const CNC_DURATION = 13.0;   // 13s CNC engraving the MVP portrait
+  const SHOW_DURATION = 4.5;   // 4.5s admiring the finished masterpiece
+
+  class CNCJudgeGame {
+    constructor() {
+      this.players = new Map();
+      this.aliases = new Map();
+      this.seen = new Map();
+      this.balls = [];
+      this.chips = [];
+      this.hallOfFame = [];
+      this.qIndex = -1;
+      this.question = QUESTIONS[0];
+      this.phase = 'VOTE'; // VOTE, SHRED, CNC, SHOWCASE
+      this.timer = VOTE_DURATION;
+      this.cncProgress = 0;
+      this.goldMode = false;
+      this.mvp = null;
+      this.winningSide = 'A';
+      this.sawAngle = 0;
+      this.banner = null;
+      this.round = 0;
+      this.nextRound();
+    }
+
+    nextRound() {
+      this.round++;
+      this.qIndex = (this.qIndex + 1 + Math.floor(Math.random() * 3)) % QUESTIONS.length;
+      this.question = QUESTIONS[this.qIndex];
+      this.phase = 'VOTE';
+      this.timer = VOTE_DURATION;
+      this.cncProgress = 0;
+      this.goldMode = false;
+      this.mvp = null;
+      this.balls = [];
+      this.chips = [];
+
+      // Reset round stats while keeping session roster
+      for (const p of this.players.values()) {
+        p.side = null;
+        p.roundLikes = 0;
+        p.roundGifts = 0;
+        p.roundScore = 0;
+      }
+    }
+
+    getPlayer(id, userId = '') {
+      const key = this.aliases.get(String(id)) || (userId && this.aliases.get(String(userId))) || String(id);
+      return this.players.get(key);
+    }
+
+    ensurePlayer(e) {
+      let p = this.getPlayer(e.id, e.userId);
+      if (!p) {
+        if (this.players.size >= MAX) {
+          const firstKey = this.players.keys().next().value;
+          this.players.delete(firstKey);
+        }
+        p = {
+          id: String(e.id),
+          name: clean(e.name || e.id),
+          avatar: e.avatar || '',
+          side: null,
+          roundLikes: 0,
+          roundGifts: 0,
+          roundScore: 0,
+          totalWins: 0,
+          lastShareAt: -Infinity
+        };
+        this.players.set(p.id, p);
+      }
+      if (e.name) p.name = clean(e.name);
+      if (e.avatar) { p.avatar = e.avatar; requestPic(p.avatar); }
+      for (const alias of [e.id, e.userId]) {
+        if (alias && alias !== p.id && this.aliases.size < MAX * 3) this.aliases.set(String(alias), p.id);
+      }
+      return p;
+    }
+
+    spawnBall(p, side, bonusRadius = 0) {
+      if (this.balls.length >= 160) return;
+      const box = side === 'A' ? CHAMBER_A : CHAMBER_B;
+      const baseR = 38 + bonusRadius;
+      const x = box.left + baseR + 16 + Math.random() * (box.right - box.left - (baseR + 16) * 2);
+      const y = box.top + 35 + Math.random() * 40;
+      const b = {
+        playerId: p.id,
+        name: p.name,
+        side,
+        x, y,
+        vx: (Math.random() - 0.5) * 90,
+        vy: 60 + Math.random() * 80,
+        r: baseR,
+        targetR: baseR,
+        shredded: false
+      };
+      this.balls.push(b);
+      playSfx('vote', side);
+    }
+
+    castVote(p, side) {
+      if (this.phase !== 'VOTE') return;
+      const existingBall = this.balls.find(b => b.playerId === p.id);
+      p.side = side;
+      p.roundScore += 15;
+      if (existingBall) {
+        if (existingBall.side !== side) {
+          const box = side === 'A' ? CHAMBER_A : CHAMBER_B;
+          existingBall.side = side;
+          existingBall.x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 80;
+          existingBall.y = box.top + 50;
+          existingBall.vy = 40;
+        } else {
+          existingBall.targetR = Math.min(72, existingBall.targetR + 4);
+          existingBall.vy = -220;
+        }
+        playSfx('vote', side);
+      } else {
+        this.spawnBall(p, side);
+      }
+      this.banner = { text: `${p.name} VOTED [${side}]!`, color: side === 'A' ? RED_A : BLUE_B, until: performance.now() + 2000 };
+    }
+
+    accept(e) {
+      if (!e) return false;
+      const now = performance.now();
+      if (e.eventId) {
+        if (this.seen.has(e.eventId)) return false;
+        this.seen.set(e.eventId, now);
+        if (this.seen.size > 8000) this.seen.delete(this.seen.keys().next().value);
+      }
+
+      const p = this.ensurePlayer(e);
+
+      if (e.type === 'member') {
+        // Auto-spawn new viewer into the side with fewer balls so they immediately see their photo!
+        if (this.phase === 'VOTE' && !p.side) {
+          const countA = this.balls.filter(b => b.side === 'A').length;
+          const countB = this.balls.filter(b => b.side === 'B').length;
+          this.castVote(p, countA <= countB ? 'A' : 'B');
+        }
+        return true;
+      }
+
+      if (e.type === 'chat') {
+        const msg = String(e.text || '').trim().toUpperCase();
+        if (msg === 'A' || msg === '1' || msg.startsWith('A ') || msg === this.question.a) {
+          this.castVote(p, 'A');
+        } else if (msg === 'B' || msg === '2' || msg.startsWith('B ') || msg === this.question.b) {
+          this.castVote(p, 'B');
+        } else if (this.phase === 'VOTE' && !p.side) {
+          // Any comment puts the player in the game
+          const countA = this.balls.filter(b => b.side === 'A').length;
+          const countB = this.balls.filter(b => b.side === 'B').length;
+          this.castVote(p, countA <= countB ? 'A' : 'B');
+        }
+        return true;
+      }
+
+      if (e.type === 'like') {
+        const count = clamp(e.count || 1, 1, 200);
+        p.roundLikes += count;
+        p.roundScore += count * 4;
+        if (this.phase === 'VOTE') {
+          if (!p.side) {
+            const countA = this.balls.filter(b => b.side === 'A').length;
+            const countB = this.balls.filter(b => b.side === 'B').length;
+            this.castVote(p, countA <= countB ? 'A' : 'B');
+          }
+          for (const b of this.balls) {
+            if (b.playerId === p.id) {
+              b.targetR = clamp(38 + Math.sqrt(p.roundLikes) * 3.2, 38, 76);
+              b.vy = Math.min(b.vy, -140);
+            }
+          }
+          playSfx('like', p.side || 'A');
+        } else if (this.phase === 'CNC') {
+          // Likes boost CNC spindle speed!
+          this.cncProgress = clamp(this.cncProgress + count * 0.0045, 0, 1);
+          playSfx('like', 'A');
+        }
+        return true;
+      }
+
+      if (e.type === 'share' || e.type === 'follow') {
+        if (now - p.lastShareAt > 6000 && this.phase === 'VOTE') {
+          p.lastShareAt = now;
+          const side = p.side || (this.balls.filter(b => b.side === 'A').length <= this.balls.filter(b => b.side === 'B').length ? 'A' : 'B');
+          p.side = side;
+          p.roundScore += 45;
+          this.spawnBall(p, side, 10);
+          this.banner = { text: `${p.name} DROPPED A HEAVY ORB!`, color: GOLD, until: now + 2400 };
+        }
+        return true;
+      }
+
+      if (e.type === 'gift' || e.type === 'subscribe') {
+        const coins = Math.max(1, e.coins || 1);
+        p.roundGifts += coins;
+        p.roundScore += coins * 120;
+        this.goldMode = true;
+        playSfx('gift');
+        if (this.phase === 'VOTE') {
+          const side = p.side || (this.balls.filter(b => b.side === 'A').length <= this.balls.filter(b => b.side === 'B').length ? 'A' : 'B');
+          p.side = side;
+          const existing = this.balls.find(b => b.playerId === p.id);
+          if (!existing) this.spawnBall(p, side, 22);
+          else existing.targetR = 78;
+        }
+        this.banner = { text: `24K GOLD CNC UNLOCKED BY ${p.name}!`, color: GOLD, until: now + 3500 };
+        return true;
+      }
+
+      return false;
+    }
+
+    getCounts() {
+      let a = 0, b = 0;
+      for (const ball of this.balls) {
+        const weight = ball.r > 52 ? 2 : 1;
+        if (ball.side === 'A') a += weight;
+        else b += weight;
+      }
+      return { a, b, total: a + b };
+    }
+
+    startShredPhase() {
+      this.phase = 'SHRED';
+      this.timer = SHRED_DURATION;
+      const counts = this.getCounts();
+      this.winningSide = counts.a >= counts.b ? 'A' : 'B';
+      playSfx('shred');
+    }
+
+    startCNCPhase() {
+      this.phase = 'CNC';
+      this.timer = CNC_DURATION;
+      this.cncProgress = 0;
+
+      // Pick MVP from the winning side (highest roundScore)
+      const winners = this.balls
+        .filter(b => b.side === this.winningSide)
+        .map(b => this.players.get(b.playerId))
+        .filter(Boolean);
+
+      if (winners.length > 0) {
+        winners.sort((x, y) => y.roundScore - x.roundScore);
+        this.mvp = winners[0];
+      } else {
+        this.mvp = {
+          id: 'mvp_default',
+          name: this.winningSide === 'A' ? this.question.a : this.question.b,
+          avatar: '',
+          side: this.winningSide,
+          roundScore: 100
+        };
+      }
+    }
+
+    startShowcasePhase() {
+      this.phase = 'SHOWCASE';
+      this.timer = SHOW_DURATION;
+      this.cncProgress = 1;
+      playSfx('win');
+      if (this.mvp) {
+        this.hallOfFame.unshift({
+          id: this.mvp.id,
+          name: this.mvp.name,
+          avatar: this.mvp.avatar,
+          side: this.winningSide,
+          gold: this.goldMode
+        });
+        if (this.hallOfFame.length > 5) this.hallOfFame.pop();
+      }
+    }
+
+    spawnCNCChips(x, y, count = 4) {
+      if (this.chips.length > 180) return;
+      for (let i = 0; i < count; i++) {
+        const isSpark = Math.random() < 0.65;
+        this.chips.push({
+          x: x + (Math.random() - 0.5) * 14,
+          y: y + (Math.random() - 0.5) * 6,
+          vx: (Math.random() - 0.5) * 680,
+          vy: -180 - Math.random() * 520,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 18,
+          life: 1.0,
+          isSpark,
+          color: this.goldMode ? (isSpark ? '#fff6a9' : GOLD) : (isSpark ? '#ff9e44' : '#b8c7d9')
+        });
+      }
+    }
+
+    tick(dt) {
+      this.sawAngle += dt * 16;
+
+      if (this.phase === 'VOTE') {
+        this.timer -= dt;
+        if (this.timer <= 0) this.startShredPhase();
+      } else if (this.phase === 'SHRED') {
+        this.timer -= dt;
+        if (this.timer <= 0) this.startCNCPhase();
+      } else if (this.phase === 'CNC') {
+        const speedMult = this.goldMode ? 1.25 : 1.0;
+        this.cncProgress += (dt / CNC_DURATION) * speedMult;
+        if (this.cncProgress >= 1) this.startShowcasePhase();
+      } else if (this.phase === 'SHOWCASE') {
+        this.timer -= dt;
+        if (this.timer <= 0) this.nextRound();
+      }
+
+      // Physics step for balls
+      const loseSide = this.winningSide === 'A' ? 'B' : 'A';
+      for (let i = this.balls.length - 1; i >= 0; i--) {
+        const b = this.balls[i];
+        b.r += (b.targetR - b.r) * Math.min(1, dt * 8);
+        b.vy += 1950 * dt;
         b.x += b.vx * dt;
         b.y += b.vy * dt;
-        
-        b.vx *= 0.98; b.vy *= 0.98; // Tření vzduchu
-        
-        let opt = OPTIONS[b.side];
-        
-        // Zdi skleněného tubusu
-        let minX = opt.x + 10 + b.r;
-        let maxX = opt.x + opt.w - 10 - b.r;
-        if(b.x < minX) { b.x = minX; b.vx *= -0.5; }
-        if(b.x > maxX) { b.x = maxX; b.vx *= -0.5; }
-        
-        // Podlaha tubusu (Otevře se pro poražené během SHRED fáze)
-        let floorActive = state === "VOTE" || (state === "SHRED" && b.side === winningSide) || state === "CNC" || state === "RESULTS";
-        if(floorActive) {
-            if(b.y > FLOOR_Y - b.r) { b.y = FLOOR_Y - b.r; b.vy *= -0.3; }
+        b.vx *= Math.pow(0.985, dt * 60);
+        b.vy *= Math.pow(0.992, dt * 60);
+
+        const box = b.side === 'A' ? CHAMBER_A : CHAMBER_B;
+        if (b.x < box.left + b.r + 8) { b.x = box.left + b.r + 8; b.vx = Math.abs(b.vx) * 0.55; }
+        if (b.x > box.right - b.r - 8) { b.x = box.right - b.r - 8; b.vx = -Math.abs(b.vx) * 0.55; }
+
+        const floorClosed = this.phase === 'VOTE' || b.side === this.winningSide;
+        if (floorClosed) {
+          if (b.y > box.bottom - b.r - 8) {
+            b.y = box.bottom - b.r - 8;
+            b.vy = -Math.abs(b.vy) * 0.32;
+          }
+        } else {
+          // Losing side falls into the shredder blades!
+          if (!b.shredded && b.y >= box.bottom - 10) {
+            b.shredded = true;
+            this.spawnCNCChips(b.x, box.bottom, 10);
+            playSfx('cnc', loseSide);
+          }
+          if (b.y > 1600) {
+            this.balls.splice(i, 1);
+            continue;
+          }
         }
-        
-        if(b.y > H + 100) b.active = false; // Úplně zmizí až když propadnou obrazovkou
-    }
-    
-    // Stabilní kolize kuliček mezi sebou
-    for(let iter = 0; iter < 4; iter++) {
-        for(let i=0; i<balls.length; i++) {
-            if(!balls[i].active) continue;
-            for(let j=i+1; j<balls.length; j++) {
-                if(!balls[j].active) continue;
-                if(balls[i].side !== balls[j].side) continue; // Nekolidují přes tubus
-                
-                let dx = balls[j].x - balls[i].x;
-                let dy = balls[j].y - balls[i].y;
-                let dist = Math.hypot(dx, dy);
-                let minDist = balls[i].r + balls[j].r;
-                
-                if(dist < minDist && dist > 0.001) {
-                    let overlap = minDist - dist;
-                    let nx = dx / dist, ny = dy / dist;
-                    
-                    // Rozstrčení kuliček od sebe
-                    balls[i].x -= nx * overlap * 0.5; balls[i].y -= ny * overlap * 0.5;
-                    balls[j].x += nx * overlap * 0.5; balls[j].y += ny * overlap * 0.5;
-                    
-                    let dvx = balls[j].vx - balls[i].vx; let dvy = balls[j].vy - balls[i].vy;
-                    let impulse = (dvx * nx + dvy * ny) * 0.4; // 0.4 je tvrdost odrazu
-                    if(impulse < 0) {
-                        balls[i].vx += nx * impulse; balls[i].vy += ny * impulse;
-                        balls[j].vx -= nx * impulse; balls[j].vy -= ny * impulse;
-                    }
-                }
+      }
+
+      // Deterministic multi-pass collision resolution (zero jitter on 144Hz)
+      for (let pass = 0; pass < 4; pass++) {
+        for (let i = 0; i < this.balls.length; i++) {
+          const b1 = this.balls[i];
+          for (let j = i + 1; j < this.balls.length; j++) {
+            const b2 = this.balls[j];
+            if (b1.side !== b2.side) continue;
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const d2 = dx * dx + dy * dy;
+            const minD = b1.r + b2.r + 2;
+            if (d2 >= minD * minD) continue;
+            const d = Math.sqrt(d2) || 0.01;
+            const nx = dx / d;
+            const ny = dy / d;
+            const overlap = (minD - d) * 0.5;
+            b1.x -= nx * overlap; b1.y -= ny * overlap;
+            b2.x += nx * overlap; b2.y += ny * overlap;
+            const rvx = b2.vx - b1.vx;
+            const rvy = b2.vy - b1.vy;
+            const velAlongNormal = rvx * nx + rvy * ny;
+            if (velAlongNormal < 0) {
+              const imp = velAlongNormal * 0.38;
+              b1.vx += nx * imp; b1.vy += ny * imp;
+              b2.vx -= nx * imp; b2.vy -= ny * imp;
             }
+          }
         }
-    }
-}
+      }
 
-function getWinningSide() {
-    let countA = balls.filter(b => b.side === 'A' && b.active).length;
-    let countB = balls.filter(b => b.side === 'B' && b.active).length;
-    return countA >= countB ? 'A' : 'B';
-}
-
-function startCNC() {
-    let winSide = getWinningSide();
-    let winBalls = balls.filter(b => b.side === winSide && b.active);
-    
-    if(winBalls.length > 0) {
-        // Nalezení MVP
-        let best = winBalls[0];
-        let maxScore = -1;
-        for(let b of winBalls) {
-            let p = players[b.userId];
-            let score = p ? (p.gifts * 100 + p.likes * 10) : 0;
-            if(score > maxScore) { maxScore = score; best = b; }
-        }
-        mvpPlayer = best;
-    } else {
-        mvpPlayer = { name: "NOBODY", avatar: null }; 
+      // Update CNC flying metal chips & sparks
+      for (let i = this.chips.length - 1; i >= 0; i--) {
+        const ch = this.chips[i];
+        ch.vy += 1800 * dt;
+        ch.x += ch.vx * dt;
+        ch.y += ch.vy * dt;
+        ch.rot += ch.vrot * dt;
+        ch.life -= dt * 1.65;
+        if (ch.life <= 0) this.chips.splice(i, 1);
+      }
     }
-    
-    cncProgress = 0;
-    state = "CNC";
-    playTone(200, 'square', 1.0, 0.1); // Zapnutí stroje
-}
+  }
 
-function spawnSparks(x, y) {
-    if(particles.length > 200) return;
-    for(let i=0; i<4; i++) {
-        particles.push({
-            x: x + (Math.random()-0.5)*10, y: y,
-            vx: (Math.random()-0.5)*1200, vy: -Math.random()*1000 - 300,
-            life: 1.0, color: isGoldPlated ? '#FFDC00' : '#FF4136', type: 'spark'
-        });
-    }
-    // Dým
-    if(Math.random() > 0.5) {
-        particles.push({
-            x: x, y: y - 20,
-            vx: (Math.random()-0.5)*100, vy: -Math.random()*200 - 100,
-            life: 1.0, size: Math.random()*20+20, color: 'rgba(50,50,50,', type: 'smoke'
-        });
-    }
-}
+  // ==========================================
+  // RENDERER (1080x1920 PORTRAIT, CHROMA SAFE)
+  // ==========================================
+  const canvas = $('arena');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  let darkPreview = false;
+  const game = new CNCJudgeGame();
 
-// ==========================================
-// VYKRESLOVACÍ FUNKCE (GRAFIKA)
-// ==========================================
-function drawRoundedRect(x, y, w, h, r, fill, stroke, strokeW) {
+  function roundBox(x, y, w, h, r, fill, stroke = INK, lineW = 6) {
     ctx.beginPath();
-    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-    if(fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if(stroke) { ctx.lineWidth = strokeW; ctx.strokeStyle = stroke; ctx.stroke(); }
-}
+    ctx.roundRect(x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (lineW > 0 && stroke) { ctx.lineWidth = lineW; ctx.strokeStyle = stroke; ctx.stroke(); }
+  }
 
-function drawBall(b) {
+  function drawText(str, x, y, size, color = WHITE, align = 'center', maxW = 950) {
+    ctx.font = `900 ${size}px "Segoe UI", "Trebuchet MS", Arial, sans-serif`;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(6, Math.round(size * 0.22));
+    ctx.strokeStyle = INK;
+    let text = String(str);
+    while (text.length > 1 && ctx.measureText(text).width > maxW) text = text.slice(0, -1);
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  }
+
+  function drawRotarySaw(cx, cy, r, angle, color) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    const teeth = 14;
+    for (let i = 0; i < teeth * 2; i++) {
+      const a = (i * Math.PI) / teeth;
+      const rad = i % 2 === 0 ? r : r * 0.72;
+      ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#303b52';
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawVoterBall(b) {
+    const p = game.players.get(b.playerId) || { id: b.playerId, name: b.name, side: b.side };
+    const img = getPlayerImage(p);
+    const col = b.side === 'A' ? RED_A : BLUE_B;
+
     ctx.save();
     ctx.translate(b.x, b.y);
-    
-    // Ořez pro profilovku
-    ctx.beginPath(); ctx.arc(0, 0, b.r, 0, Math.PI*2); ctx.clip();
-    
-    let img = loadAvatar(b.avatar);
-    if(img && img !== 'loading') {
-        ctx.drawImage(img, -b.r, -b.r, b.r*2, b.r*2);
-    } else {
-        ctx.fillStyle = '#222'; ctx.fillRect(-b.r, -b.r, b.r*2, b.r*2);
-        ctx.fillStyle = '#fff'; ctx.font = "bold 35px Arial";
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(b.name.charAt(0).toUpperCase(), 0, 2);
-    }
-    
-    // 3D Stínování (Skleněný/Prostorový efekt)
-    let grad = ctx.createRadialGradient(-b.r*0.3, -b.r*0.3, b.r*0.1, 0, 0, b.r);
-    grad.addColorStop(0, 'rgba(255,255,255,0.4)');
-    grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-    grad.addColorStop(1, 'rgba(0,0,0,0.8)');
+
+    // Outer solid border for zero green bleed on Chroma Key
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r + 3, 0, Math.PI * 2);
+    ctx.fillStyle = INK;
+    ctx.fill();
+
+    // Clipped avatar photo
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r - 3, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, -b.r + 3, -b.r + 3, (b.r - 3) * 2, (b.r - 3) * 2);
+
+    // 3D Glass sphere specular highlight
+    const grad = ctx.createRadialGradient(-b.r * 0.32, -b.r * 0.35, b.r * 0.08, 0, 0, b.r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.48)');
+    grad.addColorStop(0.55, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, 'rgba(5,10,25,0.55)');
     ctx.fillStyle = grad;
-    ctx.fillRect(-b.r, -b.r, b.r*2, b.r*2);
-    
+    ctx.fillRect(-b.r, -b.r, b.r * 2, b.r * 2);
     ctx.restore();
-    
-    // Zářící okraj týmu
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-    ctx.lineWidth = 5; ctx.strokeStyle = OPTIONS[b.side].color;
+
+    // Team ring
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r - 1, 0, Math.PI * 2);
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = col;
     ctx.stroke();
-}
 
-function drawTubes() {
-    for(let key of ['A', 'B']) {
-        let opt = OPTIONS[key];
-        // Zadní stěna tubusu
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(opt.x, TUBES_Y, opt.w, TUBES_H);
-    }
-    
-    // Kuličky uvnitř
-    for(let b of balls) if(b.active) drawBall(b);
-    
-    for(let key of ['A', 'B']) {
-        let opt = OPTIONS[key];
-        
-        // Přední sklo (Odlesk)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.beginPath();
-        ctx.moveTo(opt.x, TUBES_Y); ctx.lineTo(opt.x + opt.w/2, TUBES_Y);
-        ctx.lineTo(opt.x, TUBES_Y + TUBES_H); ctx.fill();
-        
-        // Kovový rám tubusu
-        drawRoundedRect(opt.x, TUBES_Y, opt.w, TUBES_H, 15, null, opt.color, 12);
-        drawRoundedRect(opt.x-5, TUBES_Y-5, opt.w+10, TUBES_H+10, 15, null, '#111', 4);
-        
-        // Nadpis tubusu
-        ctx.fillStyle = '#111';
-        drawRoundedRect(opt.x + 20, TUBES_Y - 60, opt.w - 40, 80, 10, '#111', opt.color, 4);
-        ctx.fillStyle = '#fff'; ctx.font = "900 45px Arial Black"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(`[${key}] ${opt.emoji} ${opt.title}`, opt.x + opt.w/2, TUBES_Y - 20);
-        
-        // Počítadlo procent
-        let total = balls.filter(b => b.active).length || 1;
-        let count = balls.filter(b => b.side === key && b.active).length;
-        let pct = Math.round((count/total)*100);
-        
-        ctx.fillStyle = opt.color;
-        ctx.font = "900 80px Arial Black";
-        ctx.lineWidth = 8; ctx.strokeStyle = '#000';
-        ctx.strokeText(`${pct}%`, opt.x + opt.w/2, TUBES_Y + TUBES_H - 60);
-        ctx.fillText(`${pct}%`, opt.x + opt.w/2, TUBES_Y + TUBES_H - 60);
-    }
-}
-
-function drawCNC() {
-    let px = 140, py = 250, pSize = 800; // Hlavní deska nahoře
-    
-    // Stín pod deskou
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(px+20, py+20, pSize, pSize);
-    
-    // Samotná deska
-    let plateColor = isGoldPlated ? '#FFD700' : '#8B7355'; // Zlato nebo Dřevo
-    drawRoundedRect(px, py, pSize, pSize, 20, plateColor, '#222', 15);
-    
-    ctx.fillStyle = '#fff'; ctx.font = "900 60px Arial Black"; ctx.textAlign = 'center';
-    ctx.lineWidth = 6; ctx.strokeStyle = '#000';
-    ctx.strokeText("CNC MASTERPIECE", W/2, py - 40); ctx.fillText("CNC MASTERPIECE", W/2, py - 40);
-    
-    if(!mvpPlayer) return;
-    
-    // 2. Gravírování (Odhalovací maska)
-    ctx.save();
-    let revealH = pSize * cncProgress;
-    ctx.beginPath(); ctx.rect(px, py, pSize, revealH); ctx.clip();
-    
-    let img = loadAvatar(mvpPlayer.avatar);
-    if(img && img !== 'loading') {
-        ctx.drawImage(img, px + 100, py + 100, pSize - 200, pSize - 200);
-        // "Vypálený" filtr přes fotku
-        ctx.fillStyle = isGoldPlated ? 'rgba(80, 50, 0, 0.6)' : 'rgba(40, 20, 10, 0.7)';
-        ctx.fillRect(px, py, pSize, pSize);
-    }
-    
-    // Nápis dole na desce
-    ctx.fillStyle = '#111'; ctx.font = "900 50px Arial Black";
-    ctx.fillText("WINNER: " + mvpPlayer.name, px + pSize/2, py + pSize - 40);
     ctx.restore();
-    
-    // 3. Laser / Hlava
-    if(state === "CNC") {
-        let scanLines = 25;
-        let currentLine = Math.floor(cncProgress * scanLines);
-        let lineProgress = (cncProgress * scanLines) % 1;
-        
-        laserPos.x = px + (currentLine % 2 === 0 ? lineProgress * pSize : (1 - lineProgress) * pSize);
-        laserPos.y = py + revealH;
-        
-        spawnSparks(laserPos.x, laserPos.y);
-        if(Math.random() > 0.5) playTone(200 + Math.random()*50, 'sawtooth', 0.1, 0.03); // Řezací zvuk
-        
-        // Zářící paprsek (Additive blending pro neonový look)
+
+    // Always visible player name
+    drawText(b.name, b.x, b.y + b.r + 12, 17, WHITE, 'center', b.r * 2.6);
+  }
+
+  function drawChamber(side) {
+    const box = side === 'A' ? CHAMBER_A : CHAMBER_B;
+    const col = side === 'A' ? RED_A : BLUE_B;
+    const qTitle = side === 'A' ? `${game.question.ea} ${game.question.a}` : `${game.question.eb} ${game.question.b}`;
+    const w = box.right - box.left;
+    const h = box.bottom - box.top;
+
+    // Chamber interior is pure #00FF00 so OBS background stays 100% visible!
+    roundBox(box.left, box.top, w, h, 22, null, INK, 14);
+    roundBox(box.left, box.top, w, h, 22, null, col, 6);
+
+    // Top option header card
+    roundBox(box.left, box.top - 118, w, 104, 20, INK, col, 6);
+    drawText(`TYPE [${side}]`, box.left + w / 2, box.top - 86, 25, GOLD, 'center', w - 20);
+    drawText(qTitle, box.left + w / 2, box.top - 42, 38, WHITE, 'center', w - 24);
+
+    // Bottom Shredder Saws when floor opens for the losing side
+    const isLosingShred = game.phase === 'SHRED' && game.winningSide !== side;
+    if (isLosingShred) {
+      for (let sx = box.left + 48; sx <= box.right - 48; sx += 76) {
+        drawRotarySaw(sx, box.bottom + 6, 36, game.sawAngle * (sx % 2 === 0 ? 1 : -1), RED_A);
+      }
+    }
+  }
+
+  function drawCNCEngraverModal() {
+    if (game.phase !== 'CNC' && game.phase !== 'SHOWCASE') return;
+    const mvp = game.mvp;
+    if (!mvp) return;
+
+    const px = 150, py = 420, pw = 780, ph = 920;
+
+    // Heavy industrial CNC frame
+    roundBox(px - 22, py - 22, pw + 44, ph + 44, 28, '#141b2d', INK, 12);
+    const plateFill = game.goldMode ? '#5e430b' : '#1d2636';
+    const plateStroke = game.goldMode ? GOLD : '#7e93b0';
+    roundBox(px, py, pw, ph, 18, plateFill, plateStroke, 8);
+
+    // Corner bolts
+    for (const [bx, by] of [[px + 26, py + 26], [px + pw - 26, py + 26], [px + 26, py + ph - 26], [px + pw - 26, py + ph - 26]]) {
+      ctx.beginPath(); ctx.arc(bx, by, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#0b101d'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = plateStroke; ctx.stroke();
+    }
+
+    drawText(
+      game.goldMode ? '24K GOLD CNC ENGRAVING' : 'CNC MASTERPIECE ENGRAVING',
+      540, py + 54, 38, game.goldMode ? GOLD : BLUE_B, 'center', pw - 60
+    );
+
+    const artX = 320, artY = py + 110, artSize = 440;
+    // Uncarved raw metal/gold block
+    roundBox(artX, artY, artSize, artSize, 12, game.goldMode ? '#3d2b05' : '#121824', INK, 6);
+
+    // Progressive CNC scanline reveal
+    const engravedCanvas = buildEngravedPortrait(mvp, game.goldMode);
+    const revealH = Math.floor(artSize * clamp(game.cncProgress, 0, 1));
+
+    if (revealH > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(artX, artY, artSize, revealH);
+      ctx.clip();
+      ctx.drawImage(engravedCanvas, artX, artY, artSize, artSize);
+      ctx.restore();
+    }
+
+    // CNC Gantry & Rotating Spindle Head
+    if (game.phase === 'CNC') {
+      const rows = 28;
+      const rowFloat = game.cncProgress * rows;
+      const rowIndex = Math.floor(rowFloat);
+      const rowFrac = rowFloat - rowIndex;
+      const toolX = artX + (rowIndex % 2 === 0 ? rowFrac * artSize : (1 - rowFrac) * artSize);
+      const toolY = artY + revealH;
+
+      // Horizontal gantry rail
+      roundBox(px + 12, toolY - 72, pw - 24, 26, 6, '#28334a', INK, 5);
+
+      // Spindle housing
+      roundBox(toolX - 38, toolY - 125, 76, 82, 10, '#3a4968', INK, 6);
+      roundBox(toolX - 20, toolY - 45, 40, 24, 4, GOLD, INK, 4);
+
+      // Spinning end-mill bit
+      ctx.beginPath();
+      ctx.moveTo(toolX - 11, toolY - 21);
+      ctx.lineTo(toolX + 11, toolY - 21);
+      ctx.lineTo(toolX, toolY + 4);
+      ctx.closePath();
+      ctx.fillStyle = WHITE;
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+
+      // Hot cutting spot
+      ctx.beginPath();
+      ctx.arc(toolX, toolY, 13, 0, Math.PI * 2);
+      ctx.fillStyle = game.goldMode ? '#fff8b8' : '#ff9d42';
+      ctx.fill();
+
+      game.spawnCNCChips(toolX, toolY, 3);
+      playSfx('cnc');
+    }
+
+    // Engraved Nameplate at bottom of plaque
+    roundBox(px + 65, py + 585, pw - 130, 190, 16, '#0d1322', plateStroke, 5);
+    drawText('WINNING MVP CHAMPION', 540, py + 632, 26, GOLD, 'center', pw - 160);
+    drawText(mvp.name, 540, py + 692, 52, WHITE, 'center', pw - 160);
+    const pct = Math.round(game.cncProgress * 100);
+    drawText(
+      game.phase === 'CNC' ? `MACHINING: ${pct}% · TAP ♥ TO BOOST RPM` : 'FINISHED MASTERPIECE!',
+      540, py + 744, 24, game.goldMode ? GOLD : BLUE_B, 'center', pw - 160
+    );
+
+    // Progress bar
+    roundBox(px + 85, py + 810, pw - 170, 38, 19, INK, plateStroke, 4);
+    const fillW = Math.max(12, (pw - 182) * clamp(game.cncProgress, 0, 1));
+    roundBox(px + 91, py + 816, fillW, 26, 13, game.goldMode ? GOLD : BLUE_B, null, 0);
+  }
+
+  function render() {
+    // 1. Chroma Key Green Floor (#00FF00)
+    ctx.fillStyle = darkPreview ? '#070b16' : GREEN;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    // 2. Top Header & Question Banner
+    roundBox(48, 36, 984, 118, 22, INK, GOLD, 6);
+    drawText('THE CNC JUDGE · TYPE A OR B IN CHAT', 540, 72, 27, GOLD, 'center', 940);
+
+    let statusLine = '';
+    if (game.phase === 'VOTE') statusLine = `VOTING CLOSES IN ${Math.ceil(game.timer)}s · ♥ GROWS YOUR ORB`;
+    else if (game.phase === 'SHRED') statusLine = `SHREDDING LOSERS! TEAM [${game.winningSide}] WINS!`;
+    else if (game.phase === 'CNC') statusLine = `CNC ENGRAVING MVP: ${game.mvp?.name || ''}`;
+    else statusLine = `MASTERPIECE COMPLETE · NEXT ROUND IN ${Math.ceil(game.timer)}s`;
+    drawText(statusLine, 540, 118, 31, WHITE, 'center', 940);
+
+    // 3. Hall of Fame strip (Last engraved MVPs)
+    roundBox(48, 170, 984, 118, 18, INK, '#394b6e', 4);
+    drawText('HALL OF MASTERPIECES:', 215, 229, 23, GOLD, 'center', 300);
+    if (game.hallOfFame.length === 0) {
+      drawText('VOTE [A] OR [B] TO GET YOUR PORTRAIT ENGRAVED!', 660, 229, 22, WHITE, 'center', 620);
+    } else {
+      game.hallOfFame.forEach((h, idx) => {
+        const hx = 415 + idx * 125;
+        const hy = 229;
+        const img = getPlayerImage(h);
         ctx.save();
-        ctx.globalCompositeOperation = "lighter";
-        
-        ctx.beginPath(); ctx.moveTo(laserPos.x, 0); ctx.lineTo(laserPos.x, laserPos.y);
-        ctx.lineWidth = 20; ctx.strokeStyle = 'rgba(0, 242, 254, 0.3)'; ctx.stroke();
-        ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(0, 242, 254, 0.8)'; ctx.stroke();
-        ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-        
-        // Glow bod na desce
-        ctx.beginPath(); ctx.arc(laserPos.x, laserPos.y, 20, 0, Math.PI*2);
-        ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.beginPath(); ctx.arc(hx, hy - 10, 30, 0, Math.PI * 2);
+        ctx.fillStyle = INK; ctx.fill();
+        ctx.clip();
+        ctx.drawImage(img, hx - 30, hy - 40, 60, 60);
         ctx.restore();
+        ctx.beginPath(); ctx.arc(hx, hy - 10, 30, 0, Math.PI * 2);
+        ctx.lineWidth = 4; ctx.strokeStyle = h.gold ? GOLD : BLUE_B; ctx.stroke();
+        drawText(h.name, hx, hy + 34, 15, WHITE, 'center', 110);
+      });
     }
-}
 
-function drawUI() {
-    let topText = state === "VOTE" ? `TIME: ${Math.ceil(roundTimer)}s` : state === "SHRED" ? "LOSERS SHREDDED!" : state === "CNC" ? "ENGRAVING MVP..." : "ROUND OVER";
-    let color = state === "VOTE" && roundTimer <= 10 ? '#FF4136' : '#00f2fe';
-    
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = "900 60px Arial Black"; ctx.lineWidth = 8; ctx.strokeStyle = '#000';
-    
-    // Pozadí pro horní lištu
-    drawRoundedRect(W/2 - 350, 40, 700, 100, 20, 'rgba(10,15,30,0.8)', color, 5);
-    ctx.strokeText(topText, W/2, 90); ctx.fillStyle = color; ctx.fillText(topText, W/2, 90);
-}
+    // 4. Chambers & Balls
+    drawChamber('A');
+    drawChamber('B');
 
-function draw() {
-    let now = performance.now();
-    let dt = Math.min((now - lastTime) / 1000, 0.05);
-    lastTime = now;
-    
-    // Čisté Chroma zelené pozadí pro OBS Minecraft
-    ctx.fillStyle = '#00FF00';
-    ctx.fillRect(0, 0, W, H);
-    
-    // State machine
-    if(state === "VOTE") {
-        roundTimer -= dt;
-        if(roundTimer <= 0) {
-            state = "SHRED"; roundTimer = 4;
-            playTone(80, 'sawtooth', 3.0, 0.3); // Hluboký dunivý zvuk drcení
-        }
-    } else if(state === "SHRED") {
-        roundTimer -= dt;
-        if(roundTimer <= 0) startCNC();
-    } else if(state === "CNC") {
-        let speedMult = 1.0 + (isGoldPlated ? 1.0 : 0);
-        cncProgress += (dt / 15.0) * speedMult; 
-        if(cncProgress >= 1.0) {
-            cncProgress = 1.0; state = "RESULTS"; roundTimer = 6;
-            playTone(400, 'sine', 0.2, 0.1); setTimeout(() => playTone(600, 'sine', 0.5, 0.1), 200);
-        }
-    } else if(state === "RESULTS") {
-        roundTimer -= dt;
-        if(roundTimer <= 0) {
-            state = "VOTE"; roundTimer = ROUND_TIME;
-            balls = []; particles = []; players = {}; isGoldPlated = false; mvpPlayer = null;
-        }
-    }
-    
-    updatePhysics(dt);
-    
-    // Particle update
-    for(let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
-        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 1.5;
-        if(p.type === 'spark') { p.vy += 3000 * dt; } // gravitace na jiskry
-        else { p.size += dt * 30; } // dým se zvětšuje
-        if(p.life <= 0) particles.splice(i, 1);
-    }
-    
-    // Kreslení odzadu dopředu
-    drawCNC();
-    drawTubes();
-    
-    // Kreslení částic
-    ctx.save();
-    for(let p of particles) {
-        if(p.type === 'spark') {
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
-            ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
-        } else {
-            ctx.fillStyle = p.color + p.life + ')';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-        }
-    }
-    ctx.restore();
-    
-    drawUI();
-    requestAnimationFrame(draw);
-}
+    for (const b of game.balls) drawVoterBall(b);
 
-// ==========================================
-// TIKFINITY INTEGRACE
-// ==========================================
-let socket;
-function connectTikfinity() {
-    socket = new WebSocket("ws://localhost:21213/");
-    socket.onopen = () => console.log("TikFinity Connected!");
-    socket.onclose = () => setTimeout(connectTikfinity, 5000);
-    
-    socket.onmessage = (e) => {
+    // Live Vote Percentages at bottom of chambers
+    const counts = game.getCounts();
+    const pctA = counts.total ? Math.round((counts.a / counts.total) * 100) : 50;
+    const pctB = counts.total ? 100 - pctA : 50;
+
+    roundBox(CHAMBER_A.left + 70, CHAMBER_A.bottom - 92, 334, 74, 16, INK, RED_A, 5);
+    drawText(`${pctA}% (${counts.a})`, (CHAMBER_A.left + CHAMBER_A.right) / 2, CHAMBER_A.bottom - 55, 38, RED_A);
+
+    roundBox(CHAMBER_B.left + 70, CHAMBER_B.bottom - 92, 334, 74, 16, INK, BLUE_B, 5);
+    drawText(`${pctB}% (${counts.b})`, (CHAMBER_B.left + CHAMBER_B.right) / 2, CHAMBER_B.bottom - 55, 38, BLUE_B);
+
+    // 5. CNC Engraving Centerpiece (during CNC & SHOWCASE phases)
+    drawCNCEngraverModal();
+
+    // 6. Flying Metal Chips & Sparks
+    for (const ch of game.chips) {
+      ctx.save();
+      ctx.translate(ch.x, ch.y);
+      ctx.rotate(ch.rot);
+      if (ch.isSpark) {
+        roundBox(-4, -4, 8, 8, 4, ch.color, INK, 2);
+      } else {
+        // Curled CNC metal shaving
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, Math.PI * 1.35);
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = INK;
+        ctx.stroke();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = ch.color;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 7. Activity Banner (above avatar zone at y = 1500)
+    if (game.banner && performance.now() < game.banner.until) {
+      roundBox(140, 1485, 800, 64, 16, INK, game.banner.color, 5);
+      drawText(game.banner.text, 540, 1517, 29, game.banner.color, 'center', 760);
+    }
+  }
+
+  // ==========================================
+  // TIKFINITY WEBSOCKET & MAIN LOOP
+  // ==========================================
+  const urlInput = $('url');
+  const statusEl = $('status');
+  const panelEl = $('panel');
+  let mode = 'live', ws = null, connected = false, retry = 0, attempt = 0, closed = false;
+  let packets = 0, accepted = 0, invalid = 0;
+
+  function connect() {
+    clearTimeout(retry);
+    if (ws) { ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null; ws.close(); }
+    connected = false;
+    let target;
+    try {
+      target = new URL(urlInput.value);
+      if (!['ws:', 'wss:'].includes(target.protocol)) return;
+    } catch { return; }
+
+    try {
+      ws = new WebSocket(target.href);
+      const current = ws;
+      const handshake = setTimeout(() => {
+        if (current.readyState === WebSocket.CONNECTING) current.close();
+      }, 12000);
+      ws.onopen = () => { clearTimeout(handshake); connected = true; attempt = 0; };
+      ws.onmessage = e => {
+        if (typeof e.data !== 'string' || e.data.length > 200000) { invalid++; return; }
         try {
-            let msg = JSON.parse(e.data);
-            let event = msg.event || msg.type || "";
-            let data = msg.data || msg;
-            
-            let name = data.nickname || data.uniqueId || "User";
-            let userId = data.uniqueId || data.userId || name;
-            let avatar = data.profilePictureUrl || "";
-            
-            if(!players[userId]) players[userId] = { name: name, avatar: avatar, likes: 0, gifts: 0, voted: false };
-            let p = players[userId];
-            
-            if(event === "chat" && state === "VOTE" && !p.voted) {
-                let text = (data.comment || data.text || "").toUpperCase().trim();
-                if(text === 'A' || text === 'B') {
-                    p.voted = true; spawnBall(userId, name, avatar, text);
-                }
-            }
-            else if(event === "like" && state === "CNC") {
-                p.likes += (data.likeCount || 1);
-                cncProgress += 0.02; // Okamžité zrychlení
-            }
-            else if(event === "gift") {
-                p.gifts += (data.diamondCount || data.coins || 1);
-                if(state === "CNC" && !isGoldPlated) {
-                    isGoldPlated = true; playTone(600, 'square', 0.5, 0.1);
-                }
-            }
-        } catch(err) {}
-    };
-}
-
-// ==========================================
-// ADMIN OVLÁDÁNÍ
-// ==========================================
-document.addEventListener('keydown', (e) => {
-    if(e.key.toLowerCase() === 'h') {
-        let pnl = document.getElementById('admin-panel');
-        pnl.style.display = pnl.style.display === 'none' || pnl.style.display === '' ? 'block' : 'none';
+          packets++;
+          const evt = packet(JSON.parse(e.data));
+          if (!evt) return;
+          if (evt.type === 'streamend') { game.nextRound(); return; }
+          if (mode === 'live' && game.accept(evt)) accepted++;
+        } catch { invalid++; }
+      };
+      ws.onerror = () => {};
+      ws.onclose = () => {
+        clearTimeout(handshake);
+        connected = false;
+        if (!closed) retry = setTimeout(connect, Math.min(30000, 1500 * (2 ** Math.min(attempt++, 5))));
+      };
+    } catch {
+      if (!closed) retry = setTimeout(connect, 30000);
     }
-});
+  }
 
-// Použití picsum.photos pro testování, abys viděl, že profilovky a 3D efekt koulí fungují
-let testId = 1;
-document.getElementById('btn-sound').onclick = unlockAudio;
-document.getElementById('btn-voteA').onclick = () => { if(state==="VOTE") spawnBall("t"+testId, "TesterA", "https://picsum.photos/100?random="+testId++, "A"); };
-document.getElementById('btn-voteB').onclick = () => { if(state==="VOTE") spawnBall("t"+testId, "TesterB", "https://picsum.photos/100?random="+testId++, "B"); };
-document.getElementById('btn-like').onclick = () => { if(state==="CNC") cncProgress += 0.05; };
-document.getElementById('btn-gift').onclick = () => { isGoldPlated = true; };
-document.getElementById('btn-end').onclick = () => { if(state==="VOTE") roundTimer = 0; };
+  // Fixed 60Hz physics step decoupled from monitor refresh rate (144Hz/240Hz smooth)
+  let lastTime = performance.now(), acc = 0, fpsCount = 0, fps = 60, fpsAt = lastTime;
+  const STEP = 1 / 60;
 
-// INIT
-connectTikfinity();
-requestAnimationFrame(draw);
+  function loop(t) {
+    const dt = clamp((t - lastTime) / 1000, 0, 0.1);
+    lastTime = t;
+    acc += dt;
+    let steps = 0;
+    while (acc >= STEP && steps++ < 4) {
+      game.tick(STEP);
+      acc -= STEP;
+    }
+    if (steps >= 4) acc = 0;
 
+    render();
+    fpsCount++;
+    if (t - fpsAt >= 1000) {
+      fps = Math.round((fpsCount * 1000) / (t - fpsAt));
+      fpsAt = t;
+      fpsCount = 0;
+      if (!panelEl.hidden) {
+        statusEl.textContent = `${connected ? 'SOCKET OPEN' : 'SOCKET OFF'} · Mode: ${mode.toUpperCase()} · Phase: ${game.phase} · Balls: ${game.balls.length} · Players: ${game.players.size} · Accepted: ${accepted} · ${fps} FPS`;
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ==========================================
+  // CONTROLS & TEST HARNESS
+  // ==========================================
+  let testSeq = 1;
+  const TEST_NAMES = ['Alex', 'Mia', 'Lucas', 'Emma', 'Noah', 'Chloe', 'Leo', 'Zoe', 'Max', 'Lily', 'Sam', 'Ruby'];
+
+  function spawnTestVoter(side) {
+    const id = 'tester_' + (testSeq++);
+    const name = TEST_NAMES[testSeq % TEST_NAMES.length] + '_' + (testSeq % 99);
+    game.accept({ type: 'chat', id, name, text: side, eventId: 'test:' + performance.now() + ':' + Math.random() });
+  }
+
+  $('toggle').onclick = () => { panelEl.hidden = true; };
+  $('dark').onclick = () => { darkPreview = !darkPreview; };$('sfx').onclick = toggleSound;
+  $('audioStart').onclick = testSound;
+  $('audioTest').onclick = testSound;
+  $('volume').oninput = e => setSoundLevel(Number(e.target.value) / 100);$('connect').onclick = connect;
+
+  $('test').onclick = () => { mode = 'test'; spawnTestVoter('A'); spawnTestVoter('B'); };$('live').onclick = () => { mode = 'live'; game.nextRound(); };
+  $('voteA').onclick = () => spawnTestVoter('A');$('voteB').onclick = () => spawnTestVoter('B');
+  $('heart').onclick = () => { const list = [...game.players.values()]; const p = list[list.length - 1] \vert{}\vert{} { id: 'you', name: 'YOU' }; game.accept({ type: 'like', id: p.id, name: p.name, count: 15 }); };$('gift').onclick = () => {
+    const list = [...game.players.values()];
+    const p = list[list.length - 1] || { id: 'you', name: 'YOU' };
+    game.accept({ type: 'gift', id: p.id, name: p.name, coins: 100 });
+  };
+  $('crowd').onclick = () => { for (let i = 0; i < 30; i++) spawnTestVoter(i \% 2 === 0 ? 'A' : 'B'); };$('skipPhase').onclick = () => {
+    if (game.phase === 'VOTE') game.startShredPhase();
+    else if (game.phase === 'SHRED') game.startCNCPhase();
+    else if (game.phase === 'CNC') game.startShowcasePhase();
+    else game.nextRound();
+  };
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest?.('#sfx,#audioStart,#audioTest') && sound) unlockAudio(true);
+  }, { passive: true });
+
+  document.addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if (sound) unlockAudio(true);
+    const k = e.key.toLowerCase();
+    if (k === 'h') panelEl.hidden = !panelEl.hidden;
+    else if (k === 'a') $('voteA').click();
+    else if (k === 'b') $('voteB').click();
+    else if (k === ' ') { e.preventDefault(); $('heart').click(); }
+    else if (k === 'g') $('gift').click();
+    else if (k === 'n') $('skipPhase').click();
+  });
+
+  window.addEventListener('beforeunload', () => { closed = true; clearTimeout(retry); ws?.close(); });
+
+  updateSoundUI();
+  connect();
+  requestAnimationFrame(loop);
+})();
 </script>
 </body>
 </html>
