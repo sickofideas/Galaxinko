@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Galaxinko Clash & Starlight Forge 7.1</title>
+<title>Galaxinko Clash & Starlight Forge 8.0</title>
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
@@ -58,7 +58,7 @@
 <div id="errBox"></div>
 
 <section id="panel">
-  <b>GALAXINKO: CLASH & STARLIGHT FORGE 7.1 (Press H or Double-Click)</b>
+  <b>GALAXINKO: CLASH & STARLIGHT FORGE 8.0 — 1.5s RETENTION & KO EDITION (Press H)</b>
   <p>
     <button id="toggle" type="button">Hide · H</button>
     <button id="dark" type="button">Chroma / Dark Preview</button>
@@ -136,6 +136,8 @@
   const ARENA_TOP = 436;
   const ARENA_BOTTOM = 1460;
   const GAP_HALF = 16;
+  const KO_LEFT_X = 305;
+  const KO_RIGHT_X = 775;
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -202,15 +204,17 @@
 
   const QUESTIONS = [
     { a: 'BOYS', ea: '👦', b: 'GIRLS', eb: '👧', fa: 'male', fb: 'female' },
+    { a: 'GAMERS', ea: '🎮', b: 'ATHLETES', eb: '⚽', fa: 'male', fb: 'male_alt' },
     { a: 'DOGS', ea: '🐶', b: 'CATS', eb: '🐱', fa: 'dog', fb: 'cat' },
+    { a: 'IPHONE', ea: '🍎', b: 'ANDROID', eb: '🤖', fa: 'female', fb: 'male' },
+    { a: 'NIGHT OWL', ea: '🌙', b: 'EARLY BIRD', eb: '🌅', fa: 'male', fb: 'female' },
     { a: 'PIZZA', ea: '🍕', b: 'BURGER', eb: '🍔', fa: 'male', fb: 'female' },
     { a: 'MESSI', ea: '🐐', b: 'RONALDO', eb: '⚡', fa: 'male', fb: 'male_alt' },
     { a: 'MINECRAFT', ea: '⛏️', b: 'GTA 6', eb: '🚓', fa: 'male', fb: 'female' },
-    { a: 'IPHONE', ea: '🍎', b: 'ANDROID', eb: '🤖', fa: 'female', fb: 'male' },
-    { a: 'SUMMER', ea: '☀️', b: 'WINTER', eb: '❄️', fa: 'female', fb: 'male' },
-    { a: 'COFFEE', ea: '☕', b: 'ENERGY', eb: '⚡', fa: 'female', fb: 'male' },
     { a: 'PC GAMING', ea: '🖥️', b: 'PS5', eb: '🎮', fa: 'male', fb: 'female' },
-    { a: 'NIGHT OWL', ea: '🌙', b: 'EARLY BIRD', eb: '🌅', fa: 'male', fb: 'female' },
+    { a: 'SUMMER', ea: '☀️', b: 'WINTER', eb: '❄️', fa: 'female', fb: 'male' },
+    { a: 'ROBLOX', ea: '🧱', b: 'FORTNITE', eb: '🪂', fa: 'female', fb: 'male' },
+    { a: 'COFFEE', ea: '☕', b: 'ENERGY', eb: '⚡', fa: 'female', fb: 'male' },
     { a: 'COCA-COLA', ea: '🥤', b: 'PEPSI', eb: '🧊', fa: 'male', fb: 'female' },
     { a: 'NETFLIX', ea: '🎬', b: 'YOUTUBE', eb: '▶️', fa: 'female', fb: 'male' },
     { a: 'STRENGTH', ea: '💪', b: 'FLYING', eb: '🦅', fa: 'male', fb: 'female' },
@@ -220,7 +224,6 @@
     { a: 'BATMAN', ea: '🦇', b: 'SPIDER-MAN', eb: '🕷️', fa: 'male', fb: 'male_alt' },
     { a: 'LAMBO', ea: '🏎️', b: 'FERRARI', eb: '🐎', fa: 'male', fb: 'female' },
     { a: 'FOOTBALL', ea: '⚽', b: 'BASKETBALL', eb: '🏀', fa: 'male', fb: 'male_alt' },
-    { a: 'ROBLOX', ea: '🧱', b: 'FORTNITE', eb: '🪂', fa: 'female', fb: 'male' },
     { a: 'KFC', ea: '🍗', b: 'MCDONALDS', eb: '🍟', fa: 'male', fb: 'female' },
     { a: 'ANIME', ea: '⚔️', b: 'MOVIES', eb: '🍿', fa: 'female', fb: 'male' },
     { a: 'FIRE', ea: '🔥', b: 'ICE', eb: '🧊', fa: 'male', fb: 'female' },
@@ -648,10 +651,9 @@
     }
     return p.fallbackCanvas;
   }
-
-  const SHRED_DURATION = 4.0;
-  const FORGE_DURATION = 6.8;
-  const SHOW_DURATION = 5.0;
+  const SHRED_DURATION = 3.8;
+  const FORGE_DURATION = 6.2;
+  const SHOW_DURATION = 4.6;
 
   class ClashForgeGame {
     constructor() {
@@ -677,8 +679,9 @@
       this.qIndex = -1;
       this.question = QUESTIONS[0];
       this.phase = 'VOTE';
-      this.roundDuration = 60;
-      this.timer = 60;
+      this.roundDuration = 28;
+      this.timer = 28;
+      this.isKnockout = false;
       this.forgeProgress = 0;
       this.colorReveal = 0;
       this.forgeSlide = 0;
@@ -702,7 +705,8 @@
       this.banner = null;
       this.round = 0;
       this.lastSpokenCountdown = 6;
-      this.nextBotAt = 1.0;
+      this.lastWelcomeTtsAt = 0;
+      this.nextBotAt = 0.8;
       this.nextBotLikeAt = 2.5;
       this.usedBotHandles = new Set();
       this.nextRound();
@@ -726,20 +730,19 @@
     getTargetBotCrowd() {
       if (!autoCrowdEnabled) return 0;
       const real = this.getRealPlayerCount();
-      if (real >= 14) return 0;
-      if (real >= 8) return 4;
-      if (real >= 4) return 9;
-      if (real >= 1) return 14;
-      return 18;
+      if (real >= 5) return 0;
+      if (real >= 3) return 2;
+      if (real >= 1) return 4;
+      return 6;
     }
 
     getCrowdScale(side) {
       let count = 0;
       for (let i = 0; i < this.balls.length; i++) {
-        if (this.balls[i].side === side) count++;
+        if (this.balls[i].side === side && !this.balls[i].isBot) count++;
       }
-      if (count <= 6) return 1.0;
-      return clamp(Math.pow(6 / count, 0.28), 0.52, 1.0);
+      if (count <= 7) return 1.0;
+      return clamp(Math.pow(7 / count, 0.25), 0.58, 1.0);
     }
 
     updateBumpers() {
@@ -852,17 +855,19 @@
 
     nextRound() {
       this.round++;
-      this.qIndex = (this.qIndex + 1 + Math.floor(Math.random() * 3)) % QUESTIONS.length;
+      this.qIndex = (this.qIndex + 1) % QUESTIONS.length;
       this.question = QUESTIONS[this.qIndex];
       this.phase = 'VOTE';
-      this.roundDuration = 45 + Math.floor(Math.random() * 71);
+      this.roundDuration = 26 + Math.floor(Math.random() * 5);
       this.timer = this.roundDuration;
+      this.isKnockout = false;
       this.lastSpokenCountdown = 6;
       this.forgeProgress = 0;
       this.colorReveal = 0;
       this.forgeSlide = 0;
       this.trapdoorAngle = 0;
       this.crusherY = 0;
+      this.splitX = 540;
       this.targetSplitX = 540;
       this.shovePulseA = 0;
       this.shovePulseB = 0;
@@ -882,8 +887,8 @@
       this.giftMeteors = [];
       this.forgeOrbs = [];
       this.usedBotHandles.clear();
-      this.nextBotAt = 0.6 + Math.random() * 1.0;
-      this.nextBotLikeAt = 2.0 + Math.random() * 1.6;
+      this.nextBotAt = 0.5 + Math.random() * 0.7;
+      this.nextBotLikeAt = 2.0 + Math.random() * 1.5;
       this.updateBumpers();
 
       this.players.forEach(p => {
@@ -892,14 +897,16 @@
         p.roundGifts = 0;
         p.roundScore = 0;
         p.giftTier = 0;
+        p.comboCount = 0;
+        p.needsChatUnlock = false;
       });
 
       const aWord = formatSpokenWord(this.question.a);
       const bWord = formatSpokenWord(this.question.b);
       const prompts = [
-        aWord + ' versus ' + bWord + '! Type A or B in chat to help your side push!',
-        'New clash! ' + aWord + ' or ' + bWord + '? Comment A or B to drop your ball!',
-        'Who wins the push, ' + aWord + ' or ' + bWord + '? Type A or B now!'
+        aWord + ' or ' + bWord + '? Type A or B to push them into the saws!',
+        'Quick round! ' + aWord + ' versus ' + bWord + '! Spam A or B for combo balls!',
+        aWord + ' vs ' + bWord + '! Comment A or B now for an instant knockout!'
       ];
       speakTTS(prompts[this.round % prompts.length], false);
 
@@ -909,7 +916,7 @@
         queued.forEach(item => {
           const p = this.players.get(item.playerId);
           if (p) {
-            p.roundScore += 35;
+            p.roundScore += 50;
             this.castVote(p, item.side, true);
           }
         });
@@ -987,6 +994,8 @@
           roundGifts: 0,
           roundScore: 0,
           giftTier: 0,
+          comboCount: 0,
+          needsChatUnlock: false,
           winStreak: 0,
           isBot: !!e.isBot,
           lastShareAt: -Infinity
@@ -994,7 +1003,7 @@
         this.players.set(p.id, p);
       }
       if (e.name) p.name = clean(e.name);
-      if (e.avatar) { p.avatar = e.avatar; requestPic(p.avatar); }
+      if (e.avatar) { p.avatar = e.avatar; requestPic(e.avatar); }
       [e.id, e.userId].forEach(alias => {
         if (alias && String(alias) !== p.id && this.aliases.size < MAX * 3) {
           this.aliases.set(String(alias), p.id);
@@ -1013,8 +1022,8 @@
       const countA = this.balls.filter(b => b.side === 'A').length;
       const countB = this.balls.filter(b => b.side === 'B').length;
       let side = Math.random() < 0.5 ? 'A' : 'B';
-      if (Math.abs(countA - countB) >= 4) {
-        side = countA < countB ? (Math.random() < 0.72 ? 'A' : 'B') : (Math.random() < 0.72 ? 'B' : 'A');
+      if (Math.abs(countA - countB) >= 2) {
+        side = countA < countB ? 'A' : 'B';
       }
 
       const botPlayer = this.ensurePlayer({
@@ -1024,53 +1033,57 @@
         isBot: true
       });
       botPlayer.side = side;
-      botPlayer.roundScore = 10 + Math.floor(Math.random() * 15);
-      this.spawnBall(botPlayer, side, 0, false, true);
+      botPlayer.roundScore = 5 + Math.floor(Math.random() * 8);
+      this.spawnBall(botPlayer, side, 0, false, true, false);
     }
 
-    spawnBall(p, side, bonusRadius, isClone, isBot) {
+    spawnBall(p, side, bonusRadius, isClone, isBot, isCombo) {
       if (this.balls.length >= 160) return;
       const box = this.getChamberBox(side);
-      const defaultBase = isClone ? 38 : (isBot ? 52 : 62);
-      const baseR = clamp(defaultBase + (bonusRadius || 0), 36, 110);
-      const rScaled = baseR * this.getCrowdScale(side);
-      // Spawn across the outer/middle 75% of the chamber so balls don't drop straight into the narrow gap behind the Titan's head
+      // Bots are small 30px pawns; Real players are GIANT 78px heroes!
+      const defaultBase = isBot ? 30 : (isCombo ? 54 : (isClone ? 44 : 78));
+      const baseR = clamp(defaultBase + (bonusRadius || 0), 26, 118);
+      const rScaled = isBot ? baseR : (baseR * this.getCrowdScale(side));
       const usableW = Math.max(40, (box.right - box.left) - (rScaled + 20) * 2);
-      const randFrac = side === 'A' ? (Math.random() * 0.78) : (0.22 + Math.random() * 0.78);
+      const randFrac = side === 'A' ? (Math.random() * 0.76) : (0.24 + Math.random() * 0.76);
       const x = box.left + rScaled + 20 + randFrac * usableW;
-      const y = box.top + 48 + (isClone ? Math.random() * 35 : 0);
+      const y = box.top + 48 + (isClone || isCombo ? Math.random() * 30 : 0);
+      const now = performance.now();
       const b = {
         playerId: p.id,
         name: p.name,
         side: side,
         x: x, y: y,
-        vx: (Math.random() - 0.5) * 360,
-        vy: 140 + Math.random() * 140,
+        vx: isCombo ? ((side === 'A' ? 1 : -1) * (240 + Math.random() * 180)) : ((Math.random() - 0.5) * 340),
+        vy: isCombo ? (380 + Math.random() * 180) : (160 + Math.random() * 140),
         r: rScaled * 0.5,
         baseR: baseR,
         angle: (Math.random() - 0.5) * 0.5,
         omega: (Math.random() - 0.5) * 5,
-        squashX: 1.22,
-        squashY: 0.78,
-        likeGlowUntil: isBot ? 0 : (performance.now() + 1800),
+        squashX: 1.25,
+        squashY: 0.75,
+        likeGlowUntil: isBot ? 0 : (now + 2400),
+        youBeaconUntil: (!isBot && !isClone && !isCombo) ? (now + 4200) : 0,
         lastKickAt: 0,
         trail: [],
         giftTier: p.giftTier || 0,
         isBot: !!isBot,
-        botScore: p.roundScore || 12,
-        isClone: !!isClone,
+        botScore: p.roundScore || 5,
+        isClone: !!(isClone || isCombo),
+        isCombo: !!isCombo,
         shredded: false
       };
       this.balls.push(b);
 
-      if (side === 'A') this.shovePulseA = 1.0;
-      else this.shovePulseB = 1.0;
+      if (side === 'A') this.shovePulseA = isBot ? 0.35 : 1.15;
+      else this.shovePulseB = isBot ? 0.35 : 1.15;
 
-      this.addShockwave(x, y, 85, side === 'A' ? TEAM_A : TEAM_B);
-      this.addShockwave(this.splitX, 980, 110, side === 'A' ? TEAM_A : TEAM_B);
-
-      if (!isClone) {
-        this.addPopup(x, y - 30, (isBot ? '+1 ' : '★ ') + p.name, side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW, isBot ? 20 : 26);
+      if (!isBot) {
+        this.addShockwave(x, y, isCombo ? 75 : 110, side === 'A' ? TEAM_A : TEAM_B);
+        this.addShockwave(this.splitX, 980, 125, side === 'A' ? TEAM_A : TEAM_B);
+        if (!isClone && !isCombo) {
+          this.addPopup(x, y - 36, '⬇️ YOU! ' + p.name, GOLD_HOT, 30);
+        }
         playSfx('vote', side);
       }
       this.updateChamberLeaders();
@@ -1108,35 +1121,50 @@
       }
       p.side = side;
       p.isBot = false;
-      p.roundScore += fromQueue ? 120 : 100;
-      if (side === 'A') this.shovePulseA = 1.0;
-      else this.shovePulseB = 1.0;
+      p.comboCount = (p.comboCount || 0) + 1;
+      p.roundScore += fromQueue ? 150 : (120 + p.comboCount * 35);
+      if (side === 'A') this.shovePulseA = 1.25;
+      else this.shovePulseB = 1.25;
 
       if (existingBall) {
         existingBall.isBot = false;
-        if (existingBall.side !== side) {
+        existingBall.youBeaconUntil = performance.now() + 3500;
+        if (p.needsChatUnlock) {
+          p.needsChatUnlock = false;
+          existingBall.side = side;
+          existingBall.baseR = Math.min(114, Math.max(94, existingBall.baseR + 22));
+          existingBall.vy = -720;
+          existingBall.squashX = 1.34;
+          existingBall.squashY = 0.68;
+          this.addShockwave(existingBall.x, existingBall.y, 145, GOLD_HOT);
+          this.addPopup(existingBall.x, existingBall.y - 50, '🔥 2X MEGA BALL UNLOCKED!', GOLD_HOT, 30);
+          playSfx('crown', side);
+        } else if (existingBall.side !== side) {
           const box = this.getChamberBox(side);
           existingBall.side = side;
           existingBall.x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 90;
           existingBall.y = box.top + 48;
           existingBall.vx = (Math.random() - 0.5) * 300;
-          existingBall.vy = 120;
+          existingBall.vy = 140;
           existingBall.squashX = 1.24;
           existingBall.squashY = 0.76;
+          this.addPopup(existingBall.x, existingBall.y - 35, '🔄 SWITCHED TO ' + side + '!', GOLD_HOT, 26);
         } else {
-          existingBall.baseR = Math.min(108, existingBall.baseR + 6);
-          existingBall.vy = -640 - Math.random() * 160;
-          existingBall.vx += (Math.random() - 0.5) * 340;
-          existingBall.omega = (Math.random() - 0.5) * 10;
+          // Chat spam = Combo Cannon! Grow main ball AND fire an extra Combo Ball!
+          existingBall.baseR = Math.min(114, existingBall.baseR + 5);
+          existingBall.vy = -580 - Math.random() * 150;
+          existingBall.vx += (Math.random() - 0.5) * 320;
           existingBall.squashX = 0.76;
           existingBall.squashY = 1.26;
-          this.addShockwave(existingBall.x, existingBall.y, 90, side === 'A' ? TEAM_A : TEAM_B);
+          this.spawnBall(p, side, 0, true, false, true);
+          this.addPopup(existingBall.x, existingBall.y - 45, '🔥 COMBO x' + p.comboCount + '!', GOLD_HOT, 28);
         }
         playSfx('vote', side);
         this.updateChamberLeaders();
       } else {
+        p.needsChatUnlock = false;
         const tierInfo = GIFT_TIERS[p.giftTier || 0];
-        this.spawnBall(p, side, tierInfo.ballBonusR, false, false);
+        this.spawnBall(p, side, tierInfo.ballBonusR, false, false, false);
       }
     }
 
@@ -1152,11 +1180,6 @@
       const p = this.ensurePlayer(e);
 
       if (e.type === 'member') {
-        if (this.phase === 'VOTE' && !p.side) {
-          const countA = this.balls.filter(b => b.side === 'A').length;
-          const countB = this.balls.filter(b => b.side === 'B').length;
-          this.castVote(p, countA <= countB ? 'A' : 'B', false);
-        }
         return true;
       }
 
@@ -1165,9 +1188,14 @@
         const countA = this.balls.filter(b => b.side === 'A').length;
         const countB = this.balls.filter(b => b.side === 'B').length;
         const defaultSide = p.side || (countA <= countB ? 'A' : 'B');
-        if (msg === 'A' || msg === '1' || msg.indexOf('A ') === 0 || msg === this.question.a) {
+        const wordA = this.question.a.toUpperCase();
+        const wordB = this.question.b.toUpperCase();
+        const rootA = wordA.slice(0, 3);
+        const rootB = wordB.slice(0, 3);
+
+        if (msg === 'A' || msg === '1' || msg.indexOf('A ') === 0 || msg.indexOf(wordA) !== -1 || (rootA.length >= 3 && msg.indexOf(rootA) !== -1)) {
           this.castVote(p, 'A', false);
-        } else if (msg === 'B' || msg === '2' || msg.indexOf('B ') === 0 || msg === this.question.b) {
+        } else if (msg === 'B' || msg === '2' || msg.indexOf('B ') === 0 || msg.indexOf(wordB) !== -1 || (rootB.length >= 3 && msg.indexOf(rootB) !== -1)) {
           this.castVote(p, 'B', false);
         } else {
           this.castVote(p, defaultSide, false);
@@ -1178,36 +1206,46 @@
       if (e.type === 'like') {
         const count = clamp(e.count || 1, 1, 200);
         p.roundLikes += count;
-        p.roundScore += count * 12;
+        p.roundScore += count * 14;
         if (this.phase === 'VOTE') {
-          if (!p.side) {
+          const isFirstJoin = !p.side;
+          if (isFirstJoin) {
             const countA = this.balls.filter(b => b.side === 'A').length;
             const countB = this.balls.filter(b => b.side === 'B').length;
-            this.castVote(p, countA <= countB ? 'A' : 'B', false);
+            const autoSide = countA <= countB ? 'A' : 'B';
+            p.side = autoSide;
+            p.isBot = false;
+            p.needsChatUnlock = true;
+            this.spawnBall(p, autoSide, 0, false, false, false);
+            if (now - this.lastWelcomeTtsAt > 7500) {
+              this.lastWelcomeTtsAt = now;
+              speakTTS('Welcome ' + p.name + '! Type A or B in chat for double power!', false);
+            }
           }
-          if (p.side === 'A') this.shovePulseA = 1.0;
-          else this.shovePulseB = 1.0;
+          if (p.side === 'A') this.shovePulseA = 1.05;
+          else this.shovePulseB = 1.05;
 
           for (let i = 0; i < this.balls.length; i++) {
             const b = this.balls[i];
             if (b.playerId === p.id && !b.isClone) {
               const tierBonus = GIFT_TIERS[p.giftTier || 0].ballBonusR;
-              b.baseR = clamp(62 + tierBonus + Math.pow(p.roundLikes, 0.58) * 5.5, 62, 110);
-              b.likeGlowUntil = now + 2400;
+              b.baseR = clamp(78 + tierBonus + Math.pow(p.roundLikes, 0.58) * 5.5, 78, 114);
+              b.likeGlowUntil = now + 2600;
+              b.youBeaconUntil = Math.max(b.youBeaconUntil || 0, now + 3200);
               b.vy = -560 - Math.random() * 200;
               b.vx += (Math.random() - 0.5) * 340;
               b.omega = (Math.random() - 0.5) * 12;
               b.squashX = 0.74;
               b.squashY = 1.28;
               this.addShockwave(b.x, b.y, b.r + 55, GOLD);
-              this.addPopup(b.x, b.y - b.r, '♥ +' + count + ' PUSH!', GOLD_HOT, 26);
+              this.addPopup(b.x, b.y - b.r, isFirstJoin ? ('👋 HI ' + p.name + '! TYPE A/B!') : ('♥ +' + count + ' PUSH!'), GOLD_HOT, 26);
             }
           }
           this.addShockwave(this.splitX, 980, 130, GOLD);
           this.updateChamberLeaders();
           playSfx('like', p.side || 'A');
         } else if (this.phase === 'FORGE') {
-          this.forgeProgress = clamp(this.forgeProgress + count * 0.008, 0, 1);
+          this.forgeProgress = clamp(this.forgeProgress + count * 0.010, 0, 1);
           this.addLaserBeam(540 + (Math.random() - 0.5) * 500, 1360, 540, 710, GOLD, '♥ ' + p.name);
           playSfx('like', 'A');
         }
@@ -1317,18 +1355,26 @@
       let a = 0, b = 0;
       for (let i = 0; i < this.balls.length; i++) {
         const ball = this.balls[i];
-        const tierWeight = (ball.giftTier || 0) * 4;
-        const likeWeight = ball.baseR > 66 ? Math.floor((ball.baseR - 56) / 8) : 0;
-        const weight = ball.isClone ? 1 : (1 + likeWeight + tierWeight);
+        let weight = 2;
+        if (!ball.isBot) {
+          if (ball.isClone) {
+            weight = 7;
+          } else {
+            const tierWeight = (ball.giftTier || 0) * 12;
+            const likeWeight = ball.baseR > 78 ? Math.floor((ball.baseR - 74) / 4) : 0;
+            weight = 14 + likeWeight + tierWeight;
+          }
+        }
         if (ball.side === 'A') a += weight;
         else b += weight;
       }
       return { a: a, b: b, total: a + b };
     }
 
-    startShredPhase() {
+    startShredPhase(knockoutTriggered) {
       this.phase = 'SHRED';
       this.timer = SHRED_DURATION;
+      this.isKnockout = !!knockoutTriggered;
       this.trapdoorAngle = 0;
       this.crusherY = 0;
       this.loseTitanY = 0;
@@ -1337,8 +1383,14 @@
       this.loseTitanShredded = false;
       const counts = this.getCounts();
       this.winningSide = counts.a >= counts.b ? 'A' : 'B';
-      this.shake = 14;
+      this.shake = this.isKnockout ? 24 : 14;
       playSfx('shred');
+
+      if (this.isKnockout) {
+        const winWord = formatSpokenWord(this.winningSide === 'A' ? this.question.a : this.question.b);
+        this.addPopup(540, 720, '💥 INSTANT KNOCKOUT! 💥', GOLD_HOT, 44);
+        speakTTS('Knockout! ' + winWord + ' crushes the opposition!', true);
+      }
 
       this.players.forEach(p => {
         if (p.side === this.winningSide) p.winStreak = (p.winStreak || 0) + 1;
@@ -1465,12 +1517,58 @@
       this.shovePulseB = Math.max(0, this.shovePulseB - dt * 2.8);
 
       const counts = this.getCounts();
-      const ratioA = counts.total > 0 ? clamp(counts.a / counts.total, 0.20, 0.80) : 0.5;
+      const ratioA = counts.total > 0 ? clamp(counts.a / counts.total, 0.14, 0.86) : 0.5;
       const pctA = counts.total ? Math.round((counts.a / counts.total) * 100) : 50;
       const pctB = counts.total ? 100 - pctA : 50;
 
       if (this.phase === 'VOTE') {
-        this.targetSplitX = lerp(300, 780, ratioA);
+        this.targetSplitX = lerp(265, 815, ratioA);
+      } else if (this.phase === 'SHRED') {
+        this.targetSplitX = this.winningSide === 'A' ? 740 : 340;
+      } else {
+        this.targetSplitX = 540;
+      }
+      this.splitX += (this.targetSplitX - this.splitX) * Math.min(1, dt * 5.4);
+      this.updateBumpers();
+
+      const loseSide = this.winningSide === 'A' ? 'B' : 'A';
+
+      if (this.phase === 'VOTE') {
+        this.timer -= dt;
+
+        // Instant KO check if wall reaches the left or right plasma saws!
+        if (this.splitX >= KO_RIGHT_X || this.splitX <= KO_LEFT_X) {
+          this.startShredPhase(true);
+          return;
+        }
+
+        const elapsed = this.roundDuration - this.timer;
+        const currentBots = this.balls.filter(b => b.isBot).length;
+        const targetBots = this.getTargetBotCrowd();
+        if (elapsed >= this.nextBotAt && this.timer > 3.0 && currentBots < targetBots) {
+          this.spawnRandomBotVoter();
+          this.nextBotAt = elapsed + 1.5 + Math.random() * 2.2;
+        }
+
+        if (elapsed >= this.nextBotLikeAt && this.timer > 3.0 && currentBots > 0 && this.getRealPlayerCount() === 0) {
+          const botBalls = this.balls.filter(b => b.isBot);
+          if (botBalls.length > 0) {
+            const pick = botBalls[Math.floor(Math.random() * botBalls.length)];
+            pick.vy = -380 - Math.random() * 120;
+            pick.vx += (Math.random() - 0.5) * 220;
+            if (pick.side === 'A') this.shovePulseA = 0.55;
+            else this.shovePulseB = 0.55;
+          }
+          this.nextBotLikeAt = elapsed + 2.4 + Math.random() * 2.2;
+        }
+
+        const secLeft = Math.ceil(this.timer);
+        if (secLeft <= 5 && secLeft >= 1 && secLeft < this.lastSpokenCountdown) {
+          this.lastSpokenCountdown = secLeft;
+          speakTTS(String(secLeft), true);
+        }
+
+        if (this.timer <= 0) this.startShredPhase(false);
       } else if (this.phase === 'SHRED') {
         this.targetSplitX = this.winningSide === 'A' ? 700 : 380;
       } else {
@@ -2141,46 +2239,50 @@
 
       const pushDir = pctA >= pctB ? '>>> PUSHING >>>' : '<<< PUSHING <<<';
       const pushCol = pctA >= pctB ? TEAM_A_GLOW : TEAM_B_GLOW;
-      gradPanel(splitX - 135, 515, 270, 50, 16, '#090d16', '#1e293b', GOLD, 3.5);
-      drawText(pushDir, splitX, 540, 24, pushCol, 'center', 250);
+      gradPanel(splitX - 115, 488, 230, 44, 14, '#090d16', '#1e293b', GOLD, 3);
+      drawText(pushDir, splitX, 510, 21, pushCol, 'center', 210);
       ctx.restore();
     }
   }
 
   function drawVoterBall(b, now) {
-    const p = game.players.get(b.playerId) || { id: b.playerId, name: b.name, side: b.side, winStreak: 0, giftTier: 0, roundLikes: 0 };
+    const p = game.players.get(b.playerId) || { id: b.playerId, name: b.name, side: b.side, winStreak: 0, giftTier: 0, roundLikes: 0, comboCount: 0, needsChatUnlock: false };
     const img = getPlayerImage(p);
     const gTier = b.giftTier || p.giftTier || 0;
     const tierInfo = GIFT_TIERS[gTier];
-    const isLeader = !b.isClone && ((b.side === 'A' && game.leaderA === b.playerId) || (b.side === 'B' && game.leaderB === b.playerId));
-    const isLiked = now < (b.likeGlowUntil || 0) || (p.roundLikes >= 10);
+    const isLeader = !b.isClone && !b.isBot && ((b.side === 'A' && game.leaderA === b.playerId) || (b.side === 'B' && game.leaderB === b.playerId));
+    const isLiked = !b.isBot && (now < (b.likeGlowUntil || 0) || (p.roundLikes >= 5));
+    const showYouBeacon = !b.isBot && !b.isClone && now < (b.youBeaconUntil || 0);
 
-    const col = gTier > 0 ? tierInfo.border : (b.side === 'A' ? TEAM_A : TEAM_B);
+    const col = b.isBot ? (b.side === 'A' ? '#9f1239' : '#0369a1') : (gTier > 0 ? tierInfo.border : (b.side === 'A' ? TEAM_A : TEAM_B));
     const glowCol = gTier > 0 ? tierInfo.glow : (b.side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW);
 
-    for (let i = 0; i < b.trail.length; i++) {
-      const tr = b.trail[i];
-      ctx.beginPath();
-      ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.5, 0, Math.PI * 2);
-      ctx.fillStyle = col;
-      ctx.fill();
+    if (!b.isBot) {
+      for (let i = 0; i < b.trail.length; i++) {
+        const tr = b.trail[i];
+        ctx.beginPath();
+        ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.fill();
+      }
     }
 
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.scale(b.squashX, b.squashY);
+    if (b.isBot) ctx.globalAlpha = 0.72;
 
-    if (isLeader || gTier >= 2 || isLiked) {
-      const auraR = b.r + 9 + Math.sin(now * 0.016) * 4;
+    if (!b.isBot && (isLeader || gTier >= 1 || isLiked || showYouBeacon)) {
+      const auraR = b.r + 11 + Math.sin(now * 0.018) * 5;
       ctx.beginPath();
       ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-      ctx.lineWidth = isLeader ? 6 : 4.5;
-      ctx.strokeStyle = isLeader ? GOLD : (gTier >= 2 ? tierInfo.glow : GOLD_HOT);
+      ctx.lineWidth = showYouBeacon ? 8 : (isLeader ? 6.5 : 5);
+      ctx.strokeStyle = showYouBeacon ? GOLD_HOT : (isLeader ? GOLD : (gTier >= 2 ? tierInfo.glow : GOLD_HOT));
       ctx.stroke();
     }
 
     ctx.beginPath();
-    ctx.arc(0, 0, b.r + 5, 0, Math.PI * 2);
+    ctx.arc(0, 0, b.r + (b.isBot ? 3 : 6), 0, Math.PI * 2);
     ctx.fillStyle = OUTLINE;
     ctx.fill();
 
@@ -2204,64 +2306,83 @@
 
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 1, 0, Math.PI * 2);
-    ctx.lineWidth = (gTier > 0 || isLiked || !b.isBot) ? 6.5 : 5;
+    ctx.lineWidth = b.isBot ? 3.5 : 7.5;
     ctx.strokeStyle = isLiked && gTier === 0 ? GOLD : col;
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(0, 0, b.r - 4, -Math.PI * 0.75, -Math.PI * 0.15);
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = glowCol;
-    ctx.stroke();
+    if (!b.isBot) {
+      ctx.beginPath();
+      ctx.arc(0, 0, b.r - 4, -Math.PI * 0.75, -Math.PI * 0.15);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = glowCol;
+      ctx.stroke();
+    }
 
     ctx.restore();
 
-    if (isLeader && game.phase === 'VOTE') {
+    // Nameless bots have zero text clutter! Only real players get giant badges & names.
+    if (b.isBot) return;
+
+    if (showYouBeacon && game.phase === 'VOTE') {
+      const bounce = Math.sin(now * 0.018) * 8;
+      const tagY = b.y - b.r * b.squashY - 38 + bounce;
+      gradPanel(b.x - 105, tagY - 22, 210, 40, 14, GOLD, '#b45309', OUTLINE, 4);
+      drawText('⬇️ YOU! (' + b.name + ')', b.x, tagY - 2, 20, OUTLINE, 'center', 196, WHITE);
+    } else if (p.needsChatUnlock && !b.isClone && game.phase === 'VOTE') {
+      const bob = Math.sin(now * 0.015) * 5;
+      const tagY = b.y - b.r * b.squashY - 26 + bob;
+      gradPanel(b.x - 130, tagY - 18, 260, 34, 12, '#090d16', '#1e293b', GOLD_HOT, 3);
+      drawText('💬 TYPE A/B FOR 2X SIZE!', b.x, tagY - 1, 18, GOLD_HOT, 'center', 246);
+    } else if (isLeader && game.phase === 'VOTE') {
       const bob = Math.sin(now * 0.012) * 4;
-      drawText('👑 #1 MVP', b.x, b.y - b.r * b.squashY - 18 + bob, 22, GOLD, 'center', 160);
+      drawText('👑 #1 MVP', b.x, b.y - b.r * b.squashY - 20 + bob, 23, GOLD, 'center', 170);
     }
 
     if (!b.isClone) {
+      const comboStr = (p.comboCount && p.comboCount >= 2) ? (' x' + p.comboCount) : '';
       const streakStr = (p.winStreak && p.winStreak >= 2) ? (' 🔥' + p.winStreak) : '';
-      drawText(b.name + streakStr, b.x, b.y + b.r * b.squashY + 16, 19, (gTier > 0 || isLiked) ? GOLD_HOT : WHITE, 'center', Math.max(115, b.r * 2.8));
+      drawText(b.name + comboStr + streakStr, b.x, b.y + b.r * b.squashY + 18, 22, GOLD_HOT, 'center', Math.max(150, b.r * 3.0));
+    } else if (b.isCombo) {
+      drawText('x' + (p.comboCount || 2), b.x, b.y, 24, GOLD_HOT, 'center', 80);
     }
   }
 
   function drawTopBarAndHeaders(pctA, pctB, counts, now) {
-    gradPanel(42, 16, 996, 128, 26, '#161f33', '#090d16', GOLD, 4);
-
-    gradPanel(58, 30, 175, 100, 18, '#3b2a08', '#1c1101', GOLD, 3);
-    drawText('🏆 HALL OF', 145, 60, 22, GOLD_HOT, 'center', 160);
-    drawText('CHAMPIONS', 145, 95, 22, WHITE, 'center', 160);
+    // 1. Compact Hall of Champions strip
+    gradPanel(42, 16, 996, 114, 24, '#161f33', '#090d16', GOLD, 4);
+    gradPanel(56, 28, 162, 90, 16, '#3b2a08', '#1c1101', GOLD, 3);
+    drawText('🏆 WINNERS', 137, 56, 21, GOLD_HOT, 'center', 148);
+    drawText('HALL OF FAME', 137, 86, 17, WHITE, 'center', 148);
 
     const maxShow = Math.min(7, game.hallOfFame.length);
     for (let idx = 0; idx < maxShow; idx++) {
       const h = game.hallOfFame[idx];
-      const hx = 292 + idx * 112;
-      const hy = 66;
+      const hx = 282 + idx * 114;
+      const hy = 61;
       const img = getPlayerImage(h);
       const hTier = GIFT_TIERS[h.tier || 0];
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(hx, hy, 29, 0, Math.PI * 2);
+      ctx.arc(hx, hy, 27, 0, Math.PI * 2);
       ctx.fillStyle = OUTLINE;
       ctx.fill();
       ctx.clip();
-      ctx.drawImage(img, hx - 29, hy - 29, 58, 58);
+      ctx.drawImage(img, hx - 27, hy - 27, 54, 54);
       ctx.restore();
 
       ctx.beginPath();
-      ctx.arc(hx, hy, 29, 0, Math.PI * 2);
+      ctx.arc(hx, hy, 27, 0, Math.PI * 2);
       ctx.lineWidth = 4;
       ctx.strokeStyle = idx === 0 ? GOLD_HOT : hTier.border;
       ctx.stroke();
 
-      drawText('👑', hx, hy - 31, 18, GOLD);
-      drawText(h.name, hx, hy + 46, 16, idx === 0 ? GOLD_HOT : WHITE, 'center', 104);
+      drawText('👑', hx, hy - 29, 17, GOLD);
+      drawText(h.name, hx, hy + 42, 16, idx === 0 ? GOLD_HOT : WHITE, 'center', 104);
     }
 
-    const barX = 42, barY = 154, barW = 996, barH = 68;
+    // 2. Clean Tug-of-War Bar with KO Saws indicator & fast timer
+    const barX = 42, barY = 140, barW = 996, barH = 66;
     gradPanel(barX, barY, barW, barH, 22, '#090d16', '#090d16', OUTLINE, 6);
 
     const fillWA = Math.round(clamp(pctA / 100, 0.12, 0.88) * (barW - 12));
@@ -2270,26 +2391,22 @@
     gradPanel(barX + 6, barY + 6, fillWA, barH - 12, 16, TEAM_A, TEAM_A_DARK, TEAM_A_GLOW, 2);
     gradPanel(barX + 6 + fillWA, barY + 6, fillWB, barH - 12, 16, TEAM_B, TEAM_B_DARK, TEAM_B_GLOW, 2);
 
-    const ctaPulse = 1 + Math.sin(now * 0.01) * 0.03;
-    ctx.save();
-    ctx.translate(barX + 235, barY + barH / 2);
-    ctx.scale(ctaPulse, ctaPulse);
-    drawText('💬 TYPE [A] TO PUSH RIGHT!', 0, 0, 23, WHITE, 'center', 420);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(barX + barW - 235, barY + barH / 2);
-    ctx.scale(ctaPulse, ctaPulse);
-    drawText('💬 TYPE [B] TO PUSH LEFT!', 0, 0, 23, WHITE, 'center', 420);
-    ctx.restore();
+    drawText('⚙️ KO ZONE', barX + 105, barY + barH / 2, 21, GOLD_HOT, 'center', 180);
+    drawText('KO ZONE ⚙️', barX + barW - 105, barY + barH / 2, 21, GOLD_HOT, 'center', 180);
 
     const isUrgent = game.phase === 'VOTE' && game.timer <= 10;
     const timerCol = isUrgent ? '#ef4444' : GOLD;
-    gradPanel(540 - 92, barY - 6, 184, barH + 12, 24, isUrgent ? '#7f1d1d' : '#0f172a', '#090d16', timerCol, 5);
-    const timeStr = game.phase === 'VOTE' ? ('⏱ ' + Math.ceil(game.timer) + 's') : game.phase;
-    drawText(timeStr, 540, barY + barH / 2, 32, isUrgent ? WHITE : GOLD_HOT, 'center', 165);
+    const timerPulse = isUrgent ? (1 + Math.sin(now * 0.025) * 0.08) : 1;
+    ctx.save();
+    ctx.translate(540, barY + barH / 2);
+    ctx.scale(timerPulse, timerPulse);
+    gradPanel(-105, -barH / 2 - 6, 210, barH + 12, 24, isUrgent ? '#7f1d1d' : '#0f172a', '#090d16', timerCol, 5);
+    const timeStr = game.phase === 'VOTE' ? ('⏱ ' + Math.ceil(game.timer) + 's') : (game.isKnockout && game.phase === 'SHRED' ? '💥 K.O.!' : game.phase);
+    drawText(timeStr, 0, 0, 34, isUrgent ? WHITE : GOLD_HOT, 'center', 190);
+    ctx.restore();
 
-    const hdrY = 234, hdrH = 186;
+    // 3. Ultra-Clean 3-Element Team Cards (Instant 1.5s comprehension)
+    const hdrY = 220, hdrH = 198;
     const cardW = 482;
     const cardAX = 42;
     const cardBX = 556;
@@ -2299,40 +2416,41 @@
     const aLeads = pctA > pctB;
     const bLeads = pctB > pctA;
     const leadPulse = 1 + Math.sin(now * 0.016) * 0.085;
+    const ctaPulse = 1 + Math.sin(now * 0.014) * 0.04;
 
     const borderA = aLeads ? GOLD_HOT : '#fda4af';
     gradPanel(cardAX, hdrY, cardW, hdrH, 28, TEAM_A, TEAM_A_DARK, borderA, aLeads ? 7 : 4.5);
-    if (aLeads) {
-      gradPanel(cxA - 95, hdrY - 16, 190, 34, 12, GOLD, '#b45309', OUTLINE, 3);
-      drawText('👑 LEADING!', cxA, hdrY + 1, 19, OUTLINE, 'center', 175, WHITE);
-    }
-    drawText(game.question.ea + ' ' + game.question.a, cxA - 88, hdrY + 58, 42, WHITE, 'center', 290);
+    drawText(game.question.ea + ' ' + game.question.a, cxA - 82, hdrY + 62, 46, WHITE, 'center', 295);
 
     ctx.save();
-    ctx.translate(cardAX + cardW - 105, hdrY + 62);
+    ctx.translate(cardAX + cardW - 102, hdrY + 62);
     if (aLeads) ctx.scale(leadPulse, leadPulse);
-    drawText(pctA + '%', 0, 0, aLeads ? 64 : 52, aLeads ? GOLD_HOT : WHITE, 'center', 180);
+    drawText(pctA + '%', 0, 0, aLeads ? 66 : 54, aLeads ? GOLD_HOT : WHITE, 'center', 180);
     ctx.restore();
 
-    gradPanel(cardAX + 24, hdrY + 118, cardW - 48, 52, 16, '#090d16', '#1e293b', aLeads ? GOLD : TEAM_A_GLOW, 3.5);
-    drawText('👇 COMMENT  "A"  IN CHAT  (' + counts.a + ' PTS)', cxA, hdrY + 144, 24, GOLD_HOT, 'center', cardW - 64);
+    ctx.save();
+    ctx.translate(cxA, hdrY + 148);
+    ctx.scale(ctaPulse, ctaPulse);
+    gradPanel(-cardW / 2 + 22, -30, cardW - 44, 60, 18, '#090d16', '#1e293b', GOLD_HOT, 4);
+    drawText('💬 TYPE:  A', 0, 0, 33, GOLD_HOT, 'center', cardW - 60);
+    ctx.restore();
 
     const borderB = bLeads ? GOLD_HOT : '#a5f3fc';
     gradPanel(cardBX, hdrY, cardW, hdrH, 28, TEAM_B, TEAM_B_DARK, borderB, bLeads ? 7 : 4.5);
-    if (bLeads) {
-      gradPanel(cxB - 95, hdrY - 16, 190, 34, 12, GOLD, '#b45309', OUTLINE, 3);
-      drawText('👑 LEADING!', cxB, hdrY + 1, 19, OUTLINE, 'center', 175, WHITE);
-    }
-    drawText(game.question.eb + ' ' + game.question.b, cxB - 88, hdrY + 58, 42, WHITE, 'center', 290);
+    drawText(game.question.eb + ' ' + game.question.b, cxB - 82, hdrY + 62, 46, WHITE, 'center', 295);
 
     ctx.save();
-    ctx.translate(cardBX + cardW - 105, hdrY + 62);
+    ctx.translate(cardBX + cardW - 102, hdrY + 62);
     if (bLeads) ctx.scale(leadPulse, leadPulse);
-    drawText(pctB + '%', 0, 0, bLeads ? 64 : 52, bLeads ? GOLD_HOT : WHITE, 'center', 180);
+    drawText(pctB + '%', 0, 0, bLeads ? 66 : 54, bLeads ? GOLD_HOT : WHITE, 'center', 180);
     ctx.restore();
 
-    gradPanel(cardBX + 24, hdrY + 118, cardW - 48, 52, 16, '#090d16', '#1e293b', bLeads ? GOLD : TEAM_B_GLOW, 3.5);
-    drawText('👇 COMMENT  "B"  IN CHAT  (' + counts.b + ' PTS)', cxB, hdrY + 144, 24, GOLD_HOT, 'center', cardW - 64);
+    ctx.save();
+    ctx.translate(cxB, hdrY + 148);
+    ctx.scale(ctaPulse, ctaPulse);
+    gradPanel(-cardW / 2 + 22, -30, cardW - 44, 60, 18, '#090d16', '#1e293b', GOLD_HOT, 4);
+    drawText('💬 TYPE:  B', 0, 0, 33, GOLD_HOT, 'center', cardW - 60);
+    ctx.restore();
 
     const vsPulse = Math.sin(now * 0.015) * 3;
     ctx.beginPath();
@@ -2406,13 +2524,22 @@
 
     ctx.restore();
 
+    // Always-visible Edge Plasma Saws so viewers immediately see the knockout danger!
+    if (game.phase === 'VOTE' || isLosingShred) {
+      const edgeX = side === 'A' ? box.left + 6 : box.right - 6;
+      const spinDir = side === 'A' ? 1 : -1;
+      for (let sy = box.top + 135; sy <= box.bottom - 95; sy += 195) {
+        drawPlasmaSaw(edgeX, sy, 28, game.sawAngle * spinDir, side === 'A' ? TEAM_A : TEAM_B);
+      }
+    }
+
     if (isLosingShred) {
       const step = Math.max(70, w / 4);
       for (let sx = box.left + 48; sx <= box.right - 48; sx += step) {
         drawPlasmaSaw(sx, box.bottom + 24, 36, game.sawAngle * (Math.round(sx) % 2 === 0 ? 1 : -1), TEAM_A);
       }
     } else if (game.phase === 'SHRED' && game.winningSide === side) {
-      drawText('🏆 WINNING SIDE 🏆', cx, box.top + 65, 36, GOLD, 'center', w - 30);
+      drawText(game.isKnockout ? '💥 KNOCKOUT WIN! 💥' : '🏆 WINNING SIDE 🏆', cx, box.top + 65, 36, GOLD, 'center', w - 30);
     }
   }
 
