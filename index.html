@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Galaxinko Clash & Starlight Forge 8.0</title>
+<title>Galaxinko Clash & Starlight Forge 8.7</title>
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
@@ -58,10 +58,10 @@
 <div id="errBox"></div>
 
 <section id="panel">
-  <b>GALAXINKO: CLASH & STARLIGHT FORGE 8.0 — 1.5s RETENTION & KO EDITION (Press H)</b>
+  <b>GALAXINKO: CLASH & STARLIGHT FORGE 8.7 — MAX GREEN SCREEN & 50-120s EDITION (Press H)</b>
   <p>
     <button id="toggle" type="button">Hide · H</button>
-    <button id="dark" type="button">Chroma / Dark Preview</button>
+    <button id="dark" type="button">BG: CHROMA / CYBER</button>
     <button id="sfx" type="button">SOUND ON</button>
     <button id="ttsBtn" type="button">VOICE TTS: ON</button>
     <button id="botBtn" type="button">AUTO CROWD: ON</button>
@@ -202,37 +202,312 @@
     return GIFT_TIERS[0];
   }
 
-  const QUESTIONS = [
-    { a: 'BOYS', ea: '👦', b: 'GIRLS', eb: '👧', fa: 'male', fb: 'female' },
-    { a: 'GAMERS', ea: '🎮', b: 'ATHLETES', eb: '⚽', fa: 'male', fb: 'male_alt' },
-    { a: 'DOGS', ea: '🐶', b: 'CATS', eb: '🐱', fa: 'dog', fb: 'cat' },
-    { a: 'IPHONE', ea: '🍎', b: 'ANDROID', eb: '🤖', fa: 'female', fb: 'male' },
-    { a: 'NIGHT OWL', ea: '🌙', b: 'EARLY BIRD', eb: '🌅', fa: 'male', fb: 'female' },
-    { a: 'PIZZA', ea: '🍕', b: 'BURGER', eb: '🍔', fa: 'male', fb: 'female' },
-    { a: 'MESSI', ea: '🐐', b: 'RONALDO', eb: '⚡', fa: 'male', fb: 'male_alt' },
-    { a: 'MINECRAFT', ea: '⛏️', b: 'GTA 6', eb: '🚓', fa: 'male', fb: 'female' },
-    { a: 'PC GAMING', ea: '🖥️', b: 'PS5', eb: '🎮', fa: 'male', fb: 'female' },
-    { a: 'SUMMER', ea: '☀️', b: 'WINTER', eb: '❄️', fa: 'female', fb: 'male' },
-    { a: 'ROBLOX', ea: '🧱', b: 'FORTNITE', eb: '🪂', fa: 'female', fb: 'male' },
-    { a: 'COFFEE', ea: '☕', b: 'ENERGY', eb: '⚡', fa: 'female', fb: 'male' },
-    { a: 'COCA-COLA', ea: '🥤', b: 'PEPSI', eb: '🧊', fa: 'male', fb: 'female' },
-    { a: 'NETFLIX', ea: '🎬', b: 'YOUTUBE', eb: '▶️', fa: 'female', fb: 'male' },
-    { a: 'STRENGTH', ea: '💪', b: 'FLYING', eb: '🦅', fa: 'male', fb: 'female' },
-    { a: 'BEACH', ea: '🏖️', b: 'MOUNTAINS', eb: '🏔️', fa: 'female', fb: 'male' },
-    { a: 'SWEET', ea: '🍩', b: 'SALTY', eb: '🥨', fa: 'female', fb: 'male' },
-    { a: 'TACOS', ea: '🌮', b: 'SUSHI', eb: '🍣', fa: 'male', fb: 'female' },
-    { a: 'BATMAN', ea: '🦇', b: 'SPIDER-MAN', eb: '🕷️', fa: 'male', fb: 'male_alt' },
-    { a: 'LAMBO', ea: '🏎️', b: 'FERRARI', eb: '🐎', fa: 'male', fb: 'female' },
-    { a: 'FOOTBALL', ea: '⚽', b: 'BASKETBALL', eb: '🏀', fa: 'male', fb: 'male_alt' },
-    { a: 'KFC', ea: '🍗', b: 'MCDONALDS', eb: '🍟', fa: 'male', fb: 'female' },
-    { a: 'ANIME', ea: '⚔️', b: 'MOVIES', eb: '🍿', fa: 'female', fb: 'male' },
-    { a: 'FIRE', ea: '🔥', b: 'ICE', eb: '🧊', fa: 'male', fb: 'female' },
-    { a: 'ZOMBIES', ea: '🧟', b: 'ALIENS', eb: '🛸', fa: 'male', fb: 'female' },
-    { a: 'DRAGONS', ea: '🐉', b: 'DINOSAURS', eb: '🦖', fa: 'male', fb: 'male_alt' },
-    { a: 'GOKU', ea: '🟠', b: 'NARUTO', eb: '🍥', fa: 'male', fb: 'male_alt' },
-    { a: 'SHARK', ea: '🦈', b: 'LION', eb: '🦁', fa: 'male', fb: 'male_alt' },
-    { a: 'SAMURAI', ea: '🥷', b: 'VIKING', eb: '🪓', fa: 'male', fb: 'male_alt' }
+  const RAW_QUESTION_PAIRS = [
+    ['BOYS', '👦', 'GIRLS', '👧', 'male', 'female'],
+    ['GAMERS', '🎮', 'ATHLETES', '⚽', 'male', 'male_alt'],
+    ['DOGS', '🐶', 'CATS', '🐱', 'dog', 'cat'],
+    ['IPHONE', '🍎', 'ANDROID', '🤖', 'female', 'male'],
+    ['NIGHT OWL', '🌙', 'EARLY BIRD', '🌅', 'male', 'female'],
+    ['PIZZA', '🍕', 'BURGER', '🍔', 'male', 'female'],
+    ['MESSI', '🐐', 'RONALDO', '⚡', 'male', 'male_alt'],
+    ['MINECRAFT', '⛏️', 'GTA 6', '🚓', 'male', 'female'],
+    ['PC GAMING', '🖥️', 'PS5', '🎮', 'male', 'female'],
+    ['SUMMER', '☀️', 'WINTER', '❄️', 'female', 'male'],
+    ['ROBLOX', '🧱', 'FORTNITE', '🪂', 'female', 'male'],
+    ['COFFEE', '☕', 'ENERGY', '⚡', 'female', 'male'],
+    ['COCA-COLA', '🥤', 'PEPSI', '🧊', 'male', 'female'],
+    ['NETFLIX', '🎬', 'YOUTUBE', '▶️', 'female', 'male'],
+    ['STRENGTH', '💪', 'FLYING', '🦅', 'male', 'female'],
+    ['BEACH', '🏖️', 'MOUNTAINS', '🏔️', 'female', 'male'],
+    ['SWEET', '🍩', 'SALTY', '🥨', 'female', 'male'],
+    ['TACOS', '🌮', 'SUSHI', '🍣', 'male', 'female'],
+    ['BATMAN', '🦇', 'SPIDER-MAN', '🕷️', 'male', 'male_alt'],
+    ['LAMBO', '🏎️', 'FERRARI', '🐎', 'male', 'female'],
+    ['FOOTBALL', '⚽', 'BASKETBALL', '🏀', 'male', 'male_alt'],
+    ['KFC', '🍗', 'MCDONALDS', '🍟', 'male', 'female'],
+    ['ANIME', '⚔️', 'MOVIES', '🍿', 'female', 'male'],
+    ['FIRE', '🔥', 'ICE', '🧊', 'male', 'female'],
+    ['ZOMBIES', '🧟', 'ALIENS', '🛸', 'male', 'female'],
+    ['DRAGONS', '🐉', 'DINOSAURS', '🦖', 'male', 'male_alt'],
+    ['GOKU', '🟠', 'NARUTO', '🍥', 'male', 'male_alt'],
+    ['SHARK', '🦈', 'LION', '🦁', 'male', 'male_alt'],
+    ['SAMURAI', '🥷', 'VIKING', '🪓', 'male', 'male_alt'],
+    ['NUTELLA', '🍫', 'PEANUT', '🥜', 'female', 'male'],
+    ['TEA', '🍵', 'HOT CHOCO', '☕', 'female', 'male'],
+    ['KEBAB', '🌯', 'GYROS', '🥙', 'male', 'male_alt'],
+    ['RAMEN', '🍜', 'PHO', '🍲', 'female', 'male'],
+    ['ICE CREAM', '🍦', 'GELATO', '🍨', 'female', 'male'],
+    ['PANCAKES', '🥞', 'WAFFLES', '🧇', 'female', 'male'],
+    ['BACON', '🥓', 'SAUSAGE', '🌭', 'male', 'male_alt'],
+    ['APPLE', '🍎', 'BANANA', '🍌', 'female', 'male'],
+    ['STRAWBERRY', '🍓', 'MANGO', '🥭', 'female', 'male'],
+    ['WATERMELON', '🍉', 'PINEAPPLE', '🍍', 'female', 'male'],
+    ['CHEESE', '🧀', 'CHOCOLATE', '🍫', 'male', 'female'],
+    ['STEAK', '🥩', 'CHICKEN', '🍗', 'male', 'female'],
+    ['PASTA', '🍝', 'RICE', '🍚', 'female', 'male'],
+    ['HOT DOG', '🌭', 'SANDWICH', '🥪', 'male', 'female'],
+    ['CROISSANT', '🥐', 'BAGEL', '🥯', 'female', 'male'],
+    ['POPCORN', '🍿', 'NACHOS', '🧀', 'female', 'male'],
+    ['SPICY', '🌶️', 'MILD', '🍯', 'male', 'female'],
+    ['MILK', '🥛', 'JUICE', '🧃', 'male', 'female'],
+    ['RED BULL', '⚡', 'MONSTER', '🟢', 'male', 'male_alt'],
+    ['CAKE', '🍰', 'PIE', '🥧', 'female', 'male'],
+    ['COOKIES', '🍪', 'BROWNIE', '🍫', 'female', 'male'],
+    ['MILK CHOCO', '🍫', 'DARK CHOCO', '⬛', 'female', 'male'],
+    ['FRIES', '🍟', 'ONION RINGS', '🧅', 'male', 'female'],
+    ['KETCHUP', '🍅', 'MAYO', '🥚', 'male', 'female'],
+    ['DUMPLINGS', '🥟', 'SPRING ROLL', '🥢', 'female', 'male'],
+    ['SALAD', '🥗', 'SOUP', '🍲', 'female', 'male'],
+    ['SHRIMP', '🦐', 'SALMON', '🐟', 'female', 'male'],
+    ['GARLIC BREAD', '🥖', 'CHEESE BREAD', '🧀', 'male', 'female'],
+    ['LEMONADE', '🍋', 'BUBBLE TEA', '🧋', 'male', 'female'],
+    ['SNICKERS', '🍫', 'TWIX', '🍬', 'male', 'female'],
+    ['KITKAT', '🔴', 'OREO', '⚫', 'male', 'female'],
+    ['SKITTLES', '🌈', 'M&MS', '🍫', 'female', 'male'],
+    ['GUMMY BEARS', '🐻', 'LOLLIPOP', '🍭', 'male', 'female'],
+    ['AVOCADO', '🥑', 'TOMATO', '🍅', 'female', 'male'],
+    ['WINGS', '🍗', 'NUGGETS', '🍗', 'male', 'female'],
+    ['BURRITO', '🌯', 'QUESADILLA', '🌮', 'male', 'female'],
+    ['CEREAL', '🥣', 'TOAST', '🍞', 'male', 'female'],
+    ['HONEY', '🍯', 'MAPLE SYRUP', '🍁', 'female', 'male'],
+    ['ICED COFFEE', '🧊', 'HOT COFFEE', '☕', 'female', 'male'],
+    ['STILL WATER', '💧', 'SPARKLING', '🫧', 'male', 'female'],
+    ['GRAPES', '🍇', 'CHERRIES', '🍒', 'female', 'male'],
+    ['PEACH', '🍑', 'PEAR', '🍐', 'female', 'male'],
+    ['COCONUT', '🥥', 'KIWI', '🥝', 'male', 'female'],
+    ['BLUEBERRY', '🫐', 'RASPBERRY', '🍓', 'male', 'female'],
+    ['PRETZEL', '🥨', 'CHURROS', '🥐', 'male', 'female'],
+    ['BBQ RIBS', '🍖', 'BRISKET', '🥩', 'male', 'male_alt'],
+    ['SUBWAY', '🥪', 'BURGER KING', '🍔', 'male', 'female'],
+    ['TACO BELL', '🌮', 'CHIPOTLE', '🌯', 'male', 'female'],
+    ['STARBUCKS', '☕', 'DUNKIN', '🍩', 'female', 'male'],
+    ['LASAGNA', '🍝', 'RAVIOLI', '🥟', 'male', 'female'],
+    ['OMELETTE', '🍳', 'SCRAMBLED', '🥚', 'female', 'male'],
+    ['PLAYSTATION', '🎮', 'XBOX', '🟩', 'male', 'male_alt'],
+    ['CONSOLE', '🎮', 'MOBILE', '📱', 'male', 'female'],
+    ['NINTENDO', '🕹️', 'STEAM DECK', '💻', 'female', 'male'],
+    ['PUBG', '🪖', 'WARZONE', '🪂', 'male', 'male_alt'],
+    ['EA FC', '⚽', 'ROCKET LEAGUE', '🚗', 'male', 'male_alt'],
+    ['AMONG US', '🕵️', 'FALL GUYS', '👑', 'female', 'male'],
+    ['GTA 5', '🚓', 'RED DEAD 2', '🤠', 'male', 'male_alt'],
+    ['LOL', '⚔️', 'DOTA 2', '🛡️', 'male', 'male_alt'],
+    ['VALORANT', '🔫', 'CS2', '💣', 'female', 'male'],
+    ['CALL OF DUTY', '🪖', 'BATTLEFIELD', '🚜', 'male', 'male_alt'],
+    ['SKYRIM', '🐉', 'WITCHER 3', '🐺', 'male', 'male_alt'],
+    ['ELDEN RING', '💍', 'DARK SOULS', '🔥', 'male', 'male_alt'],
+    ['SUPER MARIO', '🍄', 'SONIC', '🦔', 'male', 'male_alt'],
+    ['POKEMON', '⚡', 'PALWORLD', '🦖', 'female', 'male'],
+    ['RESIDENT EVIL', '🧟', 'SILENT HILL', '🌫️', 'male', 'female'],
+    ['FORZA', '🏎️', 'GRAN TURISMO', '🏁', 'male', 'male_alt'],
+    ['TEKKEN', '🥊', 'MORTAL KOMBAT', '🐉', 'male', 'male_alt'],
+    ['THE SIMS', '🏠', 'STARDW VALLEY', '🌾', 'female', 'male'],
+    ['DAYZ', '🧟', 'RUST', '☢️', 'male', 'male_alt'],
+    ['STARFIELD', '🌌', 'CYBERPUNK', '🤖', 'male', 'female'],
+    ['GOD OF WAR', '🪓', 'GHOST TSUSHIMA', '🗡️', 'male', 'male_alt'],
+    ['ZELDA', '🗡️', 'FINAL FANTASY', '⚔️', 'female', 'male'],
+    ['CLASH ROYALE', '👑', 'BRAWL STARS', '⭐', 'male', 'female'],
+    ['CANDY CRUSH', '🍬', 'ANGRY BIRDS', '🐦', 'female', 'male'],
+    ['SUBWAY SURFER', '🏃', 'TEMPLE RUN', '🛕', 'female', 'male'],
+    ['PHASMOPHOBIA', '👻', 'LETHAL CO', '🚢', 'female', 'male'],
+    ['OVERWATCH', '🦸', 'MARVEL RIVALS', '🦸‍♂️', 'female', 'male'],
+    ['RAINBOW SIX', '🌈', 'APEX LEGENDS', '🎯', 'male', 'female'],
+    ['OPEN WORLD', '🌍', 'STORY GAMES', '📖', 'male', 'female'],
+    ['HORROR GAMES', '👻', 'CO-OP GAMES', '😂', 'male', 'female'],
+    ['SINGLEPLAYER', '🕹️', 'MULTIPLAYER', '🌐', 'male', 'female'],
+    ['MOUSE & KEY', '⌨️', 'CONTROLLER', '🎮', 'male', 'male_alt'],
+    ['HEADSET', '🎧', 'SPEAKERS', '🔊', 'male', 'female'],
+    ['GAMING CHAIR', '🪑', 'SOFA GAMING', '🛋️', 'male', 'female'],
+    ['240 FPS', '📈', '4K GRAPHICS', '✨', 'male', 'female'],
+    ['SWORDS', '🗡️', 'SNIPER', '🎯', 'male', 'male_alt'],
+    ['TANK CLASS', '🛡️', 'ASSASSIN', '🗡️', 'male', 'female'],
+    ['MAGE WIZARD', '🧙', 'ARCHER', '🏹', 'female', 'male'],
+    ['RACING GAMES', '🏎️', 'SPORTS GAMES', '⚽', 'male', 'male_alt'],
+    ['PUZZLE GAMES', '🧩', 'STRATEGY', '♟️', 'female', 'male'],
+    ['VR GAMING', '🕶️', 'FLAT SCREEN', '🖥️', 'male', 'female'],
+    ['DISC GAMES', '💿', 'DIGITAL', '☁️', 'male', 'female'],
+    ['DIAMOND SWORD', '💎', 'NETHERITE', '🔥', 'male', 'male_alt'],
+    ['CREATIVE MODE', '🏡', 'SURVIVAL MODE', '❤️', 'female', 'male'],
+    ['HARDCORE MODE', '😈', 'CHILL MODE', '😌', 'male', 'female'],
+    ['VOICE CHAT', '🎙️', 'MUTE ALL', '🔇', 'male', 'female'],
+    ['RANKED', '🏆', 'CASUAL', '😎', 'male', 'female'],
+    ['RETRO GAMES', '👾', 'MODERN GAMES', '🚀', 'male', 'female'],
+    ['STEALTH', '🕵️', 'ACTION', '💥', 'male', 'male_alt'],
+    ['TEAMWORK', '🤝', 'SOLO CARRY', '🐺', 'female', 'male'],
+    ['TWITCH', '🟣', 'YOUTUBE LIVE', '🔴', 'male', 'female'],
+    ['RGB PC', '🌈', 'ALL BLACK PC', '⬛', 'female', 'male'],
+    ['WINDOWS', '🪟', 'MACBOOK', '💻', 'male', 'female'],
+    ['TIKTOK', '📱', 'INSTAGRAM', '📸', 'female', 'male'],
+    ['SPOTIFY', '🎵', 'APPLE MUSIC', '🍏', 'male', 'female'],
+    ['LIGHT MODE', '☀️', 'DARK MODE', '🌙', 'female', 'male'],
+    ['LAPTOP', '💻', 'DESKTOP PC', '🖥️', 'female', 'male'],
+    ['SMARTWATCH', '⌚', 'CLASSIC WATCH', '⏱️', 'male', 'male_alt'],
+    ['AIRPODS', '🎧', 'HEADPHONES', '🎧', 'female', 'male'],
+    ['AI ROBOTS', '🤖', 'HUMAN BRAIN', '🧠', 'male', 'female'],
+    ['ELECTRIC CAR', '🔋', 'V8 ENGINE', '⛽', 'female', 'male'],
+    ['TEXTING', '💬', 'CALLING', '📞', 'female', 'male'],
+    ['VOICE MSG', '🎙️', 'TYPING', '⌨️', 'female', 'male'],
+    ['BIG TV', '📺', 'PROJECTOR', '📽️', 'male', 'female'],
+    ['FREE WIFI', '📶', '5G DATA', '📡', 'female', 'male'],
+    ['CARD PAY', '💳', 'CASH MONEY', '💵', 'female', 'male'],
+    ['ONLINE SHOP', '🛒', 'MALL TRIP', '🏬', 'female', 'male'],
+    ['PAPER BOOK', '📚', 'E-BOOK', '📱', 'female', 'male'],
+    ['CINEMA', '🎬', 'HOME MOVIE', '🛋️', 'male', 'female'],
+    ['SPACE', '🚀', 'DEEP OCEAN', '🌊', 'male', 'female'],
+    ['NVIDIA', '🟢', 'AMD RADEON', '🔴', 'male', 'male_alt'],
+    ['INTEL', '🔵', 'RYZEN', '🟠', 'male', 'male_alt'],
+    ['SAMSUNG', '📱', 'APPLE', '🍎', 'male', 'female'],
+    ['STEAM', '🕹️', 'EPIC GAMES', '🎁', 'male', 'male_alt'],
+    ['FACE ID', '🔒', 'FINGERPRINT', '👆', 'female', 'male'],
+    ['DUAL MONITOR', '🖥️', 'ULTRAWIDE', '🖥️', 'male', 'male_alt'],
+    ['SELFIE', '📸', 'LANDSCAPE', '🏞️', 'female', 'male'],
+    ['SHORT VIDEOS', '📱', 'LONG VIDEOS', '🎥', 'female', 'male'],
+    ['MEMES', '😂', 'NEWS', '📰', 'male', 'female'],
+    ['PODCASTS', '🎙️', 'MUSIC', '🎵', 'male', 'female'],
+    ['HEAVY BASS', '🔊', 'CLEAN VOCAL', '🎤', 'male', 'female'],
+    ['ROCK MUSIC', '🎸', 'HIP HOP', '🎤', 'male', 'male_alt'],
+    ['POP MUSIC', '🎹', 'EDM TECHNO', '🎧', 'female', 'male'],
+    ['CLASSICAL', '🎻', 'JAZZ', '🎷', 'female', 'male'],
+    ['90S HITS', '🕺', 'NEW HITS', '🔥', 'male', 'female'],
+    ['LIVE CONCERT', '🎤', 'STUDIO TRACK', '🎧', 'female', 'male'],
+    ['5 ALARMS', '⏰', '1ST ALARM', '⚡', 'female', 'male'],
+    ['HOT BATH', '🛁', 'COLD SHOWER', '🚿', 'female', 'male'],
+    ['SOFT PILLOW', '🛏️', 'FIRM PILLOW', '🧱', 'female', 'male'],
+    ['COLD ROOM', '❄️', 'WARM ROOM', '🔥', 'male', 'female'],
+    ['WINDOW SEAT', '🪟', 'AISLE SEAT', '🚶', 'female', 'male'],
+    ['AIRPLANE', '✈️', 'FAST TRAIN', '🚆', 'male', 'female'],
+    ['ROAD TRIP', '🚗', 'CRUISE SHIP', '🛳️', 'male', 'female'],
+    ['HOTEL', '🏨', 'CAMPING', '⛺', 'female', 'male'],
+    ['BIG CITY', '🏙️', 'VILLAGE', '🏡', 'female', 'male'],
+    ['HOUSE', '🏠', 'PENTHOUSE', '🏢', 'male', 'female'],
+    ['SPRING', '🌸', 'AUTUMN', '🍂', 'female', 'male'],
+    ['RAINY DAY', '🌧️', 'SUNNY DAY', '☀️', 'male', 'female'],
+    ['STORM', '⛈️', 'SNOWFALL', '🌨️', 'male', 'female'],
+    ['SUNRISE', '🌅', 'SUNSET', '🌇', 'female', 'male'],
+    ['LION', '🦁', 'TIGER', '🐯', 'male', 'male_alt'],
+    ['BEAR', '🐻', 'GORILLA', '🦍', 'male', 'male_alt'],
+    ['SHARK', '🦈', 'ORCA WHALE', '🐋', 'male', 'male_alt'],
+    ['WOLF', '🐺', 'FOX', '🦊', 'dog', 'cat'],
+    ['EAGLE', '🦅', 'FALCON', '🦅', 'male', 'male_alt'],
+    ['COBRA', '🐍', 'CROCODILE', '🐊', 'male', 'male_alt'],
+    ['T-REX', '🦖', 'SPINOSAURUS', '🦕', 'male', 'male_alt'],
+    ['PANDA', '🐼', 'KOALA', '🐨', 'female', 'male'],
+    ['DOLPHIN', '🐬', 'OCTOPUS', '🐙', 'female', 'male'],
+    ['HORSE', '🐎', 'UNICORN', '🦄', 'male', 'female'],
+    ['PENGUIN', '🐧', 'FLAMINGO', '🦩', 'male', 'female'],
+    ['PARROT', '🦜', 'RAVEN', '🐦‍⬛', 'female', 'male'],
+    ['HAMSTER', '🐹', 'BUNNY', '🐰', 'male', 'female'],
+    ['TURTLE', '🐢', 'GECKO', '🦎', 'male', 'female'],
+    ['HONEY BEE', '🐝', 'BUTTERFLY', '🦋', 'male', 'female'],
+    ['SPIDER', '🕷️', 'SCORPION', '🦂', 'male', 'male_alt'],
+    ['ELEPHANT', '🐘', 'RHINO', '🦏', 'male', 'male_alt'],
+    ['CHEETAH', '🐆', 'JAGUAR', '🐆', 'female', 'male'],
+    ['POLAR BEAR', '🐻‍❄️', 'GRIZZLY', '🐻', 'female', 'male'],
+    ['HUSKY', '🐺', 'BULLDOG', '🐶', 'dog', 'dog'],
+    ['BLACK CAT', '🐈‍⬛', 'ORANGE CAT', '🐈', 'cat', 'cat'],
+    ['PUPPY', '🐶', 'KITTEN', '🐱', 'dog', 'cat'],
+    ['FOREST', '🌲', 'DESERT', '🏜️', 'male', 'female'],
+    ['VOLCANO', '🌋', 'GLACIER', '🧊', 'male', 'female'],
+    ['TSUNAMI', '🌊', 'TORNADO', '🌪️', 'female', 'male'],
+    ['FULL MOON', '🌕', 'BRIGHT SUN', '☀️', 'male', 'female'],
+    ['MILKY WAY', '🌌', 'BLACK HOLE', '🕳️', 'female', 'male'],
+    ['SATURN', '🪐', 'MARS', '🔴', 'female', 'male'],
+    ['DIAMOND', '💎', 'GOLD', '🥇', 'female', 'male'],
+    ['SILVER', '🥈', 'TITANIUM', '🪨', 'female', 'male'],
+    ['LIGHTNING', '⚡', 'WIND', '🌪️', 'male', 'female'],
+    ['RED ROSE', '🌹', 'SUNFLOWER', '🌻', 'female', 'male'],
+    ['CACTUS', '🌵', 'PALM TREE', '🌴', 'male', 'female'],
+    ['MONKEY', '🐒', 'SLOTH', '🦥', 'male', 'female'],
+    ['CRAB', '🦀', 'LOBSTER', '🦞', 'male', 'male_alt'],
+    ['ICE HOCKEY', '🏒', 'NFL', '🏈', 'male', 'male_alt'],
+    ['TENNIS', '🎾', 'PING PONG', '🏓', 'female', 'male'],
+    ['BOXING', '🥊', 'MMA UFC', '🥋', 'male', 'male_alt'],
+    ['FORMULA 1', '🏎️', 'MOTOGP', '🏍️', 'male', 'male_alt'],
+    ['LEBRON', '🏀', 'JORDAN', '🐐', 'male', 'male_alt'],
+    ['GYM WEIGHTS', '🏋️', 'CARDIO RUN', '🏃', 'male', 'female'],
+    ['BICEPS', '💪', 'LEG DAY', '🦵', 'male', 'male_alt'],
+    ['SWIMMING', '🏊', 'CYCLING', '🚴', 'female', 'male'],
+    ['SKIING', '🎿', 'SNOWBOARD', '🏂', 'male', 'female'],
+    ['SKATEBOARD', '🛹', 'BMX BIKE', '🚲', 'male', 'male_alt'],
+    ['PORSCHE', '🏎️', 'MCLAREN', '🏎️', 'male', 'male_alt'],
+    ['BMW', '🚘', 'MERCEDES', '🚘', 'male', 'male_alt'],
+    ['AUDI', '🚘', 'TESLA', '⚡', 'male', 'female'],
+    ['SUPRA', '🇯🇵', 'NISSAN GTR', '🇯🇵', 'male', 'male_alt'],
+    ['MUSTANG', '🐎', 'CAMARO', '🐝', 'male', 'male_alt'],
+    ['OFF-ROAD', '🚙', 'SUPERCAR', '🏎️', 'male', 'female'],
+    ['SPORTBIKE', '🏍️', 'CHOPPER', '🏍️', 'male', 'male_alt'],
+    ['HELICOPTER', '🚁', 'PRIVATE JET', '🛩️', 'male', 'female'],
+    ['SUPER YACHT', '🛥️', 'MANSION', '🏰', 'male', 'female'],
+    ['MANUAL', '⚙️', 'AUTOMATIC', '🤖', 'male', 'female'],
+    ['TURBO', '💨', 'V10 SOUND', '🔊', 'male', 'male_alt'],
+    ['DRIFTING', '🏁', 'DRAG RACE', '🚀', 'male', 'male_alt'],
+    ['KARATE', '🥋', 'MUAY THAI', '🥊', 'male', 'male_alt'],
+    ['ARCHERY', '🏹', 'FENCING', '🤺', 'female', 'male'],
+    ['GOLF', '⛳', 'BOWLING', '🎳', 'male', 'female'],
+    ['BILLIARDS', '🎱', 'DARTS', '🎯', 'male', 'male_alt'],
+    ['CHESS', '♟️', 'POKER', '🃏', 'male', 'male_alt'],
+    ['CLIMBING', '🧗', 'SKYDIVING', '🪂', 'female', 'male'],
+    ['SURFING', '🏄', 'DIVING', '🤿', 'male', 'female'],
+    ['CAMPING', '🏕️', 'FISHING', '🎣', 'female', 'male'],
+    ['PUSH-UPS', '🏋️', 'PULL-UPS', '🏋️', 'male', 'male_alt'],
+    ['NIKE', '👟', 'ADIDAS', '👟', 'male', 'female'],
+    ['PUMA', '👟', 'NEW BALANCE', '👟', 'male', 'female'],
+    ['SNEAKERS', '👟', 'BOOTS', '🥾', 'male', 'female'],
+    ['HOODIE', '🧥', 'JACKET', '🧥', 'female', 'male'],
+    ['JEANS', '👖', 'SWEATPANTS', '🩳', 'female', 'male'],
+    ['SUNGLASSES', '🕶️', 'HAT CAP', '🧢', 'female', 'male'],
+    ['BEARD', '🧔', 'SHAVEN', '🪒', 'male', 'male_alt'],
+    ['LONG HAIR', '💇', 'SHORT HAIR', '💈', 'female', 'male'],
+    ['TATTOOS', '🎨', 'CLEAN SKIN', '✨', 'male', 'female'],
+    ['MARVEL', '🦸', 'DC COMICS', '🦇', 'male', 'male_alt'],
+    ['IRON MAN', '🦾', 'CAP AMERICA', '🛡️', 'male', 'male_alt'],
+    ['THOR', '⚡', 'HULK', '🟢', 'male', 'male_alt'],
+    ['JOKER', '🃏', 'DEADPOOL', '💀', 'male', 'male_alt'],
+    ['SUPERMAN', '🦸', 'THE FLASH', '⚡', 'male', 'male_alt'],
+    ['STAR WARS', '⚔️', 'STAR TREK', '🖖', 'male', 'male_alt'],
+    ['YODA', '🟢', 'DARTH VADER', '⚫', 'male', 'male_alt'],
+    ['HARRY POTTER', '⚡', 'LOTR', '💍', 'female', 'male'],
+    ['STRANGER TH', '👾', 'SQUID GAME', '🦑', 'female', 'male'],
+    ['ONE PIECE', '🏴‍☠️', 'BLEACH', '⚔️', 'male', 'male_alt'],
+    ['SPONGEBOB', '🧽', 'SIMPSONS', '🍩', 'female', 'male'],
+    ['MATRIX', '🕶️', 'AVATAR', '🔵', 'male', 'female'],
+    ['INVISIBLE', '👻', 'TIME TRAVEL', '⏳', 'male', 'female'],
+    ['SUPER SPEED', '⚡', 'TELEPATHY', '🧠', 'male', 'female'],
+    ['TELEPORT', '🌀', 'SEE FUTURE', '🔮', 'male', 'female'],
+    ['GO TO PAST', '🔙', 'GO TO 3026', '🔜', 'male', 'female'],
+    ['200 IQ', '🧠', '100% LUCK', '🍀', 'male', 'female'],
+    ['HERO', '🦸', 'VILLAIN', '😈', 'male', 'male_alt'],
+    ['KNIGHT', '🏰', 'GLADIATOR', '🗡️', 'male', 'male_alt'],
+    ['PIRATE', '🏴‍☠️', 'NINJA', '🥷', 'male', 'male_alt'],
+    ['COWBOY', '🤠', 'SPARTAN', '🛡️', 'male', 'male_alt'],
+    ['VAMPIRE', '🧛', 'WEREWOLF', '🐺', 'female', 'male'],
+    ['CYBORG', '🤖', 'WIZARD', '🧙', 'male', 'female'],
+    ['MARS COLONY', '🚀', 'ATLANTIS', '🌊', 'male', 'female'],
+    ['ISLAND', '🏝️', 'CASTLE', '🏰', 'female', 'male'],
+    ['COMEDY', '😂', 'THRILLER', '🔪', 'female', 'male'],
+    ['ARTIST', '🎨', 'SCIENTIST', '🔬', 'female', 'male'],
+    ['ASTRONAUT', '👨‍🚀', 'DETECTIVE', '🕵️', 'male', 'female'],
+    ['FAME', '👑', 'MYSTERY', '🎭', 'female', 'male'],
+    ['RED PILL', '🔴', 'BLUE PILL', '🔵', 'male', 'female'],
+    ['TEAM ALPHA', '🅰️', 'TEAM OMEGA', '🅱️', 'male', 'female']
   ];
+
+  const QUESTIONS = RAW_QUESTION_PAIRS.map(q => ({
+    a: q[0], ea: q[1], b: q[2], eb: q[3], fa: q[4], fb: q[5]
+  }));
+
+  let questionBag = [];
+  function pullNextQuestion() {
+    if (questionBag.length === 0) {
+      questionBag = QUESTIONS.slice();
+      for (let i = questionBag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = questionBag[i];
+        questionBag[i] = questionBag[j];
+        questionBag[j] = tmp;
+      }
+    }
+    return questionBag.pop();
+  }
 
   function createRichAvatar(seedStr) {
     const cnv = document.createElement('canvas');
@@ -411,6 +686,12 @@
 
   if ('speechSynthesis' in window) {
     window.speechSynthesis.onvoiceschanged = () => { cachedVoice = pickHumanVoice(); };
+    // Keep Chrome speechSynthesis awake even when window is behind OBS
+    setInterval(() => {
+      try {
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      } catch (e) {}
+    }, 2500);
   }
 
   function formatSpokenWord(w) {
@@ -421,27 +702,46 @@
       .replace('1m', 'one million');
   }
 
+  function playVocalFormantPulse(wordCount) {
+    if (!sound || soundLevel === 0 || !audioCtx || audioCtx.state !== 'running') return;
+    const count = clamp(wordCount || 4, 2, 10);
+    for (let i = 0; i < count; i++) {
+      sfxTone(155 + (i % 3) * 32, 0.09, 0.045, 0, 'sawtooth', i * 0.13, 1.15);
+    }
+  }
+
   function speakTTS(text, priority) {
     if (!ttsEnabled || !sound || soundLevel === 0) return;
-    if (!('speechSynthesis' in window)) return;
     const now = performance.now();
     if (!priority && now - lastSpokenAt < 3200) return;
+    lastSpokenAt = now;
+
+    const words = String(text || '').trim().split(/\s+/).length;
+    playVocalFormantPulse(words);
+
+    if (!('speechSynthesis' in window)) return;
     try {
+      window.speechSynthesis.resume();
       if (priority) window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(String(text));
       if (!cachedVoice) cachedVoice = pickHumanVoice();
       if (cachedVoice) utter.voice = cachedVoice;
       utter.lang = 'en-US';
-      utter.rate = 0.99 + (Math.random() - 0.5) * 0.04;
-      utter.pitch = 0.99 + (Math.random() - 0.5) * 0.04;
+      utter.rate = 1.01 + (Math.random() - 0.5) * 0.04;
+      utter.pitch = 1.0 + (Math.random() - 0.5) * 0.04;
       utter.volume = clamp(soundLevel, 0, 1);
       window.speechSynthesis.speak(utter);
-      lastSpokenAt = now;
     } catch (e) {}
   }
 
+  setInterval(() => {
+    if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+      try { window.speechSynthesis.resume(); } catch (e) {}
+    }
+  }, 2500);
+
   const sfxMix = {
-    input: null, master: null, voices: new Set(), limit: 14,
+    input: null, master: null, keepAlive: null, voices: new Set(), limit: 14,
     resumeAt: -Infinity, error: '', uiKey: '', last: new Map()
   };
 
@@ -498,6 +798,16 @@
         filter.connect(compressor); compressor.connect(master); master.connect(audioCtx.destination);
         sfxMix.input = filter; sfxMix.master = master;
         audioCtx.onstatechange = updateSoundUI;
+
+        try {
+          const keepOsc = audioCtx.createOscillator();
+          const keepGain = audioCtx.createGain();
+          keepOsc.frequency.value = 22;
+          keepGain.gain.value = 0.0003;
+          keepOsc.connect(keepGain);
+          keepGain.connect(audioCtx.destination);
+          keepOsc.start();
+        } catch (e) {}
       }
       if (audioCtx.state === 'running') { sfxMix.error = ''; updateSoundUI(); return Promise.resolve(true); }
       const t = performance.now();
@@ -670,18 +980,19 @@
       this.forgeOrbs = [];
       this.nextRoundQueue = [];
       this.hallOfFame = [
-        { id: 'hof_1', name: 'alex.vibes', avatar: '', side: 'A', tier: 2, streak: 3 },
-        { id: 'hof_2', name: 'mia_99', avatar: '', side: 'B', tier: 1, streak: 2 },
-        { id: 'hof_3', name: 'lucas_gg', avatar: '', side: 'A', tier: 3, streak: 4 },
-        { id: 'hof_4', name: 'emma.tt', avatar: '', side: 'B', tier: 0, streak: 1 }
+        { id: 'hof_1', name: 'alex.vibes', avatar: '', side: 'A', tier: 2, streak: 3, topicEmoji: '🍕' },
+        { id: 'hof_2', name: 'mia_99', avatar: '', side: 'B', tier: 1, streak: 2, topicEmoji: '🐱' },
+        { id: 'hof_3', name: 'lucas_gg', avatar: '', side: 'A', tier: 3, streak: 4, topicEmoji: '🎮' },
+        { id: 'hof_4', name: 'emma.tt', avatar: '', side: 'B', tier: 0, streak: 1, topicEmoji: '☀️' },
+        { id: 'hof_5', name: 'matej_77', avatar: '', side: 'A', tier: 1, streak: 2, topicEmoji: '🏎️' },
+        { id: 'hof_6', name: 'hana_cz', avatar: '', side: 'B', tier: 2, streak: 1, topicEmoji: '🌙' }
       ];
       this.bumpers = [];
       this.titanPoses = { A: null, B: null };
-      this.qIndex = -1;
       this.question = QUESTIONS[0];
       this.phase = 'VOTE';
-      this.roundDuration = 28;
-      this.timer = 28;
+      this.roundDuration = 75;
+      this.timer = 75;
       this.isKnockout = false;
       this.forgeProgress = 0;
       this.colorReveal = 0;
@@ -854,10 +1165,10 @@
 
     nextRound() {
       this.round++;
-      this.qIndex = (this.qIndex + 1) % QUESTIONS.length;
-      this.question = QUESTIONS[this.qIndex];
+      this.question = pullNextQuestion();
       this.phase = 'VOTE';
-      this.roundDuration = 26 + Math.floor(Math.random() * 5);
+      // Randomized 50 to 120 seconds every round so TikTok never detects a fixed loop!
+      this.roundDuration = 50 + Math.floor(Math.random() * 71);
       this.timer = this.roundDuration;
       this.isKnockout = false;
       this.lastSpokenCountdown = 6;
@@ -886,8 +1197,8 @@
       this.giftMeteors = [];
       this.forgeOrbs = [];
       this.usedBotHandles.clear();
-      this.nextBotAt = 0.5 + Math.random() * 0.7;
-      this.nextBotLikeAt = 2.0 + Math.random() * 1.5;
+      this.nextBotAt = 0.8 + Math.random() * 1.2;
+      this.nextBotLikeAt = 2.5 + Math.random() * 2.0;
       this.updateBumpers();
 
       this.players.forEach(p => {
@@ -903,9 +1214,9 @@
       const aWord = formatSpokenWord(this.question.a);
       const bWord = formatSpokenWord(this.question.b);
       const prompts = [
-        aWord + ' or ' + bWord + '? Type A or B to push them into the saws!',
-        'Quick round! ' + aWord + ' versus ' + bWord + '! Spam A or B for combo balls!',
-        aWord + ' vs ' + bWord + '! Comment A or B now for an instant knockout!'
+        'Round ' + this.round + '! ' + aWord + ' versus ' + bWord + '! Who is stronger?',
+        'New clash! Team ' + aWord + ' against Team ' + bWord + '!',
+        aWord + ' or ' + bWord + '? Let the arena battle begin!'
       ];
       speakTTS(prompts[this.round % prompts.length], false);
 
@@ -1039,7 +1350,6 @@
     spawnBall(p, side, bonusRadius, isClone, isBot, isCombo) {
       if (this.balls.length >= 160) return;
       const box = this.getChamberBox(side);
-      // Bots are small 30px pawns; Real players are GIANT 78px heroes!
       const defaultBase = isBot ? 30 : (isCombo ? 54 : (isClone ? 44 : 78));
       const baseR = clamp(defaultBase + (bonusRadius || 0), 26, 118);
       const rScaled = isBot ? baseR : (baseR * this.getCrowdScale(side));
@@ -1053,14 +1363,14 @@
         name: p.name,
         side: side,
         x: x, y: y,
-        vx: isCombo ? ((side === 'A' ? 1 : -1) * (240 + Math.random() * 180)) : ((Math.random() - 0.5) * 340),
-        vy: isCombo ? (380 + Math.random() * 180) : (160 + Math.random() * 140),
-        r: rScaled * 0.5,
+        vx: isCombo ? ((side === 'A' ? 1 : -1) * (240 + Math.random() * 180)) : ((Math.random() - 0.5) * 300),
+        vy: isCombo ? (440 + Math.random() * 180) : (220 + Math.random() * 150),
+        r: rScaled,
         baseR: baseR,
         angle: (Math.random() - 0.5) * 0.5,
-        omega: (Math.random() - 0.5) * 5,
-        squashX: 1.25,
-        squashY: 0.75,
+        omega: (Math.random() - 0.5) * 4,
+        squashX: 1.0,
+        squashY: 1.0,
         likeGlowUntil: isBot ? 0 : (now + 2400),
         youBeaconUntil: (!isBot && !isClone && !isCombo) ? (now + 4200) : 0,
         lastKickAt: 0,
@@ -1132,11 +1442,9 @@
           p.needsChatUnlock = false;
           existingBall.side = side;
           existingBall.baseR = Math.min(114, Math.max(94, existingBall.baseR + 22));
-          existingBall.vy = -720;
-          existingBall.squashX = 1.34;
-          existingBall.squashY = 0.68;
+          existingBall.vy = -660;
           this.addShockwave(existingBall.x, existingBall.y, 145, GOLD_HOT);
-          this.addPopup(existingBall.x, existingBall.y - 50, '🔥 2X MEGA BALL UNLOCKED!', GOLD_HOT, 30);
+          this.addPopup(existingBall.x, existingBall.y - 50, '🔥 2X MEGA BALL!', GOLD_HOT, 30);
           playSfx('crown', side);
         } else if (existingBall.side !== side) {
           const box = this.getChamberBox(side);
@@ -1144,17 +1452,12 @@
           existingBall.x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 90;
           existingBall.y = box.top + 48;
           existingBall.vx = (Math.random() - 0.5) * 300;
-          existingBall.vy = 140;
-          existingBall.squashX = 1.24;
-          existingBall.squashY = 0.76;
-          this.addPopup(existingBall.x, existingBall.y - 35, '🔄 SWITCHED TO ' + side + '!', GOLD_HOT, 26);
+          existingBall.vy = 180;
+          this.addPopup(existingBall.x, existingBall.y - 35, '🔄 TEAM ' + side + '!', GOLD_HOT, 26);
         } else {
-          // Chat spam = Combo Cannon! Grow main ball AND fire an extra Combo Ball!
           existingBall.baseR = Math.min(114, existingBall.baseR + 5);
-          existingBall.vy = -580 - Math.random() * 150;
-          existingBall.vx += (Math.random() - 0.5) * 320;
-          existingBall.squashX = 0.76;
-          existingBall.squashY = 1.26;
+          existingBall.vy = -560 - Math.random() * 140;
+          existingBall.vx += (Math.random() - 0.5) * 300;
           this.spawnBall(p, side, 0, true, false, true);
           this.addPopup(existingBall.x, existingBall.y - 45, '🔥 COMBO x' + p.comboCount + '!', GOLD_HOT, 28);
         }
@@ -1218,7 +1521,7 @@
             this.spawnBall(p, autoSide, 0, false, false, false);
             if (now - this.lastWelcomeTtsAt > 7500) {
               this.lastWelcomeTtsAt = now;
-              speakTTS('Welcome ' + p.name + '! Type A or B in chat for double power!', false);
+              speakTTS('Welcome ' + p.name + ' to the arena!', false);
             }
           }
           if (p.side === 'A') this.shovePulseA = 1.05;
@@ -1231,13 +1534,11 @@
               b.baseR = clamp(78 + tierBonus + Math.pow(p.roundLikes, 0.58) * 5.5, 78, 114);
               b.likeGlowUntil = now + 2600;
               b.youBeaconUntil = Math.max(b.youBeaconUntil || 0, now + 3200);
-              b.vy = -560 - Math.random() * 200;
-              b.vx += (Math.random() - 0.5) * 340;
-              b.omega = (Math.random() - 0.5) * 12;
-              b.squashX = 0.74;
-              b.squashY = 1.28;
+              b.vy = -520 - Math.random() * 180;
+              b.vx += (Math.random() - 0.5) * 320;
+              b.omega = (Math.random() - 0.5) * 8;
               this.addShockwave(b.x, b.y, b.r + 55, GOLD);
-              this.addPopup(b.x, b.y - b.r, isFirstJoin ? ('👋 HI ' + p.name + '! TYPE A/B!') : ('♥ +' + count + ' PUSH!'), GOLD_HOT, 26);
+              this.addPopup(b.x, b.y - b.r, isFirstJoin ? ('👋 HI ' + p.name + '!') : ('⚡ +' + count + ' POWER!'), GOLD_HOT, 26);
             }
           }
           this.addShockwave(this.splitX, 980, 130, GOLD);
@@ -1245,7 +1546,7 @@
           playSfx('like', p.side || 'A');
         } else if (this.phase === 'FORGE') {
           this.forgeProgress = clamp(this.forgeProgress + count * 0.010, 0, 1);
-          this.addLaserBeam(540 + (Math.random() - 0.5) * 500, 1360, 540, 710, GOLD, '♥ ' + p.name);
+          this.addLaserBeam(540 + (Math.random() - 0.5) * 500, 1360, 540, 710, GOLD, '⚡ ' + p.name);
           playSfx('like', 'A');
         }
         return true;
@@ -1313,8 +1614,7 @@
             mainBall.isBot = false;
             mainBall.giftTier = p.giftTier;
             mainBall.baseR = clamp(78 + tierInfo.ballBonusR + Math.sqrt(p.roundLikes) * 3, 78, 114);
-            mainBall.vy = -700;
-            mainBall.squashX = 0.72; mainBall.squashY = 1.32;
+            mainBall.vy = -660;
             this.addShockwave(mainBall.x, mainBall.y, 165, tierInfo.border);
             this.addPopup(mainBall.x, mainBall.y - 45, tierInfo.badge, tierInfo.glow, 28);
           }
@@ -1325,8 +1625,8 @@
             for (let i = 0; i < this.balls.length; i++) {
               const b = this.balls[i];
               if (b.side === side) {
-                b.vy = -420 - Math.random() * 280;
-                b.vx += (Math.random() - 0.5) * 380;
+                b.vy = -420 - Math.random() * 260;
+                b.vx += (Math.random() - 0.5) * 360;
               }
             }
           }
@@ -1342,7 +1642,7 @@
           until: now + 3400
         };
         if (tierInfo.tier >= 2) {
-          speakTTS('Massive boost from ' + p.name + ' unlocking the ' + tierInfo.name + ' trophy!', false);
+          speakTTS('Awesome power from ' + p.name + '!', false);
         }
         return true;
       }
@@ -1351,7 +1651,8 @@
     }
 
     getCounts() {
-      let a = 0, b = 0;
+      // Base center resistance so 1 vote doesn't end a 90s round instantly, but 4-5 real actions trigger KO!
+      let a = 18, b = 18;
       for (let i = 0; i < this.balls.length; i++) {
         const ball = this.balls[i];
         let weight = 2;
@@ -1372,7 +1673,7 @@
 
     startShredPhase(knockoutTriggered) {
       this.phase = 'SHRED';
-      this.timer = SHRED_DURATION;
+      this.timer = SHRED_DURATION + Math.random() * 0.8;
       this.isKnockout = !!knockoutTriggered;
       this.trapdoorAngle = 0;
       this.crusherY = 0;
@@ -1388,7 +1689,7 @@
       if (this.isKnockout) {
         const winWord = formatSpokenWord(this.winningSide === 'A' ? this.question.a : this.question.b);
         this.addPopup(540, 720, '💥 INSTANT KNOCKOUT! 💥', GOLD_HOT, 44);
-        speakTTS('Knockout! ' + winWord + ' crushes the opposition!', true);
+        speakTTS('Knockout! ' + winWord + ' wins the battle!', true);
       }
 
       this.players.forEach(p => {
@@ -1435,7 +1736,7 @@
 
     startForgePhase() {
       this.phase = 'FORGE';
-      this.timer = FORGE_DURATION;
+      this.timer = FORGE_DURATION + Math.random() * 1.4;
       this.forgeProgress = 0;
       this.colorReveal = 0;
       this.forgeSlide = 0;
@@ -1445,36 +1746,37 @@
       this.forgeOrbs = [];
       const tierInfo = GIFT_TIERS[this.forgeTier || 0];
       const colors = [GOLD, GOLD_HOT, WHITE, tierInfo.border, tierInfo.glow, this.winningSide === 'A' ? TEAM_A : TEAM_B];
-      for (let i = 0; i < 160; i++) {
-        const angle = (i / 160) * Math.PI * 2 + Math.random() * 0.5;
-        const dist = 280 + Math.random() * 340;
+      for (let i = 0; i < 110; i++) {
+        const angle = (i / 110) * Math.PI * 2 + Math.random() * 0.5;
+        const dist = 250 + Math.random() * 230;
         this.forgeOrbs.push({
           angle: angle,
           dist: dist,
           speed: 2.2 + Math.random() * 2.5,
-          size: 4 + Math.random() * 9,
+          size: 5 + Math.random() * 8,
           color: colors[i % colors.length],
-          targetR: Math.random() * 210
+          targetR: Math.random() * 200
         });
       }
 
       if (this.mvp) {
         const winWord = formatSpokenWord(this.winningSide === 'A' ? this.question.a : this.question.b);
-        speakTTS(winWord + ' wins the clash! Forging the starlight trophy for ' + this.mvp.name + '!', false);
+        speakTTS(winWord + ' wins! Forging the starlight trophy for ' + this.mvp.name + '!', false);
       }
     }
 
     startShowcasePhase() {
       this.phase = 'SHOWCASE';
-      this.timer = SHOW_DURATION;
+      this.timer = SHOW_DURATION + Math.random() * 1.2;
       this.forgeProgress = 1;
       this.colorReveal = 1;
       this.shake = 12;
       playSfx('win');
-      this.addShockwave(540, 710, 380, GOLD_HOT);
-      this.spawnSparks(540, 710, 55, GOLD_HOT);
+      this.addShockwave(540, 740, 380, GOLD_HOT);
+      this.spawnSparks(540, 740, 55, GOLD_HOT);
 
       if (this.mvp) {
+        const winEmoji = this.winningSide === 'A' ? this.question.ea : this.question.eb;
         this.hallOfFame = this.hallOfFame.filter(h => h.name !== this.mvp.name);
         this.hallOfFame.unshift({
           id: this.mvp.id,
@@ -1482,7 +1784,8 @@
           avatar: this.mvp.avatar,
           side: this.winningSide,
           tier: this.forgeTier,
-          streak: this.mvp.winStreak || 1
+          streak: this.mvp.winStreak || 1,
+          topicEmoji: winEmoji
         });
         if (this.hallOfFame.length > 7) this.hallOfFame.pop();
       }
@@ -1527,7 +1830,7 @@
       } else {
         this.targetSplitX = 540;
       }
-      this.splitX += (this.targetSplitX - this.splitX) * Math.min(1, dt * 5.4);
+      this.splitX += (this.targetSplitX - this.splitX) * Math.min(1, dt * 4.2);
       this.updateBumpers();
 
       const loseSide = this.winningSide === 'A' ? 'B' : 'A';
@@ -1546,7 +1849,7 @@
         const targetBots = this.getTargetBotCrowd();
         if (elapsed >= this.nextBotAt && this.timer > 3.0 && currentBots < targetBots) {
           this.spawnRandomBotVoter();
-          this.nextBotAt = elapsed + 1.5 + Math.random() * 2.2;
+          this.nextBotAt = elapsed + 2.2 + Math.random() * 3.5;
         }
 
         if (elapsed >= this.nextBotLikeAt && this.timer > 3.0 && currentBots > 0 && this.getRealPlayerCount() === 0) {
@@ -1558,7 +1861,7 @@
             if (pick.side === 'A') this.shovePulseA = 0.55;
             else this.shovePulseB = 0.55;
           }
-          this.nextBotLikeAt = elapsed + 2.4 + Math.random() * 2.2;
+          this.nextBotLikeAt = elapsed + 2.8 + Math.random() * 2.8;
         }
 
         const secLeft = Math.ceil(this.timer);
@@ -1618,24 +1921,26 @@
         const b = this.balls[i];
         const cScale = b.side === 'A' ? scaleA : scaleB;
         const desiredR = b.isBot ? b.baseR : clamp(b.baseR * cScale, 32, 114);
-        b.r += (desiredR - b.r) * Math.min(1, dt * 7);
-        b.squashX += (1 - b.squashX) * Math.min(1, dt * 12);
-        b.squashY += (1 - b.squashY) * Math.min(1, dt * 12);
+        b.r += (desiredR - b.r) * Math.min(1, dt * 10);
+        // Locked to 1.0 so balls never look rubbery or squishy
+        b.squashX = 1.0;
+        b.squashY = 1.0;
 
-        if (Math.hypot(b.vx, b.vy) > 250) {
+        if (Math.hypot(b.vx, b.vy) > 280) {
           b.trail.push({ x: b.x, y: b.y, r: b.r * 0.85 });
-          if (b.trail.length > 4) b.trail.shift();
+          if (b.trail.length > 3) b.trail.shift();
         } else if (b.trail.length > 0) {
           b.trail.shift();
         }
 
-        b.vy += 1720 * dt;
+        // Crisp heavy gravity
+        b.vy += 2250 * dt;
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         b.angle += b.omega * dt;
-        b.vx *= Math.pow(0.993, dt * 60);
-        b.vy *= Math.pow(0.995, dt * 60);
-        b.omega *= Math.pow(0.98, dt * 60);
+        b.vx *= Math.pow(0.985, dt * 60);
+        b.vy *= Math.pow(0.99, dt * 60);
+        b.omega *= Math.pow(0.96, dt * 60);
 
         const box = this.getChamberBox(b.side);
 
@@ -1652,19 +1957,17 @@
             const ny = dy / dist;
             b.x = bmp.x + nx * (minD + 1);
             b.y = bmp.y + ny * (minD + 1);
-            const speed = Math.max(350, Math.hypot(b.vx, b.vy) * 0.90);
-            b.vx = nx * speed + (Math.random() - 0.5) * 80;
+            const speed = Math.max(360, Math.hypot(b.vx, b.vy) * 0.78);
+            b.vx = nx * speed + (Math.random() - 0.5) * 60;
             b.vy = ny * speed;
-            b.omega = (Math.random() - 0.5) * 10;
-            b.squashX = 1.24;
-            b.squashY = 0.76;
+            b.omega = (Math.random() - 0.5) * 8;
             bmp.hitAt = now;
             this.addShockwave(bmp.x, bmp.y, bmp.r + 40, bmp.color);
             playSfx('bumper', b.side);
           }
         }
 
-        // Collide with the Giant Pushing Titan's body and kicking legs (with anti-pinch deflection!)
+        // Collide with the Giant Pushing Titan's body and kicking legs
         if (this.phase === 'VOTE' || this.phase === 'SHRED') {
           const pose = this.titanPoses[b.side];
           if (pose && pose.colliders) {
@@ -1681,8 +1984,8 @@
 
                 if (col.isUpper) {
                   if ((pose.isLeft && nx > -0.25) || (!pose.isLeft && nx < 0.25)) {
-                    nx = openDir * 0.78;
-                    ny = -0.62;
+                    nx = openDir * 0.82;
+                    ny = -0.58;
                   }
                 }
 
@@ -1690,11 +1993,9 @@
                 b.y = col.y + ny * (minD + 2);
 
                 if (col.isFoot && this.phase === 'VOTE') {
-                  b.vx = col.vx * 0.85 + nx * 460 + openDir * 140 + (Math.random() - 0.5) * 120;
-                  b.vy = Math.min(-520, ny * 520 - 380);
-                  b.omega = (Math.random() - 0.5) * 14;
-                  b.squashX = 1.28;
-                  b.squashY = 0.72;
+                  b.vx = col.vx * 0.8 + nx * 440 + openDir * 140 + (Math.random() - 0.5) * 90;
+                  b.vy = Math.min(-500, ny * 480 - 340);
+                  b.omega = (Math.random() - 0.5) * 10;
                   if (now - (b.lastKickAt || 0) > 280) {
                     b.lastKickAt = now;
                     this.addShockwave(col.x, col.y, 68, GOLD_HOT);
@@ -1705,18 +2006,16 @@
                   const rvy = b.vy - col.vy;
                   const vn = rvx * nx + rvy * ny;
                   if (vn < 0) {
-                    b.vx -= (1 + 0.65) * vn * nx;
-                    b.vy -= (1 + 0.65) * vn * ny;
+                    b.vx -= (1 + 0.45) * vn * nx;
+                    b.vy -= (1 + 0.45) * vn * ny;
                   }
                   if (col.isUpper) {
-                    if (pose.isLeft) b.vx = Math.min(b.vx, -240 - Math.random() * 120);
-                    else b.vx = Math.max(b.vx, 240 + Math.random() * 120);
-                    b.vy = Math.min(b.vy, -220);
+                    if (pose.isLeft) b.vx = Math.min(b.vx, -260 - Math.random() * 100);
+                    else b.vx = Math.max(b.vx, 260 + Math.random() * 100);
+                    b.vy = Math.min(b.vy, -200);
                   }
                   if (now - (b.lastKickAt || 0) > 180) {
                     b.lastKickAt = now;
-                    b.squashX = 1.15;
-                    b.squashY = 0.85;
                   }
                 }
               }
@@ -1724,40 +2023,34 @@
           }
         }
 
-        // Wall clamping after Titan deflection
+        // Wall clamping with low metallic restitution (no rubber bounce)
         if (b.x < box.left + b.r + 10) {
           b.x = box.left + b.r + 10;
-          if (b.vx < -120) { b.squashX = 0.80; b.squashY = 1.20; playSfx('bounce', b.side); }
-          b.vx = Math.abs(b.vx) * 0.74;
-          b.omega = b.vy * 0.011;
+          if (b.vx < -140) playSfx('bounce', b.side);
+          b.vx = Math.abs(b.vx) * 0.48;
+          b.omega = b.vy * 0.008;
         }
         if (b.x > box.right - b.r - 10) {
           b.x = box.right - b.r - 10;
-          if (b.vx > 120) { b.squashX = 0.80; b.squashY = 1.20; playSfx('bounce', b.side); }
-          b.vx = -Math.abs(b.vx) * 0.74;
-          b.omega = -b.vy * 0.011;
+          if (b.vx > 140) playSfx('bounce', b.side);
+          b.vx = -Math.abs(b.vx) * 0.48;
+          b.omega = -b.vy * 0.008;
         }
 
         const floorClosed = this.phase === 'VOTE' || b.side === this.winningSide;
         if (floorClosed) {
           if (b.y > box.bottom - b.r - 10) {
             b.y = box.bottom - b.r - 10;
-            if (b.vy > 160) {
-              b.squashX = clamp(1 + b.vy / 2300, 1.05, 1.30);
-              b.squashY = clamp(1 - b.vy / 2700, 0.72, 0.95);
-              if (b.vy > 280) playSfx('bounce', b.side);
-            }
-            b.vy = -Math.abs(b.vy) * 0.68;
-            if (Math.abs(b.vy) < 55) b.vy = 0;
-            b.omega = b.vx * 0.014;
+            if (b.vy > 320) playSfx('bounce', b.side);
+            b.vy = -Math.abs(b.vy) * 0.36;
+            if (Math.abs(b.vy) < 85) b.vy = 0;
+            b.omega = b.vx * 0.01;
           }
         } else {
           const pressBottomY = lerp(box.top + 80, box.bottom - 35, this.crusherY);
           if (b.y - b.r < pressBottomY) {
             b.y = pressBottomY + b.r;
             b.vy = Math.max(b.vy, 560);
-            b.squashX = 1.32;
-            b.squashY = 0.68;
           }
           if (!b.shredded && b.y >= box.bottom - 12) {
             b.shredded = true;
@@ -1772,7 +2065,7 @@
         }
       }
 
-      // Ball-to-ball collisions with wall/floor re-clamping on each pass
+      // Ball-to-ball collisions with crisp metallic restitution
       const boxA = this.getChamberBox('A');
       const boxB = this.getChamberBox('B');
       for (let pass = 0; pass < 4; pass++) {
@@ -1797,15 +2090,10 @@
             const rvy = b2.vy - b1.vy;
             const velAlongNormal = rvx * nx + rvy * ny;
             if (velAlongNormal < 0) {
-              const restitution = pass === 0 ? 0.64 : 0.34;
+              const restitution = pass === 0 ? 0.36 : 0.18;
               const imp = -(1 + restitution) * velAlongNormal * 0.5;
               b1.vx -= nx * imp; b1.vy -= ny * imp;
               b2.vx += nx * imp; b2.vy += ny * imp;
-
-              if (pass === 0 && Math.abs(velAlongNormal) > 220) {
-                b1.squashX = 1.14; b1.squashY = 0.87;
-                b2.squashX = 1.14; b2.squashY = 0.87;
-              }
             }
           }
 
@@ -1894,14 +2182,18 @@
     const col = color || WHITE;
     const al = align || 'center';
     const mw = maxW || 950;
-    ctx.font = '900 ' + size + 'px "Segoe UI", system-ui, sans-serif';
+    const text = String(str);
+    let fontSize = size;
     ctx.textAlign = al;
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(5, Math.round(size * 0.20));
+    while (fontSize > 12) {
+      ctx.font = '900 ' + fontSize + 'px "Segoe UI", system-ui, sans-serif';
+      if (ctx.measureText(text).width <= mw) break;
+      fontSize -= 2;
+    }
+    ctx.lineWidth = Math.max(4, Math.round(fontSize * 0.20));
     ctx.strokeStyle = outlineCol || OUTLINE;
-    let text = String(str);
-    while (text.length > 1 && ctx.measureText(text).width > mw) text = text.slice(0, -1);
     ctx.strokeText(text, x, y);
     ctx.fillStyle = col;
     ctx.fillText(text, x, y);
@@ -2168,24 +2460,33 @@
 
     if (game.phase === 'VOTE') {
       ctx.save();
-      const beamGlow = ctx.createLinearGradient(splitX - 35, 0, splitX + 35, 0);
-      beamGlow.addColorStop(0, 'rgba(255, 42, 95, 0)');
-      beamGlow.addColorStop(0.35, 'rgba(255, 42, 95, 0.55)');
-      beamGlow.addColorStop(0.5, WHITE);
-      beamGlow.addColorStop(0.65, 'rgba(0, 210, 255, 0.55)');
-      beamGlow.addColorStop(1, 'rgba(0, 210, 255, 0)');
-      ctx.fillStyle = beamGlow;
-      ctx.fillRect(splitX - 35, ARENA_TOP, 70, ARENA_BOTTOM - ARENA_TOP);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
 
-      const clashR = 38 + Math.sin(now * 0.025) * 8 + (game.shovePulseA + game.shovePulseB) * 18;
-      const coreGrad = ctx.createRadialGradient(splitX, 985, 4, splitX, 985, clashR);
-      coreGrad.addColorStop(0, WHITE);
-      coreGrad.addColorStop(0.45, GOLD_HOT);
-      coreGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+      // Solid black outer outline + crisp white/gold electric bolt so 100% of surrounding green screen stays pure #00ff00!
+      ctx.beginPath();
+      for (let y = ARENA_TOP + 12; y <= ARENA_BOTTOM - 12; y += 36) {
+        const jitter = Math.sin(now * 0.025 + y * 0.05) * 6;
+        if (y === ARENA_TOP + 12) ctx.moveTo(splitX + jitter, y);
+        else ctx.lineTo(splitX + jitter, y);
+      }
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = OUTLINE;
+      ctx.stroke();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = GOLD_HOT;
+      ctx.stroke();
+
+      const clashR = 26 + Math.sin(now * 0.025) * 5 + (game.shovePulseA + game.shovePulseB) * 10;
+      ctx.beginPath();
+      ctx.arc(splitX, 985, clashR + 5, 0, Math.PI * 2);
+      ctx.fillStyle = OUTLINE;
+      ctx.fill();
       ctx.beginPath();
       ctx.arc(splitX, 985, clashR, 0, Math.PI * 2);
-      ctx.fillStyle = coreGrad;
+      ctx.fillStyle = GOLD_HOT;
       ctx.fill();
+      drawText('⚡', splitX, 986, 26, OUTLINE, 'center', 40, WHITE);
       ctx.restore();
     }
   }
@@ -2206,7 +2507,7 @@
       for (let i = 0; i < b.trail.length; i++) {
         const tr = b.trail[i];
         ctx.beginPath();
-        ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.5, 0, Math.PI * 2);
+        ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.45, 0, Math.PI * 2);
         ctx.fillStyle = col;
         ctx.fill();
       }
@@ -2214,14 +2515,12 @@
 
     ctx.save();
     ctx.translate(b.x, b.y);
-    ctx.scale(b.squashX, b.squashY);
-    if (b.isBot) ctx.globalAlpha = 0.72;
 
     if (!b.isBot && (isLeader || gTier >= 1 || isLiked || showYouBeacon)) {
-      const auraR = b.r + 11 + Math.sin(now * 0.018) * 5;
+      const auraR = b.r + 9 + Math.sin(now * 0.018) * 4;
       ctx.beginPath();
       ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-      ctx.lineWidth = showYouBeacon ? 8 : (isLeader ? 6.5 : 5);
+      ctx.lineWidth = showYouBeacon ? 7 : (isLeader ? 6 : 4.5);
       ctx.strokeStyle = showYouBeacon ? GOLD_HOT : (isLeader ? GOLD : (gTier >= 2 ? tierInfo.glow : GOLD_HOT));
       ctx.stroke();
     }
@@ -2232,26 +2531,16 @@
     ctx.fill();
 
     ctx.save();
-    ctx.rotate(clamp(b.vx * 0.0006, -0.25, 0.25));
+    ctx.rotate(clamp(b.vx * 0.0005, -0.2, 0.2));
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 2.5, 0, Math.PI * 2);
     ctx.clip();
     ctx.drawImage(img, -b.r + 2.5, -b.r + 2.5, (b.r - 2.5) * 2, (b.r - 2.5) * 2);
     ctx.restore();
 
-    const shine = ctx.createRadialGradient(-b.r * 0.35, -b.r * 0.38, b.r * 0.06, 0, 0, b.r);
-    shine.addColorStop(0, 'rgba(255,255,255,0.52)');
-    shine.addColorStop(0.32, 'rgba(255,255,255,0.08)');
-    shine.addColorStop(0.75, 'rgba(0,0,0,0)');
-    shine.addColorStop(1, 'rgba(9,13,22,0.45)');
-    ctx.beginPath();
-    ctx.arc(0, 0, b.r - 2, 0, Math.PI * 2);
-    ctx.fillStyle = shine;
-    ctx.fill();
-
     ctx.beginPath();
     ctx.arc(0, 0, b.r - 1, 0, Math.PI * 2);
-    ctx.lineWidth = b.isBot ? 3.5 : 7.5;
+    ctx.lineWidth = b.isBot ? 4 : 7.5;
     ctx.strokeStyle = isLiked && gTier === 0 ? GOLD : col;
     ctx.stroke();
 
@@ -2265,79 +2554,88 @@
 
     ctx.restore();
 
-    // Nameless bots have zero text clutter! Only real players get giant badges & names.
     if (b.isBot) return;
 
     if (showYouBeacon && game.phase === 'VOTE') {
       const bounce = Math.sin(now * 0.018) * 8;
-      const tagY = b.y - b.r * b.squashY - 38 + bounce;
+      const tagY = b.y - b.r - 36 + bounce;
       gradPanel(b.x - 105, tagY - 22, 210, 40, 14, GOLD, '#b45309', OUTLINE, 4);
       drawText('⬇️ YOU! (' + b.name + ')', b.x, tagY - 2, 20, OUTLINE, 'center', 196, WHITE);
     } else if (p.needsChatUnlock && !b.isClone && game.phase === 'VOTE') {
       const bob = Math.sin(now * 0.015) * 5;
-      const tagY = b.y - b.r * b.squashY - 26 + bob;
-      gradPanel(b.x - 130, tagY - 18, 260, 34, 12, '#090d16', '#1e293b', GOLD_HOT, 3);
-      drawText('💬 TYPE A/B FOR 2X SIZE!', b.x, tagY - 1, 18, GOLD_HOT, 'center', 246);
+      const tagY = b.y - b.r - 26 + bob;
+      gradPanel(b.x - 115, tagY - 18, 230, 34, 12, '#090d16', '#1e293b', GOLD_HOT, 3);
+      drawText('⚡ 2X READY · [A / B]', b.x, tagY - 1, 18, GOLD_HOT, 'center', 216);
     } else if (isLeader && game.phase === 'VOTE') {
       const bob = Math.sin(now * 0.012) * 4;
-      drawText('👑 #1 MVP', b.x, b.y - b.r * b.squashY - 20 + bob, 23, GOLD, 'center', 170);
+      drawText('👑 #1 MVP', b.x, b.y - b.r - 20 + bob, 23, GOLD, 'center', 170);
     }
 
     if (!b.isClone) {
       const comboStr = (p.comboCount && p.comboCount >= 2) ? (' x' + p.comboCount) : '';
       const streakStr = (p.winStreak && p.winStreak >= 2) ? (' 🔥' + p.winStreak) : '';
-      drawText(b.name + comboStr + streakStr, b.x, b.y + b.r * b.squashY + 18, 22, GOLD_HOT, 'center', Math.max(150, b.r * 3.0));
+      drawText(b.name + comboStr + streakStr, b.x, b.y + b.r + 18, 22, GOLD_HOT, 'center', Math.max(150, b.r * 3.0));
     } else if (b.isCombo) {
       drawText('x' + (p.comboCount || 2), b.x, b.y, 24, GOLD_HOT, 'center', 80);
     }
   }
 
   function drawTopBarAndHeaders(pctA, pctB, counts, now) {
-    // 1. Compact Hall of Champions strip
-    gradPanel(42, 16, 996, 114, 24, '#161f33', '#090d16', GOLD, 4);
-    gradPanel(56, 28, 162, 90, 16, '#3b2a08', '#1c1101', GOLD, 3);
-    drawText('🏆 WINNERS', 137, 56, 21, GOLD_HOT, 'center', 148);
-    drawText('HALL OF FAME', 137, 86, 17, WHITE, 'center', 148);
+    // 1. Open-Air Hall of Champions (NO giant solid rectangle behind portraits — pure #00ff00 shows between them!)
+    gradPanel(42, 22, 166, 86, 18, '#3b2a08', '#1c1101', GOLD, 4);
+    drawText('🏆 WINNERS', 125, 50, 21, GOLD_HOT, 'center', 150);
+    drawText('HALL OF FAME', 125, 78, 16, WHITE, 'center', 150);
 
     const maxShow = Math.min(7, game.hallOfFame.length);
     for (let idx = 0; idx < maxShow; idx++) {
       const h = game.hallOfFame[idx];
-      const hx = 282 + idx * 114;
-      const hy = 61;
+      const hx = 268 + idx * 116;
+      const hy = 58;
       const img = getPlayerImage(h);
-      const hTier = GIFT_TIERS[h.tier || 0];
+      const teamCol = h.side === 'B' ? TEAM_B : TEAM_A;
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(hx, hy, 27, 0, Math.PI * 2);
+      ctx.arc(hx, hy, 29, 0, Math.PI * 2);
       ctx.fillStyle = OUTLINE;
       ctx.fill();
       ctx.clip();
-      ctx.drawImage(img, hx - 27, hy - 27, 54, 54);
+      ctx.drawImage(img, hx - 29, hy - 29, 58, 58);
       ctx.restore();
 
       ctx.beginPath();
-      ctx.arc(hx, hy, 27, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = idx === 0 ? GOLD_HOT : hTier.border;
+      ctx.arc(hx, hy, 29, 0, Math.PI * 2);
+      ctx.lineWidth = 4.5;
+      ctx.strokeStyle = idx === 0 ? GOLD_HOT : teamCol;
       ctx.stroke();
 
-      drawText('👑', hx, hy - 29, 17, GOLD);
-      drawText(h.name, hx, hy + 42, 16, idx === 0 ? GOLD_HOT : WHITE, 'center', 104);
+      // Topic History Emoji Badge on bottom-right of each winner portrait
+      const bx = hx + 20, by = hy + 19;
+      ctx.beginPath();
+      ctx.arc(bx, by, 13, 0, Math.PI * 2);
+      ctx.fillStyle = OUTLINE;
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = teamCol;
+      ctx.stroke();
+      drawText(h.topicEmoji || '🏆', bx, by + 1, 14, WHITE, 'center', 24);
+
+      drawText('👑', hx, hy - 31, 16, GOLD);
+      drawText(h.name, hx, hy + 44, 16, idx === 0 ? GOLD_HOT : WHITE, 'center', 106);
     }
 
-    // 2. Clean Tug-of-War Bar with KO Saws indicator & fast timer
-    const barX = 42, barY = 140, barW = 996, barH = 66;
-    gradPanel(barX, barY, barW, barH, 22, '#090d16', '#090d16', OUTLINE, 6);
+    // 2. Sleek Tug-of-War Power Bar with Timer
+    const barX = 42, barY = 132, barW = 996, barH = 54;
+    gradPanel(barX, barY, barW, barH, 20, '#090d16', '#090d16', OUTLINE, 5);
 
-    const fillWA = Math.round(clamp(pctA / 100, 0.12, 0.88) * (barW - 12));
-    const fillWB = (barW - 12) - fillWA;
+    const fillWA = Math.round(clamp(pctA / 100, 0.12, 0.88) * (barW - 10));
+    const fillWB = (barW - 10) - fillWA;
 
-    gradPanel(barX + 6, barY + 6, fillWA, barH - 12, 16, TEAM_A, TEAM_A_DARK, TEAM_A_GLOW, 2);
-    gradPanel(barX + 6 + fillWA, barY + 6, fillWB, barH - 12, 16, TEAM_B, TEAM_B_DARK, TEAM_B_GLOW, 2);
+    gradPanel(barX + 5, barY + 5, fillWA, barH - 10, 14, TEAM_A, TEAM_A_DARK, TEAM_A_GLOW, 2);
+    gradPanel(barX + 5 + fillWA, barY + 5, fillWB, barH - 10, 14, TEAM_B, TEAM_B_DARK, TEAM_B_GLOW, 2);
 
-    drawText('⚙️ KO ZONE', barX + 105, barY + barH / 2, 21, GOLD_HOT, 'center', 180);
-    drawText('KO ZONE ⚙️', barX + barW - 105, barY + barH / 2, 21, GOLD_HOT, 'center', 180);
+    drawText('⚙️ KO ZONE', barX + 100, barY + barH / 2, 19, GOLD_HOT, 'center', 170);
+    drawText('KO ZONE ⚙️', barX + barW - 100, barY + barH / 2, 19, GOLD_HOT, 'center', 170);
 
     const isUrgent = game.phase === 'VOTE' && game.timer <= 10;
     const timerCol = isUrgent ? '#ef4444' : GOLD;
@@ -2345,13 +2643,13 @@
     ctx.save();
     ctx.translate(540, barY + barH / 2);
     ctx.scale(timerPulse, timerPulse);
-    gradPanel(-105, -barH / 2 - 6, 210, barH + 12, 24, isUrgent ? '#7f1d1d' : '#0f172a', '#090d16', timerCol, 5);
+    gradPanel(-96, -barH / 2 - 4, 192, barH + 8, 22, isUrgent ? '#7f1d1d' : '#0f172a', '#090d16', timerCol, 4.5);
     const timeStr = game.phase === 'VOTE' ? ('⏱ ' + Math.ceil(game.timer) + 's') : (game.isKnockout && game.phase === 'SHRED' ? '💥 K.O.!' : game.phase);
-    drawText(timeStr, 0, 0, 34, isUrgent ? WHITE : GOLD_HOT, 'center', 190);
+    drawText(timeStr, 0, 0, 31, isUrgent ? WHITE : GOLD_HOT, 'center', 175);
     ctx.restore();
 
-    // 3. Ultra-Clean 3-Element Team Cards (Instant 1.5s comprehension)
-    const hdrY = 220, hdrH = 198;
+    // 3. Compact Floating Team Cards (More open green screen above the arena!)
+    const hdrY = 204, hdrH = 176;
     const cardW = 482;
     const cardAX = 42;
     const cardBX = 556;
@@ -2361,51 +2659,51 @@
     const aLeads = pctA > pctB;
     const bLeads = pctB > pctA;
     const leadPulse = 1 + Math.sin(now * 0.016) * 0.085;
-    const ctaPulse = 1 + Math.sin(now * 0.014) * 0.04;
+    const ctaPulse = 1 + Math.sin(now * 0.014) * 0.035;
 
     const borderA = aLeads ? GOLD_HOT : '#fda4af';
-    gradPanel(cardAX, hdrY, cardW, hdrH, 28, TEAM_A, TEAM_A_DARK, borderA, aLeads ? 7 : 4.5);
-    drawText(game.question.ea + ' ' + game.question.a, cxA - 82, hdrY + 62, 46, WHITE, 'center', 295);
+    gradPanel(cardAX, hdrY, cardW, hdrH, 26, TEAM_A, TEAM_A_DARK, borderA, aLeads ? 7 : 4.5);
+    drawText(game.question.ea + ' ' + game.question.a, cxA - 76, hdrY + 56, 44, WHITE, 'center', 290);
 
     ctx.save();
-    ctx.translate(cardAX + cardW - 102, hdrY + 62);
+    ctx.translate(cardAX + cardW - 96, hdrY + 56);
     if (aLeads) ctx.scale(leadPulse, leadPulse);
-    drawText(pctA + '%', 0, 0, aLeads ? 66 : 54, aLeads ? GOLD_HOT : WHITE, 'center', 180);
+    drawText(pctA + '%', 0, 0, aLeads ? 60 : 50, aLeads ? GOLD_HOT : WHITE, 'center', 165);
     ctx.restore();
 
     ctx.save();
-    ctx.translate(cxA, hdrY + 148);
+    ctx.translate(cxA, hdrY + 132);
     ctx.scale(ctaPulse, ctaPulse);
-    gradPanel(-cardW / 2 + 22, -30, cardW - 44, 60, 18, '#090d16', '#1e293b', GOLD_HOT, 4);
-    drawText('💬 TYPE:  A', 0, 0, 33, GOLD_HOT, 'center', cardW - 60);
+    gradPanel(-cardW / 2 + 22, -26, cardW - 44, 52, 16, '#090d16', '#1e293b', GOLD_HOT, 3.5);
+    drawText('🅰️ TEAM [A] · ' + game.question.a, 0, 0, 28, GOLD_HOT, 'center', cardW - 64);
     ctx.restore();
 
     const borderB = bLeads ? GOLD_HOT : '#a5f3fc';
-    gradPanel(cardBX, hdrY, cardW, hdrH, 28, TEAM_B, TEAM_B_DARK, borderB, bLeads ? 7 : 4.5);
-    drawText(game.question.eb + ' ' + game.question.b, cxB - 82, hdrY + 62, 46, WHITE, 'center', 295);
+    gradPanel(cardBX, hdrY, cardW, hdrH, 26, TEAM_B, TEAM_B_DARK, borderB, bLeads ? 7 : 4.5);
+    drawText(game.question.eb + ' ' + game.question.b, cxB - 76, hdrY + 56, 44, WHITE, 'center', 290);
 
     ctx.save();
-    ctx.translate(cardBX + cardW - 102, hdrY + 62);
+    ctx.translate(cardBX + cardW - 96, hdrY + 56);
     if (bLeads) ctx.scale(leadPulse, leadPulse);
-    drawText(pctB + '%', 0, 0, bLeads ? 66 : 54, bLeads ? GOLD_HOT : WHITE, 'center', 180);
+    drawText(pctB + '%', 0, 0, bLeads ? 60 : 50, bLeads ? GOLD_HOT : WHITE, 'center', 165);
     ctx.restore();
 
     ctx.save();
-    ctx.translate(cxB, hdrY + 148);
+    ctx.translate(cxB, hdrY + 132);
     ctx.scale(ctaPulse, ctaPulse);
-    gradPanel(-cardW / 2 + 22, -30, cardW - 44, 60, 18, '#090d16', '#1e293b', GOLD_HOT, 4);
-    drawText('💬 TYPE:  B', 0, 0, 33, GOLD_HOT, 'center', cardW - 60);
+    gradPanel(-cardW / 2 + 22, -26, cardW - 44, 52, 16, '#090d16', '#1e293b', GOLD_HOT, 3.5);
+    drawText('🅱️ TEAM [B] · ' + game.question.b, 0, 0, 28, GOLD_HOT, 'center', cardW - 64);
     ctx.restore();
 
     const vsPulse = Math.sin(now * 0.015) * 3;
     ctx.beginPath();
-    ctx.arc(540, hdrY + hdrH / 2, 34 + vsPulse, 0, Math.PI * 2);
+    ctx.arc(540, hdrY + hdrH / 2, 32 + vsPulse, 0, Math.PI * 2);
     ctx.fillStyle = OUTLINE;
     ctx.fill();
     ctx.lineWidth = 5;
     ctx.strokeStyle = GOLD;
     ctx.stroke();
-    drawText('VS', 540, hdrY + hdrH / 2 + 1, 25, GOLD_HOT);
+    drawText('VS', 540, hdrY + hdrH / 2 + 1, 24, GOLD_HOT);
   }
 
   function drawChamber(side) {
@@ -2499,49 +2797,32 @@
     const scale = 0.86 + 0.14 * ease;
 
     ctx.save();
-    ctx.translate(540, 920);
+    ctx.translate(540, 880);
     ctx.scale(scale, scale);
-    ctx.translate(-540, -920);
+    ctx.translate(-540, -880);
 
-    const px = 115, py = 390, pw = 850, ph = 1020;
-
-    gradPanel(px - 12, py - 12, pw + 24, ph + 24, 38, tierInfo.coinOuter, OUTLINE, OUTLINE, 8);
-    gradPanel(px, py, pw, ph, 30, tierInfo.bgTop, tierInfo.bgBot, tierInfo.border, 5);
-
+    // Floating top title pill (leaves all surrounding #00ff00 Green Screen completely open!)
+    gradPanel(150, 445, 780, 68, 22, tierInfo.bgTop, '#090d16', tierInfo.border, 5);
     drawText(
-      game.phase === 'FORGE' ? ('✨ FORGING STARLIGHT TROPHY: ' + mvp.name) : ('🏆 CHAMPION OF ROUND #' + game.round + ' 🏆'),
-      540, py + 50, 33, GOLD_HOT, 'center', pw - 50
+      game.phase === 'FORGE' ? ('✨ STARLIGHT FORGE: ' + mvp.name) : ('🏆 CHAMPION OF ROUND #' + game.round + ' 🏆'),
+      540, 479, 32, GOLD_HOT, 'center', 740
     );
 
-    const centerX = 540, centerY = py + 320, trophyR = 230;
+    const centerX = 540, centerY = 770, trophyR = 215;
     const prog = clamp(game.forgeProgress, 0, 1);
 
+    // Crisp opaque outer ring (no semi-transparent rays that muddy the green screen)
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate(now * 0.0008);
-    const rayCount = 16;
-    for (let i = 0; i < rayCount; i++) {
-      const a = (i * Math.PI * 2) / rayCount;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, trophyR + 55, a - 0.09, a + 0.09);
-      ctx.closePath();
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(251, 191, 36, 0.22)' : 'rgba(56, 189, 248, 0.16)';
-      ctx.fill();
-    }
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(-now * 0.0015);
+    ctx.rotate(-now * 0.0018);
     ctx.beginPath();
-    ctx.arc(0, 0, trophyR + 18, 0, Math.PI * 2);
-    ctx.lineWidth = 6;
+    ctx.arc(0, 0, trophyR + 20, 0, Math.PI * 2);
+    ctx.lineWidth = 10;
     ctx.strokeStyle = OUTLINE;
     ctx.stroke();
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 5;
     ctx.strokeStyle = tierInfo.glow;
-    ctx.setLineDash([28, 18]);
+    ctx.setLineDash([28, 20]);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
@@ -2555,10 +2836,10 @@
     ctx.arc(0, 0, trophyR, 0, Math.PI * 2);
     ctx.fillStyle = baseGrad;
     ctx.fill();
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 10;
     ctx.strokeStyle = OUTLINE;
     ctx.stroke();
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 4.5;
     ctx.strokeStyle = GOLD;
     ctx.stroke();
     ctx.restore();
@@ -2596,6 +2877,7 @@
       ctx.stroke();
     }
 
+    // Solid outlined orbiting stars so they key cleanly over #00ff00
     if (game.phase === 'FORGE') {
       for (let i = 0; i < game.forgeOrbs.length; i++) {
         const orb = game.forgeOrbs[i];
@@ -2603,65 +2885,54 @@
         const ox = centerX + Math.cos(orb.angle) * curDist;
         const oy = centerY + Math.sin(orb.angle) * curDist;
 
-        const tailAng = orb.angle - 0.22;
-        const tx = centerX + Math.cos(tailAng) * (curDist + 18);
-        const ty = centerY + Math.sin(tailAng) * (curDist + 18);
-
         ctx.beginPath();
-        ctx.moveTo(tx, ty);
-        ctx.lineTo(ox, oy);
-        ctx.lineWidth = orb.size * 0.7;
-        ctx.strokeStyle = orb.color;
-        ctx.stroke();
-
+        ctx.arc(ox, oy, orb.size * 0.75 + 2, 0, Math.PI * 2);
+        ctx.fillStyle = OUTLINE;
+        ctx.fill();
         ctx.beginPath();
-        ctx.arc(ox, oy, orb.size * 0.65, 0, Math.PI * 2);
-        ctx.fillStyle = WHITE;
+        ctx.arc(ox, oy, orb.size * 0.75, 0, Math.PI * 2);
+        ctx.fillStyle = orb.color;
         ctx.fill();
       }
     }
 
     const crownBob = Math.sin(now * 0.008) * 5;
-    drawText('👑', centerX, centerY - trophyR - 8 + crownBob, 56, GOLD);
+    drawText('👑', centerX, centerY - trophyR - 12 + crownBob, 56, GOLD);
 
-    gradPanel(px + 48, py + 575, pw - 96, 170, 22, '#0f172a', '#090d16', tierInfo.border, 4);
-    const streakBadge = (mvp.winStreak && mvp.winStreak >= 2) ? ('  ·  🔥 ' + mvp.winStreak + 'x WIN STREAK') : '';
-    drawText('👑 #1 MVP CHAMPION' + streakBadge, 540, py + 614, 24, GOLD, 'center', pw - 120);
-    drawText(mvp.name, 540, py + 668, 52, WHITE, 'center', pw - 120);
+    // Compact Floating MVP Nameplate below the circular medallion
+    gradPanel(180, 1025, 720, 185, 24, '#0f172a', '#090d16', tierInfo.border, 5);
+    const streakBadge = (mvp.winStreak && mvp.winStreak >= 2) ? ('  ·  🔥 ' + mvp.winStreak + 'x STREAK') : '';
+    drawText('👑 #1 MVP CHAMPION' + streakBadge, 540, 1062, 24, GOLD, 'center', 680);
+    drawText(mvp.name, 540, 1114, 50, WHITE, 'center', 680);
 
     const pct = Math.round(prog * 100);
+    gradPanel(220, 1156, 640, 32, 16, '#090d16', '#1e293b', tierInfo.border, 3);
+    const fillW = Math.max(18, 630 * prog);
+    gradPanel(225, 1161, fillW, 22, 11, tierInfo.glow, tierInfo.border, null, 0);
     drawText(
-      game.phase === 'FORGE' ? ('STARLIGHT CONVERGENCE: ' + pct + '%  ·  TAP ♥ TO BOOST!') : '✨ CHAMPION IMMORTALIZED! ✨',
-      540, py + 718, 22, tierInfo.glow, 'center', pw - 120
+      game.phase === 'FORGE' ? ('STARLIGHT ENERGY: ' + pct + '%') : '✨ CHAMPION IMMORTALIZED! ✨',
+      540, 1172, 18, OUTLINE, 'center', 600, WHITE
     );
 
-    gradPanel(px + 48, py + 765, pw - 96, 34, 17, '#090d16', '#1e293b', tierInfo.border, 3);
-    const fillW = Math.max(18, (pw - 108) * prog);
-    gradPanel(px + 54, py + 770, fillW, 24, 12, tierInfo.glow, tierInfo.border, null, 0);
-
-    gradPanel(px + 48, py + 820, pw - 96, 165, 20, '#0f172a', '#090d16', GOLD, 3.5);
-    drawText('⚡ TYPE [A] OR [B] NOW TO JOIN NEXT ROUND FIRST! ⚡', 540, py + 854, 21, GOLD_HOT, 'center', pw - 120);
-
-    if (game.nextRoundQueue.length === 0) {
-      drawText('Comment A or B in chat for an instant head start!', 540, py + 925, 21, '#94a3b8', 'center', pw - 120);
-    } else {
-      const visibleQueue = game.nextRoundQueue.slice(-7);
-      const startX = 540 - ((visibleQueue.length - 1) * 98) / 2;
+    if (game.nextRoundQueue.length > 0) {
+      gradPanel(210, 1230, 660, 118, 20, '#0f172a', '#090d16', GOLD, 4);
+      const visibleQueue = game.nextRoundQueue.slice(-6);
+      const startX = 540 - ((visibleQueue.length - 1) * 96) / 2;
       for (let i = 0; i < visibleQueue.length; i++) {
         const q = visibleQueue[i];
         const qp = game.players.get(q.playerId) || { id: q.playerId, name: q.name, side: q.side };
-        const qx = startX + i * 98;
-        const qy = py + 918;
+        const qx = startX + i * 96;
+        const qy = 1276;
         const qImg = getPlayerImage(qp);
         ctx.save();
-        ctx.beginPath(); ctx.arc(qx, qy, 26, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(qx, qy, 24, 0, Math.PI * 2);
         ctx.fillStyle = OUTLINE; ctx.fill();
         ctx.clip();
-        ctx.drawImage(qImg, qx - 26, qy - 26, 52, 52);
+        ctx.drawImage(qImg, qx - 24, qy - 24, 48, 48);
         ctx.restore();
-        ctx.beginPath(); ctx.arc(qx, qy, 26, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(qx, qy, 24, 0, Math.PI * 2);
         ctx.lineWidth = 3.5; ctx.strokeStyle = q.side === 'A' ? TEAM_A : TEAM_B; ctx.stroke();
-        drawText(q.name, qx, qy + 40, 15, WHITE, 'center', 90);
+        drawText(q.name, qx, qy + 38, 15, WHITE, 'center', 88);
       }
     }
 
@@ -2669,8 +2940,36 @@
   }
 
   function render(now) {
-    ctx.fillStyle = darkPreview ? '#090d16' : GREEN;
-    ctx.fillRect(0, 0, 1080, 1920);
+    if (darkPreview) {
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
+      bgGrad.addColorStop(0, '#060919');
+      bgGrad.addColorStop(0.5, '#0b132b');
+      bgGrad.addColorStop(1, '#050711');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Subtle animated cyber-grid inside the arena so OBS needs no external Minecraft video
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
+      ctx.lineWidth = 2;
+      const gShift = (now * 0.04) % 72;
+      for (let gx = ARENA_LEFT; gx <= ARENA_RIGHT; gx += 72) {
+        ctx.beginPath();
+        ctx.moveTo(gx, ARENA_TOP);
+        ctx.lineTo(gx, ARENA_BOTTOM);
+        ctx.stroke();
+      }
+      for (let gy = ARENA_TOP + gShift; gy <= ARENA_BOTTOM; gy += 72) {
+        ctx.beginPath();
+        ctx.moveTo(ARENA_LEFT, gy);
+        ctx.lineTo(ARENA_RIGHT, gy);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else {
+      ctx.fillStyle = GREEN;
+      ctx.fillRect(0, 0, 1080, 1920);
+    }
 
     ctx.save();
     if (game.shake > 0.2) {
