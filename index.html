@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -605,171 +604,67 @@
             <div class="selector-row">
                 <select id="storySelect"></select>
                 <select id="voiceSelect">
-                    <option value="Kore">🗣️ Kore (Klidný hlas)</opti  }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: var(--accent-warm);
-            cursor: pointer;
-        }
+                    <option value="Kore">🗣️ Kore (Klidný hlas)</option>
+                    <option value="Puck">🗣️ Puck (Pohádkový)</option>
+                    <option value="Charon">🗣️ Charon (Hluboký)</option>
+                    <option value="Aoede">🗣️ Aoede (Jemný ženský)</option>
+                </select>
+            </div>
 
-        /* Štítek posledního spuštěného efektu */
-        #fxToast {
-            position: fixed;
-            top: 14px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 25;
-            background: rgba(245, 158, 11, 0.92);
-            color: #05070f;
-            padding: 5px 14px;
-            border-radius: 20px;
-            font-size: 12.5px;
-            font-weight: 800;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
-        }
-
-        .night-touch-hint {
-            position: fixed;
-            bottom: 22px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.28);
-            font-size: 12px;
-            z-index: 5;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 1s ease;
-        }
-        .night-touch-hint.visible { opacity: 1; }
-
-        /* Modální okno pro API klíč na GitHubu */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.75);
-            z-index: 50;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .modal-card {
-            background: #111827;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 18px;
-            max-width: 420px;
-            width: 100%;
-            padding: 18px;
-        }
-    </style>
-</head>
-<body>
-
-<canvas id="ambientCanvas"></canvas>
-<div id="fxToast" class="sans-ui"></div>
-<div id="nightHint" class="night-touch-hint sans-ui">✨ Noční lampa aktivní — Ťukni kamkoliv pro návrat do čtečky</div>
-
-<!-- Modál pro nastavení Gemini API klíče na GitHub Pages -->
-<div id="apiKeyModal" class="modal-backdrop sans-ui">
-    <div class="modal-card">
-        <h3 style="margin:0 0 8px 0; font-size:16px;">🔑 Nastavení AI Klíče (pro GitHub Pages)</h3>
-        <p style="font-size:12.5px; color:#94a3b8; line-height:1.5; margin:0 0 12px 0;">
-            Pokud aplikaci spouštíš na <b>GitHub Pages</b>, můžeš sem vložit bezplatný klíč z <i>Google AI Studia (Gemini API)</i> pro bleskové AI čtení fotek s domýšlením slov. Bez klíče použije aplikace vestavěné offline OCR (Tesseract).
-        </p>
-        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width:100%; padding:10px; border-radius:10px; border:1px solid #334155; background:#0f172a; color:#fff; margin-bottom:12px;">
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button id="closeModalBtn" class="pill-btn">Zavřít</button>
-            <button id="saveKeyBtn" class="pill-btn" style="background:#f59e0b; color:#000; font-weight:700;">Uložit klíč</button>
-        </div>
-    </div>
-</div>
-
-<div id="appWrapper" class="app-wrapper">
-    <div class="storybook-container">
-        
-        <!-- Horní lišta s logem a rychlými akcemi -->
-        <div class="top-bar sans-ui">
-            <div class="brand-header">
-                <div class="crest-mini">
-                    <div class="crest-aura"></div>
-                    <svg viewBox="0 0 100 100" width="34" height="34">
-                        <path d="M12,75 Q30,62 50,73 Q70,62 88,75 L85,82 Q70,70 50,82 Q30,70 15,82 Z" fill="#b91c1c"/>
-                        <path d="M16,72 C24,52 40,52 50,68 C60,52 76,52 84,72 C70,64 60,66 50,74 C40,66 30,64 16,72 Z" fill="#f8fafc"/>
-                        <circle cx="50" cy="34" r="10" fill="#fbbf24"/>
-                    </svg>
+            <div class="import-bar">
+                <div class="import-btns">
+                    <label class="import-btn">
+                        📷 <span data-i18n="btnPhoto">Vyfotit vlastní knihu (OCR)</span>
+                        <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
+                    </label>
+                    <label class="import-btn">
+                        📄 <span data-i18n="btnDoc">Nahrát TXT</span>
+                        <input type="file" id="docInput" accept=".txt,.md" style="display:none;">
+                    </label>
                 </div>
-                <div class="brand-titles">
-                    <h1>AtmoRead</h1>
-                    <div class="brand-tagline" data-i18n="tagline">Books with Living Atmosphere (1000+ CZ/EN spouštěčů)</div>
-                </div>
-            </div>
-
-            <div class="top-actions">
-                <button id="testSoundBtn" class="pill-btn">🔔 <span data-i18n="testSound">Test</span></button>
-                <button id="hideScreenBtn" class="pill-btn">🌙 <span data-i18n="dimScreen">Noční lampa</span></button>
-                <button id="apiKeyBtn" class="pill-btn" title="Nastavit AI klíč">🔑 AI</button>
-                <button id="langToggleBtn" class="pill-btn" style="background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.4);">🌐 <span id="langLabel">CZ</span></button>
+                <span id="ocrStatusBadge"></span>
             </div>
         </div>
 
-        <!-- Výběr z 5 necopyrightovaných pohádek a výběr hlasu -->
-        <div class="selector-row sans-ui">
-            <select id="storySelect"></select>
-            <select id="voiceSelect">
-                <option value="Kore">🗣️ Kore (Klidný hlas)</option>
-                <option value="Puck">🗣️ Puck (Pohádkový)</option>
-                <option value="Charon">🗣️ Charon (Hluboký)</option>
-                <option value="Aoede">🗣️ Aoede (Jemný ženský)</option>
-            </select>
-        </div>
-
-        <!-- Přepínač 3 režimů -->
-        <div class="mode-tabs sans-ui">
-            <button class="mode-tab active" data-mode="live">🎙️ <span data-i18n="modeLive">Čtu nahlas</span></button>
-            <button class="mode-tab" data-mode="silent">🤫 <span data-i18n="modeSilent">Tiché čtení (Bez pípání)</span></button>
-            <button class="mode-tab" data-mode="podcast">🎧 <span data-i18n="modePodcast">AI Předčítání</span></button>
-        </div>
-
-        <!-- Lišta pro focení stránek (AI OCR + Offline OCR fallback) -->
-        <div class="import-bar sans-ui">
-            <div class="import-btns">
-                <label class="import-btn">
-                    📷 <span data-i18n="btnPhoto">Vyfotit stránky knihy (OCR)</span>
-                    <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
-                </label>
-                <label class="import-btn">
-                    📄 <span data-i18n="btnDoc">Nahrát TXT</span>
-                    <input type="file" id="docInput" accept=".txt,.md" style="display:none;">
-                </label>
-                <button id="musicToggleBtn" class="import-btn">🎵 <span id="musicBtnLabel">Podkres: Vyp</span></button>
+        <!-- 1. VÝCHOZÍ PLOCHA: Volné vyprávění z hlavy nebo čtení z vlastní papírové knížky -->
+        <div id="freeStage" class="free-stage sans-ui">
+            <div id="freeOrb" class="free-lantern-orb" title="Ťukni pro spuštění / zastavení poslechu">
+                <svg viewBox="0 0 100 100" width="92" height="92">
+                    <circle cx="50" cy="50" r="36" fill="rgba(251, 191, 36, 0.2)" />
+                    <path d="M36,28 L64,28 L72,72 L28,72 Z" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linejoin="round"/>
+                    <path d="M42,20 L58,20" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+                    <circle cx="50" cy="52" r="11" fill="#fbbf24"/>
+                    <path d="M22,74 L78,74" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+                </svg>
             </div>
-            <span id="ocrStatusBadge"></span>
+            <h2 class="free-title" data-i18n="freeTitle">Volný odposlech (Bez textu na displeji)</h2>
+            <p class="free-subtitle" data-i18n="freeSub">
+                Vyprávěj vlastní pohádku z hlavy nebo čti z papírové knížky. Telefon na nočním stolku poslouchá klíčová slova a sám přidává zvuky a mění barvu světla.
+            </p>
+            <div id="spokenLivePill" class="spoken-live-pill">🎤 Klepni na zelené tlačítko dole a začni mluvit...</div>
         </div>
 
-        <!-- Čtečka roztažená na celou plochu -->
+        <!-- 2. ČTEČKA POHÁDEK: Zobrazí se jen pokud chceš číst připravenou pohádku z displeje -->
         <div id="readerContainer" class="reader-box"></div>
 
-        <!-- Spodní ovládání -->
+        <!-- Spodní ovládání s velkými tlačítky a posuvníky -->
         <div class="bottom-controls sans-ui">
             <div class="action-row">
                 <button id="startStoryBtn" class="main-action-btn">
-                    <span id="startBtnIcon">✨</span>
-                    <span id="startBtnText" data-i18n="btnStartLive">Spustit živou atmosféru</span>
+                    <span id="startBtnIcon" style="font-size:24px;">🎙️</span>
+                    <span id="startBtnText" data-i18n="btnStartFree">Zapnout poslouchání</span>
+                </button>
+                <button id="musicToggleBtn" class="music-quick-btn">
+                    <span style="font-size:22px;">🎵</span>
+                    <span id="musicBtnLabel">Podkres</span>
                 </button>
             </div>
 
             <div class="controls-drawer">
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+                <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:10px;">
                     <div>
-                        <div class="slider-label"><span data-i18n="lblAmbience">🎶 Podkres</span></div>
-                        <select id="bgMusicSelect" style="padding:5px; font-size:11.5px;">
+                        <div class="slider-label"><span data-i18n="lblAmbience">🎶 Podkres na spaní</span></div>
+                        <select id="bgMusicSelect" style="padding:8px 10px; font-size:14px;">
                             <option value="lullaby" data-i18n="ambLullaby">🌙 Ukolébavka</option>
                             <option value="night" data-i18n="ambNight">🦉 Noční les</option>
                             <option value="ocean" data-i18n="ambOcean">🌊 Vlny moře</option>
@@ -778,23 +673,22 @@
                         </select>
                     </div>
                     <div>
-                        <div class="slider-label"><span data-i18n="lblDensity">🎭 Efektů</span></div>
-                        <select id="fxDensitySelect" style="padding:5px; font-size:11.5px;">
+                        <div class="slider-label"><span data-i18n="lblDensity">🎭 Četnost efektů</span></div>
+                        <select id="fxDensitySelect" style="padding:8px 10px; font-size:14px;">
                             <option value="0.5" data-i18n="densityLow">Jemně</option>
-                            <option value="0.85" selected data-i18n="densityMed">Přirozeně</option>
-                            <option value="1.0" data-i18n="densityHigh">Každé slovo (100%)</option>
+                            <option value="1.0" selected data-i18n="densityHigh">Každé slovo (100%)</option>
                         </select>
                     </div>
                     <div>
-                        <div class="slider-label"><span>⏱️ Rychlost (Tiché)</span><span id="wpmLabel">135 WPM</span></div>
+                        <div class="slider-label"><span>⏱️ Tempo</span><span id="wpmLabel">135 WPM</span></div>
                         <input type="range" id="wpmSlider" min="60" max="240" step="5" value="135">
                     </div>
                 </div>
 
                 <div class="sliders-grid">
                     <div>
-                        <div class="slider-label"><span data-i18n="lblSfxVol">🔊 Zesílení efektů (Boost)</span><span id="sfxVolLabel">180 %</span></div>
-                        <input type="range" id="sfxVolSlider" min="0.2" max="2.5" step="0.1" value="1.8">
+                        <div class="slider-label"><span data-i18n="lblSfxVol">🔊 Hlasitost efektů (Boost)</span><span id="sfxVolLabel">200 %</span></div>
+                        <input type="range" id="sfxVolSlider" min="0.2" max="2.5" step="0.1" value="2.0">
                     </div>
                     <div>
                         <div class="slider-label"><span data-i18n="lblBgVol">🎶 Hlasitost podkresu</span><span id="bgVolLabel">22 %</span></div>
@@ -809,36 +703,35 @@
 
 <script>
 /* ============================================================================
-   1. KNIHOVNA 5 NECOPYRIGHTOVANÝCH POHÁDEK (PUBLIC DOMAIN - CZ & EN)
-   + Přepsaná ukázka "Princezna Lada" z tvé vyfocené stránky
+   1. VOLITELNÁ KNIHOVNA 6 POHÁDEK (POUZE KDYŽ CHCE UŽIVATEL ČÍST Z DISPLEJE)
    ============================================================================ */
-const apiKey = ""; // V prostředí Canvasu se doplní samo; na GitHubu lze zadat přes tlačítko 🔑 AI
+const apiKey = "";
 
 const STORIES = {
     cs: [
         {
             id: "pigs",
-            title: "🐷 1. O třech prasátkách (Public Domain)",
+            title: "🐷 1. O třech prasátkách (Volitelná pohádka)",
             text: "Byla jednou tři malá růžová prasátka, která se vydala do zeleného lesa postavit si vlastní domečky. První prasátko bylo líné a postavilo si žlutý domeček ze slámy. Druhé prasátko si postavilo dřevěný domeček z větví a klacků. Třetí prasátko bylo pilné, nosilo těžké červené cihly a postavilo pevný kamenný dům s komínem. Jednoho večera se z temného lesa vynořil velký zlý černý vlk. Zhluboka se nadechl, zafoukal silný vítr a slaměný domeček se okamžitě rozletěl. První prasátko kvičelo a utíkalo, co mu nohy stačily, k bratrovi do dřevěného domku. Vlk ale znovu strašlivě zadul, dřevěné dveře zapraskaly a domek ze dřeva spadl. Obě prasátka běžela do cihlového domu a zamkla těžké dubové dveře. Venku se mezitím strhla divoká noční bouřka, zahřměl hrom a spustil se prudký déšť. Vlk funěl a škrábal na dveře, ale cihly se ani nepohnuly. Nakonec chtěl vlk vlézt dovnitř komínem, jenže dole v krbu zrovna plápolal horký červený oheň a na něm vřel kotlík s vodou. Vlk spadl rovnou do horké vody, žbluňklo to, bolestně zavyl a utekl hluboko do černého lesa. Tři prasátka se radostně smála, zpívala a žila v bezpečí."
         },
         {
             id: "karkulka",
-            title: "🔴 2. Červená Karkulka (Public Domain)",
+            title: "🔴 2. Červená Karkulka (Volitelná pohádka)",
             text: "Žila byla malá holčička, které všichni říkali Červená Karkulka, protože nosila krásný červený čepeček. Jednoho slunečného rána jí maminka připravila košík s koláčem a poslala ji za nemocnou babičkou do chaloupky uprostřed zeleného lesa. Když Karkulka kráčela po lesní pěšině, na větvích vesele zpívali ptáčkové, v zelené trávě skákala žába a podél cesty zurčel stříbrný potok. Najednou se za hustým křovím objevil šedivý vlk. Měl hladové žluté oči, ale mluvil tichým hlasem a zeptal se, kam Karkulka jde. Děvčátko mu prozradilo, že nese babičce dobroty, a zastavilo se na barevné louce, aby natrhalo modré a žluté květiny. Vlk mezitím rychle běžel zkratkou k chaloupce. Zaklepal na dřevěné dveře, které tiše vrzly, skočil dovnitř a babičku spolkl. Pak si lehl do postele. Když Karkulka přišla, podivila se, proč má babička tak velké uši, velké oči a obrovské zuby. Vlk vyskočil a spolkl i Karkulku. Naštěstí šel kolem statečný myslivec se svým věrným psem. Pes hlasitě zaštěkal, myslivec vešel do světnice, zachránil babičku i Karkulku a vlkovi zašil do břicha těžké kameny. Všichni se radovali, zazvonil zvonek a v krbu praskal teplý oheň."
         },
         {
             id: "pernik",
-            title: "🏠 3. O perníkové chaloupce (Public Domain)",
+            title: "🏠 3. O perníkové chaloupce (Volitelná pohádka)",
             text: "Jeden chudý dřevorubec šel s Jeníčkem a Mařenkou do hlubokého lesa na dříví. Děti ale v lese zabloudily, slunce zapadlo a nastala černá tma. V korunách stromů strašidelně houkala noční sova, v dálce vyl hladový vlk a foukal studený vítr. Jeníček vylezl na vysoký strom a uviděl v dálce malé zlaté světýlko. Děti běžely tím směrem, až přišly na mýtinu, kde stála kouzelná chaloupka celá ze sladkého perníku. Měla čokoládové dveře a okna z bílého cukru. Jeníček hned ulomil kousek perníku ze střechy. Vtom vrzly staré dveře a z chaloupky vyšla zlá ježibaba. Smála se skřehotavým hlasem, mávla kouzelnou hůlkou, udělala čáry a zavřela Jeníčka do klece. Ráno rozdělala v peci veliký rudý oheň, který divoce praskal, a poručila Mařence, aby si sedla na lopatu. Chytrá Mařenka ale poprosila ježibabu, ať jí to nejprve ukáže. Jakmile si ježibaba sedla, děti ji strčily do pece a zabouchly železná dvířka. Pak otevřely truhlu plnou zlatých mincí a stříbrných drahokamů, utíkaly lesem kolem šumící řeky, kde zpívali ptáčkové, až šťastně našly cestu domů k tatínkovi."
         },
         {
             id: "zlatovlaska",
-            title: "👑 4. Zlatovláska (Public Domain)",
-            text: "Starý král koupil od tajemného babičky kouzelného hada. Sloužící Jiřík měl hada upéct na ohni, ale nesměl z něj ani kousek ochutnat. Když však ryba prskala na pánvi, Jiřík jeden kousek snědl a okamžitě rozuměl řeči všech zvířat. Uslyšel, jak venku pod oknem štěká pes, na střeše švitoří ptáčkové a ve stáji řehtá bílý kůň. Král na to ale přišel a poslal Jiříka do světa, aby mu přivedl princeznu Zlatovlásku se zlatými vlasy. Jiřík jel na koni přes zelené lesy a široké louky. Cestou uhasil hořící mraveniště, nakrmil hladová mláďata krkavců a u moře, kde šuměly modré vlny, vrátil do vody velkou zlatou rybu. Ryba žbluňkla do hlubin a slíbila mu pomoc. V křišťálovém zámku musel Jiřík splnit tři těžké úkoly: posbírat perly v trávě, najít zlatý prsten na dně moře a přinést živou a mrtvou vodu. Zvířátka mu za jeho dobrotu pomohla. Když pak v zámku zazvonil slavnostní zvon, dvanáct princezen stálo v řadě, ale muška Jiříkovi prozradila pravou Zlatovlásku. Celý zámek se rozzářil zlatým kouzlem a všichni slavili."
+            title: "👑 4. Zlatovláska (Volitelná pohádka)",
+            text: "Starý král koupil od tajemné babičky kouzelného hada. Sloužící Jiřík měl hada upéct na ohni, ale nesměl z něj ani kousek ochutnat. Když však ryba prskala na pánvi, Jiřík jeden kousek snědl a okamžitě rozuměl řeči všech zvířat. Uslyšel, jak venku pod oknem štěká pes, na střeše švitoří ptáčkové a ve stáji řehtá bílý kůň. Král na to ale přišel a poslal Jiříka do světa, aby mu přivedl princeznu Zlatovlásku se zlatými vlasy. Jiřík jel na koni přes zelené lesy a široké louky. Cestou uhasil hořící mraveniště, nakrmil hladová mláďata krkavců a u moře, kde šuměly modré vlny, vrátil do vody velkou zlatou rybu. Ryba žbluňkla do hlubin a slíbila mu pomoc. V křišťálovém zámku musel Jiřík splnit tři těžké úkoly: posbírat perly v trávě, najít zlatý prsten na dně moře a přinést živou a mrtvou vodu. Zvířátka mu za jeho dobrotu pomohla. Když pak v zámku zazvonil slavnostní zvon, dvanáct princezen stálo v řadě, ale muška Jiříkovi prozradila pravou Zlatovlásku. Celý zámek se rozzářil zlatým kouzlem a všichni slavili."
         },
         {
             id: "mesicky",
-            title: "❄️ 5. O dvanácti měsíčkách (Public Domain)",
+            title: "❄️ 5. O dvanácti měsíčkách (Volitelná pohádka)",
             text: "Žila jednou hodná Maruška, kterou zlá macecha a líná sestra Holena vyhnaly v lednu do strašlivé vichřice. Venku mrzlo, foukal ledový vítr, padal bílý sníh a les byl temný jako noc. Maruška plakala a brodila se závějemi, až na vrcholku hory spatřila jasnou zlatou záři. Uprostřed lesa tam plápolal veliký červený oheň a kolem něj sedělo na kamenech dvanáct tichých mužů — dvanáct měsíčků. Maruška zdvořile poprosila, zda se smí u ohně ohřát. Starý Leden s dlouhým bílým vousem kývl a předal kouzelnou hůl bratru Březnu. Oheň vysoko vyšlehl, sníh roztál do bublající vody, na stromech vypučely zelené pupeny, v trávě rozkvetly modré fialky a ptáčkové začali radostně zpívat. Pak se ujal vlády Červen, zasvítilo teplé zlaté slunce a les se naplnil sladkými červenými jahodami. Nakonec promluvil Říjen a ze stromů spadla krásná červená jablka. Když ale do lesa vběhla zlá Holena a křičela na měsíčky bez úcty, Leden mávl holí, strhla se strašná bouřka, zahřměl hrom a vichřice zlé ženy zasypala sněhem, zatímco Maruška žila v chaloupce šťastně v teple u krbu."
         },
         {
@@ -850,27 +743,27 @@ const STORIES = {
     en: [
         {
             id: "pigs_en",
-            title: "🐷 1. The Three Little Pigs (Public Domain)",
+            title: "🐷 1. The Three Little Pigs (Optional Story)",
             text: "Once upon a time, three little pink pigs went into the green forest to build their own houses. The first little pig built a yellow house of straw. The second little pig built a wooden house of sticks. The third little pig worked hard with red bricks and built a strong stone house with a chimney. One dark night, a big bad black wolf came out of the woods. He took a deep breath, blew a strong wind, and the straw house fell down. The pig ran away fast to the wooden house. The wolf blew again, the wooden door creaked and broke, and both pigs ran into the brick house. Outside, a dark storm started with loud thunder and heavy rain. The wolf tried to climb down the chimney, where a hot red fire crackled under a pot of boiling water. With a loud splash, the wolf fell in, howled in pain, and ran back into the dark forest forever. The three pigs laughed and sang happily."
         },
         {
             id: "karkulka_en",
-            title: "🔴 2. Little Red Riding Hood (Public Domain)",
+            title: "🔴 2. Little Red Riding Hood (Optional Story)",
             text: "Once there was a sweet little girl called Little Red Riding Hood because of her bright red cloak. One sunny morning she walked through the green forest to bring cake to her sick grandmother. Along the path, birds sang in the trees, a green frog jumped by the splashing river, and a cool wind blew. Behind a dark bush, a gray wolf watched her with yellow eyes. While she picked blue and gold flowers, the wolf ran ahead to the cottage. He knocked on the wooden door, which creaked open. Fortunately, a brave hunter and his barking dog arrived just in time to save them. A silver bell rang in celebration and a warm fire glowed in the hearth."
         },
         {
             id: "pernik_en",
-            title: "🏠 3. Hansel and Gretel (Public Domain)",
+            title: "🏠 3. Hansel and Gretel (Optional Story)",
             text: "Hansel and Gretel wandered deep into the dark forest at night. An owl hooted in the tall trees, a wolf howled in the distance, and a cold wind blew. Following a golden star, they discovered a magic house made of sweet gingerbread and white sugar. Suddenly, the wooden door creaked open and an old witch laughed and cast a magic spell. She lit a roaring red fire in the oven, but clever Gretel pushed the witch inside and slammed the iron door. The children found a chest of gold coins and ran home along the splashing river while birds sang in the morning sun."
         },
         {
             id: "zlatovlaska_en",
-            title: "👑 4. The Golden-Haired Princess (Public Domain)",
+            title: "👑 4. The Golden-Haired Princess (Optional Story)",
             text: "Young George rode his white horse through green forests and across wide rivers to find the Golden-Haired Princess. Because he understood the speech of animals, he heard dogs barking, horses whinnying, and birds singing. By the blue ocean, where big waves splashed on the shore, he saved a golden fish. In the royal crystal castle, a silver bell rang, magic golden light filled the hall, and joyful music played for the wedding."
         },
         {
             id: "mesicky_en",
-            title: "❄️ 5. The Twelve Months (Public Domain)",
+            title: "❄️ 5. The Twelve Months (Optional Story)",
             text: "On a freezing winter night, a fierce storm howled and white snow fell in the dark forest. Poor Marushka walked through the cold wind until she saw a bright golden glow on the mountain top. Twelve silent men sat around a huge crackling red fire. Kind January waved his magic staff: the fire roared, snow melted into splashing water, green grass grew, birds sang, and red strawberries ripened under the warm golden sun."
         }
     ]
@@ -878,49 +771,55 @@ const STORIES = {
 
 const I18N = {
     cs: {
-        tagline: "Knihy s živou atmosférou — 1000+ českých spouštěčů zvuku a světla",
-        testSound: "Test",
+        tagline: "Živá zvuková a světelná atmosféra k vyprávění (1000+ spouštěčů)",
+        testSound: "Test zvuku",
         dimScreen: "Noční lampa",
-        modeLive: "Čtu nahlas",
-        modeSilent: "Tiché čtení (Bez pípání)",
+        modeFree: "Jen poslouchat (Bez knihy)",
+        modeLive: "Číst z pohádky",
+        modeSilent: "Tiché čtení",
         modePodcast: "AI Předčítání",
-        btnPhoto: "Vyfotit stránky (AI/Offline OCR)",
+        freeTitle: "Volný odposlech (Bez textu na displeji)",
+        freeSub: "Vyprávěj vlastní pohádku z hlavy nebo čti z papírové knížky. Telefon na nočním stolku poslouchá klíčová slova a sám přidává zvuky a mění barvu světla.",
+        btnPhoto: "Vyfotit vlastní knihu (OCR)",
         btnDoc: "Nahrát TXT",
-        btnStartLive: "Spustit živou atmosféru (Hlas)",
+        btnStartFree: "Zapnout poslouchání (Bez knihy)",
+        btnStartLive: "Spustit čtení s pohádkou",
         btnStartSilent: "Spustit tiché čtení (Plynulý posun)",
         btnStartPodcast: "Spustit AI předčítání",
         btnStopActive: "Zastavit (Atmosféra běží)",
-        lblDensity: "🎭 Efektů",
+        lblDensity: "🎭 Četnost efektů",
         densityLow: "Jemně",
-        densityMed: "Přirozeně",
         densityHigh: "Každé slovo (100%)",
-        lblAmbience: "🎶 Podkres",
+        lblAmbience: "🎶 Podkres na spaní",
         ambLullaby: "🌙 Ukolébavka",
         ambNight: "🦉 Noční les",
         ambOcean: "🌊 Vlny moře",
         ambRain: "🌧️ Noční déšť",
         ambFire: "🔥 Teplý krb",
-        lblSfxVol: "🔊 Zesílení efektů (Boost)",
+        lblSfxVol: "🔊 Hlasitost efektů (Boost)",
         lblBgVol: "🎶 Hlasitost podkresu"
     },
     en: {
-        tagline: "Books with Living Atmosphere — 1000+ Voice & Light Triggers",
-        testSound: "Test",
+        tagline: "Living Sound & Light Atmosphere for Storytelling (1000+ Triggers)",
+        testSound: "Test Sound",
         dimScreen: "Night Lamp",
-        modeLive: "Read Aloud",
-        modeSilent: "Silent Sync (No Beep)",
-        modePodcast: "AI Podcast",
-        btnPhoto: "Snap Pages (AI/Offline OCR)",
+        modeFree: "Just Listen (No Book)",
+        modeLive: "Read Story",
+        modeSilent: "Silent Sync",
+        modePodcast: "AI Narrator",
+        freeTitle: "Free Listening Mode (No Text Needed)",
+        freeSub: "Tell your own bedtime story or read from a physical book. Your phone listens for keywords and automatically adds sound effects and room lighting.",
+        btnPhoto: "Snap Book Pages (OCR)",
         btnDoc: "Upload TXT",
-        btnStartLive: "Start Live Voice Atmosphere",
+        btnStartFree: "Start Listening (No Book)",
+        btnStartLive: "Start Reading Aloud",
         btnStartSilent: "Start Silent Reading Sync",
-        btnStartPodcast: "Start AI Podcast Narration",
+        btnStartPodcast: "Start AI Narration",
         btnStopActive: "Stop (Atmosphere Active)",
-        lblDensity: "🎭 Density",
+        lblDensity: "🎭 Effect Density",
         densityLow: "Subtle",
-        densityMed: "Balanced",
         densityHigh: "Every Word (100%)",
-        lblAmbience: "🎶 Ambience",
+        lblAmbience: "🎶 Sleep Ambience",
         ambLullaby: "🌙 Lullaby Pad",
         ambNight: "🦉 Night Forest",
         ambOcean: "🌊 Ocean Waves",
@@ -932,9 +831,7 @@ const I18N = {
 };
 
 /* ============================================================================
-   2. OBŘÍ SLOVNÍK 1 000+ KOŘENŮ SLOV PRO ZVUKY A SVĚTELNOU AURU MÍSTNOSTI
-   Rozděleno do 24 zvukových archetypů a 14 barevných aur. Automaticky se
-   rozbalí do rychlých vyhledávacích tabulek (přes 1 050 kořenů -> ~8 000 tvarů).
+   2. OBŘÍ SLOVNÍK 1 050+ KOŘENŮ SLOV PRO ZVUKY A SVĚTELNOU AURU MÍSTNOSTI
    ============================================================================ */
 const ARCHETYPE_MEDIA = {
     thunder: { synth: "thunder", url: "https://actions.google.com/sounds/v1/weather/rolling_thunder.ogg" },
@@ -962,12 +859,11 @@ const ARCHETYPE_MEDIA = {
     horn:    { synth: "horn",    url: "https://actions.google.com/sounds/v1/transportation/train_horn.ogg" }
 };
 
-// Kompaktní databáze více než 1 000 kořenů slov (české + anglické)
 const SOUND_CLUSTERS = {
     thunder: "bouř,hrom,zahřm,blesk,zablýsk,hřmí,hřměn,bouří,burác,zadun,duněn,řach,práskn,výbuch,exploz,vichřic,orkán,tornád,blýskav,hromobit,krupobit,hřmot,rachot,třesk,zatřásl,zemětřes,thunder,storm,lightn,rumbl,explosion,crashing",
     rain: "déš,dešt,prš,liják,slejvák,mrhol,kapk,kapal,kape,mokř,promok,plískan,přeháňk,deštiv,zaprš,rozprš,kropen,krůpěj,voda,louž,kaluh,blát,bahno,deštíček,prška,rain,drizzle,downpour,shower,puddle,raindrop",
     wind: "vítr,větr,fouk,zafouk,vane,ván,větř,vichr,meluzín,průvan,fič,zafič,hvízd,svišt,šuměn,šustěn,listí,korun,větv,ohýb,vát,zavál,odvál,rozfouk,zadul,duj,dech,nádech,vydechn,funěl,zafun,wind,breeze,gust,blow,blew,whispering",
-    fire: "oheň,ohn,plamen,plápol,hoř,zahoř,shoř,praská,praskot,krb,pec,kamn,ohništ,vinh,žár,žhav,jiskr,zajiskř,popel,dým,kouř,pochodeň,louč,svíčk,lucern,lamp,zapál,rozdělal,hork,vař,vřel,pekl,opék,smaž,fire,flame,burn,crackl,hearth,furnace,torch,candle,smoke,ash",
+    fire: "oheň,ohn,plamen,plápol,hoř,zahoř,shoř,praská,praskot,krb,pec,kamn,ohništ,výh,žár,žhav,jiskr,zajiskř,popel,dým,kouř,pochodeň,louč,svíčk,lucern,lamp,zapál,rozdělal,hork,vař,vřel,pekl,opék,smaž,fire,flame,burn,crackl,hearth,furnace,torch,candle,smoke,ash",
     water: "řek,říč,potok,potoč,studán,studn,pramen,tůň,jezer,rybník,moř,oceán,vln,žbluň,šplouch,cák,vystřík,zurč,bubl,proud,hlubin,utop,potop,plav,vyplav,břeh,vodopád,kašn,fontán,vědr,džbán,umyl,vykoupal,slz,pláč,plakal,river,stream,spring,well,lake,ocean,sea,wave,splash,water,brook,pond,swim,dive",
     dog: "pes,pejs,psí,psík,štěň,štěk,zaštěk,vyštěk,avrč,zavrč,vrčen,kňuč,zakňuč,haf,čokl,ohař,hlídač,smečk,psisko,dog,puppy,hound,bark,growl,whimper",
     cat: "kočk,kočič,kotě,koťát,kocour,mňouk,zamňouk,vrní,přede,mrousk,tlapk,drápy,škráb,zaškráb,myšilov,macek,číč,cat,kitten,kitty,meow,purr",
@@ -1001,7 +897,6 @@ const COLOR_CLUSTERS = {
     orange: { r: 240, g: 115, b: 35,  boost: 0.76, words: "oranž,podzim,krb,tepl,hork,koláč,chléb,peč,dřev,chaloup,měď,lišk,orange,autumn,hearth,warm,bread,wood,fox" }
 };
 
-// Sestavení rychlých vyhledávacích map (1 050+ kořenů)
 const SOUND_TRIGGERS = {};
 for (const [arch, listStr] of Object.entries(SOUND_CLUSTERS)) {
     const media = ARCHETYPE_MEDIA[arch];
@@ -1019,21 +914,19 @@ for (const [colorName, cfg] of Object.entries(COLOR_CLUSTERS)) {
     });
 }
 
-// Pomocná funkce pro odstranění diakritiky (pro spolehlivý fuzzy-matching)
 function stripAccents(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 /* ============================================================================
-   3. ZVUKOVÝ ENGINE SE ZESILOVAČEM (GAIN BOOST) A POTLAČENÍM PÍPÁNÍ
+   3. ZVUKOVÝ ENGINE SE ZESILOVAČEM (200 % BOOST) A AUDIO DUCKINGEM
    ============================================================================ */
 const SoundEngine = {
     ctx: null,
-    sfxBoost: 1.8, // Výchozí zesílení 180 % pro jasnou slyšitelnost
+    sfxBoost: 2.0,
     bgVolume: 0.22,
     isMusicPlaying: false,
     masterBgGain: null,
-    sfxBusGain: null,
     oscNodes: [],
     noiseNode: null,
     cooldowns: {},
@@ -1043,10 +936,6 @@ const SoundEngine = {
     init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            this.sfxBusGain = this.ctx.createGain();
-            this.sfxBusGain.gain.value = this.sfxBoost;
-            this.sfxBusGain.connect(this.ctx.destination);
-
             const testAudio = document.createElement('audio');
             this.canPlayOgg = !!(testAudio.canPlayType && testAudio.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, ''));
         }
@@ -1061,17 +950,16 @@ const SoundEngine = {
         this.toastTimer = setTimeout(() => t.style.opacity = '0', 2200);
     },
 
-    // Krátké ztišení podkresové hudby při zaznění efektu (Audio Ducking), aby efekt vyniknul
     duckBackgroundMusic() {
         if (!this.isMusicPlaying || !this.masterBgGain || !this.ctx) return;
         const now = this.ctx.currentTime;
-        this.masterBgGain.gain.setTargetAtTime(this.bgVolume * 0.25, now, 0.08);
+        this.masterBgGain.gain.setTargetAtTime(this.bgVolume * 0.22, now, 0.08);
         clearTimeout(this.duckTimeout);
         this.duckTimeout = setTimeout(() => {
             if (this.masterBgGain && this.ctx) {
                 this.masterBgGain.gain.setTargetAtTime(this.bgVolume, this.ctx.currentTime, 0.5);
             }
-        }, 2400);
+        }, 2500);
     },
 
     triggerWordSound(stem, rawWord = "") {
@@ -1079,9 +967,8 @@ const SoundEngine = {
         if (!item) return;
 
         const now = Date.now();
-        // Cooldown na stejný archetyp 2.4 vteřiny, různé zvuky se mohou překrývat ihned
         const cdKey = item.archetype || stem;
-        if (this.cooldowns[cdKey] && now - this.cooldowns[cdKey] < 2400) return;
+        if (this.cooldowns[cdKey] && now - this.cooldowns[cdKey] < 2300) return;
         this.cooldowns[cdKey] = now;
 
         this.init();
@@ -1089,15 +976,15 @@ const SoundEngine = {
         this.showToast(`🔊 ${rawWord || stem}`);
         VisualLamp.pulseParticles();
 
-        // 1. Okamžitý bohatý syntetický zvuk přes zesilovač (funguje vždy na 100 % mobilů i iOS)
+        // 1. Okamžitý syntetický zvuk (funguje vždy na 100 % telefonů)
         this.playSynthEffect(item.synth, Math.min(2.5, this.sfxBoost));
 
-        // 2. Překrytí reálnou nahrávkou z Google Sound Library s maximální hlasitostí
+        // 2. Překrytí reálnou nahrávkou z Google Sound Library
         if (this.canPlayOgg && item.url) {
             try {
                 const audio = new Audio(item.url);
                 audio.crossOrigin = "anonymous";
-                audio.volume = Math.min(1.0, this.sfxBoost * 0.65);
+                audio.volume = Math.min(1.0, this.sfxBoost * 0.7);
                 audio.play().catch(() => {});
             } catch (e) {}
         }
@@ -1106,7 +993,7 @@ const SoundEngine = {
     playSynthEffect(type, boost) {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        const vol = Math.min(1.4, 0.45 * boost);
+        const vol = Math.min(1.5, 0.48 * boost);
 
         if (type === "magic" || type === "bell" || type === "bird") {
             const freqs = type === "bell" ? [523.25, 659.25, 783.99, 1046.5] : (type === "bird" ? [1400, 1850, 1600, 2100] : [587.33, 783.99, 987.77, 1174.66, 1567.98]);
@@ -1135,7 +1022,7 @@ const SoundEngine = {
             osc.frequency.setValueAtTime(startF, now);
             osc.frequency.exponentialRampToValueAtTime(endF, now + dur * 0.6);
             g.gain.setValueAtTime(0.001, now);
-            g.gain.linearRampToValueAtTime(vol * 0.5, now + 0.06);
+            g.gain.linearRampToValueAtTime(vol * 0.55, now + 0.06);
             g.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
             const filter = this.ctx.createBiquadFilter();
@@ -1147,7 +1034,6 @@ const SoundEngine = {
             osc.start(now);
             osc.stop(now + dur + 0.05);
         } else {
-            // Šumové a rázové zvuky (hrom, déšť, vítr, oheň, voda, kroky, meč)
             const dur = (type === "knock" || type === "steps" || type === "sword") ? 0.45 : (type === "splash" ? 1.1 : 2.8);
             const bufSize = Math.floor(this.ctx.sampleRate * dur);
             const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
@@ -1162,7 +1048,7 @@ const SoundEngine = {
 
             const out = this.ctx.createGain();
             out.gain.setValueAtTime(0.001, now);
-            out.gain.linearRampToValueAtTime(vol * 0.75, now + 0.06);
+            out.gain.linearRampToValueAtTime(vol * 0.8, now + 0.06);
             out.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
             noise.connect(filter);
@@ -1220,7 +1106,9 @@ const SoundEngine = {
         }
 
         this.isMusicPlaying = true;
-        document.getElementById('musicBtnLabel').innerText = "Podkres: Hraje";
+        const btn = document.getElementById('musicToggleBtn');
+        btn.classList.add('playing');
+        document.getElementById('musicBtnLabel').innerText = "Hraje";
     },
 
     stopMusic() {
@@ -1228,22 +1116,23 @@ const SoundEngine = {
         this.oscNodes = [];
         if (this.noiseNode) { try { this.noiseNode.stop(); } catch(e){} this.noiseNode = null; }
         this.isMusicPlaying = false;
-        document.getElementById('musicBtnLabel').innerText = "Podkres: Vyp";
+        const btn = document.getElementById('musicToggleBtn');
+        btn.classList.remove('playing');
+        document.getElementById('musicBtnLabel').innerText = "Podkres";
     }
 };
 
 /* ============================================================================
-   4. VYLEPŠENÁ AKVARELOVÁ VIZUALIZACE A NOČNÍ LAMPA NA CANVASU
-   Dýchající barevná mlhovina, světlušky a plynulé vlnění podle děje knihy
+   4. AKVARELOVÁ VIZUALIZACE A NOČNÍ LAMPA NA CANVASU
    ============================================================================ */
 const VisualLamp = {
     canvas: document.getElementById('ambientCanvas'),
     ctx: document.getElementById('ambientCanvas').getContext('2d'),
     width: 0,
     height: 0,
-    defaultColor: { r: 28, g: 22, b: 42, boost: 0.38 },
-    currentColor: { r: 28, g: 22, b: 42, boost: 0.38 },
-    targetColor: { r: 28, g: 22, b: 42, boost: 0.38 },
+    defaultColor: { r: 32, g: 24, b: 48, boost: 0.42 },
+    currentColor: { r: 32, g: 24, b: 48, boost: 0.42 },
+    targetColor: { r: 32, g: 24, b: 48, boost: 0.42 },
     revertTimeout: null,
     particles: [],
     blobs: [],
@@ -1257,18 +1146,16 @@ const VisualLamp = {
         window.addEventListener('resize', resize);
         resize();
 
-        // 4 akvarelové barevné oblaky (lávová lampa)
         this.blobs = Array.from({ length: 4 }, (_, i) => ({
             angle: (i * Math.PI) / 2,
             speed: 0.004 + i * 0.0015,
-            radiusFactor: 0.28 + i * 0.06
+            radiusFactor: 0.3 + i * 0.06
         }));
 
-        // 55 pohádkových světlušek / jisker
-        this.particles = Array.from({ length: 55 }, () => ({
+        this.particles = Array.from({ length: 60 }, () => ({
             x: Math.random() * window.innerWidth,
             y: Math.random() * window.innerHeight,
-            r: Math.random() * 2.4 + 0.8,
+            r: Math.random() * 2.6 + 0.8,
             vx: (Math.random() - 0.5) * 0.35,
             vy: -Math.random() * 0.45 - 0.15,
             alpha: Math.random()
@@ -1278,16 +1165,16 @@ const VisualLamp = {
     },
 
     triggerRoomGlow(auraObj) {
-        this.targetColor = { r: auraObj.r, g: auraObj.g, b: auraObj.b, boost: auraObj.boost || 0.78 };
+        this.targetColor = { r: auraObj.r, g: auraObj.g, b: auraObj.b, boost: auraObj.boost || 0.8 };
         this.energyBoost = 1.0;
         clearTimeout(this.revertTimeout);
         this.revertTimeout = setTimeout(() => {
             this.targetColor = { ...this.defaultColor };
-        }, 7500);
+        }, 8000);
     },
 
     pulseParticles() {
-        this.energyBoost = 1.2;
+        this.energyBoost = 1.25;
     },
 
     render() {
@@ -1301,11 +1188,9 @@ const VisualLamp = {
         const g = Math.round(this.currentColor.g * this.currentColor.boost);
         const b = Math.round(this.currentColor.b * this.currentColor.boost);
 
-        // Základní tmavé plátno
         this.ctx.fillStyle = `rgb(${Math.max(4, Math.floor(r * 0.35))}, ${Math.max(5, Math.floor(g * 0.35))}, ${Math.max(12, Math.floor(b * 0.4))})`;
         this.ctx.fillRect(0, 0, this.width, this.height);
 
-        // Akvarelové dýchající mlhoviny
         const minDim = Math.min(this.width, this.height);
         this.blobs.forEach((blob, idx) => {
             blob.angle += blob.speed + this.energyBoost * 0.015;
@@ -1318,7 +1203,7 @@ const VisualLamp = {
             const cg = Math.min(255, Math.round(this.currentColor.g * (0.85 + idx * 0.05)));
             const cb = Math.min(255, Math.round(this.currentColor.b * (0.85 + idx * 0.08)));
 
-            grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${0.42 * this.currentColor.boost})`);
+            grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${0.45 * this.currentColor.boost})`);
             grad.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`);
 
             this.ctx.fillStyle = grad;
@@ -1327,7 +1212,6 @@ const VisualLamp = {
             this.ctx.fill();
         });
 
-        // Světlušky / hvězdný prach
         this.particles.forEach(p => {
             p.x += p.vx * (1 + this.energyBoost * 2);
             p.y += p.vy * (1 + this.energyBoost * 2.5);
@@ -1349,8 +1233,7 @@ const VisualLamp = {
 };
 
 /* ============================================================================
-   5. AI OCR S AUTOMATICKOU KOMPRESÍ FOTEK + OFFLINE TESSERACT.JS FALLBACK
-   Opravuje chybu OCR skenování jak v Canvasu, tak na GitHub Pages
+   5. AI OCR S KOMPRESÍ FOTEK + OFFLINE TESSERACT.JS FALLBACK
    ============================================================================ */
 const AIEngine = {
     getEffectiveApiKey() {
@@ -1358,7 +1241,6 @@ const AIEngine = {
         return (saved && saved.trim()) ? saved.trim() : apiKey;
     },
 
-    // Zmenší velkou 10MB fotku z mobilu na ostrých max 1500px (~180 kB), aby API nikdy nespadlo na limitu velikosti
     async compressImageToBase64(file) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -1394,13 +1276,12 @@ const AIEngine = {
 
         const key = this.getEffectiveApiKey();
 
-        // 1. Pokud máme platný Gemini klíč (v Canvasu nebo zadaný uživatelem), použijeme Gemini 2.5 Flash s domýšlením kontextu
         if (key) {
             try {
-                if (onProgress) onProgress(lang === 'cs' ? "⏳ AI čte stránky a domýšlí text..." : "⏳ AI reading pages...");
+                if (onProgress) onProgress(lang === 'cs' ? "⏳ AI čte stránky..." : "⏳ AI reading pages...");
                 const parts = [{
                     text: lang === 'cs'
-                        ? "Převeď tyto vyfocené stránky knihy na čistý, plynulý český text. Odstraň čísla stránek a dělení slov na konci řádků (např. 'Če-ládka' spoj na 'Čeládka'). Pokud je některé slovo rozmazané, oříznuté nebo ve stínu, logicky ho domysli podle kontextu věty. Vrať pouze samotný čistý text příběhu."
+                        ? "Převeď tyto vyfocené stránky knihy na čistý, plynulý český text. Odstraň čísla stránek a dělení slov na konci řádků (např. 'Če-ládka' spoj na 'Čeládka'). Pokud je některé slovo rozmazané nebo oříznuté, logicky ho domysli podle kontextu věty. Vrať pouze samotný čistý text příběhu."
                         : "Transcribe these photographed book pages into clean continuous text. Merge hyphenated line-break words and reconstruct any blurry words naturally from context. Return only the story text."
                 }];
                 compressedList.forEach(img => {
@@ -1422,7 +1303,6 @@ const AIEngine = {
             }
         }
 
-        // 2. Spolehlivý Offline Fallback (Tesseract.js) přímo v prohlížeči (funguje na GitHub Pages i zcela bez API klíče)
         if (window.Tesseract) {
             let fullText = "";
             for (let i = 0; i < compressedList.length; i++) {
@@ -1439,7 +1319,6 @@ const AIEngine = {
         throw new Error("OCR nedostupné");
     },
 
-    // Vyčistí rozdělená slova z konce řádků (např. "Če-\nládka" -> "Čeládka") a sjednotí mezery
     cleanOcrText(raw) {
         return raw
             .replace(/(\p{L})-\s*\n\s*(\p{L})/gu, '$1$2')
@@ -1449,11 +1328,11 @@ const AIEngine = {
 };
 
 /* ============================================================================
-   6. HLAVNÍ APLIKAČNÍ LOGIKA, PŘIROZENÁ INTERPUNKCE A HLASOVÁ SYNCHRONIZACE
+   6. HLAVNÍ LOGIKA: VÝCHOZÍ VOLNÝ ODPOSLECH (BEZ KNIHY) + VOLITELNÉ POHÁDKY
    ============================================================================ */
 const StoryApp = {
     lang: 'cs',
-    mode: 'live',
+    mode: 'free', // Výchozí je čisté poslouchání bez nutnosti číst pohádku z displeje!
     isRunning: false,
     recognition: null,
     keepMicAliveStream: null,
@@ -1461,7 +1340,7 @@ const StoryApp = {
     currentWordIndex: 0,
     wpm: 135,
     silentTimer: null,
-    fxDensity: 0.85,
+    fxDensity: 1.0,
     wakeLock: null,
 
     init() {
@@ -1484,7 +1363,6 @@ const StoryApp = {
         });
     },
 
-    // Opravená tokenizace: interpunkce zůstává přirozeně nalepená ke slovu, žádné rozbité mezery
     loadStory(rawText) {
         const container = document.getElementById('readerContainer');
         container.innerHTML = '';
@@ -1495,7 +1373,6 @@ const StoryApp = {
         const tokens = cleanInput.split(' ');
 
         tokens.forEach((token, idx) => {
-            // Čisté slovo bez uvozovek, čárek a teček pro detekci kořenů
             const clean = token.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž]/gi, '');
             const norm = stripAccents(clean);
 
@@ -1512,7 +1389,6 @@ const StoryApp = {
             };
 
             container.appendChild(span);
-            // Normální mezera mezi slovy jako textový uzel (nerozbíjí zalomení řádků)
             container.appendChild(document.createTextNode(' '));
 
             this.bookWords.push({
@@ -1583,7 +1459,6 @@ const StoryApp = {
         }
     },
 
-    // Rozpoznávání řeči s minimalizací restartů a fuzzy-matchingem bez diakritiky
     setupSpeechRecognition() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) return;
@@ -1599,25 +1474,30 @@ const StoryApp = {
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 transcript += event.results[i][0].transcript + " ";
             }
-            const spokenTokens = transcript.trim().split(/\s+/).slice(-4);
+            const trimmed = transcript.trim();
+            if (trimmed) {
+                const pill = document.getElementById('spokenLivePill');
+                if (pill) pill.innerText = "🗣️ „..." + trimmed.slice(-55) + "“";
+            }
+
+            const spokenTokens = trimmed.split(/\s+/).slice(-4);
 
             spokenTokens.forEach(token => {
                 const cleanSpoken = token.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž]/gi, '');
                 const normSpoken = stripAccents(cleanSpoken);
                 if (cleanSpoken.length < 3) return;
 
-                // 1. Okamžitá kontrola, zda vyřčené slovo spouští zvuk nebo barvu (i když si pohádku vymýšlíš z hlavy)
+                // 1. VŽDY okamžitě zkontrolujeme, zda vyřčené slovo spouští zvuk nebo barvu (pro vyprávění z hlavy!)
                 this.checkWordEffects(cleanSpoken);
 
-                // 2. Fuzzy posun kurzoru v textu pohádky (hledá v okně -3 až +18 slov od aktuální pozice)
-                if (this.bookWords.length > 0) {
+                // 2. Pokud jsme v režimu čtení pohádky z displeje ('live'), posouváme i kurzor
+                if (this.mode === 'live' && this.bookWords.length > 0) {
                     const start = Math.max(0, this.currentWordIndex - 2);
                     const end = Math.min(this.bookWords.length - 1, this.currentWordIndex + 18);
                     for (let i = start; i <= end; i++) {
                         const bw = this.bookWords[i];
                         if (!bw.norm || bw.norm.length < 3) continue;
                         if (bw.norm === normSpoken || (normSpoken.length >= 4 && bw.norm.startsWith(normSpoken.slice(0, 4)))) {
-                            // Pokud jsme přeskočili klíčové slovo mezi starou a novou pozicí, odpálíme jeho efekt
                             for (let k = this.currentWordIndex + 1; k <= i; k++) {
                                 if (this.bookWords[k]?.soundStem || this.bookWords[k]?.colorStem) {
                                     this.checkWordEffects(this.bookWords[k]);
@@ -1632,10 +1512,9 @@ const StoryApp = {
         };
 
         this.recognition.onend = () => {
-            // Restartujeme pouze v režimu "live" s malou prodlevou, aby Android necinkal v rychlé smyčce
-            if (this.isRunning && this.mode === 'live') {
+            if (this.isRunning && (this.mode === 'free' || this.mode === 'live')) {
                 setTimeout(() => {
-                    if (this.isRunning && this.mode === 'live') {
+                    if (this.isRunning && (this.mode === 'free' || this.mode === 'live')) {
                         try { this.recognition.start(); } catch (e) {}
                     }
                 }, 250);
@@ -1659,8 +1538,7 @@ const StoryApp = {
 
         this.isRunning = true;
 
-        if (this.mode === 'live') {
-            // Otevření trvalého tichého audio streamu pomáhá na řadě telefonů udržet audio session aktivní
+        if (this.mode === 'free' || this.mode === 'live') {
             try {
                 if (!this.keepMicAliveStream && navigator.mediaDevices?.getUserMedia) {
                     this.keepMicAliveStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
@@ -1670,10 +1548,10 @@ const StoryApp = {
                 this.recognition.lang = this.lang === 'cs' ? 'cs-CZ' : 'en-US';
                 try { this.recognition.start(); } catch (e) {}
             }
-            // V živém čtení navíc běží jemný pomocný posun, pokud čtenář čte plynule dál
-            this.startSilentTicker(true);
+            if (this.mode === 'live') {
+                this.startSilentTicker(true);
+            }
         } else if (this.mode === 'silent') {
-            // Režim Tiché čtení: 0 % systémového pípání Androidu! Plynule posouvá kurzor podle WPM a spouští všechny zvuky a barvy
             this.startSilentTicker(false);
         } else if (this.mode === 'podcast') {
             this.runPodcast();
@@ -1696,7 +1574,6 @@ const StoryApp = {
         this.updateUIState();
     },
 
-    // Plynulý posun kurzoru s přirozenou pauzou na čárkách a tečkách
     startSilentTicker(isAssistedLive = false) {
         clearInterval(this.silentTimer);
         const step = () => {
@@ -1707,7 +1584,6 @@ const StoryApp = {
                 this.highlightCursor(this.currentWordIndex);
                 this.checkWordEffects(wordObj);
 
-                // Přirozená rytmika: po tečce delší pauza, po čárce střední, jinak podle WPM
                 const baseMs = Math.round(60000 / (isAssistedLive ? this.wpm * 0.85 : this.wpm));
                 let delay = baseMs;
                 if (/[.!?…]$/.test(wordObj.raw)) delay = baseMs * 1.9;
@@ -1722,7 +1598,6 @@ const StoryApp = {
         this.silentTimer = setTimeout(step, initialMs);
     },
 
-    // Spolehlivé předčítání (Web Speech Synthesis s přesným sledováním slov a spouštěním efektů)
     runPodcast() {
         if (!('speechSynthesis' in window)) {
             this.startSilentTicker(false);
@@ -1778,15 +1653,33 @@ const StoryApp = {
         const btn = document.getElementById('startStoryBtn');
         const text = document.getElementById('startBtnText');
         const icon = document.getElementById('startBtnIcon');
+        const orb = document.getElementById('freeOrb');
+        const freeStage = document.getElementById('freeStage');
+        const readerBox = document.getElementById('readerContainer');
+        const bookTools = document.getElementById('bookToolsPanel');
+
+        // Přepínání mezi čistým Volným odposlechem (bez knihy) a čtečkou pohádek
+        if (this.mode === 'free') {
+            freeStage.style.display = 'flex';
+            readerBox.classList.remove('visible');
+            bookTools.classList.remove('visible');
+        } else {
+            freeStage.style.display = 'none';
+            readerBox.classList.add('visible');
+            bookTools.classList.add('visible');
+        }
 
         if (this.isRunning) {
             btn.classList.add('active');
+            orb.classList.add('listening');
             icon.innerText = "🛑";
             text.innerText = dict.btnStopActive;
         } else {
             btn.classList.remove('active');
-            icon.innerText = "✨";
-            if (this.mode === 'live') text.innerText = dict.btnStartLive;
+            orb.classList.remove('listening');
+            icon.innerText = "🎙️";
+            if (this.mode === 'free') text.innerText = dict.btnStartFree;
+            else if (this.mode === 'live') text.innerText = dict.btnStartLive;
             else if (this.mode === 'silent') text.innerText = dict.btnStartSilent;
             else text.innerText = dict.btnStartPodcast;
         }
@@ -1816,10 +1709,13 @@ const StoryApp = {
             };
         });
 
-        document.getElementById('startStoryBtn').onclick = () => {
+        const toggleStart = () => {
             if (!this.isRunning) this.startExperience();
             else this.stopExperience();
         };
+
+        document.getElementById('startStoryBtn').onclick = toggleStart;
+        document.getElementById('freeOrb').onclick = toggleStart;
 
         document.getElementById('storySelect').onchange = (e) => {
             if (this.isRunning) this.stopExperience();
@@ -1855,7 +1751,6 @@ const StoryApp = {
             setTimeout(() => badge.innerText = "", 5000);
         };
 
-        // Nahrání textového souboru
         document.getElementById('docInput').onchange = async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -1871,13 +1766,11 @@ const StoryApp = {
             setTimeout(() => badge.innerText = "", 4000);
         };
 
-        // Test zvuku a barevné lampy
         document.getElementById('testSoundBtn').onclick = () => {
             SoundEngine.triggerWordSound("kouzl", "Kouzlo & Hrom");
             VisualLamp.triggerRoomGlow(COLOR_CLUSTERS.gold);
         };
 
-        // Noční clona
         document.getElementById('hideScreenBtn').onclick = () => {
             document.getElementById('appWrapper').classList.add('night-hidden');
             document.getElementById('nightHint').classList.add('visible');
@@ -1895,7 +1788,6 @@ const StoryApp = {
             }
         });
 
-        // Ovládání podkresové hudby
         document.getElementById('musicToggleBtn').onclick = () => {
             if (!SoundEngine.isMusicPlaying) SoundEngine.startMusic(document.getElementById('bgMusicSelect').value);
             else SoundEngine.stopMusic();
@@ -1905,7 +1797,6 @@ const StoryApp = {
             if (SoundEngine.isMusicPlaying) SoundEngine.startMusic(this.value);
         };
 
-        // Posuvníky hlasitosti a rychlosti
         document.getElementById('sfxVolSlider').oninput = function() {
             SoundEngine.sfxBoost = parseFloat(this.value);
             document.getElementById('sfxVolLabel').innerText = Math.round(this.value * 100) + " %";
@@ -1928,7 +1819,6 @@ const StoryApp = {
             StoryApp.fxDensity = parseFloat(this.value);
         };
 
-        // Modál pro uložení Gemini API klíče na GitHub Pages
         const modal = document.getElementById('apiKeyModal');
         document.getElementById('apiKeyBtn').onclick = () => {
             document.getElementById('apiKeyInput').value = localStorage.getItem('atmoread_gemini_key') || '';
