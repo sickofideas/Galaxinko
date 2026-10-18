@@ -3,2018 +3,1519 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#05070f">
-    <title>AtmoRead v1.5.0 — Books with Living Atmosphere</title>
-    <!-- Záložní lokální OCR (Tesseract.js), pokud není zadán Gemini API klíč na GitHubu -->
+    <title>AtmoRead v3.0.0 — Books with Living Atmosphere</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
-            --bg-dark: #060913;
-            --panel-bg: rgba(12, 17, 32, 0.78);
-            --panel-border: rgba(245, 158, 11, 0.28);
-            --text-main: #f8fafc;
-            --text-soft: #cbd5e1;
-            --accent-warm: #f59e0b;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
+            --bg-top: #090706;
+            --bg-bottom: #18110b;
+            --aura-r: 245;
+            --aura-g: 158;
+            --aura-b: 11;
+            --aura-intensity: 0.28;
+            --lamp-brightness: 0.75;
+            --card-bg: rgba(24, 18, 14, 0.88);
+            --card-border: rgba(251, 191, 36, 0.25);
+            --gold: #fbbf24;
+            --gold-soft: #fde68a;
+            --text-main: #fef3c7;
+            --text-muted: #d6c5b3;
+            --green: #16a34a;
+            --red: #dc2626;
         }
 
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: var(--bg-top); color: var(--text-main);
+            font-family: 'Georgia', 'Palatino Linotype', serif;
+            overflow-x: hidden;
         }
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-dark);
-            font-family: 'Georgia', 'Times New Roman', serif;
-            color: var(--text-main);
-        }
-
-        button, select, input, .sans-ui {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        /* Vizuální Canvas na pozadí (vždy 100% okna) */
+        /* 1. CELOOBRAZOVKOVÉ SVĚTELNÉ PLÁTNO A LAMPIČKA */
         #ambientCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
+            position: fixed; inset: 0; width: 100vw; height: 100vh;
+            z-index: 0; pointer-events: none;
+        }
+        #roomGlowOverlay {
+            position: fixed; inset: 0; z-index: 1; pointer-events: none;
+            background: radial-gradient(circle at 50% 38%,
+                rgba(var(--aura-r), var(--aura-g), var(--aura-b), var(--aura-intensity)) 0%,
+                rgba(var(--aura-r), var(--aura-g), var(--aura-b), calc(var(--aura-intensity) * 0.45)) 52%,
+                rgba(0, 0, 0, 0) 90%);
+            transition: background 1.2s ease;
         }
 
-        /* Hlavní obal aplikace — stabilní při Fullscreen i změně velikosti okna */
-        .app-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            display: flex;
-            justify-content: center;
-            align-items: stretch;
-            background: rgba(5, 7, 15, 0.45);
-            backdrop-filter: blur(8px);
-            transition: opacity 0.8s ease, visibility 0.8s ease;
-            opacity: 1;
-            visibility: visible;
+        /* 2. CELOOBRAZOVKOVÝ REŽIM ČISTÉ LAMPIČKY (POZADÍ PRO ČTENÍ PAPÍROVÉ KNIHY) */
+        #pureLampScreen {
+            position: fixed; inset: 0; z-index: 90;
+            display: none; flex-direction: column; justify-content: space-between;
+            align-items: center; padding: 30px 20px 120px;
+            background: radial-gradient(circle at 50% 45%,
+                rgba(var(--aura-r), var(--aura-g), var(--aura-b), var(--lamp-brightness)) 0%,
+                rgba(var(--aura-r), var(--aura-g), var(--aura-b), calc(var(--lamp-brightness) * 0.65)) 60%,
+                rgba(10, 7, 5, 0.96) 100%);
+            transition: background 0.8s ease;
+        }
+        #pureLampScreen.active { display: flex; }
+
+        /* 3. HLAVNÍ OBAL APLIKACE */
+        .app-shell {
+            position: relative; z-index: 5;
+            max-width: 980px; margin: 0 auto;
+            padding: 14px 16px 155px; /* Spodní odsazení kvůli pevné liště */
+            display: flex; flex-direction: column; gap: 14px;
         }
 
-        /* Opravená Noční lampa: žádné transform:scale, které rozbíjelo layout po návratu */
-        .app-wrapper.night-hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        /* Vnitřní kontejner: na mobilu 100% plochy, na širokém PC monitoru úhledných max 1100px */
-        .storybook-container {
-            width: 100%;
-            max-width: 1080px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 18px 24px;
-            overflow: hidden;
-            margin: 0 auto;
-        }
-
-        /* Horní lišta */
+        /* HORNÍ HLAVIČKA */
         .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-            flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px;
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            padding: 12px 16px; border-radius: 18px;
+            backdrop-filter: blur(12px);
         }
-
-        .brand-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-title { font-size: 23px; font-weight: bold; color: var(--gold); margin: 0; letter-spacing: 0.4px; }
+        .brand-ver {
+            font-family: system-ui, sans-serif; font-size: 11px;
+            background: rgba(251, 191, 36, 0.2); color: var(--gold-soft);
+            padding: 2px 8px; border-radius: 99px; border: 1px solid rgba(251, 191, 36, 0.4);
         }
+        .brand-sub { font-family: system-ui, sans-serif; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
-        .crest-mini {
-            width: 52px;
-            height: 52px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .crest-aura {
-            position: absolute;
-            inset: -6px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.75) 0%, rgba(239, 68, 68, 0) 70%);
-            animation: breatheAura 4s infinite ease-in-out;
-        }
-
-        @keyframes breatheAura {
-            0%, 100% { transform: scale(0.9); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 0.95; }
-        }
-
-        .brand-titles {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .brand-title-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .brand-titles h1 {
-            font-size: 24px;
-            margin: 0;
-            font-weight: 800;
-            letter-spacing: -0.3px;
-            line-height: 1.1;
-        }
-
-        .version-pill {
-            background: rgba(245, 158, 11, 0.22);
-            border: 1px solid rgba(245, 158, 11, 0.55);
-            color: #fde68a;
-            font-size: 12px;
-            font-weight: 800;
-            padding: 2px 9px;
-            border-radius: 12px;
-            letter-spacing: 0.4px;
-        }
-
-        .brand-tagline {
-            font-size: 13px;
-            color: var(--text-soft);
-            margin-top: 2px;
-        }
-
-        .top-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
+        .top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .pill-btn {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.24);
-            color: var(--text-main);
-            padding: 10px 16px;
-            border-radius: 24px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s, transform 0.15s;
-        }
-        .pill-btn:hover { background: rgba(255, 255, 255, 0.2); }
-        .pill-btn:active { transform: scale(0.96); }
-
-        /* Přepínač 4 režimů */
-        .mode-tabs {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 6px;
-            border-radius: 18px;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .mode-tab {
-            border: 1px solid transparent;
-            background: rgba(255,255,255,0.04);
-            color: var(--text-soft);
-            padding: 12px 10px;
-            border-radius: 14px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
+            font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600;
+            padding: 9px 14px; border-radius: 12px; cursor: pointer;
+            background: rgba(255, 255, 255, 0.08); color: var(--text-main);
+            border: 1px solid rgba(251, 191, 36, 0.28);
+            display: inline-flex; align-items: center; gap: 6px;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-align: center;
         }
-        .mode-tab .tab-icon {
-            font-size: 22px;
-            line-height: 1;
+        .pill-btn:hover, .pill-btn.active {
+            background: rgba(251, 191, 36, 0.25); border-color: var(--gold);
+        }
+
+        /* 4 HLAVNÍ KARTY REŽIMŮ */
+        .mode-tabs {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+        }
+        @media (max-width: 680px) {
+            .mode-tabs { grid-template-columns: repeat(2, 1fr); }
+        }
+        .mode-tab {
+            font-family: system-ui, sans-serif; font-size: 15px; font-weight: 700;
+            padding: 13px 10px; border-radius: 14px; cursor: pointer;
+            background: rgba(24, 18, 14, 0.8); color: var(--text-muted);
+            border: 1.5px solid rgba(251, 191, 36, 0.18);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s;
         }
         .mode-tab.active {
-            background: rgba(245, 158, 11, 0.28);
-            color: #fde68a;
-            border-color: rgba(245, 158, 11, 0.6);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.32), rgba(180, 83, 9, 0.28));
+            color: #fff; border-color: var(--gold);
             box-shadow: 0 4px 16px rgba(245, 158, 11, 0.22);
         }
 
-        /* Lišta pro volitelný výběr pohádek a focení */
-        .book-tools-panel {
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 10px;
-            flex-shrink: 0;
+        /* STŘEDOVÁ POHÁDKOVÁ KARTA S RUČNĚ KRESLENOU KNIHOU A BRKEM */
+        .stage-card {
+            background: var(--card-bg); border: 1.5px solid var(--card-border);
+            border-radius: 22px; padding: 22px 20px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(12px);
         }
-        .book-tools-panel.visible {
-            display: flex;
+        .hero-illustration {
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            margin-bottom: 14px;
+        }
+        .book-svg {
+            width: 150px; height: 105px;
+            filter: drop-shadow(0 6px 16px rgba(251, 191, 36, 0.35));
+            animation: floatBook 5s ease-in-out infinite;
+        }
+        @keyframes floatBook {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        .mic-status-pill {
+            font-family: system-ui, sans-serif; font-size: 16px; font-weight: 600;
+            margin-top: 8px; padding: 10px 20px; border-radius: 99px;
+            background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(251, 191, 36, 0.35);
+            color: var(--gold-soft); max-width: 100%;
         }
 
-        .selector-row {
-            display: grid;
-            grid-template-columns: 1.6fr 1fr;
-            gap: 10px;
+        /* AKTIVNÍ ZVUKOVÉ ŠTÍTKY (POLYPHONY MONITOR) */
+        #activeBadges {
+            min-height: 36px; display: flex; justify-content: center;
+            align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0;
         }
+        .sfx-badge {
+            font-family: system-ui, sans-serif; font-size: 14px; font-weight: 700;
+            background: linear-gradient(135deg, #fbbf24, #d97706); color: #1c1309;
+            padding: 6px 14px; border-radius: 99px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            animation: popIn 0.2s ease-out;
+        }
+        @keyframes popIn { from { transform: scale(0.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+        /* VELKÁ MŘÍŽKA PRO OKAMŽITÉ SPUŠTĚNÍ ZVUKŮ (DOTYKEM I HLASEM) */
+        .sound-grid-title {
+            font-family: system-ui, sans-serif; font-size: 13px; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-muted); text-align: center; margin: 12px 0 10px;
+        }
+        .sound-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 10px;
+        }
+        .sound-tile {
+            font-family: system-ui, sans-serif;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid rgba(251, 191, 36, 0.22);
+            border-radius: 14px; padding: 12px 10px;
+            cursor: pointer; text-align: center; color: var(--text-main);
+            transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .sound-tile:hover {
+            background: rgba(251, 191, 36, 0.18); border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+        .sound-tile:active, .sound-tile.playing {
+            background: rgba(251, 191, 36, 0.35); border-color: #fff;
+            transform: scale(0.96);
+        }
+        .sound-tile .emoji { font-size: 28px; line-height: 1.1; }
+        .sound-tile .label { font-size: 15px; font-weight: 700; }
+        .sound-tile .sub { font-size: 11px; color: var(--text-muted); }
+
+        /* PANEL ČTEČKY POHÁDEK */
+        #storySection { display: none; margin-top: 10px; }
+        #storySection.visible { display: block; }
+        .story-toolbar {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+        }
         select {
-            width: 100%;
-            padding: 11px 14px;
-            border-radius: 14px;
-            background: rgba(20, 27, 45, 0.95);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.24);
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
+            font-family: system-ui, sans-serif; font-size: 16px; font-weight: 600;
+            padding: 12px 14px; border-radius: 12px;
+            background: #1c140d; color: var(--text-main);
+            border: 1.5px solid rgba(251, 191, 36, 0.35); flex: 1; min-width: 220px;
         }
-
-        .import-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px dashed rgba(255, 255, 255, 0.25);
-            border-radius: 14px;
-            padding: 8px 12px;
-            flex-wrap: wrap;
-        }
-
-        .import-btns {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            flex: 1;
-        }
-
-        .import-btn {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            color: var(--text-main);
-            padding: 8px 14px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        #ocrStatusBadge {
-            font-size: 14px;
-            color: #fbbf24;
-            font-weight: 700;
-        }
-
-        /* ==========================================================
-           STŘEDOVÝ PANEL: 1) VOLNÉ VYPRÁVĚNÍ (BEZ KNIHY)
-           ========================================================== */
-        .free-stage {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
-            margin: 6px 0 14px 0;
-            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.55) 0%, rgba(10, 14, 26, 0.75) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 24px;
-            position: relative;
-            overflow-y: auto;
-        }
-
-        .free-lantern-orb {
-            width: 155px;
-            height: 155px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.42) 0%, rgba(245, 158, 11, 0.1) 65%, transparent 100%);
-            border: 2px solid rgba(245, 158, 11, 0.55);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-            box-shadow: 0 0 55px rgba(245, 158, 11, 0.3);
-            transition: all 0.35s ease;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .free-lantern-orb:hover {
-            transform: scale(1.04);
-        }
-        .free-lantern-orb.listening {
-            border-color: #10b981;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, rgba(245, 158, 11, 0.15) 65%, transparent 100%);
-            box-shadow: 0 0 75px rgba(16, 185, 129, 0.6);
-            animation: orbPulse 2.2s infinite ease-in-out;
-        }
-
-        @keyframes orbPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-        }
-
-        .free-title {
-            font-size: 24px;
-            font-weight: 800;
-            margin: 0 0 8px 0;
-            color: #fde68a;
-        }
-
-        .free-subtitle {
-            font-size: 16px;
-            color: var(--text-soft);
-            max-width: 580px;
-            line-height: 1.5;
-            margin: 0 0 16px 0;
-        }
-
-        .spoken-live-pill {
-            min-height: 46px;
-            padding: 10px 22px;
-            border-radius: 26px;
-            background: rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 17px;
-            color: #93c5fd;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            max-width: 92%;
-            margin-bottom: 16px;
-        }
-
-        /* Rychlé testovací čipy přímo na obrazovce, aby šlo hned kliknout i říct slovo */
-        .quick-test-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            max-width: 680px;
-        }
-
-        .chip-btn {
-            background: rgba(245, 158, 11, 0.16);
-            border: 1px solid rgba(245, 158, 11, 0.4);
-            color: #fde68a;
-            padding: 7px 14px;
-            border-radius: 18px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .chip-btn:hover {
-            background: rgba(245, 158, 11, 0.32);
-            transform: translateY(-1px);
-        }
-        .chip-btn:active {
-            transform: scale(0.94);
-        }
-
-        /* ==========================================================
-           STŘEDOVÝ PANEL: 2) ČTEČKA POHÁDEK
-           ========================================================== */
         .reader-box {
-            flex: 1;
-            display: none;
-            background: rgba(7, 10, 20, 0.78);
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            border-radius: 22px;
-            padding: 24px 28px;
-            margin: 4px 0 12px 0;
-            overflow-y: auto;
-            font-size: 22px;
-            line-height: 1.85;
-            text-align: left;
-            letter-spacing: 0.1px;
-            box-shadow: inset 0 4px 24px rgba(0,0,0,0.55);
+            background: rgba(12, 9, 6, 0.72);
+            border: 1px solid rgba(251, 191, 36, 0.22);
+            border-radius: 16px; padding: 22px;
+            font-size: 22px; line-height: 1.85; color: #fef3c7;
+            max-height: 52vh; overflow-y: auto;
         }
-        .reader-box.visible {
-            display: block;
+        .w-tok {
+            padding: 2px 4px; border-radius: 6px; cursor: pointer;
+            transition: background 0.2s, color 0.2s;
         }
-
-        .reader-word {
-            display: inline;
-            padding: 2px 1px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.18s ease, color 0.18s ease;
-        }
-        .reader-word.has-fx {
-            border-bottom: 2px dotted rgba(245, 158, 11, 0.7);
-        }
-        .reader-word.current-cursor {
-            background: #f59e0b;
-            color: #05070f;
-            font-weight: 700;
-            padding: 2px 6px;
-            box-shadow: 0 0 16px rgba(245, 158, 11, 0.8);
+        .w-tok.trig-sfx { border-bottom: 2px dotted rgba(251, 191, 36, 0.65); }
+        .w-tok.trig-col { border-bottom: 2px solid rgba(56, 189, 248, 0.65); }
+        .w-tok.active-word {
+            background: var(--gold); color: #1a1105 !important;
+            font-weight: bold; box-shadow: 0 0 14px rgba(251, 191, 36, 0.7);
         }
 
-        /* Spodní ovládací sekce */
-        .bottom-controls {
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        /* PANEL NASTAVENÍ LAMPIČKY A ZVUKU */
+        .controls-panel {
+            background: var(--card-bg); border: 1.5px solid var(--card-border);
+            border-radius: 20px; padding: 18px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;
         }
-
-        .action-row {
-            display: flex;
-            gap: 12px;
+        .ctrl-group {
+            font-family: system-ui, sans-serif; font-size: 14px;
+            display: flex; flex-direction: column; gap: 7px;
         }
-
-        .main-action-btn {
-            flex: 1;
-            padding: 18px 24px;
-            border-radius: 20px;
-            border: none;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #fff;
-            font-size: 19px;
-            font-weight: 800;
-            cursor: pointer;
-            box-shadow: 0 6px 22px rgba(16, 185, 129, 0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            transition: transform 0.15s, box-shadow 0.2s;
+        .ctrl-group label {
+            display: flex; justify-content: space-between; font-weight: 600; color: var(--gold-soft);
         }
-        .main-action-btn:active { transform: scale(0.98); }
-        .main-action-btn.active {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 0 28px rgba(239, 68, 68, 0.6);
-        }
-
-        .music-quick-btn {
-            padding: 18px 22px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.24);
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .music-quick-btn.playing {
-            background: rgba(245, 158, 11, 0.28);
-            border-color: #f59e0b;
-            color: #fde68a;
-        }
-
-        .controls-drawer {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 18px;
-            padding: 14px 18px;
-        }
-
-        .drawer-top-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr 1fr;
-            gap: 14px;
-        }
-
-        .sliders-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 18px;
-            margin-top: 12px;
-        }
-
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text-soft);
-            margin-bottom: 6px;
-        }
-
         input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 8px;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.22);
-            outline: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: var(--accent-warm);
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
+            width: 100%; height: 8px; accent-color: var(--gold); cursor: pointer;
         }
 
-        /* Štítek posledního spuštěného efektu */
-        #fxToast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 40;
-            background: rgba(245, 158, 11, 0.96);
-            color: #05070f;
-            padding: 10px 24px;
-            border-radius: 28px;
-            font-size: 17px;
-            font-weight: 800;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.25s ease;
-            box-shadow: 0 6px 24px rgba(245, 158, 11, 0.55);
+        /* BAREVNÉ KRUHY PRO LAMPIČKU */
+        .color-swatches {
+            display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 6px;
+        }
+        .swatch {
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+            border: 2.5px solid rgba(255,255,255,0.25);
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .swatch.active {
+            transform: scale(1.18); border-color: #fff;
+            box-shadow: 0 0 14px rgba(255,255,255,0.6);
         }
 
-        /* Celoobrazovková dotyková vrstva pro bezpečný návrat z Noční lampy */
-        #nightWakeOverlay {
-            position: fixed;
-            inset: 0;
-            z-index: 30;
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 32px;
-            cursor: pointer;
+        /* PEVNÁ SPODNÍ LIŠTA (NIKDY NEUJEDE PŘI ROLOVÁNÍ!) */
+        .fixed-bottom-dock {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(15, 11, 8, 0.95);
+            border-top: 1.5px solid rgba(251, 191, 36, 0.35);
+            backdrop-filter: blur(16px);
+            padding: 12px 16px;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.75);
         }
-        #nightWakeOverlay.visible {
-            display: flex;
+        .dock-inner {
+            max-width: 980px; margin: 0 auto;
+            display: flex; gap: 10px; align-items: center;
         }
-        .night-touch-hint {
-            background: rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.75);
-            padding: 10px 22px;
-            border-radius: 24px;
-            font-size: 15px;
-            font-weight: 600;
-            pointer-events: none;
+        .btn-main-action {
+            flex: 1; min-height: 60px; border: none; border-radius: 16px;
+            font-family: system-ui, sans-serif; font-size: 19px; font-weight: 800;
+            color: #fff; background: linear-gradient(135deg, #16a34a, #15803d);
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+            transition: all 0.2s;
         }
-
-        /* Modální okno pro API klíč */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.82);
-            z-index: 50;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 18px;
+        .btn-main-action.running {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            box-shadow: 0 6px 22px rgba(220, 38, 38, 0.5);
+            animation: pulseBtn 2s infinite;
         }
-        .modal-card {
-            background: #111827;
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 20px;
-            max-width: 440px;
-            width: 100%;
-            padding: 22px;
+        @keyframes pulseBtn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.015); }
         }
-
-        @media (max-width: 720px) {
-            .storybook-container { padding: 12px 14px; }
-            .mode-tab { flex-direction: column; font-size: 12px; padding: 9px 4px; gap: 4px; }
-            .mode-tab .tab-icon { font-size: 20px; }
-            .free-lantern-orb { width: 125px; height: 125px; }
-            .free-title { font-size: 20px; }
-            .free-subtitle { font-size: 14px; }
-            .drawer-top-grid { grid-template-columns: 1fr; gap: 8px; }
-            .sliders-grid { grid-template-columns: 1fr; gap: 10px; }
-            .main-action-btn { font-size: 17px; padding: 15px; }
+        .btn-dock-side {
+            min-height: 60px; padding: 0 18px; border-radius: 16px;
+            font-family: system-ui, sans-serif; font-size: 15px; font-weight: 700;
+            background: #292018; color: var(--text-main);
+            border: 1.5px solid rgba(251, 191, 36, 0.35);
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-dock-side.active {
+            background: #7c2d12; border-color: var(--gold); color: #fff;
+        }
+        .btn-dock-panic {
+            background: #451a1a; border-color: #f87171; color: #fecaca;
         }
     </style>
 </head>
 <body>
 
 <canvas id="ambientCanvas"></canvas>
-<div id="fxToast" class="sans-ui"></div>
+<div id="roomGlowOverlay"></div>
 
-<!-- Dotyková vrstva pro okamžitý a čistý návrat z Noční lampy -->
-<div id="nightWakeOverlay" class="sans-ui">
-    <div class="night-touch-hint">✨ Noční lampa aktivní — Ťukni kamkoliv pro návrat do menu</div>
-</div>
-
-<!-- Modál pro nastavení Gemini API klíče na GitHub Pages -->
-<div id="apiKeyModal" class="modal-backdrop sans-ui">
-    <div class="modal-card">
-        <h3 style="margin:0 0 10px 0; font-size:18px;">🔑 Nastavení AI Klíče (pro GitHub Pages)</h3>
-        <p style="font-size:14px; color:#cbd5e1; line-height:1.5; margin:0 0 14px 0;">
-            Pokud aplikaci spouštíš na <b>GitHub Pages</b> a chceš fotit knížky přes AI, vlož sem klíč z <i>Google AI Studia</i>. Bez klíče použije aplikace vestavěné offline OCR (Tesseract).
-        </p>
-        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width:100%; padding:12px; border-radius:12px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:15px; margin-bottom:14px;">
-        <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button id="closeModalBtn" class="pill-btn">Zavřít</button>
-            <button id="saveKeyBtn" class="pill-btn" style="background:#f59e0b; color:#000;">Uložit klíč</button>
+<!-- CELOOBRAZOVKOVÁ CHYTRÁ LAMPIČKA NA ČTENÍ A USÍNÁNÍ -->
+<div id="pureLampScreen">
+    <div style="text-align:center; font-family:system-ui,sans-serif;">
+        <div style="font-size:14px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.7);">
+            🕯️ Režim noční lampičky • AtmoRead v3.0.0
         </div>
+        <h2 id="lampModeTitle" style="margin:8px 0 4px; font-size:26px; color:#fff;">Teplá svíčka (1800K)</h2>
+        <div id="lampSubStatus" style="font-size:14px; color:rgba(255,255,255,0.8);">
+            Světlo bez modré složky šetrné k dětskému spánku a melatoninu
+        </div>
+    </div>
+
+    <!-- Kreslená lucerna uprostřed lampičky -->
+    <svg width="140" height="180" viewBox="0 0 140 180" style="filter: drop-shadow(0 0 35px rgba(255,230,150,0.8));">
+        <path d="M52 25 C52 12, 88 12, 88 25" stroke="#fde68a" stroke-width="4" fill="none"/>
+        <rect x="38" y="25" width="64" height="12" rx="6" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
+        <path d="M44 37 L32 142 L108 142 L96 37 Z" fill="rgba(254, 243, 199, 0.22)" stroke="#fbbf24" stroke-width="3"/>
+        <path d="M70 68 C55 92, 56 118, 70 125 C84 118, 85 92, 70 68 Z" fill="#fef08a"/>
+        <path d="M70 84 C63 98, 63 114, 70 120 C77 114, 77 98, 70 84 Z" fill="#ffffff"/>
+        <rect x="26" y="142" width="88" height="16" rx="8" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
+    </svg>
+
+    <div style="background:rgba(15,10,7,0.82); padding:18px 22px; border-radius:20px; border:1px solid rgba(251,191,36,0.4); width:100%; max-width:520px; font-family:system-ui,sans-serif;">
+        <div style="font-size:14px; font-weight:700; margin-bottom:10px; color:#fde68a;">🎨 Vyber barvu lampičky (nebo nech měnit podle hlasu):</div>
+        <div class="color-swatches" id="lampSwatchesModal"></div>
+        <div style="margin-top:14px;">
+            <label style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px;">
+                <span>🔆 Jas osvětlení pokoje</span>
+                <span id="lampBrightLabel">80 %</span>
+            </label>
+            <input type="range" id="lampBrightSlider" min="0.15" max="1" step="0.05" value="0.80">
+        </div>
+        <button onclick="togglePureLamp(false)" class="pill-btn" style="width:100%; justify-content:center; margin-top:14px; padding:12px; font-size:16px; background:rgba(251,191,36,0.25);">
+            🔙 Vrátit se do rozhraní aplikace
+        </button>
     </div>
 </div>
 
-<div id="appWrapper" class="app-wrapper">
-    <div class="storybook-container">
-        
-        <!-- Horní lišta s verzí v1.5.0 -->
-        <div class="top-bar sans-ui">
-            <div class="brand-header">
-                <div class="crest-mini">
-                    <div class="crest-aura"></div>
-                    <svg viewBox="0 0 100 100" width="46" height="46">
-                        <path d="M12,75 Q30,62 50,73 Q70,62 88,75 L85,82 Q70,70 50,82 Q30,70 15,82 Z" fill="#b91c1c"/>
-                        <path d="M16,72 C24,52 40,52 50,68 C60,52 76,52 84,72 C70,64 60,66 50,74 C40,66 30,64 16,72 Z" fill="#f8fafc"/>
-                        <circle cx="50" cy="34" r="12" fill="#fbbf24"/>
-                    </svg>
+<div class="app-shell">
+    <!-- HORNÍ LIŠTA -->
+    <header class="top-bar">
+        <div class="brand">
+            <span style="font-size:32px;">📖</span>
+            <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <h1 class="brand-title">AtmoRead</h1>
+                    <span class="brand-ver">v3.0.0 FINAL</span>
                 </div>
-                <div class="brand-titles">
-                    <div class="brand-title-row">
-                        <h1>AtmoRead</h1>
-                        <span class="version-pill">v1.5.0</span>
-                    </div>
-                    <div class="brand-tagline" data-i18n="tagline">Živá zvuková a světelná atmosféra k vyprávění (1050+ spouštěčů)</div>
-                </div>
+                <div class="brand-sub" id="uiSubtitle">Živá zvuková a světelná atmosféra pro klidné usínání</div>
             </div>
+        </div>
+        <div class="top-actions">
+            <button class="pill-btn" onclick="togglePureLamp(true)" title="Použít telefon jako noční lampičku">🕯️ Lampička</button>
+            <button class="pill-btn active" id="softNightBtn" onclick="toggleNightFilter()" title="Ořízne ostré výšky, aby se dítě při usínání neleklo">🌙 Změkčit zvuky: ZAP</button>
+            <button class="pill-btn" id="sleepTimerBtn" onclick="cycleSleepTimer()">⏲️ Časovač: VYP</button>
+            <button class="pill-btn" onclick="toggleLanguage()" id="langBtn">🌐 CZ</button>
+        </div>
+    </header>
 
-            <div class="top-actions">
-                <button id="testSoundBtn" class="pill-btn">🔔 <span data-i18n="testSound">Test zvuku</span></button>
-                <button id="hideScreenBtn" class="pill-btn">🌙 <span data-i18n="dimScreen">Noční lampa</span></button>
-                <button id="apiKeyBtn" class="pill-btn" title="Nastavit AI klíč">🔑 AI</button>
-                <button id="langToggleBtn" class="pill-btn" style="background: rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.5);">🌐 <span id="langLabel">CS</span></button>
+    <!-- PŘEPÍNAČ 4 REŽIMŮ -->
+    <nav class="mode-tabs">
+        <button class="mode-tab active" data-mode="free" onclick="switchMode('free')">✨ Volné vyprávění</button>
+        <button class="mode-tab" data-mode="read" onclick="switchMode('read')">📖 Číst z pohádky</button>
+        <button class="mode-tab" data-mode="tts" onclick="switchMode('tts')">🎧 AI Předčítání (Sama čte)</button>
+        <button class="mode-tab" data-mode="silent" onclick="switchMode('silent')">🤫 Tiché čtení (Bez mikrofonu)</button>
+    </nav>
+
+    <!-- HLAVNÍ SCÉNA S RUČNĚ KRESLENOU KNIHOU, BRKEM A ZVUKOVÝMI DLAŽDICEMI -->
+    <main class="stage-card">
+        <div class="hero-illustration">
+            <!-- Ručně kreslená otevřená kniha se zlatým brkem a hvězdami -->
+            <svg class="book-svg" viewBox="0 0 220 145" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Záře za knihou -->
+                <ellipse cx="110" cy="85" rx="85" ry="42" fill="rgba(251, 191, 36, 0.16)"/>
+                <!-- Desky knihy -->
+                <path d="M22 108 C55 98, 92 104, 110 116 C128 104, 165 98, 198 108 L204 44 C168 34, 130 42, 110 54 C90 42, 52 34, 16 44 Z" fill="#451a03" stroke="#fbbf24" stroke-width="2.5"/>
+                <!-- Pergamenové listy -->
+                <path d="M28 102 C58 92, 92 98, 110 110 C128 98, 162 92, 192 102 L196 48 C164 38, 128 44, 110 56 C92 44, 56 38, 24 48 Z" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+                <line x1="110" y1="55" x2="110" y2="110" stroke="#b45309" stroke-width="2.5"/>
+                <!-- Ručně psané řádky v knize -->
+                <path d="M42 64 Q70 59 96 66 M40 76 Q70 71 95 78 M44 88 Q70 83 92 89" stroke="#92400e" stroke-width="2" stroke-linecap="round"/>
+                <path d="M124 66 Q150 59 178 64 M125 78 Q150 71 176 76 M128 89 Q150 83 172 88" stroke="#92400e" stroke-width="2" stroke-linecap="round"/>
+                <!-- Zlaté brko píšící do knihy -->
+                <path d="M112 76 C128 45, 162 20, 190 12 C182 36, 162 56, 136 68 L112 76 Z" fill="#fbbf24" stroke="#fef08a" stroke-width="1.8"/>
+                <path d="M108 82 L190 12" stroke="#78350f" stroke-width="2.2" stroke-linecap="round"/>
+                <!-- Hvězdičky stoupající z knihy -->
+                <circle cx="72" cy="26" r="3" fill="#fde047"/>
+                <circle cx="105" cy="18" r="4" fill="#fef08a"/>
+                <circle cx="138" cy="28" r="2.5" fill="#fde047"/>
+            </svg>
+
+            <div class="mic-status-pill" id="liveStatusText">
+                ✨ Vyprávěj z hlavy, čti z pohádky nebo ťukni na zvířátko či živel níže
             </div>
         </div>
 
-        <!-- Přepínač 4 režimů -->
-        <div class="mode-tabs sans-ui">
-            <button class="mode-tab active" data-mode="free">
-                <span class="tab-icon">✨</span>
-                <span data-i18n="modeFree">Jen poslouchat (Bez knihy)</span>
-            </button>
-            <button class="mode-tab" data-mode="live">
-                <span class="tab-icon">📖</span>
-                <span data-i18n="modeLive">Číst z pohádky</span>
-            </button>
-            <button class="mode-tab" data-mode="silent">
-                <span class="tab-icon">🤫</span>
-                <span data-i18n="modeSilent">Tiché čtení</span>
-            </button>
-            <button class="mode-tab" data-mode="podcast">
-                <span class="tab-icon">🎧</span>
-                <span data-i18n="modePodcast">AI Předčítání</span>
-            </button>
+        <!-- BĚŽÍCÍ EFEKTY (POLYPHONIC INDIKÁTOR) -->
+        <div id="activeBadges"></div>
+
+        <!-- ČTEČKA POHÁDEK + NAHRÁNÍ VLASTNÍ FOTKY / TEXTU -->
+        <section id="storySection">
+            <div class="story-toolbar">
+                <select id="storySelect" onchange="loadSelectedStory()"></select>
+                <button class="pill-btn" onclick="document.getElementById('ocrInput').click()">📷 Vyfotit stránku knihy</button>
+                <input type="file" id="ocrInput" accept="image/*" multiple style="display:none" onchange="handleOcrUpload(event)">
+                <button class="pill-btn" onclick="promptCustomText()">✍️ Vložit vlastní text</button>
+            </div>
+            <div class="reader-box" id="readerBox"></div>
+        </section>
+
+        <!-- OKAMŽITÁ ZVUKOVÁ PALETA (FUNGUJE HLASEM I DOTYKEM, PODPORUJE PŘEKRÝVÁNÍ A OPAKOVÁNÍ) -->
+        <div class="sound-grid-title">🎵 Zvuková paleta (řekni slovo do mikrofonu nebo klikni – zvuky se mohou překrývat)</div>
+        <div class="sound-grid" id="soundPaletteGrid"></div>
+    </main>
+
+    <!-- NASTAVENÍ PODKRESU, LAMPIČKY A HLASITOSTI -->
+    <section class="controls-panel">
+        <div class="ctrl-group">
+            <label><span>🌲 Smyčka na usnutí (Podkres)</span><span id="bgVolLabel">30 %</span></label>
+            <select id="bgPresetSelect" onchange="if(SoundEngine.bgRunning) SoundEngine.startAmbience()">
+                <option value="lullaby">✨ Hřejivá ukolébavka (Syntetický pad)</option>
+                <option value="brown">🌙 Hluboký spánkový šum (Brown Noise)</option>
+                <option value="rain">🌧️ Noční déšť na okno</option>
+                <option value="fire">🔥 Praskající krb v chaloupce</option>
+                <option value="forest">🦉 Noční les a vánek</option>
+            </select>
+            <input type="range" id="bgVolSlider" min="0" max="1" step="0.02" value="0.30" oninput="updateVolumes()">
         </div>
 
-        <!-- Nástroje pro knihu (Zobrazí se jen v knižních režimech) -->
-        <div id="bookToolsPanel" class="book-tools-panel sans-ui">
-            <div class="selector-row">
-                <select id="storySelect"></select>
-                <select id="voiceSelect">
-                    <option value="Kore">🗣️ Kore (Klidný hlas)</option>
-                    <option value="Puck">🗣️ Puck (Pohádkový)</option>
-                    <option value="Charon">🗣️ Charon (Hluboký)</option>
-                    <option value="Aoede">🗣️ Aoede (Jemný ženský)</option>
-                </select>
-            </div>
-
-            <div class="import-bar">
-                <div class="import-btns">
-                    <label class="import-btn">
-                        📷 <span data-i18n="btnPhoto">Vyfotit vlastní knihu (OCR)</span>
-                        <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
-                    </label>
-                    <label class="import-btn">
-                        📄 <span data-i18n="btnDoc">Nahrát TXT</span>
-                        <input type="file" id="docInput" accept=".txt,.md" style="display:none;">
-                    </label>
-                </div>
-                <span id="ocrStatusBadge"></span>
-            </div>
+        <div class="ctrl-group">
+            <label><span>🔊 Hlasitost efektů (SFX Boost)</span><span id="sfxVolLabel">180 %</span></label>
+            <input type="range" id="sfxVolSlider" min="0.2" max="2.5" step="0.05" value="1.80" oninput="updateVolumes()">
+            <label style="margin-top:6px;"><span>🐢 Rychlost čtení / AI hlasu</span><span id="speedLabel">Klidné (0.88×)</span></label>
+            <input type="range" id="speedSlider" min="0.65" max="1.25" step="0.03" value="0.88" oninput="updateSpeedLabel()">
         </div>
 
-        <!-- 1. VÝCHOZÍ PLOCHA: Volné vyprávění bez knihy + Rychlá tlačítka zvuků -->
-        <div id="freeStage" class="free-stage sans-ui">
-            <div id="freeOrb" class="free-lantern-orb" title="Ťukni pro spuštění / zastavení poslechu">
-                <svg viewBox="0 0 100 100" width="86" height="86">
-                    <circle cx="50" cy="50" r="36" fill="rgba(251, 191, 36, 0.2)" />
-                    <path d="M36,28 L64,28 L72,72 L28,72 Z" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linejoin="round"/>
-                    <path d="M42,20 L58,20" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
-                    <circle cx="50" cy="52" r="11" fill="#fbbf24"/>
-                    <path d="M22,74 L78,74" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <h2 class="free-title" data-i18n="freeTitle">Volný odposlech (Bez textu na displeji)</h2>
-            <p class="free-subtitle" data-i18n="freeSub">
-                Vyprávěj vlastní pohádku z hlavy nebo čti z papírové knížky. Telefon poslouchá klíčová slova (např. „pes“, „bouřka“, „les“, „oheň“) a sám pouští zvuky a mění světlo.
-            </p>
-            <div id="spokenLivePill" class="spoken-live-pill">🎤 Klepni na zelené tlačítko dole (nebo na lucernu) a začni mluvit...</div>
-
-            <!-- Klikací ukázková slova, aby šlo hned otestovat každý zvuk i bez mluvení -->
-            <div class="quick-test-chips">
-                <button class="chip-btn" data-test-word="pes">🐶 Pes</button>
-                <button class="chip-btn" data-test-word="bouřka">⛈️ Bouřka</button>
-                <button class="chip-btn" data-test-word="vlk">🐺 Vlk</button>
-                <button class="chip-btn" data-test-word="oheň">🔥 Oheň</button>
-                <button class="chip-btn" data-test-word="kouzlo">✨ Kouzlo</button>
-                <button class="chip-btn" data-test-word="kůň">🐴 Kůň</button>
-                <button class="chip-btn" data-test-word="dveře">🚪 Dveře</button>
-                <button class="chip-btn" data-test-word="žbluňk">🌊 Voda</button>
-                <button class="chip-btn" data-test-word="sova">🦉 Sova</button>
-                <button class="chip-btn" data-test-word="zvon">🔔 Zvon</button>
-            </div>
+        <div class="ctrl-group">
+            <label><span>🕯️ Barva osvětlení místnosti</span><span id="auraModeName">Dynamická + Svíčka</span></label>
+            <div class="color-swatches" id="lampSwatchesMain"></div>
         </div>
+    </section>
+</div>
 
-        <!-- 2. ČTEČKA POHÁDEK: Zobrazí se při přepnutí na čtení z pohádky -->
-        <div id="readerContainer" class="reader-box"></div>
-
-        <!-- Spodní ovládání -->
-        <div class="bottom-controls sans-ui">
-            <div class="action-row">
-                <button id="startStoryBtn" class="main-action-btn">
-                    <span id="startBtnIcon" style="font-size:24px;">🎙️</span>
-                    <span id="startBtnText" data-i18n="btnStartFree">Zapnout poslouchání (Bez knihy)</span>
-                </button>
-                <button id="musicToggleBtn" class="music-quick-btn">
-                    <span style="font-size:22px;">🎵</span>
-                    <span id="musicBtnLabel">Podkres</span>
-                </button>
-            </div>
-
-            <div class="controls-drawer">
-                <div class="drawer-top-grid">
-                    <div>
-                        <div class="slider-label"><span data-i18n="lblAmbience">🎶 Podkres na spaní</span></div>
-                        <select id="bgMusicSelect" style="padding:8px 10px; font-size:14px;">
-                            <option value="lullaby" data-i18n="ambLullaby">🌙 Ukolébavka</option>
-                            <option value="night" data-i18n="ambNight">🦉 Noční les</option>
-                            <option value="ocean" data-i18n="ambOcean">🌊 Vlny moře</option>
-                            <option value="rain" data-i18n="ambRain">🌧️ Noční déšť</option>
-                            <option value="fire" data-i18n="ambFire">🔥 Teplý krb</option>
-                        </select>
-                    </div>
-                    <div>
-                        <div class="slider-label"><span data-i18n="lblDensity">🎭 Četnost efektů</span></div>
-                        <select id="fxDensitySelect" style="padding:8px 10px; font-size:14px;">
-                            <option value="0.5" data-i18n="densityLow">Jemně</option>
-                            <option value="1.0" selected data-i18n="densityHigh">Každé slovo (100%)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <div class="slider-label"><span>⏱️ Tempo</span><span id="wpmLabel">135 WPM</span></div>
-                        <input type="range" id="wpmSlider" min="60" max="240" step="5" value="135">
-                    </div>
-                </div>
-
-                <div class="sliders-grid">
-                    <div>
-                        <div class="slider-label"><span data-i18n="lblSfxVol">🔊 Hlasitost efektů (Boost)</span><span id="sfxVolLabel">200 %</span></div>
-                        <input type="range" id="sfxVolSlider" min="0.2" max="2.5" step="0.1" value="2.0">
-                    </div>
-                    <div>
-                        <div class="slider-label"><span data-i18n="lblBgVol">🎶 Hlasitost podkresu</span><span id="bgVolLabel">22 %</span></div>
-                        <input type="range" id="bgVolSlider" min="0" max="0.8" step="0.02" value="0.22">
-                    </div>
-                </div>
-            </div>
-        </div>
-
+<!-- PEVNÁ SPODNÍ LIŠTA (STÁLE PŘI RUCE BEZ ROLOVÁNÍ) -->
+<div class="fixed-bottom-dock">
+    <div class="dock-inner">
+        <button id="mainActionBtn" class="btn-main-action" onclick="handleMainAction()">
+            🎙️ Spustit odposlech vyprávění
+        </button>
+        <button id="bgToggleBtn" class="btn-dock-side" onclick="SoundEngine.toggleAmbience()">
+            🎵 Podkres
+        </button>
+        <button class="btn-dock-side btn-dock-panic" onclick="SoundEngine.stopAllEverything()" title="Okamžitě zastaví AI čtení, všechny zvuky i podkres">
+            🛑 STOP VŠE
+        </button>
     </div>
 </div>
 
 <script>
 /* ============================================================================
-   ATMOREAD v1.5.0 — VOLITELNÁ KNIHOVNA 6 POHÁDEK
+   SEKCE 1: BAREVNÉ REŽIMY LAMPIČKY A KLÍČOVÁ SLOVA OSVĚTLENÍ POKOJE
    ============================================================================ */
-const APP_VERSION = "1.5.0";
-const apiKey = "";
+const LAMP_PRESETS = [
+    { id: 'candle',  name: '🕯️ Svíčka (1800K)',      rgb: [245, 145, 20],  stems: ['svíčk','lucern','lamp','jantar','candle','lantern'] },
+    { id: 'red',     name: '🍎 Melatonin Červená',   rgb: [220, 45, 30],   stems: ['červen','rud','oheň','ohn','plamen','karkulk','red','fire','flame'] },
+    { id: 'gold',    name: '☀️ Zlaté slunce',        rgb: [250, 204, 21],  stems: ['zlat','žlut','slunc','sluníč','hvězd','poklad','gold','sun','star'] },
+    { id: 'forest',  name: '🌲 Lesní mech',          rgb: [34, 197, 94],   stems: ['zelen','les','strom','mech','tráv','žáb','green','forest','tree'] },
+    { id: 'ocean',   name: '🌊 Hluboká modř / Bouře',rgb: [56, 189, 248],  stems: ['modr','vod','moř','řek','studánk','ryb','déš','prš','bouř','hrom','blue','water','rain','storm'] },
+    { id: 'magic',   name: '🔮 Kouzelná levandule',  rgb: [192, 132, 252], stems: ['fialov','kouzl','čár','víl','tajemn','závoj','magic','fairy','purple'] },
+    { id: 'rose',    name: '🌸 Princeznina růžová',  rgb: [244, 114, 182], stems: ['růžov','princez','lásk','srdc','květ','pink','princess','rose'] }
+];
 
+/* ============================================================================
+   SEKCE 2: KNIHOVNA ZVUKŮ S PODPOROU PŘEKRÝVÁNÍ (POLYFONIE) A AUTOMATICKÉHO OPAKOVÁNÍ (ECHO)
+   - Každá kategorie má:
+     • ověřené Google CDN .ogg soubory + bohatý vícevrstvý akustický model
+     • parametr `echoes`: kolikrát a s jakým odstupem se zvuk přirozeně zopakuje
+     • střídání variací při opakovaném vyslovení
+   ============================================================================ */
+const SOUND_LIBRARY = [
+    {
+        id: 'dog', emoji: '🐶', label: 'Pes / Štěkot', sub: '2× zaštěkání',
+        stems: ['pes','pejs','pejsek','psa','psovi','psem','štěk','zaštěk','haf','dog','bark','puppy'],
+        urls: ['https://actions.google.com/sounds/v1/ambiences/outdoor_ambience_dog_barking.ogg'],
+        dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 480, gain: 0.82 }],
+        synth: 'dog'
+    },
+    {
+        id: 'wolf', emoji: '🐺', label: 'Vlk / Vytí', sub: 'Dlouhé zavytí',
+        stems: ['vlk','vlč','vlka','vlku','vyje','zavyl','vytí','wolf','howl'],
+        urls: [], dur: 2.8, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'wolf'
+    },
+    {
+        id: 'cat', emoji: '🐱', label: 'Kočka / Kotě', sub: 'Mňouknutí',
+        stems: ['kočk','kočič','kotě','kocour','mňouk','zamňouk','vrní','cat','kitten','meow'],
+        urls: [], dur: 1.6, echoes: [{ delay: 0, gain: 1.0 }, { delay: 750, gain: 0.7 }],
+        synth: 'cat'
+    },
+    {
+        id: 'horse', emoji: '🐴', label: 'Kůň / Klus', sub: 'Zařehtání a kopyta',
+        stems: ['kůň','koně','koni','koník','hříb','řeht','zařeht','kopyt','cvál','horse','pony','gallop'],
+        urls: [], dur: 2.1, echoes: [{ delay: 0, gain: 1.0 }, { delay: 320, gain: 0.75 }, { delay: 640, gain: 0.6 }],
+        synth: 'horse'
+    },
+    {
+        id: 'bird', emoji: '🐦', label: 'Ptáček', sub: '3× zazpívání',
+        stems: ['pták','ptáč','ptač','zpěv','cvrlik','píp','vlaštov','slavík','holub','bird','chirp'],
+        urls: ['https://actions.google.com/sounds/v1/ambiences/spring_day_forest.ogg'],
+        dur: 2.4, echoes: [{ delay: 0, gain: 0.9 }, { delay: 360, gain: 1.0 }, { delay: 780, gain: 0.75 }],
+        synth: 'bird'
+    },
+    {
+        id: 'owl', emoji: '🦉', label: 'Noční sova', sub: '2× zahoukání',
+        stems: ['sov','sovi','výr','houk','zahouk','huů','owl','hoot'],
+        urls: [], dur: 2.2, echoes: [{ delay: 0, gain: 1.0 }, { delay: 680, gain: 0.78 }],
+        synth: 'owl'
+    },
+    {
+        id: 'frog', emoji: '🐸', label: 'Žabka u vody', sub: '2× zakvákání',
+        stems: ['žáb','žab','žabič','kvák','zakvák','ropuch','frog','toad','croak'],
+        urls: [], dur: 1.7, echoes: [{ delay: 0, gain: 1.0 }, { delay: 460, gain: 0.85 }],
+        synth: 'frog'
+    },
+    {
+        id: 'pig', emoji: '🐷', label: 'Prasátko', sub: '2× zachrochtání',
+        stems: ['pras','prase','prasátk','čuník','chrocht','zachrocht','pig','piglet','oink'],
+        urls: ['https://actions.google.com/sounds/v1/ambiences/barnyard_with_animals.ogg'],
+        dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 420, gain: 0.85 }],
+        synth: 'pig'
+    },
+    {
+        id: 'cow', emoji: '🐮', label: 'Kráva / Ovečka', sub: 'klidné zabučení',
+        stems: ['kráv','krav','tele','buč','zabuč','ovc','oveč','beč','beran','koza','cow','moo','sheep'],
+        urls: ['https://actions.google.com/sounds/v1/ambiences/farm_morning_with_sheep.ogg'],
+        dur: 2.3, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'cow'
+    },
+    {
+        id: 'dragon', emoji: '🐉', label: 'Drak / Medvěd', sub: 'Hluboké zadunění',
+        stems: ['drak','drač','lev','lva','medvěd','obr','netvor','zařv','řval','vrč','dragon','lion','bear','roar'],
+        urls: [], dur: 2.5, echoes: [{ delay: 0, gain: 1.0 }, { delay: 700, gain: 0.65 }],
+        synth: 'dragon'
+    },
+    {
+        id: 'thunder', emoji: '⛈️', label: 'Bouřka a hrom', sub: 'Hrom s dozvukem',
+        stems: ['bouř','bouřk','hrom','zahřm','blesk','hřmí','thunder','storm','lightning'],
+        urls: [
+            'https://actions.google.com/sounds/v1/weather/rolling_thunder.ogg',
+            'https://actions.google.com/sounds/v1/weather/distant_thunder.ogg',
+            'https://actions.google.com/sounds/v1/weather/low_thunder_rolls.ogg',
+            'https://actions.google.com/sounds/v1/weather/thunder_crack.ogg'
+        ],
+        dur: 3.4, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'thunder'
+    },
+    {
+        id: 'rain', emoji: '🌧️', label: 'Déšť a kapky', sub: 'Šumění deště',
+        stems: ['déš','dešt','prš','liják','kapk','kape','mží','rain','shower','drizzle'],
+        urls: [
+            'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
+            'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg',
+            'https://actions.google.com/sounds/v1/weather/rain_water_dripping_softly.ogg'
+        ],
+        dur: 3.5, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'rain'
+    },
+    {
+        id: 'wind', emoji: '💨', label: 'Vítr a vichr', sub: 'Hvízdání větru',
+        stems: ['vítr','větr','vánek','fouk','zafouk','vichr','vichřic','meluzín','wind','breeze','blow'],
+        urls: [
+            'https://actions.google.com/sounds/v1/weather/light_breeze.ogg',
+            'https://actions.google.com/sounds/v1/weather/forest_wind_summer.ogg',
+            'https://actions.google.com/sounds/v1/weather/wind_through_window.ogg'
+        ],
+        dur: 3.2, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'wind'
+    },
+    {
+        id: 'fire', emoji: '🔥', label: 'Oheň a krb', sub: 'Teplé praskání',
+        stems: ['oheň','ohn','plamen','krb','ohnišť','hoří','prask','sopk','fire','flame','hearth'],
+        urls: [
+            'https://actions.google.com/sounds/v1/ambiences/fire.ogg',
+            'https://actions.google.com/sounds/v1/ambiences/daytime_forrest_bonfire.ogg'
+        ],
+        dur: 3.2, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'fire'
+    },
+    {
+        id: 'water', emoji: '🌊', label: 'Voda a potůček', sub: 'Žbluňknutí a proud',
+        stems: ['vod','potok','potůč','řek','studánk','žbluň','šplouch','moř','vln','ryb','water','stream','river','splash'],
+        urls: [
+            'https://actions.google.com/sounds/v1/water/small_stream_flowing.ogg',
+            'https://actions.google.com/sounds/v1/water/rocks_into_water.ogg',
+            'https://actions.google.com/sounds/v1/water/fountain_water_bubbling.ogg'
+        ],
+        dur: 2.8, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'water'
+    },
+    {
+        id: 'door', emoji: '🚪', label: 'Dveře a klepání', sub: '3× zaklepání / vrz',
+        stems: ['dveř','dvíř','vrát','brán','zaklep','klep','vrz','zámek','klíč','door','knock','creak'],
+        urls: [
+            'https://actions.google.com/sounds/v1/doors/knock_on_wooden_door.ogg',
+            'https://actions.google.com/sounds/v1/doors/creaking_wooden_door.ogg',
+            'https://actions.google.com/sounds/v1/doors/wood_door_open_close_soft.ogg'
+        ],
+        dur: 2.2, echoes: [{ delay: 0, gain: 1.0 }, { delay: 280, gain: 0.9 }, { delay: 560, gain: 0.85 }],
+        synth: 'door'
+    },
+    {
+        id: 'magic', emoji: '✨', label: 'Kouzlo a hvězdy', sub: 'Třpytivá zvonkohra',
+        stems: ['kouzl','čár','čar','zázrak','víl','hvězd','princ','princez','korun','poklad','zlat','magic','spell','wand','fairy'],
+        urls: [], dur: 2.4, echoes: [{ delay: 0, gain: 1.0 }, { delay: 220, gain: 0.85 }, { delay: 450, gain: 0.7 }],
+        synth: 'magic'
+    },
+    {
+        id: 'steps', emoji: '👣', label: 'Kroky a útěk', sub: '4× našlápnutí',
+        stems: ['krok','kráč','šel','šla','šli','utík','běž','cest','chod','footstep','walk','run'],
+        urls: [], dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 320, gain: 0.85 }, { delay: 640, gain: 0.75 }, { delay: 960, gain: 0.6 }],
+        synth: 'steps'
+    },
+    {
+        id: 'bell', emoji: '🔔', label: 'Zvon a hodiny', sub: '2× cinknutí zvonu',
+        stems: ['zvon','zvonk','cink','odbil','hodin','půlnoc','bell','chime','clock'],
+        urls: [], dur: 2.4, echoes: [{ delay: 0, gain: 1.0 }, { delay: 900, gain: 0.7 }],
+        synth: 'bell'
+    },
+    {
+        id: 'sleep', emoji: '😴', label: 'Spánek a zívnutí', sub: 'Jemný akord na dobrou noc',
+        stems: ['spí','spink','usn','postýl','peřin','polštář','dobrou','noc','sen','sny','sleep','dream','bed','night'],
+        urls: [], dur: 3.0, echoes: [{ delay: 0, gain: 1.0 }],
+        synth: 'sleep'
+    }
+];
+
+// Pomocná normalizace bez diakritiky pro 100% spolehlivou detekci
+function normWord(str) {
+    return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+/* ============================================================================
+   SEKCE 3: VESTAVĚNÉ POHÁDKY (PUBLIC DOMAIN CZ/EN + PRINCEZNA LADA Z KNIHY)
+   ============================================================================ */
 const STORIES = {
     cs: [
         {
-            id: "pigs",
-            title: "🐷 1. O třech prasátkách (Volitelná pohádka)",
-            text: "Byla jednou tři malá růžová prasátka, která se vydala do zeleného lesa postavit si vlastní domečky. První prasátko bylo líné a postavilo si žlutý domeček ze slámy. Druhé prasátko si postavilo dřevěný domeček z větví a klacků. Třetí prasátko bylo pilné, nosilo těžké červené cihly a postavilo pevný kamenný dům s komínem. Jednoho večera se z temného lesa vynořil velký zlý černý vlk. Zhluboka se nadechl, zafoukal silný vítr a slaměný domeček se okamžitě rozletěl. První prasátko kvičelo a utíkalo, co mu nohy stačily, k bratrovi do dřevěného domku. Vlk ale znovu strašlivě zadul, dřevěné dveře zapraskaly a domek ze dřeva spadl. Obě prasátka běžela do cihlového domu a zamkla těžké dubové dveře. Venku se mezitím strhla divoká noční bouřka, zahřměl hrom a spustil se prudký déšť. Vlk funěl a škrábal na dveře, ale cihly se ani nepohnuly. Nakonec chtěl vlk vlézt dovnitř komínem, jenže dole v krbu zrovna plápolal horký červený oheň a na něm vřel kotlík s vodou. Vlk spadl rovnou do horké vody, žbluňklo to, bolestně zavyl a utekl hluboko do černého lesa. Tři prasátka se radostně smála, zpívala a žila v bezpečí."
+            title: "👑 Princezna Lada (Se zlatou hvězdou na čele)",
+            text: "Princezna Lada nastoupila do služby. Uzlík a kouzelný závoj položila pod kámen u studánky. Z vody na ni vystrčila hlavu malá rybička. „Nikomu to neříkej, rybičko, a dobře mi můj zlatý poklad opatruj,“ usmála se princezna a kráčela lesní cestou k zámku. Cestou si umazala obličej popelem a plachetkou zakryla zlatou hvězdu na čele. Starý kuchař v královské kuchyni, kde v krbu praskal teplý oheň, ji vzal do služby. Když se večer slavil králův svátek, Lada běžela ke studánce, oblékla si šaty třpytivé jako slunce a hvězdy, sedla na bílého koně a vstoupila do sálu. Venku tiše foukal noční vítr, na věži zazvonil zvon a celá zem se uložila ke klidnému spánku."
         },
         {
-            id: "karkulka",
-            title: "🔴 2. Červená Karkulka (Volitelná pohádka)",
-            text: "Žila byla malá holčička, které všichni říkali Červená Karkulka, protože nosila krásný červený čepeček. Jednoho slunečného rána jí maminka připravila košík s koláčem a poslala ji za nemocnou babičkou do chaloupky uprostřed zeleného lesa. Když Karkulka kráčela po lesní pěšině, na větvích vesele zpívali ptáčkové, v zelené trávě skákala žába a podél cesty zurčel stříbrný potok. Najednou se za hustým křovím objevil šedivý vlk. Měl hladové žluté oči, ale mluvil tichým hlasem a zeptal se, kam Karkulka jde. Děvčátko mu prozradilo, že nese babičce dobroty, a zastavilo se na barevné louce, aby natrhalo modré a žluté květiny. Vlk mezitím rychle běžel zkratkou k chaloupce. Zaklepal na dřevěné dveře, které tiše vrzly, skočil dovnitř a babičku spolkl. Pak si lehl do postele. Když Karkulka přišla, podivila se, proč má babička tak velké uši, velké oči a obrovské zuby. Vlk vyskočil a spolkl i Karkulku. Naštěstí šel kolem statečný myslivec se svým věrným psem. Pes hlasitě zaštěkal, myslivec vešel do světnice, zachránil babičku i Karkulku a vlkovi zašil do břicha těžké kameny. Všichni se radovali, zazvonil zvonek a v krbu praskal teplý oheň."
+            title: "🐷 O třech prasátkách a vlkovi",
+            text: "Byla jednou tři malá prasátka, která šla cestou k zelenému lesu postavit si domeček. První prasátko postavilo domek ze slámy, druhé ze dřeva a třetí z pevných cihel, kde v krbu hřál teplý oheň. V noci přišel z temného lesa hladový vlk, zaklepal na dveře a zavyl. Pak zhluboka foukal jako silný vítr, až první dva domky odletěly. Prasátka utíkala k bráškově cihlovému domku a zamkla těžké dveře. Venku se strhla bouřka, zahřměl hrom a spustil se déšť, ale v chaloupce u krbu bylo teplo a všechna tři prasátka v klidu usnula."
         },
         {
-            id: "pernik",
-            title: "🏠 3. O perníkové chaloupce (Volitelná pohádka)",
-            text: "Jeden chudý dřevorubec šel s Jeníčkem a Mařenkou do hlubokého lesa na dříví. Děti ale v lese zabloudily, slunce zapadlo a nastala černá tma. V korunách stromů strašidelně houkala noční sova, v dálce vyl hladový vlk a foukal studený vítr. Jeníček vylezl na vysoký strom a uviděl v dálce malé zlaté světýlko. Děti běžely tím směrem, až přišly na mýtinu, kde stála kouzelná chaloupka celá ze sladkého perníku. Měla čokoládové dveře a okna z bílého cukru. Jeníček hned ulomil kousek perníku ze střechy. Vtom vrzly staré dveře a z chaloupky vyšla zlá ježibaba. Smála se skřehotavým hlasem, mávla kouzelnou hůlkou, udělala čáry a zavřela Jeníčka do klece. Ráno rozdělala v peci veliký rudý oheň, který divoce praskal, a poručila Mařence, aby si sedla na lopatu. Chytrá Mařenka ale poprosila ježibabu, ať jí to nejprve ukáže. Jakmile si ježibaba sedla, děti ji strčily do pece a zabouchly železná dvířka. Pak otevřely truhlu plnou zlatých mincí a stříbrných drahokamů, utíkaly lesem kolem šumící řeky, kde zpívali ptáčkové, až šťastně našly cestu domů k tatínkovi."
+            title: "🧣 Červená Karkulka",
+            text: "Žila byla malá holčička v červené čepičce, které každý říkal Červená Karkulka. Jednoho slunečného rána šla lesní cestou k babičce. V zeleném lese zpívali ptáčci, u potůčku kvákala žába a mezi stromy foukal jemný vánek. Najednou z křoví vyšel šedý vlk. Karkulka trhala růžové a fialové květy, zatímco vlk běžel k chaloupce a třikrát zaklepal na dřevěné dveře. Statečný myslivec se svým věrným psem, který hlasitě zaštěkal, babičku i Karkulku zachránil. Večer už na obloze svítily zlaté hvězdy, v lese zahoukala sova a všichni sladce spinkali."
         },
         {
-            id: "zlatovlaska",
-            title: "👑 4. Zlatovláska (Volitelná pohádka)",
-            text: "Starý král koupil od tajemné babičky kouzelného hada. Sloužící Jiřík měl hada upéct na ohni, ale nesměl z něj ani kousek ochutnat. Když však ryba prskala na pánvi, Jiřík jeden kousek snědl a okamžitě rozuměl řeči všech zvířat. Uslyšel, jak venku pod oknem štěká pes, na střeše švitoří ptáčkové a ve stáji řehtá bílý kůň. Král na to ale přišel a poslal Jiříka do světa, aby mu přivedl princeznu Zlatovlásku se zlatými vlasy. Jiřík jel na koni přes zelené lesy a široké louky. Cestou uhasil hořící mraveniště, nakrmil hladová mláďata krkavců a u moře, kde šuměly modré vlny, vrátil do vody velkou zlatou rybu. Ryba žbluňkla do hlubin a slíbila mu pomoc. V křišťálovém zámku musel Jiřík splnit tři těžké úkoly: posbírat perly v trávě, najít zlatý prsten na dně moře a přinést živou a mrtvou vodu. Zvířátka mu za jeho dobrotu pomohla. Když pak v zámku zazvonil slavnostní zvon, dvanáct princezen stálo v řadě, ale muška Jiříkovi prozradila pravou Zlatovlásku. Celý zámek se rozzářil zlatým kouzlem a všichni slavili."
+            title: "🏠 O perníkové chaloupce",
+            text: "Jeníček a Mařenka kráčeli hlubokým zeleným lesem, až přišla tma a chladný noční vítr. Na větvi zahoukala sova a v dálce zaštěkal pes. Najednou uviděli kouzelnou chaloupku, která voněla medem a na střeše se třpytila jako zlaté slunce. V kamnech tam praskal červený oheň a u dveří mňoukala černá kočka. Děti svým důvtipem přelstily zlou ježibabu, přeskočily lesní potok, kde žbluňkla voda, a na bílém koníkovi se vrátily domů k tatínkovi do teplé postýlky, kde hned usnuly."
         },
         {
-            id: "mesicky",
-            title: "❄️ 5. O dvanácti měsíčkách (Volitelná pohádka)",
-            text: "Žila jednou hodná Maruška, kterou zlá macecha a líná sestra Holena vyhnaly v lednu do strašlivé vichřice. Venku mrzlo, foukal ledový vítr, padal bílý sníh a les byl temný jako noc. Maruška plakala a brodila se závějemi, až na vrcholku hory spatřila jasnou zlatou záři. Uprostřed lesa tam plápolal veliký červený oheň a kolem něj sedělo na kamenech dvanáct tichých mužů — dvanáct měsíčků. Maruška zdvořile poprosila, zda se smí u ohně ohřát. Starý Leden s dlouhým bílým vousem kývl a předal kouzelnou hůl bratru Březnu. Oheň vysoko vyšlehl, sníh roztál do bublající vody, na stromech vypučely zelené pupeny, v trávě rozkvetly modré fialky a ptáčkové začali radostně zpívat. Pak se ujal vlády Červen, zasvítilo teplé zlaté slunce a les se naplnil sladkými červenými jahodami. Nakonec promluvil Říjen a ze stromů spadla krásná červená jablka. Když ale do lesa vběhla zlá Holena a křičela na měsíčky bez úcty, Leden mávl holí, strhla se strašná bouřka, zahřměl hrom a vichřice zlé ženy zasypala sněhem, zatímco Maruška žila v chaloupce šťastně v teple u krbu."
-        },
-        {
-            id: "lada",
-            title: "📖 6. Princezna Lada (Z tvé vyfocené knihy)",
-            text: "Služby. Uzlík a kouzelný závoj položila pod kámen u studánky. Z vody na ni vystrčila hlavu rybička. „Nikomu to neříkej, rybičko, a dobře mi můj poklad opatruj,“ usmála se princezna a zamířila k zámku. Cestou si umazala obličej popelem, plachetku na hlavě si stáhla do čela, aby zakryla zlatou hvězdu, a pořádně se zabalila do myšího kožíšku. Čeládka v zámku se dala do smíchu, když uviděla to podivné stvoření. Chtěli Ladu odehnat, ale starý kuchař se nad ní ustrnul a vzal ji k sobě do služby za kuchtičku. Zem, v níž se to všechno seběhlo, patřila králi, který měl jediného syna; říkali mu Hostivít. Byl to hezký a hodný mládenec a starý král už by mu byl rád předal korunu, jen kdyby si Hostivít našel manželku. Ale princ se do ženění nehrnul. Říkal, že ještě nenašel tu pravou. Brzy po tom, co Lada nastoupila do služby v královské kuchyni, se slavil králův svátek. Hostiny a všelijaké radovánky měly trvat celé tři dny. Hned první večer Lada poprosila kuchaře, aby se mohla podívat do sálu. Byla zvědavá na prince, o němž slyšela jen samou chválu. „Kam by ses hrnula?“ obořil se na ni kuchař. „Vždyť vypadáš jako strašidlo. Ještě tě někdo z pánů uvidí a řekne si, že máme povedené služebnictvo.“ „Nebojte se,“ řekla kuchtička. „Zalezu někam do koutečka, nikdo mě neuvidí.“ Kuchař o tom nechtěl ani slyšet, ale když kuchtička tolik prosila, nakonec svolil. Lada šla rovnou cestou ke studánce. Zdvihla kámen a vyndala z uzlíčku šaty z křídel zlatohlávka. Shodila plachetku a myší kožíšek, pěkně se umyla a oblékla do skvostných šatů. Když se objevila v sále, všichni na ní mohli oči nechat. Kdo je ta neznámá krasavice? lámali si hlavu."
+            title: "🔥 O dvanácti měsíčkách",
+            text: "V zimě, když venku foukal mrazivý vítr a padal sníh, musela hodná Maruška do tmavého lesa pro fialové fialky a červené jahody. Kráčela hlubokým sněhem, až na vrcholku hory uviděla zářivý zlatý oheň. Kolem ohniště sedělo dvanáct měsíčků. Leden udeřil holí, oheň zapraskal a předal vládu bratrovi Březnu a Červnu. V lese hned roztála voda v potůčku, zazpíval ptáček, zazelenala se tráva a rozkvetly kouzelné květy. Maruška poděkovala a doma v teple klidně usnula."
         }
     ],
     en: [
         {
-            id: "pigs_en",
-            title: "🐷 1. The Three Little Pigs (Optional Story)",
-            text: "Once upon a time, three little pink pigs went into the green forest to build their own houses. The first little pig built a yellow house of straw. The second little pig built a wooden house of sticks. The third little pig worked hard with red bricks and built a strong stone house with a chimney. One dark night, a big bad black wolf came out of the woods. He took a deep breath, blew a strong wind, and the straw house fell down. The pig ran away fast to the wooden house. The wolf blew again, the wooden door creaked and broke, and both pigs ran into the brick house. Outside, a dark storm started with loud thunder and heavy rain. The wolf tried to climb down the chimney, where a hot red fire crackled under a pot of boiling water. With a loud splash, the wolf fell in, howled in pain, and ran back into the dark forest forever. The three pigs laughed and sang happily."
+            title: "🐷 The Three Little Pigs",
+            text: "Once upon a time, three little piglets walked down the forest road to build their homes. The third pig built a strong house with a warm fire in the hearth. At night, a big wolf came from the dark forest, knocked on the wooden door, and began to howl. He blew like a strong wind, while outside thunder rolled and rain began to fall. Safe inside by the warm golden fire, the little pigs closed their eyes and fell fast asleep."
         },
         {
-            id: "karkulka_en",
-            title: "🔴 2. Little Red Riding Hood (Optional Story)",
-            text: "Once there was a sweet little girl called Little Red Riding Hood because of her bright red cloak. One sunny morning she walked through the green forest to bring cake to her sick grandmother. Along the path, birds sang in the trees, a green frog jumped by the splashing river, and a cool wind blew. Behind a dark bush, a gray wolf watched her with yellow eyes. While she picked blue and gold flowers, the wolf ran ahead to the cottage. He knocked on the wooden door, which creaked open. Fortunately, a brave hunter and his barking dog arrived just in time to save them. A silver bell rang in celebration and a warm fire glowed in the hearth."
-        },
-        {
-            id: "pernik_en",
-            title: "🏠 3. Hansel and Gretel (Optional Story)",
-            text: "Hansel and Gretel wandered deep into the dark forest at night. An owl hooted in the tall trees, a wolf howled in the distance, and a cold wind blew. Following a golden star, they discovered a magic house made of sweet gingerbread and white sugar. Suddenly, the wooden door creaked open and an old witch laughed and cast a magic spell. She lit a roaring red fire in the oven, but clever Gretel pushed the witch inside and slammed the iron door. The children found a chest of gold coins and ran home along the splashing river while birds sang in the morning sun."
-        },
-        {
-            id: "zlatovlaska_en",
-            title: "👑 4. The Golden-Haired Princess (Optional Story)",
-            text: "Young George rode his white horse through green forests and across wide rivers to find the Golden-Haired Princess. Because he understood the speech of animals, he heard dogs barking, horses whinnying, and birds singing. By the blue ocean, where big waves splashed on the shore, he saved a golden fish. In the royal crystal castle, a silver bell rang, magic golden light filled the hall, and joyful music played for the wedding."
-        },
-        {
-            id: "mesicky_en",
-            title: "❄️ 5. The Twelve Months (Optional Story)",
-            text: "On a freezing winter night, a fierce storm howled and white snow fell in the dark forest. Poor Marushka walked through the cold wind until she saw a bright golden glow on the mountain top. Twelve silent men sat around a huge crackling red fire. Kind January waved his magic staff: the fire roared, snow melted into splashing water, green grass grew, birds sang, and red strawberries ripened under the warm golden sun."
+            title: "🧣 Little Red Riding Hood",
+            text: "Little Red Riding Hood walked through the green forest to visit her grandmother. Birds were chirping in the trees, a little frog croaked by the stream, and a soft breeze was blowing. A wolf ran ahead and knocked on the wooden door. Soon the huntsman arrived with his loyal dog, who barked bravely. As night fell, an owl hooted softly, golden stars shone in the sky, and everyone drifted into a peaceful sleep."
         }
     ]
 };
 
-const I18N = {
-    cs: {
-        tagline: "Živá zvuková a světelná atmosféra k vyprávění (1050+ spouštěčů)",
-        testSound: "Test zvuku",
-        dimScreen: "Noční lampa",
-        modeFree: "Jen poslouchat (Bez knihy)",
-        modeLive: "Číst z pohádky",
-        modeSilent: "Tiché čtení",
-        modePodcast: "AI Předčítání",
-        freeTitle: "Volný odposlech (Bez textu na displeji)",
-        freeSub: "Vyprávěj vlastní pohádku z hlavy nebo čti z papírové knížky. Telefon poslouchá klíčová slova (např. „pes“, „bouřka“, „les“, „oheň“) a sám pouští zvuky a mění světlo.",
-        btnPhoto: "Vyfotit vlastní knihu (OCR)",
-        btnDoc: "Nahrát TXT",
-        btnStartFree: "Zapnout poslouchání (Bez knihy)",
-        btnStartLive: "Spustit čtení s pohádkou",
-        btnStartSilent: "Spustit tiché čtení (Plynulý posun)",
-        btnStartPodcast: "Spustit AI předčítání",
-        btnStopActive: "Zastavit (Atmosféra běží)",
-        lblDensity: "🎭 Četnost efektů",
-        densityLow: "Jemně",
-        densityHigh: "Každé slovo (100%)",
-        lblAmbience: "🎶 Podkres na spaní",
-        ambLullaby: "🌙 Ukolébavka",
-        ambNight: "🦉 Noční les",
-        ambOcean: "🌊 Vlny moře",
-        ambRain: "🌧️ Noční déšť",
-        ambFire: "🔥 Teplý krb",
-        lblSfxVol: "🔊 Hlasitost efektů (Boost)",
-        lblBgVol: "🎶 Hlasitost podkresu"
-    },
-    en: {
-        tagline: "Living Sound & Light Atmosphere for Storytelling (1050+ Triggers)",
-        testSound: "Test Sound",
-        dimScreen: "Night Lamp",
-        modeFree: "Just Listen (No Book)",
-        modeLive: "Read Story",
-        modeSilent: "Silent Sync",
-        modePodcast: "AI Narrator",
-        freeTitle: "Free Listening Mode (No Text Needed)",
-        freeSub: "Tell your own bedtime story or read from a physical book. Your phone listens for keywords and automatically adds sound effects and room lighting.",
-        btnPhoto: "Snap Book Pages (OCR)",
-        btnDoc: "Upload TXT",
-        btnStartFree: "Start Listening (No Book)",
-        btnStartLive: "Start Reading Aloud",
-        btnStartSilent: "Start Silent Reading Sync",
-        btnStartPodcast: "Start AI Narration",
-        btnStopActive: "Stop (Atmosphere Active)",
-        lblDensity: "🎭 Effect Density",
-        densityLow: "Subtle",
-        densityHigh: "Every Word (100%)",
-        lblAmbience: "🎶 Sleep Ambience",
-        ambLullaby: "🌙 Lullaby Pad",
-        ambNight: "🦉 Night Forest",
-        ambOcean: "🌊 Ocean Waves",
-        ambRain: "🌧️ Night Rain",
-        ambFire: "🔥 Warm Hearth",
-        lblSfxVol: "🔊 Sound Effects Boost",
-        lblBgVol: "🎶 Ambience Volume"
-    }
-};
-
 /* ============================================================================
-   2. OBŘÍ SLOVNÍK 1 050+ KOŘENŮ SLOV (POROVNÁVÁ SE I BEZ DIAKRITIKY!)
-   ============================================================================ */
-const ARCHETYPE_MEDIA = {
-    thunder: { synth: "thunder", url: "https://actions.google.com/sounds/v1/weather/rolling_thunder.ogg" },
-    rain:    { synth: "rain",    url: "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg" },
-    wind:    { synth: "wind",    url: "https://actions.google.com/sounds/v1/weather/wind_blowing.ogg" },
-    fire:    { synth: "fire",    url: "https://actions.google.com/sounds/v1/ambiences/fire.ogg" },
-    water:   { synth: "splash",  url: "https://actions.google.com/sounds/v1/water/water_splash.ogg" },
-    dog:     { synth: "bark",    url: "https://actions.google.com/sounds/v1/animals/dog_barking.ogg" },
-    cat:     { synth: "meow",    url: "https://actions.google.com/sounds/v1/animals/cat_purr_twit.ogg" },
-    wolf:    { synth: "howl",    url: "https://actions.google.com/sounds/v1/animals/wolf_howl.ogg" },
-    horse:   { synth: "horse",   url: "https://actions.google.com/sounds/v1/animals/horse_whinny.ogg" },
-    frog:    { synth: "frog",    url: "https://actions.google.com/sounds/v1/animals/frog_croaking.ogg" },
-    roar:    { synth: "roar",    url: "https://actions.google.com/sounds/v1/animals/animal_roar.ogg" },
-    farm:    { synth: "farm",    url: "https://actions.google.com/sounds/v1/animals/cattle_moo.ogg" },
-    owl:     { synth: "owl",     url: "https://actions.google.com/sounds/v1/animals/owl_hoot.ogg" },
-    bird:    { synth: "bird",    url: "https://actions.google.com/sounds/v1/animals/bird_chirp.ogg" },
-    door:    { synth: "door",    url: "https://actions.google.com/sounds/v1/doors/creaking_wooden_door.ogg" },
-    knock:   { synth: "knock",   url: "https://actions.google.com/sounds/v1/doors/knock_on_wooden_door.ogg" },
-    bell:    { synth: "bell",    url: "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg" },
-    steps:   { synth: "steps",   url: "https://actions.google.com/sounds/v1/foley/footsteps_on_gravel.ogg" },
-    run:     { synth: "steps",   url: "https://actions.google.com/sounds/v1/foley/jogging_on_concrete.ogg" },
-    laugh:   { synth: "magic",   url: "https://actions.google.com/sounds/v1/human_voices/babies_laughing.ogg" },
-    magic:   { synth: "magic",   url: "https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" },
-    sword:   { synth: "sword",   url: "https://actions.google.com/sounds/v1/weapons/sword_clash.ogg" },
-    horn:    { synth: "horn",    url: "https://actions.google.com/sounds/v1/transportation/train_horn.ogg" }
-};
-
-function stripAccents(str) {
-    return (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
-const SOUND_CLUSTERS = {
-    thunder: "bouř,hrom,zahřm,blesk,zablýsk,hřmí,hřměn,bouří,burác,zadun,duněn,řach,práskn,výbuch,exploz,vichřic,orkán,tornád,blýskav,hromobit,krupobit,hřmot,rachot,třesk,zatřásl,zemětřes,thunder,storm,lightn,rumbl,explosion,crashing",
-    rain: "déš,dešt,prš,liják,slejvák,mrhol,kapk,kapal,kape,mokř,promok,plískan,přeháňk,deštiv,zaprš,rozprš,kropen,krůpěj,louž,kaluh,blát,bahno,deštíček,prška,rain,drizzle,downpour,shower,puddle,raindrop",
-    wind: "vítr,větr,fouk,zafouk,vane,ván,větř,vichr,meluzín,průvan,fič,zafič,hvízd,svišt,šuměn,šustěn,listí,korun,větv,ohýb,vát,zavál,odvál,rozfouk,zadul,duj,dech,nádech,vydechn,funěl,zafun,wind,breeze,gust,blow,blew,whispering",
-    fire: "oheň,ohn,plamen,plápol,hoř,zahoř,shoř,praská,praskot,krb,pec,kamn,ohništ,výh,žár,žhav,jiskr,zajiskř,popel,dým,kouř,pochodeň,louč,svíčk,lucern,lamp,zapál,rozdělal,hork,vař,vřel,pekl,opék,smaž,fire,flame,burn,crackl,hearth,furnace,torch,candle,smoke,ash",
-    water: "vod,řek,říč,potok,potoč,studán,studn,pramen,tůň,jezer,rybník,moř,oceán,vln,žbluň,šplouch,cák,vystřík,zurč,bubl,proud,hlubin,utop,potop,plav,vyplav,břeh,vodopád,kašn,fontán,vědr,džbán,umyl,vykoupal,slz,pláč,plakal,river,stream,spring,well,lake,ocean,sea,wave,splash,water,brook,pond,swim,dive",
-    dog: "pes,pejs,psa,pso,psů,psí,psík,štěň,štěk,zaštěk,vyštěk,avrč,zavrč,vrčen,kňuč,zakňuč,haf,čokl,ohař,hlídač,smečk,psisko,dog,puppy,hound,bark,growl,whimper",
-    cat: "kočk,kočič,kotě,koťát,kocour,mňouk,zamňouk,vrní,přede,mrousk,tlapk,drápy,škráb,zaškráb,myšilov,macek,číč,cat,kitten,kitty,meow,purr",
-    wolf: "vlk,vlč,vlci,vlka,vlčisko,vyje,zavyl,vytí,vyjí,tesák,šelma,lesní,hladov,čenich,stopov,lovec,kořist,wolf,wolves,howl",
-    horse: "kůň,kon,koník,koníč,hřebec,klisn,hříb,řeht,zařeht,odfrk,kopyt,klus,cvál,trysk,sedl,uzd,kočár,povoz,spřežen,jezdec,jízda,cvrkot,osel,oslík,poník,horse,stallion,mare,foal,whinny,neigh,gallop,hoof,hooves,carriage,rider",
-    frog: "žáb,žab,žabič,kvák,zakvák,kuňk,ropuch,pulec,skokan,leknín,rákos,bažin,močál,slizk,frog,toad,croak,ribbit,swamp,marsh",
-    roar: "lev,lva,lvů,lví,tygr,medvěd,nedvěd,drak,drač,saň,netvor,příšer,obr,obrov,zařv,řval,řev,bruč,zabruč,tlam,dráp,hroziv,děsiv,strašliv,monstr,besti,dinosaur,lion,tiger,bear,dragon,monster,beast,giant,roar",
-    farm: "kráv,krav,telát,tele,býk,buč,zabuč,ovc,oveč,beran,jehň,beč,zabeč,koz,kozl,pras,prasát,čuník,kanec,kvič,zakvič,chrost,slep,kohout,kokrh,kuř,kachn,hus,kejh,statek,chlév,stodol,pastvin,stád,cow,cattle,moo,sheep,lamb,goat,pig,piglet,rooster,farm,barn",
-    owl: "sov,sovič,výr,kulíš,houk,zahouk,sýč,noční,hnízd,dutina,temn,půlnoc,soumrak,šero,owl,hoot,midnight",
-    bird: "pták,ptáč,ptactv,zpěv,zpív,zazpív,švitoř,cvrlik,píp,vrabec,vlaštov,slavík,kos,skřivan,holub,hrdlič,havran,krkavec,vran,strak,kukač,orla,orel,sokol,křídl,peří,zobák,vzlét,letěl,bird,sparrow,swallow,raven,crow,eagle,chirp,sing,sang,wing,feather",
-    door: "dveř,dvíř,vrz,zavrz,skříp,zaskříp,brán,bran,vrat,oken,okn,otevř,zavř,zabouch,práskl,zámek,klíč,odemk,zamk,pant,práh,komnat,síň,světnic,chalup,chaloup,dům,domu,domek,staven,půd,sklep,truhl,víko,klec,door,gate,creak,hinge,lock,key,chest,cage",
-    knock: "klep,zaklep,zaťuk,ťuk,buš,zabuš,tlouk,zatlouk,kladiv,seker,kamen,kámen,balvan,skál,cihl,dřev,klack,větev,hůl,holí,buch,žuch,spadl,upadl,rozbil,křup,prask,knock,tap,hammer,axe,stone,rock,brick,wood,branch,stick,fall,fell",
-    bell: "zvon,zvonek,zvoneč,zazvon,cink,zacink,odbíj,hodin,věž,kostel,kapl,slavnost,svatb,králov,korun,poklad,minc,zlaták,dukát,stříbr,křišťál,sklen,pohár,číš,kuchyn,nádob,hrnec,kotlík,pánv,bell,chime,ring,rang,clock,tower,coin,treasure,crystal,glass",
-    steps: "krok,kráč,šel,šla,šli,chod,cest,pěšin,stezk,lesem,louk,most,schod,žebřík,vylez,stoup,bloud,putov,vydal,zamíř,došel,přišel,vrátil,ticho,šour,plíž,bot,střevíc,step,walk,path,road,bridge,stairs,climb,wander",
-    run: "běž,běh,utík,utek,uprch,pospích,spěch,chvát,honil,pronásled,skoč,vyskoč,přeskoč,skák,letí,řítil,uhán,závod,rychl,prudk,run,ran,rush,hurry,chase,jump,leap,escape,fast,quick",
-    laugh: "smích,smál,zasmál,usmál,úsměv,radost,radov,vesel,šťast,štěstí,zábav,oslav,hostin,tanec,tanč,hudb,hrál,píseň,kuchtič,šašek,vtip,lecht,hihň,chichot,laugh,smile,happy,joy,feast,dance,party,giggle",
-    magic: "kouzl,čár,čar,čaroděj,ježibab,babič,víl,skřít,trpasl,vodník,čert,peklo,anděl,nebe,hvězd,měsíc,slunc,zář,svět,třpyt,zlat,diamant,rubín,perla,prsten,závoj,plášť,žezl,palác,zázrak,přání,tajem,duch,stín,sen,spánek,usnul,magic,spell,witch,wizard,fairy,star,moon,sun,glow,shine,gold,silver,ring,veil,castle,dream,sleep",
-    sword: "meč,šavl,dýk,kopí,štít,brněn,zbroj,rytíř,voják,stráž,boj,bitv,souboj,útok,zasáhl,sekl,bodl,šíp,luk,kuš,pušk,mysliv,lov,záchran,stateč,hrdin,sword,shield,armor,knight,battle,fight,arrow,bow,hunter,brave,hero",
-    horn: "roh,trubk,fanfár,troub,zatroub,vlak,lokomotiv,auto,loď,parník,přístav,sirén,poplach,válk,vojsk,armád,král,princ,princez,vévod,pán,horn,trumpet,fanfare,train,ship,king,prince,princess"
-};
-
-const COLOR_CLUSTERS = {
-    red:    { r: 220, g: 48,  b: 40,  boost: 0.78, words: "červen,rud,krvav,karkul,oheň,ohn,plamen,žhav,jahod,jablk,cihl,pec,čert,peklo,růže,red,crimson,scarlet,fire,flame,brick" },
-    gold:   { r: 255, g: 190, b: 50,  boost: 0.82, words: "zlat,žlut,slun,sluneč,hvězd,zář,svět,třpyt,korun,poklad,minc,dukát,med,obilí,slám,slaměn,svíčk,lucern,blesk,gold,yellow,sun,star,glow,crown,straw,candle" },
-    green:  { r: 42,  g: 155, b: 85,  boost: 0.70, words: "zelen,les,lesn,strom,větv,list,tráv,louk,mech,kaprad,žáb,žab,smaragd,jarní,jaro,keř,křov,green,forest,woods,tree,grass,meadow,frog,spring" },
-    blue:   { r: 45,  g: 105, b: 195, boost: 0.72, words: "modr,blankyt,nebe,obloh,vod,řek,potok,studán,moř,oceán,jezer,rybník,déš,prš,kapk,led,mráz,zima,blue,sky,water,river,sea,ocean,rain,ice" },
-    purple: { r: 145, g: 60,  b: 190, boost: 0.75, words: "fialov,bouř,hrom,kouzl,čár,čaroděj,ježibab,tajem,závoj,fialk,šeřík,soumrak,purple,violet,storm,thunder,magic,spell,witch" },
-    pink:   { r: 230, g: 95,  b: 145, boost: 0.72, words: "růžov,prasát,květ,květin,poupě,princez,lásk,úsměv,radost,sladk,perník,cukrov,pink,pig,flower,princess,sweet,rose" },
-    white:  { r: 240, g: 230, b: 205, boost: 0.75, words: "bíl,stříbr,sníh,sněh,mráz,ledov,mlh,mrak,oblak,perla,křišťál,zrcadl,měsíc,noc,anděl,white,silver,snow,frost,cloud,pearl,crystal,moon" },
-    dark:   { r: 20,  g: 14,  b: 34,  boost: 0.25, words: "čern,tmav,tma,temn,noc,půlnoc,stín,vlk,jeskyn,propast,strach,bál,strašid,popel,kouř,black,dark,night,shadow,wolf,fear,ash" },
-    orange: { r: 240, g: 115, b: 35,  boost: 0.76, words: "oranž,podzim,krb,tepl,hork,koláč,chléb,peč,dřev,chaloup,měď,lišk,orange,autumn,hearth,warm,bread,wood,fox" }
-};
-
-// Sestavení slovníků s podporou s diakritikou i bez diakritiky
-const SOUND_TRIGGERS = {};
-const SOUND_TRIGGERS_NORM = {};
-for (const [arch, listStr] of Object.entries(SOUND_CLUSTERS)) {
-    const media = ARCHETYPE_MEDIA[arch];
-    listStr.split(',').forEach(stem => {
-        const cleanStem = stem.trim().toLowerCase();
-        if (cleanStem) {
-            const entry = { ...media, archetype: arch, stem: cleanStem };
-            SOUND_TRIGGERS[cleanStem] = entry;
-            SOUND_TRIGGERS_NORM[stripAccents(cleanStem)] = entry;
-        }
-    });
-}
-
-const COLOR_AURA_TRIGGERS = {};
-const COLOR_AURA_TRIGGERS_NORM = {};
-for (const [colorName, cfg] of Object.entries(COLOR_CLUSTERS)) {
-    cfg.words.split(',').forEach(stem => {
-        const cleanStem = stem.trim().toLowerCase();
-        if (cleanStem) {
-            const entry = { r: cfg.r, g: cfg.g, b: cfg.b, boost: cfg.boost, name: colorName, stem: cleanStem };
-            COLOR_AURA_TRIGGERS[cleanStem] = entry;
-            COLOR_AURA_TRIGGERS_NORM[stripAccents(cleanStem)] = entry;
-        }
-    });
-}
-
-/* ============================================================================
-   3. ZVUKOVÝ ENGINE (100% SPOLEHLIVÝ WEB AUDIO + ZÁLOŽNÍ OGG)
+   SEKCE 4: POLYFONNÍ AUDIO ENGINE S NOČNÍM FILTREM, ECHEM A SMYČKOU
    ============================================================================ */
 const SoundEngine = {
     ctx: null,
-    sfxBoost: 2.0,
-    bgVolume: 0.22,
-    isMusicPlaying: false,
-    masterBgGain: null,
-    oscNodes: [],
-    noiseNode: null,
-    cooldowns: {},
-    canPlayOgg: false,
-    duckTimeout: null,
+    masterSfxGain: null,
+    nightFilterNode: null,
+    nightFilterEnabled: true,
+    activeAudioEls: new Set(),
+    activeTimers: new Set(),
+    cooldownMap: {},
+    variationMap: {},
+
+    bgRunning: false,
+    bgGain: null,
+    bgNodes: [],
 
     init() {
         if (!this.ctx) {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
-            const testAudio = document.createElement('audio');
-            this.canPlayOgg = !!(testAudio.canPlayType && testAudio.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, ''));
+            const AC = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AC();
+            this.nightFilterNode = this.ctx.createBiquadFilter();
+            this.nightFilterNode.type = 'lowpass';
+            this.nightFilterNode.frequency.value = this.nightFilterEnabled ? 1150 : 18000;
+
+            this.masterSfxGain = this.ctx.createGain();
+            this.masterSfxGain.gain.value = parseFloat(document.getElementById('sfxVolSlider').value);
+
+            this.nightFilterNode.connect(this.masterSfxGain);
+            this.masterSfxGain.connect(this.ctx.destination);
         }
         if (this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {});
+            this.ctx.resume();
         }
     },
 
-    showToast(text) {
-        const t = document.getElementById('fxToast');
-        if (!t) return;
-        t.innerText = text;
-        t.style.opacity = '1';
-        clearTimeout(this.toastTimer);
-        this.toastTimer = setTimeout(() => t.style.opacity = '0', 2200);
-    },
-
-    duckBackgroundMusic() {
-        if (!this.isMusicPlaying || !this.masterBgGain || !this.ctx) return;
-        const now = this.ctx.currentTime;
-        this.masterBgGain.gain.setTargetAtTime(this.bgVolume * 0.2, now, 0.08);
-        clearTimeout(this.duckTimeout);
-        this.duckTimeout = setTimeout(() => {
-            if (this.masterBgGain && this.ctx) {
-                this.masterBgGain.gain.setTargetAtTime(this.bgVolume, this.ctx.currentTime, 0.45);
-            }
-        }, 2300);
-    },
-
-    triggerEntry(entry, rawWord = "") {
-        if (!entry) return;
+    // Spustí zvuk s podporou překrývání (polyfonie) a automatického opakování (echoes)
+    triggerCluster(cluster, spokenWord = '') {
+        this.init();
         const now = Date.now();
-        const cdKey = entry.archetype || entry.stem;
-        if (this.cooldowns[cdKey] && now - this.cooldowns[cdKey] < 1800) return;
-        this.cooldowns[cdKey] = now;
+        // Ochrana proti rozškubání z mikrofonu (stejný zvuk max 1× za 2.8 s, ale JINÉ zvuky se mohou plně překrývat!)
+        if (this.cooldownMap[cluster.id] && (now - this.cooldownMap[cluster.id] < 2800)) {
+            return;
+        }
+        this.cooldownMap[cluster.id] = now;
 
-        this.init();
-        this.duckBackgroundMusic();
-        this.showToast(`🔊 ${rawWord || entry.stem}`);
-        VisualLamp.pulseParticles();
+        // Zvýraznění dlaždice a štítku
+        showActiveBadge(`${cluster.emoji} ${spokenWord || cluster.label}`);
+        const tile = document.getElementById(`tile-${cluster.id}`);
+        if (tile) {
+            tile.classList.add('playing');
+            setTimeout(() => tile.classList.remove('playing'), 1200);
+        }
 
-        // 1. Okamžitý WebAudio syntetický zvuk (funguje na 100 % zařízení bez prodlevy)
-        this.playSynthEffect(entry.synth, Math.min(2.5, this.sfxBoost));
+        // Jemné ztišení podkresové hudby (Audio Ducking), aby efekt vyniknul
+        if (this.bgRunning && this.bgGain && this.ctx) {
+            const baseBg = parseFloat(document.getElementById('bgVolSlider').value);
+            this.bgGain.gain.setTargetAtTime(baseBg * 0.45, this.ctx.currentTime, 0.15);
+            const duckT = setTimeout(() => {
+                if (this.bgRunning && this.bgGain && this.ctx) {
+                    this.bgGain.gain.setTargetAtTime(baseBg, this.ctx.currentTime, 0.6);
+                }
+            }, (cluster.dur || 2.0) * 1000);
+            this.activeTimers.add(duckT);
+        }
 
-        // 2. Doplňková reálná nahrávka z Google Sound Library
-        if (this.canPlayOgg && entry.url) {
-            try {
-                const audio = new Audio(entry.url);
-                audio.crossOrigin = "anonymous";
-                audio.volume = Math.min(1.0, this.sfxBoost * 0.48);
-                audio.play().catch(() => {});
-            } catch (e) {}
+        // Výběr další variace pro tento zvuk (aby nehrál pokaždé úplně stejně)
+        const varIdx = (this.variationMap[cluster.id] || 0);
+        this.variationMap[cluster.id] = varIdx + 1;
+        const pitchShift = [1.0, 0.93, 1.07, 0.97][varIdx % 4];
+
+        // Pokud má kategorie ověřené OGG nahrávky, přehrajeme nahrávku s plynulým ořezem délky
+        if (cluster.urls && cluster.urls.length > 0) {
+            const url = cluster.urls[varIdx % cluster.urls.length];
+            const audio = new Audio(url);
+            audio.crossOrigin = "anonymous";
+            const volSlider = parseFloat(document.getElementById('sfxVolSlider').value);
+            audio.volume = Math.min(1.0, volSlider * 0.65);
+            audio.playbackRate = pitchShift;
+
+            this.activeAudioEls.add(audio);
+            audio.play().catch(() => {
+                // Záložní syntéza, pokud je uživatel offline
+                this.playEchoSequence(cluster, pitchShift);
+            });
+
+            // Ořez délky, aby efekt nehrál 30 sekund
+            const maxMs = (cluster.dur || 2.5) * 1000;
+            const fadeTimer = setTimeout(() => {
+                const fadeInt = setInterval(() => {
+                    if (audio.volume > 0.08) {
+                        audio.volume = Math.max(0, audio.volume - 0.08);
+                    } else {
+                        clearInterval(fadeInt);
+                        audio.pause();
+                        this.activeAudioEls.delete(audio);
+                    }
+                }, 60);
+                this.activeTimers.add(fadeInt);
+            }, maxMs);
+            this.activeTimers.add(fadeTimer);
+        } else {
+            // Přehraje vícevrstvý syntetický model včetně automatických opakování (např. 2× štěknutí, 4× kroky)
+            this.playEchoSequence(cluster, pitchShift);
         }
     },
 
-    playSynthEffect(type, boost) {
-        this.init();
+    playEchoSequence(cluster, pitchShift) {
+        const echoes = cluster.echoes || [{ delay: 0, gain: 1.0 }];
+        echoes.forEach(ec => {
+            const t = setTimeout(() => {
+                this.synthesizeSound(cluster.synth, pitchShift, ec.gain);
+            }, ec.delay);
+            this.activeTimers.add(t);
+        });
+    },
+
+    // Realistické akustické modely jednotlivých zvířat a živlů (100% funkční offline i na mobilu)
+    synthesizeSound(type, pitch = 1.0, echoGain = 1.0) {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        const vol = Math.min(1.6, 0.55 * boost);
+        const out = this.nightFilterNode;
 
-        if (type === "bark") {
-            // Dvojitý realistický štěkot ("Haf! Haf!")
-            [0, 0.24].forEach(offset => {
-                const osc = this.ctx.createOscillator();
-                const g = this.ctx.createGain();
-                osc.type = "sawtooth";
-                osc.frequency.setValueAtTime(340, now + offset);
-                osc.frequency.exponentialRampToValueAtTime(520, now + offset + 0.05);
-                osc.frequency.exponentialRampToValueAtTime(140, now + offset + 0.18);
-
-                g.gain.setValueAtTime(0.001, now + offset);
-                g.gain.linearRampToValueAtTime(vol * 0.75, now + offset + 0.03);
-                g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.19);
-
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = "bandpass";
-                filter.frequency.value = 750;
-
-                osc.connect(filter);
-                filter.connect(g);
-                g.connect(this.ctx.destination);
-                osc.start(now + offset);
-                osc.stop(now + offset + 0.2);
-            });
-        } else if (type === "magic" || type === "bell" || type === "bird") {
-            const freqs = type === "bell" ? [523.25, 659.25, 783.99, 1046.5] : (type === "bird" ? [1500, 1950, 1650, 2200] : [587.33, 783.99, 987.77, 1174.66, 1567.98]);
-            freqs.forEach((f, i) => {
-                const osc = this.ctx.createOscillator();
-                const g = this.ctx.createGain();
-                osc.type = type === "bell" ? "triangle" : "sine";
-                osc.frequency.setValueAtTime(f, now + i * 0.07);
-                if (type === "bird") osc.frequency.exponentialRampToValueAtTime(f * 1.25, now + i * 0.07 + 0.11);
-                g.gain.setValueAtTime(0.001, now + i * 0.07);
-                g.gain.linearRampToValueAtTime(vol * 0.5, now + i * 0.07 + 0.02);
-                g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.07 + (type === "bird" ? 0.25 : 1.4));
-                osc.connect(g);
-                g.connect(this.ctx.destination);
-                osc.start(now + i * 0.07);
-                osc.stop(now + i * 0.07 + 1.5);
-            });
-        } else if (type === "howl" || type === "owl" || type === "frog" || type === "roar" || type === "horse" || type === "meow" || type === "farm") {
-            const osc = this.ctx.createOscillator();
+        const makeEnv = (peak, attack, decay) => {
             const g = this.ctx.createGain();
-            osc.type = (type === "roar" || type === "frog") ? "sawtooth" : "triangle";
-            const startF = type === "owl" ? 390 : (type === "howl" ? 280 : (type === "roar" ? 115 : 340));
-            const endF = type === "howl" ? 490 : (type === "owl" ? 310 : 170);
-            const dur = type === "howl" ? 1.7 : 0.75;
+            g.gain.setValueAtTime(0.0001, now);
+            g.gain.linearRampToValueAtTime(peak * echoGain, now + attack);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + attack + decay);
+            g.connect(out);
+            return g;
+        };
 
-            osc.frequency.setValueAtTime(startF, now);
-            osc.frequency.exponentialRampToValueAtTime(endF, now + dur * 0.65);
-            g.gain.setValueAtTime(0.001, now);
-            g.gain.linearRampToValueAtTime(vol * 0.65, now + 0.05);
-            g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = "lowpass";
-            filter.frequency.value = 950;
-            osc.connect(filter);
-            filter.connect(g);
-            g.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + dur + 0.05);
-        } else {
-            const dur = (type === "knock" || type === "steps" || type === "sword") ? 0.45 : (type === "splash" ? 1.1 : 2.5);
-            const bufSize = Math.floor(this.ctx.sampleRate * dur);
-            const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+        if (type === 'dog') {
+            // Krátké štěknutí (formantový skok + šum dechu)
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.45, 0.02, 0.24);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(290 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(460 * pitch, now + 0.06);
+            osc.frequency.exponentialRampToValueAtTime(175 * pitch, now + 0.25);
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'bandpass'; f.frequency.value = 650 * pitch; f.Q.value = 2.5;
+            osc.connect(f); f.connect(g);
+            osc.start(now); osc.stop(now + 0.27);
+        }
+        else if (type === 'wolf') {
+            // Dlouhé táhlé zavytí vlka
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.36, 0.35, 2.1);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(240 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(430 * pitch, now + 0.7);
+            osc.frequency.setValueAtTime(420 * pitch, now + 1.5);
+            osc.frequency.exponentialRampToValueAtTime(280 * pitch, now + 2.4);
+            osc.connect(g);
+            osc.start(now); osc.stop(now + 2.5);
+        }
+        else if (type === 'cat') {
+            // Měkké zamňoukání
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.32, 0.06, 0.55);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(790 * pitch, now + 0.18);
+            osc.frequency.exponentialRampToValueAtTime(440 * pitch, now + 0.6);
+            osc.connect(g);
+            osc.start(now); osc.stop(now + 0.62);
+        }
+        else if (type === 'owl') {
+            // Noční houkání sovy
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.38, 0.05, 0.45);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(370 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(295 * pitch, now + 0.48);
+            osc.connect(g);
+            osc.start(now); osc.stop(now + 0.52);
+        }
+        else if (type === 'frog') {
+            // Žabí zakvákání
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.35, 0.02, 0.22);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(145 * pitch, now);
+            osc.frequency.linearRampToValueAtTime(260 * pitch, now + 0.18);
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'bandpass'; f.frequency.value = 520; f.Q.value = 4;
+            osc.connect(f); f.connect(g);
+            osc.start(now); osc.stop(now + 0.25);
+        }
+        else if (type === 'bird') {
+            // Ptačí trylek
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.26, 0.01, 0.20);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1750 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(2550 * pitch, now + 0.09);
+            osc.frequency.exponentialRampToValueAtTime(1950 * pitch, now + 0.20);
+            osc.connect(g);
+            osc.start(now); osc.stop(now + 0.22);
+        }
+        else if (type === 'horse' || type === 'steps' || type === 'door') {
+            // Kopyta / kroky / zaklepání na dřevo
+            const osc = this.ctx.createOscillator();
+            const g = makeEnv(0.45, 0.005, 0.12);
+            osc.type = 'triangle';
+            const baseF = type === 'door' ? 190 : 150;
+            osc.frequency.setValueAtTime(baseF * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(55, now + 0.11);
+            osc.connect(g);
+            osc.start(now); osc.stop(now + 0.13);
+        }
+        else if (type === 'pig' || type === 'cow' || type === 'dragon') {
+            // Hluboké zvířecí zabučení / zachrochtání / dračí zadunění
+            const osc = this.ctx.createOscillator();
+            const dur = type === 'dragon' ? 1.1 : (type === 'cow' ? 0.95 : 0.28);
+            const g = makeEnv(0.38, 0.04, dur);
+            osc.type = 'sawtooth';
+            const f0 = type === 'dragon' ? 85 : (type === 'cow' ? 140 : 195);
+            osc.frequency.setValueAtTime(f0 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(f0 * 0.78 * pitch, now + dur);
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'lowpass'; f.frequency.value = 420;
+            osc.connect(f); f.connect(g);
+            osc.start(now); osc.stop(now + dur + 0.05);
+        }
+        else if (type === 'magic' || type === 'bell' || type === 'sleep') {
+            // Kouzelná harfa / zvon / spánkový akord
+            const notes = type === 'sleep' ? [261.6, 329.6, 392.0] : [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((n, idx) => {
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                const t0 = now + idx * 0.09;
+                g.gain.setValueAtTime(0.0001, t0);
+                g.gain.linearRampToValueAtTime(0.22 * echoGain, t0 + 0.03);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
+                osc.type = 'sine';
+                osc.frequency.value = n * pitch;
+                osc.connect(g); g.connect(out);
+                osc.start(t0); osc.stop(t0 + 1.45);
+            });
+        }
+        else {
+            // Šumový generátor (hrom, déšť, vítr, voda, oheň)
+            const len = this.ctx.sampleRate * 1.8;
+            const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
             const data = buf.getChannelData(0);
-            for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
-
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = buf;
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = type === "wind" ? "bandpass" : (type === "sword" ? "highpass" : "lowpass");
-            filter.frequency.setValueAtTime(type === "thunder" ? 210 : (type === "sword" ? 1700 : 650), now);
-
-            const out = this.ctx.createGain();
-            out.gain.setValueAtTime(0.001, now);
-            out.gain.linearRampToValueAtTime(vol * 0.85, now + 0.05);
-            out.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-            noise.connect(filter);
-            filter.connect(out);
-            out.connect(this.ctx.destination);
-            noise.start(now);
-            noise.stop(now + dur);
+            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+            const src = this.ctx.createBufferSource();
+            src.buffer = buf;
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'lowpass';
+            f.frequency.value = type === 'thunder' ? 220 : (type === 'wind' ? 480 : 900);
+            const g = makeEnv(0.42, 0.1, 1.5);
+            src.connect(f); f.connect(g);
+            src.start(now); src.stop(now + 1.7);
         }
     },
 
-    startMusic(preset) {
+    // Smyčka podkresové hudby na spaní
+    toggleAmbience() {
+        if (this.bgRunning) this.stopAmbience();
+        else this.startAmbience();
+    },
+
+    startAmbience() {
         this.init();
-        this.stopMusic();
+        this.stopAmbience();
 
-        this.masterBgGain = this.ctx.createGain();
-        this.masterBgGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-        this.masterBgGain.gain.linearRampToValueAtTime(this.bgVolume, this.ctx.currentTime + 1.0);
-        this.masterBgGain.connect(this.ctx.destination);
+        this.bgGain = this.ctx.createGain();
+        this.bgGain.gain.value = parseFloat(document.getElementById('bgVolSlider').value);
+        this.bgGain.connect(this.ctx.destination);
 
-        const freqs = [130.81, 164.81, 196.00, 246.94];
-        freqs.forEach(f => {
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc.type = preset === 'lullaby' ? 'sine' : 'triangle';
-            osc.frequency.value = preset === 'night' ? f * 0.5 : f;
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 320;
-            g.gain.value = 0.09 / freqs.length;
-            osc.connect(filter);
-            filter.connect(g);
-            g.connect(this.masterBgGain);
-            osc.start();
-            this.oscNodes.push(osc);
-        });
+        const preset = document.getElementById('bgPresetSelect').value;
+
+        if (preset === 'lullaby' || preset === 'forest') {
+            const chord = preset === 'lullaby' ? [130.81, 164.81, 196.00, 246.94] : [110.0, 164.81, 220.0];
+            chord.forEach(freq => {
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                g.gain.value = 0.12 / chord.length;
+                osc.connect(g); g.connect(this.bgGain);
+                osc.start();
+                this.bgNodes.push(osc);
+            });
+        }
 
         if (preset !== 'lullaby') {
-            const bufSize = this.ctx.sampleRate * 3;
-            const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+            const len = this.ctx.sampleRate * 3;
+            const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+            const ch = buf.getChannelData(0);
+            let lastOut = 0.0;
+            for (let i = 0; i < len; i++) {
+                const white = Math.random() * 2 - 1;
+                ch[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = ch[i];
+                ch[i] *= 3.2; // Brown noise
+            }
+            const src = this.ctx.createBufferSource();
+            src.buffer = buf;
+            src.loop = true;
 
-            this.noiseNode = this.ctx.createBufferSource();
-            this.noiseNode.buffer = buf;
-            this.noiseNode.loop = true;
-            const nFilter = this.ctx.createBiquadFilter();
-            nFilter.type = 'lowpass';
-            nFilter.frequency.value = preset === 'rain' ? 850 : 320;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = preset === 'brown' ? 240 : (preset === 'fire' ? 340 : 780);
+
             const nGain = this.ctx.createGain();
-            nGain.gain.value = 0.16;
-            this.noiseNode.connect(nFilter);
-            nFilter.connect(nGain);
-            nGain.connect(this.masterBgGain);
-            this.noiseNode.start();
+            nGain.gain.value = 0.35;
+            src.connect(filter); filter.connect(nGain); nGain.connect(this.bgGain);
+            src.start();
+            this.bgNodes.push(src);
         }
 
-        this.isMusicPlaying = true;
-        const btn = document.getElementById('musicToggleBtn');
-        btn.classList.add('playing');
-        document.getElementById('musicBtnLabel').innerText = "Hraje";
+        this.bgRunning = true;
+        const btn = document.getElementById('bgToggleBtn');
+        btn.classList.add('active');
+        btn.innerText = '🎵 Podkres: ZAP';
     },
 
-    stopMusic() {
-        this.oscNodes.forEach(osc => { try { osc.stop(); } catch(e){} });
-        this.oscNodes = [];
-        if (this.noiseNode) { try { this.noiseNode.stop(); } catch(e){} this.noiseNode = null; }
-        this.isMusicPlaying = false;
-        const btn = document.getElementById('musicToggleBtn');
-        btn.classList.remove('playing');
-        document.getElementById('musicBtnLabel').innerText = "Podkres";
-    }
-};
-
-/* ============================================================================
-   4. AKVARELOVÁ VIZUALIZACE A NOČNÍ LAMPA NA CANVASU
-   ============================================================================ */
-const VisualLamp = {
-    canvas: document.getElementById('ambientCanvas'),
-    ctx: document.getElementById('ambientCanvas').getContext('2d'),
-    width: 0,
-    height: 0,
-    defaultColor: { r: 34, g: 26, b: 52, boost: 0.48 },
-    currentColor: { r: 34, g: 26, b: 52, boost: 0.48 },
-    targetColor: { r: 34, g: 26, b: 52, boost: 0.48 },
-    revertTimeout: null,
-    particles: [],
-    blobs: [],
-    energyBoost: 0,
-
-    init() {
-        const resize = () => {
-            this.width = this.canvas.width = window.innerWidth;
-            this.height = this.canvas.height = window.innerHeight;
-        };
-        window.addEventListener('resize', resize);
-        document.addEventListener('fullscreenchange', () => setTimeout(resize, 100));
-        resize();
-
-        this.blobs = Array.from({ length: 4 }, (_, i) => ({
-            angle: (i * Math.PI) / 2,
-            speed: 0.004 + i * 0.0015,
-            radiusFactor: 0.32 + i * 0.06
-        }));
-
-        this.particles = Array.from({ length: 65 }, () => ({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            r: Math.random() * 2.6 + 0.8,
-            vx: (Math.random() - 0.5) * 0.35,
-            vy: -Math.random() * 0.45 - 0.15,
-            alpha: Math.random()
-        }));
-
-        requestAnimationFrame(() => this.render());
-    },
-
-    triggerRoomGlow(auraObj) {
-        if (!auraObj) return;
-        this.targetColor = { r: auraObj.r, g: auraObj.g, b: auraObj.b, boost: auraObj.boost || 0.8 };
-        this.energyBoost = 1.0;
-        clearTimeout(this.revertTimeout);
-        this.revertTimeout = setTimeout(() => {
-            this.targetColor = { ...this.defaultColor };
-        }, 8000);
-    },
-
-    pulseParticles() {
-        this.energyBoost = 1.25;
-    },
-
-    render() {
-        this.currentColor.r += (this.targetColor.r - this.currentColor.r) * 0.04;
-        this.currentColor.g += (this.targetColor.g - this.currentColor.g) * 0.04;
-        this.currentColor.b += (this.targetColor.b - this.currentColor.b) * 0.04;
-        this.currentColor.boost += (this.targetColor.boost - this.currentColor.boost) * 0.04;
-        this.energyBoost *= 0.96;
-
-        const r = Math.round(this.currentColor.r * this.currentColor.boost);
-        const g = Math.round(this.currentColor.g * this.currentColor.boost);
-        const b = Math.round(this.currentColor.b * this.currentColor.boost);
-
-        this.ctx.fillStyle = `rgb(${Math.max(5, Math.floor(r * 0.38))}, ${Math.max(6, Math.floor(g * 0.38))}, ${Math.max(14, Math.floor(b * 0.42))})`;
-        this.ctx.fillRect(0, 0, this.width, this.height);
-
-        const minDim = Math.min(this.width, this.height);
-        this.blobs.forEach((blob, idx) => {
-            blob.angle += blob.speed + this.energyBoost * 0.015;
-            const cx = this.width * 0.5 + Math.cos(blob.angle) * (this.width * 0.22);
-            const cy = this.height * 0.5 + Math.sin(blob.angle * 0.8) * (this.height * 0.22);
-            const rad = minDim * (blob.radiusFactor + Math.sin(blob.angle * 2) * 0.04 + this.energyBoost * 0.08);
-
-            const grad = this.ctx.createRadialGradient(cx, cy, 5, cx, cy, rad);
-            const cr = Math.min(255, Math.round(this.currentColor.r * (0.85 + idx * 0.08)));
-            const cg = Math.min(255, Math.round(this.currentColor.g * (0.85 + idx * 0.05)));
-            const cb = Math.min(255, Math.round(this.currentColor.b * (0.85 + idx * 0.08)));
-
-            grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${0.5 * this.currentColor.boost})`);
-            grad.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`);
-
-            this.ctx.fillStyle = grad;
-            this.ctx.beginPath();
-            this.ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-
-        this.particles.forEach(p => {
-            p.x += p.vx * (1 + this.energyBoost * 2);
-            p.y += p.vy * (1 + this.energyBoost * 2.5);
-            if (p.y < -10) { p.y = this.height + 10; p.x = Math.random() * this.width; }
-            if (p.x < -10) p.x = this.width + 10;
-            if (p.x > this.width + 10) p.x = -10;
-
-            p.alpha += (Math.random() - 0.5) * 0.04;
-            p.alpha = Math.max(0.15, Math.min(0.95, p.alpha));
-
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.r + this.energyBoost * 1.2, 0, Math.PI * 2);
-            this.ctx.fillStyle = `rgba(255, 235, 175, ${p.alpha})`;
-            this.ctx.fill();
-        });
-
-        requestAnimationFrame(() => this.render());
-    }
-};
-
-/* ============================================================================
-   5. AI OCR S KOMPRESÍ FOTEK + OFFLINE TESSERACT.JS FALLBACK
-   ============================================================================ */
-const AIEngine = {
-    getEffectiveApiKey() {
-        const saved = localStorage.getItem('atmoread_gemini_key');
-        return (saved && saved.trim()) ? saved.trim() : apiKey;
-    },
-
-    async compressImageToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            const url = URL.createObjectURL(file);
-            img.onload = () => {
-                const maxDim = 1500;
-                let w = img.width;
-                let h = img.height;
-                if (w > maxDim || h > maxDim) {
-                    if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
-                    else { w = Math.round((w * maxDim) / h); h = maxDim; }
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                URL.revokeObjectURL(url);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.84);
-                resolve({ base64: dataUrl.split(',')[1], dataUrl });
-            };
-            img.onerror = reject;
-            img.src = url;
-        });
-    },
-
-    async transcribeBookPhotos(fileList, lang, onProgress) {
-        const files = Array.from(fileList).slice(0, 5);
-        const compressedList = [];
-        for (const f of files) {
-            compressedList.push(await this.compressImageToBase64(f));
-        }
-
-        const key = this.getEffectiveApiKey();
-
-        if (key) {
-            try {
-                if (onProgress) onProgress(lang === 'cs' ? "⏳ AI čte stránky..." : "⏳ AI reading pages...");
-                const parts = [{
-                    text: lang === 'cs'
-                        ? "Převeď tyto vyfocené stránky knihy na čistý, plynulý český text. Odstraň čísla stránek a dělení slov na konci řádků (např. 'Če-ládka' spoj na 'Čeládka'). Pokud je některé slovo rozmazané nebo oříznuté, logicky ho domysli podle kontextu věty. Vrať pouze samotný čistý text příběhu."
-                        : "Transcribe these photographed book pages into clean continuous text. Merge hyphenated line-break words and reconstruct any blurry words naturally from context. Return only the story text."
-                }];
-                compressedList.forEach(img => {
-                    parts.push({ inlineData: { mimeType: "image/jpeg", data: img.base64 } });
-                });
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts }] })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-                    if (text && text.length > 10) return this.cleanOcrText(text);
-                }
-            } catch (e) {
-                console.warn("Gemini OCR fallback na lokální Tesseract:", e);
-            }
-        }
-
-        if (window.Tesseract) {
-            let fullText = "";
-            for (let i = 0; i < compressedList.length; i++) {
-                if (onProgress) onProgress(`⏳ Offline OCR skenuje stranu ${i + 1}/${compressedList.length}...`);
-                const result = await window.Tesseract.recognize(
-                    compressedList[i].dataUrl,
-                    lang === 'cs' ? 'ces' : 'eng'
-                );
-                if (result?.data?.text) fullText += result.data.text + " ";
-            }
-            return this.cleanOcrText(fullText);
-        }
-
-        throw new Error("OCR nedostupné");
-    },
-
-    cleanOcrText(raw) {
-        return raw
-            .replace(/(\p{L})-\s*\n\s*(\p{L})/gu, '$1$2')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-};
-
-/* ============================================================================
-   6. HLAVNÍ LOGIKA: VÝCHOZÍ VOLNÝ ODPOSLECH + OKAMŽITÁ DETEKCE SLOV
-   ============================================================================ */
-const StoryApp = {
-    lang: 'cs',
-    mode: 'free',
-    isRunning: false,
-    recognition: null,
-    bookWords: [],
-    currentWordIndex: 0,
-    wpm: 135,
-    silentTimer: null,
-    fxDensity: 1.0,
-    wakeLock: null,
-
-    init() {
-        VisualLamp.init();
-        this.populateStories();
-        this.loadStory(STORIES[this.lang][0].text);
-        this.setupSpeechRecognition();
-        this.bindEvents();
-        this.applyLanguage();
-    },
-
-    populateStories() {
-        const sel = document.getElementById('storySelect');
-        sel.innerHTML = '';
-        STORIES[this.lang].forEach((s, idx) => {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.innerText = s.title;
-            sel.appendChild(opt);
-        });
-    },
-
-    findMatchingEntry(cleanWord, exactDict, normDict) {
-        if (!cleanWord || cleanWord.length < 3) return null;
-        // 1. Přesná kontrola s diakritikou
-        for (const stem in exactDict) {
-            if (cleanWord.startsWith(stem)) return exactDict[stem];
-        }
-        // 2. Kontrola bez diakritiky (když prohlížeč napíše "bourka" místo "bouřka")
-        const normWord = stripAccents(cleanWord);
-        for (const stemNorm in normDict) {
-            if (normWord.startsWith(stemNorm)) return normDict[stemNorm];
-        }
-        return null;
-    },
-
-    loadStory(rawText) {
-        const container = document.getElementById('readerContainer');
-        container.innerHTML = '';
-        this.bookWords = [];
-        this.currentWordIndex = 0;
-
-        const cleanInput = rawText.replace(/\s+/g, ' ').trim();
-        const tokens = cleanInput.split(' ');
-
-        tokens.forEach((token, idx) => {
-            const clean = token.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž]/gi, '');
-            const norm = stripAccents(clean);
-
-            const soundEntry = this.findMatchingEntry(clean, SOUND_TRIGGERS, SOUND_TRIGGERS_NORM);
-            const colorEntry = this.findMatchingEntry(clean, COLOR_AURA_TRIGGERS, COLOR_AURA_TRIGGERS_NORM);
-
-            const span = document.createElement('span');
-            span.className = 'reader-word' + ((soundEntry || colorEntry) ? ' has-fx' : '');
-            span.textContent = token;
-            span.dataset.index = idx;
-            span.onclick = (e) => {
-                e.stopPropagation();
-                this.jumpToWord(idx, true);
-            };
-
-            container.appendChild(span);
-            container.appendChild(document.createTextNode(' '));
-
-            this.bookWords.push({
-                raw: token,
-                clean,
-                norm,
-                soundEntry,
-                colorEntry,
-                el: span
-            });
-        });
-
-        this.highlightCursor(0);
-    },
-
-    highlightCursor(idx) {
-        if (this.bookWords.length === 0) return;
-        const prev = document.querySelector('.reader-word.current-cursor');
-        if (prev) prev.classList.remove('current-cursor');
-
-        this.currentWordIndex = Math.max(0, Math.min(idx, this.bookWords.length - 1));
-        const target = this.bookWords[this.currentWordIndex]?.el;
-        if (target) {
-            target.classList.add('current-cursor');
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    },
-
-    checkWordEffects(wordObjOrString) {
-        if (!wordObjOrString) return;
-        let raw = "";
-        let soundEntry = null;
-        let colorEntry = null;
-
-        if (typeof wordObjOrString === 'string') {
-            raw = wordObjOrString;
-            const clean = wordObjOrString.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž]/gi, '');
-            soundEntry = this.findMatchingEntry(clean, SOUND_TRIGGERS, SOUND_TRIGGERS_NORM);
-            colorEntry = this.findMatchingEntry(clean, COLOR_AURA_TRIGGERS, COLOR_AURA_TRIGGERS_NORM);
-        } else {
-            raw = wordObjOrString.raw;
-            soundEntry = wordObjOrString.soundEntry;
-            colorEntry = wordObjOrString.colorEntry;
-        }
-
-        if (colorEntry && Math.random() <= this.fxDensity) {
-            VisualLamp.triggerRoomGlow(colorEntry);
-        }
-        if (soundEntry && Math.random() <= this.fxDensity) {
-            SoundEngine.triggerEntry(soundEntry, raw);
-        }
-    },
-
-    jumpToWord(idx, triggerFx = true) {
-        this.highlightCursor(idx);
-        if (triggerFx && this.bookWords[idx]) {
-            this.checkWordEffects(this.bookWords[idx]);
-        }
-    },
-
-    setupSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const pill = document.getElementById('spokenLivePill');
-        if (!SpeechRecognition) {
-            if (pill) pill.innerText = "⚠️ Prohlížeč nepodporuje mikrofon (použij Chrome / Edge). Můžeš klikat na slova níže.";
-            return;
-        }
-
-        this.recognition = new SpeechRecognition();
-        this.recognition.lang = this.lang === 'cs' ? 'cs-CZ' : 'en-US';
-        this.recognition.continuous = true;
-        this.recognition.interimResults = true;
-        this.recognition.maxAlternatives = 3;
-
-        this.recognition.onstart = () => {
-            if (pill) pill.innerText = "🟢 Poslouchám! Řekni např. „pes“, „bouřka“, „les“, „oheň“...";
-        };
-
-        this.recognition.onerror = (event) => {
-            if (event.error === 'not-allowed') {
-                if (pill) pill.innerText = "❌ Mikrofon nepovolen — povol mikrofon v adresním řádku prohlížeče.";
-            }
-        };
-
-        this.recognition.onresult = (event) => {
-            let transcript = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript + " ";
-            }
-            const trimmed = transcript.trim();
-            if (!trimmed) return;
-
-            if (pill) pill.innerText = "🗣️ Slyším: „" + trimmed.slice(-60) + "“";
-
-            const spokenTokens = trimmed.split(/\s+/).slice(-6);
-
-            spokenTokens.forEach(token => {
-                const cleanSpoken = token.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž]/gi, '');
-                const normSpoken = stripAccents(cleanSpoken);
-                if (cleanSpoken.length < 3) return;
-
-                // 1. Okamžitá kontrola zvukového a světelného efektu (i pro 3písmenná slova jako "pes", "vlk", "les")
-                this.checkWordEffects(cleanSpoken);
-
-                // 2. Posun kurzoru, pokud uživatel čte pohádku z displeje
-                if (this.mode === 'live' && this.bookWords.length > 0) {
-                    const start = Math.max(0, this.currentWordIndex - 2);
-                    const end = Math.min(this.bookWords.length - 1, this.currentWordIndex + 18);
-                    for (let i = start; i <= end; i++) {
-                        const bw = this.bookWords[i];
-                        if (!bw.norm || bw.norm.length < 3) continue;
-                        if (bw.norm === normSpoken || (normSpoken.length >= 4 && bw.norm.startsWith(normSpoken.slice(0, 4)))) {
-                            for (let k = this.currentWordIndex + 1; k <= i; k++) {
-                                if (this.bookWords[k]?.soundEntry || this.bookWords[k]?.colorEntry) {
-                                    this.checkWordEffects(this.bookWords[k]);
-                                }
-                            }
-                            this.highlightCursor(i);
-                            break;
-                        }
-                    }
-                }
-            });
-        };
-
-        this.recognition.onend = () => {
-            if (this.isRunning && (this.mode === 'free' || this.mode === 'live')) {
-                setTimeout(() => {
-                    if (this.isRunning && (this.mode === 'free' || this.mode === 'live')) {
-                        try { this.recognition.start(); } catch (e) {}
-                    }
-                }, 200);
-            }
-        };
-    },
-
-    async requestWakeLock() {
-        if ('wakeLock' in navigator) {
-            try { this.wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-        }
-    },
-
-    async startExperience() {
-        // Odemknutí AudioContextu přímo v kliknutí uživatele + krátké potvrzovací cinknutí
-        SoundEngine.init();
-        SoundEngine.playSynthEffect("magic", 0.7);
-        await this.requestWakeLock();
-
-        if (!SoundEngine.isMusicPlaying) {
-            SoundEngine.startMusic(document.getElementById('bgMusicSelect').value);
-        }
-
-        this.isRunning = true;
-
-        // DŮLEŽITÉ: Na Windows/Androidu nevoláme getUserMedia současně se SpeechRecognition,
-        // protože getUserMedia může exkluzivně zablokovat mikrofon pro rozpoznávání řeči!
-        if (this.mode === 'free' || this.mode === 'live') {
-            if (this.recognition) {
-                this.recognition.lang = this.lang === 'cs' ? 'cs-CZ' : 'en-US';
-                try { this.recognition.start(); } catch (e) {}
-            }
-            if (this.mode === 'live') {
-                this.startSilentTicker(true);
-            }
-        } else if (this.mode === 'silent') {
-            this.startSilentTicker(false);
-        } else if (this.mode === 'podcast') {
-            this.runPodcast();
-        }
-
-        this.updateUIState();
-    },
-
-    stopExperience() {
-        this.isRunning = false;
-        clearInterval(this.silentTimer);
-        if (this.recognition) {
-            try { this.recognition.stop(); } catch (e) {}
-        }
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        const pill = document.getElementById('spokenLivePill');
-        if (pill) pill.innerText = "🎤 Poslech zastaven. Klepni na zelené tlačítko pro start...";
-        this.updateUIState();
-    },
-
-    startSilentTicker(isAssistedLive = false) {
-        clearInterval(this.silentTimer);
-        const step = () => {
-            if (!this.isRunning) return;
-            if (this.currentWordIndex < this.bookWords.length - 1) {
-                this.currentWordIndex++;
-                const wordObj = this.bookWords[this.currentWordIndex];
-                this.highlightCursor(this.currentWordIndex);
-                this.checkWordEffects(wordObj);
-
-                const baseMs = Math.round(60000 / (isAssistedLive ? this.wpm * 0.85 : this.wpm));
-                let delay = baseMs;
-                if (/[.!?…]$/.test(wordObj.raw)) delay = baseMs * 1.9;
-                else if (/[,;:]$/.test(wordObj.raw)) delay = baseMs * 1.35;
-
-                this.silentTimer = setTimeout(step, delay);
-            } else {
-                this.stopExperience();
-            }
-        };
-        const initialMs = Math.round(60000 / this.wpm);
-        this.silentTimer = setTimeout(step, initialMs);
-    },
-
-    runPodcast() {
-        if (!('speechSynthesis' in window)) {
-            this.startSilentTicker(false);
-            return;
-        }
-        window.speechSynthesis.cancel();
-
-        const nextSentence = () => {
-            if (!this.isRunning || this.mode !== 'podcast' || this.currentWordIndex >= this.bookWords.length) {
-                this.stopExperience();
-                return;
-            }
-
-            let indices = [];
-            let chunk = "";
-            for (let i = this.currentWordIndex; i < Math.min(this.bookWords.length, this.currentWordIndex + 16); i++) {
-                indices.push(i);
-                chunk += this.bookWords[i].raw + " ";
-                if (/[.!?]$/.test(this.bookWords[i].raw) && indices.length >= 4) break;
-            }
-
-            const utter = new SpeechSynthesisUtterance(chunk.trim());
-            utter.lang = this.lang === 'cs' ? 'cs-CZ' : 'en-US';
-            utter.rate = 0.95;
-
-            indices.forEach((wordIdx, stepIdx) => {
-                setTimeout(() => {
-                    if (this.isRunning && this.mode === 'podcast') {
-                        this.highlightCursor(wordIdx);
-                        this.checkWordEffects(this.bookWords[wordIdx]);
-                    }
-                }, stepIdx * 360);
-            });
-
-            utter.onend = () => {
-                if (!this.isRunning || this.mode !== 'podcast') return;
-                this.currentWordIndex = indices[indices.length - 1] + 1;
-                nextSentence();
-            };
-            utter.onerror = () => {
-                this.currentWordIndex = indices[indices.length - 1] + 1;
-                nextSentence();
-            };
-
-            window.speechSynthesis.speak(utter);
-        };
-
-        nextSentence();
-    },
-
-    updateUIState() {
-        const dict = I18N[this.lang];
-        const btn = document.getElementById('startStoryBtn');
-        const text = document.getElementById('startBtnText');
-        const icon = document.getElementById('startBtnIcon');
-        const orb = document.getElementById('freeOrb');
-        const freeStage = document.getElementById('freeStage');
-        const readerBox = document.getElementById('readerContainer');
-        const bookTools = document.getElementById('bookToolsPanel');
-
-        if (this.mode === 'free') {
-            freeStage.style.display = 'flex';
-            readerBox.classList.remove('visible');
-            bookTools.classList.remove('visible');
-        } else {
-            freeStage.style.display = 'none';
-            readerBox.classList.add('visible');
-            bookTools.classList.add('visible');
-        }
-
-        if (this.isRunning) {
-            btn.classList.add('active');
-            orb.classList.add('listening');
-            icon.innerText = "🛑";
-            text.innerText = dict.btnStopActive;
-        } else {
+    stopAmbience() {
+        this.bgNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch (e) {} });
+        this.bgNodes = [];
+        this.bgRunning = false;
+        const btn = document.getElementById('bgToggleBtn');
+        if (btn) {
             btn.classList.remove('active');
-            orb.classList.remove('listening');
-            icon.innerText = "🎙️";
-            if (this.mode === 'free') text.innerText = dict.btnStartFree;
-            else if (this.mode === 'live') text.innerText = dict.btnStartLive;
-            else if (this.mode === 'silent') text.innerText = dict.btnStartSilent;
-            else text.innerText = dict.btnStartPodcast;
+            btn.innerText = '🎵 Podkres';
         }
     },
 
-    applyLanguage() {
-        const dict = I18N[this.lang];
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const k = el.getAttribute('data-i18n');
-            if (dict[k]) el.innerText = dict[k];
+    // OKAMŽITÉ ZASTAVENÍ VŠEHO (MASTER PANIC BUTTON)
+    stopAllEverything() {
+        // 1. Zastav rozpoznávání řeči, tiché čtení i AI předčítání
+        stopActiveSession();
+        // 2. Zastav všechny běžící HTML5 Audio objekty
+        this.activeAudioEls.forEach(a => {
+            try { a.pause(); a.currentTime = 0; } catch (e) {}
         });
-        document.getElementById('langLabel').innerText = this.lang.toUpperCase();
-        this.populateStories();
-        this.loadStory(STORIES[this.lang][0].text);
-        this.updateUIState();
-    },
+        this.activeAudioEls.clear();
+        // 3. Zruš všechny naplánované echo časovače
+        this.activeTimers.forEach(t => { clearTimeout(t); clearInterval(t); });
+        this.activeTimers.clear();
+        // 4. Zastav podkresovou smyčku
+        this.stopAmbience();
+        // 5. Zastav syntetizér řeči prohlížeče
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-    bindEvents() {
-        document.querySelectorAll('.mode-tab').forEach(tab => {
-            tab.onclick = (e) => {
-                e.stopPropagation();
-                if (this.isRunning) this.stopExperience();
-                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                this.mode = tab.dataset.mode;
-                this.updateUIState();
-            };
-        });
-
-        const toggleStart = () => {
-            if (!this.isRunning) this.startExperience();
-            else this.stopExperience();
-        };
-
-        document.getElementById('startStoryBtn').onclick = toggleStart;
-        document.getElementById('freeOrb').onclick = toggleStart;
-
-        // Rychlé testovací čipy slov na hlavní obrazovce
-        document.querySelectorAll('.chip-btn').forEach(chip => {
-            chip.onclick = (e) => {
-                e.stopPropagation();
-                const word = chip.getAttribute('data-test-word');
-                SoundEngine.cooldowns = {}; // Povolit okamžité přehrání při ručním kliknutí
-                this.checkWordEffects(word);
-            };
-        });
-
-        document.getElementById('storySelect').onchange = (e) => {
-            if (this.isRunning) this.stopExperience();
-            const story = STORIES[this.lang][e.target.value];
-            if (story) this.loadStory(story.text);
-        };
-
-        document.getElementById('langToggleBtn').onclick = () => {
-            if (this.isRunning) this.stopExperience();
-            this.lang = this.lang === 'cs' ? 'en' : 'cs';
-            this.applyLanguage();
-        };
-
-        document.getElementById('photoInput').onchange = async (e) => {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-            const badge = document.getElementById('ocrStatusBadge');
-            try {
-                const text = await AIEngine.transcribeBookPhotos(files, this.lang, (msg) => {
-                    badge.innerText = msg;
-                });
-                if (text && text.length > 5) {
-                    this.loadStory(text);
-                    badge.innerText = "✅ Stránka načtena!";
-                } else {
-                    badge.innerText = "⚠️ Text nerozpoznán";
-                }
-            } catch (err) {
-                badge.innerText = "⚠️ Chyba skenu (zkus 🔑 AI)";
-            }
-            e.target.value = "";
-            setTimeout(() => badge.innerText = "", 5000);
-        };
-
-        document.getElementById('docInput').onchange = async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const badge = document.getElementById('ocrStatusBadge');
-            badge.innerText = "⏳ Načítám...";
-            try {
-                const text = await file.text();
-                this.loadStory(text);
-                badge.innerText = "✅ Soubor načten!";
-            } catch (err) {
-                badge.innerText = "⚠️ Chyba souboru";
-            }
-            setTimeout(() => badge.innerText = "", 4000);
-        };
-
-        document.getElementById('testSoundBtn').onclick = () => {
-            SoundEngine.cooldowns = {};
-            this.checkWordEffects("pes");
-            VisualLamp.triggerRoomGlow(COLOR_CLUSTERS.gold);
-        };
-
-        // Opravené zapnutí a vypnutí Noční lampy bez rozhození layoutu
-        const wrapper = document.getElementById('appWrapper');
-        const wakeOverlay = document.getElementById('nightWakeOverlay');
-
-        document.getElementById('hideScreenBtn').onclick = (e) => {
-            e.stopPropagation();
-            wrapper.classList.add('night-hidden');
-            wakeOverlay.classList.add('visible');
-        };
-
-        wakeOverlay.onclick = (e) => {
-            e.stopPropagation();
-            wakeOverlay.classList.remove('visible');
-            wrapper.classList.remove('night-hidden');
-            window.dispatchEvent(new Event('resize'));
-        };
-
-        document.getElementById('musicToggleBtn').onclick = () => {
-            if (!SoundEngine.isMusicPlaying) SoundEngine.startMusic(document.getElementById('bgMusicSelect').value);
-            else SoundEngine.stopMusic();
-        };
-
-        document.getElementById('bgMusicSelect').onchange = function() {
-            if (SoundEngine.isMusicPlaying) SoundEngine.startMusic(this.value);
-        };
-
-        document.getElementById('sfxVolSlider').oninput = function() {
-            SoundEngine.sfxBoost = parseFloat(this.value);
-            document.getElementById('sfxVolLabel').innerText = Math.round(this.value * 100) + " %";
-        };
-
-        document.getElementById('bgVolSlider').oninput = function() {
-            SoundEngine.bgVolume = parseFloat(this.value);
-            document.getElementById('bgVolLabel').innerText = Math.round(this.value * 100) + " %";
-            if (SoundEngine.masterBgGain && SoundEngine.ctx) {
-                SoundEngine.masterBgGain.gain.setTargetAtTime(SoundEngine.bgVolume, SoundEngine.ctx.currentTime, 0.1);
-            }
-        };
-
-        document.getElementById('wpmSlider').oninput = function() {
-            StoryApp.wpm = parseInt(this.value, 10);
-            document.getElementById('wpmLabel').innerText = this.value + " WPM";
-        };
-
-        document.getElementById('fxDensitySelect').onchange = function() {
-            StoryApp.fxDensity = parseFloat(this.value);
-        };
-
-        const modal = document.getElementById('apiKeyModal');
-        document.getElementById('apiKeyBtn').onclick = () => {
-            document.getElementById('apiKeyInput').value = localStorage.getItem('atmoread_gemini_key') || '';
-            modal.style.display = 'flex';
-        };
-        document.getElementById('closeModalBtn').onclick = () => modal.style.display = 'none';
-        document.getElementById('saveKeyBtn').onclick = () => {
-            const val = document.getElementById('apiKeyInput').value.trim();
-            if (val) localStorage.setItem('atmoread_gemini_key', val);
-            else localStorage.removeItem('atmoread_gemini_key');
-            modal.style.display = 'none';
-            SoundEngine.showToast("🔑 Klíč uložen");
-        };
+        document.getElementById('activeBadges').innerHTML = '';
+        setStatus('🛑 Všechny zvuky, čtení i podkres byly okamžitě zastaveny.');
     }
 };
 
-window.addEventListener('DOMContentLoaded', () => StoryApp.init());
+/* ============================================================================
+   SEKCE 5: LOGIKA HLAVNÍCH REŽIMŮ, DETEKCE SLOV A LAMPIČKY
+   ============================================================================ */
+let currentLang = 'cs';
+let currentMode = 'free'; // 'free' | 'read' | 'tts' | 'silent'
+let isSessionRunning = false;
+let recognition = null;
+let silentInterval = null;
+let currentWordIndex = 0;
+let storyWordsData = [];
+
+function checkWordTriggers(rawWord) {
+    const clean = normWord(rawWord);
+    if (!clean || clean.length < 2) return;
+
+    // 1. Kontrola barevné atmosféry lampičky
+    for (const preset of LAMP_PRESETS) {
+        for (const st of preset.stems) {
+            if (clean.startsWith(normWord(st))) {
+                applyLampColor(preset, true);
+                break;
+            }
+        }
+    }
+
+    // 2. Kontrola zvukových efektů (všechny odpovídající zvuky ve větě se mohou překrývat!)
+    for (const cluster of SOUND_LIBRARY) {
+        for (const st of cluster.stems) {
+            const nSt = normWord(st);
+            if (nSt.length <= 3 ? clean === nSt || clean.startsWith(nSt) : clean.startsWith(nSt)) {
+                SoundEngine.triggerCluster(cluster, rawWord);
+                break;
+            }
+        }
+    }
+}
+
+function applyLampColor(preset, temporary = false) {
+    const root = document.documentElement;
+    root.style.setProperty('--aura-r', preset.rgb[0]);
+    root.style.setProperty('--aura-g', preset.rgb[1]);
+    root.style.setProperty('--aura-b', preset.rgb[2]);
+    root.style.setProperty('--aura-intensity', temporary ? '0.48' : '0.32');
+
+    document.getElementById('auraModeName').innerText = preset.name;
+    document.getElementById('lampModeTitle').innerText = preset.name;
+
+    document.querySelectorAll('.swatch').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === preset.id);
+    });
+}
+
+function togglePureLamp(show) {
+    document.getElementById('pureLampScreen').classList.toggle('active', show);
+}
+
+function toggleNightFilter() {
+    SoundEngine.nightFilterEnabled = !SoundEngine.nightFilterEnabled;
+    if (SoundEngine.nightFilterNode && SoundEngine.ctx) {
+        SoundEngine.nightFilterNode.frequency.setTargetAtTime(
+            SoundEngine.nightFilterEnabled ? 1150 : 18000,
+            SoundEngine.ctx.currentTime, 0.15
+        );
+    }
+    const btn = document.getElementById('softNightBtn');
+    btn.classList.toggle('active', SoundEngine.nightFilterEnabled);
+    btn.innerText = SoundEngine.nightFilterEnabled ? '🌙 Změkčit zvuky: ZAP' : '🌙 Změkčit zvuky: VYP';
+}
+
+// Časovač automatického usínání s plynulým ztlumením
+let sleepMinutes = 0;
+let sleepCountdown = null;
+function cycleSleepTimer() {
+    const steps = [0, 15, 30, 45];
+    const nextIdx = (steps.indexOf(sleepMinutes) + 1) % steps.length;
+    sleepMinutes = steps[nextIdx];
+    clearInterval(sleepCountdown);
+
+    const btn = document.getElementById('sleepTimerBtn');
+    if (sleepMinutes === 0) {
+        btn.classList.remove('active');
+        btn.innerText = '⏲️ Časovač: VYP';
+    } else {
+        btn.classList.add('active');
+        let remSec = sleepMinutes * 60;
+        btn.innerText = `⏲️ Spánek za ${sleepMinutes} min`;
+        sleepCountdown = setInterval(() => {
+            remSec--;
+            if (remSec <= 60 && remSec > 0) {
+                // Poslední minutu plynule ztlumujeme zvuk i světlo, aby náhlé ticho dítě nevzbudilo
+                const ratio = remSec / 60;
+                if (SoundEngine.bgGain && SoundEngine.ctx) {
+                    const base = parseFloat(document.getElementById('bgVolSlider').value);
+                    SoundEngine.bgGain.gain.setTargetAtTime(base * ratio, SoundEngine.ctx.currentTime, 0.5);
+                }
+            }
+            if (remSec <= 0) {
+                clearInterval(sleepCountdown);
+                SoundEngine.stopAllEverything();
+                btn.classList.remove('active');
+                btn.innerText = '⏲️ Časovač: VYP';
+            }
+        }, 1000);
+    }
+}
+
+/* ============================================================================
+   SEKCE 6: PŘEPÍNÁNÍ REŽIMŮ, ČTEČKA, HLASOVÝ ODPOSLECH A AI PŘEDČÍTÁNÍ
+   ============================================================================ */
+function switchMode(mode) {
+    stopActiveSession();
+    currentMode = mode;
+
+    document.querySelectorAll('.mode-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === mode);
+    });
+
+    const storySec = document.getElementById('storySection');
+    storySec.classList.toggle('visible', mode !== 'free');
+
+    updateMainButtonLabel();
+}
+
+function updateMainButtonLabel() {
+    const btn = document.getElementById('mainActionBtn');
+    if (isSessionRunning) {
+        btn.classList.add('running');
+        btn.innerText = '🛑 Zastavit probíhající čtení / odposlech';
+        return;
+    }
+    btn.classList.remove('running');
+    if (currentMode === 'free') btn.innerText = '🎙️ Spustit odposlech vyprávění (Bez knihy)';
+    else if (currentMode === 'read') btn.innerText = '🎙️ Číst pohádku nahlas s mikrofonem';
+    else if (currentMode === 'tts') btn.innerText = '🎧 Spustit AI předčítání pohádky';
+    else if (currentMode === 'silent') btn.innerText = '🤫 Spustit tiché čtení očima';
+}
+
+function handleMainAction() {
+    SoundEngine.init();
+    if (isSessionRunning) {
+        stopActiveSession();
+        return;
+    }
+
+    isSessionRunning = true;
+    updateMainButtonLabel();
+
+    if (currentMode === 'free' || currentMode === 'read') {
+        startVoiceRecognition();
+    } else if (currentMode === 'tts') {
+        startAiStoryReading();
+    } else if (currentMode === 'silent') {
+        startSilentPacer();
+    }
+}
+
+function stopActiveSession() {
+    isSessionRunning = false;
+    if (recognition) {
+        try { recognition.onend = null; recognition.stop(); } catch (e) {}
+        recognition = null;
+    }
+    if (silentInterval) {
+        clearTimeout(silentInterval);
+        silentInterval = null;
+    }
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+    updateMainButtonLabel();
+}
+
+// 1. Živý hlasový odposlech
+function startVoiceRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        setStatus('⚠️ Tvůj prohlížeč nepodporuje mikrofon (použij Chrome) nebo klikej na dlaždice níže.');
+        isSessionRunning = false;
+        updateMainButtonLabel();
+        return;
+    }
+
+    recognition = new SR();
+    recognition.lang = currentLang === 'cs' ? 'cs-CZ' : 'en-US';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    setStatus('🎙️ Poslouchám tvůj hlas... Vyprávěj pohádku!');
+
+    recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript + ' ';
+        }
+        const words = transcript.trim().split(/\s+/).slice(-5);
+        setStatus(`🗣️ Slyším: „${words.join(' ')}“`);
+
+        words.forEach(w => {
+            checkWordTriggers(w);
+            if (currentMode === 'read') advanceReaderBySpokenWord(w);
+        });
+    };
+
+    recognition.onend = () => {
+        if (isSessionRunning && (currentMode === 'free' || currentMode === 'read')) {
+            try { recognition.start(); } catch (e) {}
+        }
+    };
+
+    try { recognition.start(); } catch (e) {}
+}
+
+// 2. AI Předčítání (Aplikace sama čte pohádku klidným hlasem a míchá zvuky)
+function startAiStoryReading() {
+    if (!('speechSynthesis' in window)) {
+        setStatus('⚠️ Prohlížeč nepodporuje hlasové předčítání.');
+        stopActiveSession();
+        return;
+    }
+    window.speechSynthesis.cancel();
+    const story = STORIES[currentLang][document.getElementById('storySelect').value || 0];
+    const utterance = new SpeechSynthesisUtterance(story.text);
+    utterance.lang = currentLang === 'cs' ? 'cs-CZ' : 'en-US';
+    utterance.rate = parseFloat(document.getElementById('speedSlider').value);
+    utterance.pitch = 0.94;
+
+    currentWordIndex = 0;
+    setStatus('🎧 AI vypravěč předčítá pohádku (zastavíš kdykoliv pevným tlačítkem dole)...');
+
+    utterance.onboundary = (e) => {
+        if (e.name === 'word') {
+            const spoken = story.text.slice(e.charIndex, e.charIndex + (e.charLength || 8)).split(/\s+/)[0];
+            checkWordTriggers(spoken);
+            highlightWordAt(currentWordIndex++);
+        }
+    };
+
+    utterance.onend = () => {
+        stopActiveSession();
+        setStatus('😴 Pohádka je dočtená. Dobrou noc!');
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+// 3. Tiché čtení (Kurzor plynule pluje po slovech bez mikrofonu a spouští zvuky)
+function startSilentPacer() {
+    setStatus('🤫 Tiché čtení běží – čti očima, atmosféra se spouští sama (ťuknutím na slovo skočíš)...');
+    const stepNextWord = () => {
+        if (!isSessionRunning || currentMode !== 'silent') return;
+        if (currentWordIndex >= storyWordsData.length) {
+            stopActiveSession();
+            setStatus('😴 Konec pohádky. Sladké sny!');
+            return;
+        }
+        const raw = storyWordsData[currentWordIndex];
+        highlightWordAt(currentWordIndex);
+        checkWordTriggers(raw);
+
+        const speedFactor = parseFloat(document.getElementById('speedSlider').value);
+        let delay = Math.round(420 / speedFactor);
+        if (/[,;]/.test(raw)) delay += 220;
+        if (/[.!?…]/.test(raw)) delay += 480;
+
+        currentWordIndex++;
+        silentInterval = setTimeout(stepNextWord, delay);
+    };
+    stepNextWord();
+}
+
+/* ============================================================================
+   SEKCE 7: VYKRESLENÍ POHÁDEK, PALETY, OCR A Hvězdného PLÁTNA
+   ============================================================================ */
+function loadSelectedStory() {
+    const idx = parseInt(document.getElementById('storySelect').value || '0', 10);
+    const story = STORIES[currentLang][idx] || STORIES[currentLang][0];
+    renderStoryText(story.text);
+}
+
+function renderStoryText(text) {
+    const box = document.getElementById('readerBox');
+    box.innerHTML = '';
+    storyWordsData = text.trim().split(/\s+/);
+    currentWordIndex = 0;
+
+    storyWordsData.forEach((word, idx) => {
+        const span = document.createElement('span');
+        span.className = 'w-tok';
+        span.id = `w-${idx}`;
+        span.innerText = word;
+
+        const clean = normWord(word);
+        const hasSfx = SOUND_LIBRARY.some(c => c.stems.some(s => clean.startsWith(normWord(s))));
+        const hasCol = LAMP_PRESETS.some(p => p.stems.some(s => clean.startsWith(normWord(s))));
+        if (hasSfx) span.classList.add('trig-sfx');
+        else if (hasCol) span.classList.add('trig-col');
+
+        span.onclick = () => {
+            currentWordIndex = idx;
+            highlightWordAt(idx);
+            checkWordTriggers(word);
+        };
+
+        box.appendChild(span);
+        box.appendChild(document.createTextNode(' '));
+    });
+}
+
+function highlightWordAt(idx) {
+    document.querySelectorAll('.w-tok.active-word').forEach(el => el.classList.remove('active-word'));
+    const target = document.getElementById(`w-${idx}`);
+    if (target) {
+        target.classList.add('active-word');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function advanceReaderBySpokenWord(spoken) {
+    const cleanSpoken = normWord(spoken);
+    if (cleanSpoken.length < 3) return;
+    for (let i = currentWordIndex; i < Math.min(storyWordsData.length, currentWordIndex + 14); i++) {
+        if (normWord(storyWordsData[i]).startsWith(cleanSpoken.slice(0, 4))) {
+            currentWordIndex = i;
+            highlightWordAt(i);
+            break;
+        }
+    }
+}
+
+// OCR skenování vyfocené stránky knihy (Tesseract.js s českým i anglickým modelem)
+async function handleOcrUpload(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    setStatus('📷 Čtu text z vyfocené stránky knihy (prosím čekej cca 5–8 s)...');
+    try {
+        let combined = '';
+        for (const file of files) {
+            const res = await Tesseract.recognize(file, currentLang === 'cs' ? 'ces' : 'eng');
+            combined += res.data.text + '\n';
+        }
+        const cleaned = combined.replace(/\s+/g, ' ').trim();
+        if (cleaned.length > 10) {
+            STORIES[currentLang].unshift({ title: '📷 Vyfocená stránka knihy', text: cleaned });
+            populateStoryDropdown();
+            document.getElementById('storySelect').value = '0';
+            loadSelectedStory();
+            setStatus('✅ Stránka z knihy byla úspěšně převedena na živou pohádku!');
+        } else {
+            setStatus('⚠️ Na fotce nebyl rozpoznán čitelný text. Zkus stránku vyfotit více zblízka.');
+        }
+    } catch (err) {
+        setStatus('⚠️ Chyba při čtení fotky. Zkus vložit vlastní text tlačítkem vedle.');
+    }
+}
+
+function promptCustomText() {
+    const txt = prompt('Vlož vlastní text pohádky nebo kapitolu z knihy:');
+    if (txt && txt.trim().length > 5) {
+        STORIES[currentLang].unshift({ title: '✍️ Vlastní vložený příběh', text: txt.trim() });
+        populateStoryDropdown();
+        document.getElementById('storySelect').value = '0';
+        loadSelectedStory();
+    }
+}
+
+function showActiveBadge(text) {
+    const box = document.getElementById('activeBadges');
+    const b = document.createElement('span');
+    b.className = 'sfx-badge';
+    b.innerText = text;
+    box.prepend(b);
+    setTimeout(() => b.remove(), 3000);
+}
+
+function setStatus(msg) {
+    document.getElementById('liveStatusText').innerText = msg;
+}
+
+function updateVolumes() {
+    const sfxV = parseFloat(document.getElementById('sfxVolSlider').value);
+    const bgV = parseFloat(document.getElementById('bgVolSlider').value);
+    document.getElementById('sfxVolLabel').innerText = Math.round(sfxV * 100) + ' %';
+    document.getElementById('bgVolLabel').innerText = Math.round(bgV * 100) + ' %';
+
+    if (SoundEngine.masterSfxGain && SoundEngine.ctx) {
+        SoundEngine.masterSfxGain.gain.setTargetAtTime(sfxV, SoundEngine.ctx.currentTime, 0.1);
+    }
+    if (SoundEngine.bgGain && SoundEngine.ctx) {
+        SoundEngine.bgGain.gain.setTargetAtTime(bgV, SoundEngine.ctx.currentTime, 0.1);
+    }
+}
+
+function updateSpeedLabel() {
+    const v = parseFloat(document.getElementById('speedSlider').value);
+    document.getElementById('speedLabel').innerText = `${v.toFixed(2)}×`;
+}
+
+function toggleLanguage() {
+    currentLang = currentLang === 'cs' ? 'en' : 'cs';
+    document.getElementById('langBtn').innerText = currentLang === 'cs' ? '🌐 CZ' : '🌐 EN';
+    populateStoryDropdown();
+    loadSelectedStory();
+}
+
+function populateStoryDropdown() {
+    const sel = document.getElementById('storySelect');
+    sel.innerHTML = '';
+    STORIES[currentLang].forEach((s, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = s.title;
+        sel.appendChild(opt);
+    });
+}
+
+// Inicializace UI palety zvuků a barevných přepínačů lampičky
+function initUI() {
+    const grid = document.getElementById('soundPaletteGrid');
+    SOUND_LIBRARY.forEach(cluster => {
+        const btn = document.createElement('button');
+        btn.className = 'sound-tile';
+        btn.id = `tile-${cluster.id}`;
+        btn.innerHTML = `
+            <span class="emoji">${cluster.emoji}</span>
+            <span class="label">${cluster.label}</span>
+            <span class="sub">${cluster.sub}</span>
+        `;
+        btn.onclick = () => SoundEngine.triggerCluster(cluster, cluster.label);
+        grid.appendChild(btn);
+    });
+
+    ['lampSwatchesMain', 'lampSwatchesModal'].forEach(containerId => {
+        const wrap = document.getElementById(containerId);
+        LAMP_PRESETS.forEach(preset => {
+            const sw = document.createElement('div');
+            sw.className = 'swatch';
+            sw.dataset.id = preset.id;
+            sw.title = preset.name;
+            sw.style.background = `rgb(${preset.rgb.join(',')})`;
+            sw.onclick = () => applyLampColor(preset, false);
+            wrap.appendChild(sw);
+        });
+    });
+
+    document.getElementById('lampBrightSlider').oninput = function() {
+        document.documentElement.style.setProperty('--lamp-brightness', this.value);
+        document.getElementById('lampBrightLabel').innerText = Math.round(this.value * 100) + ' %';
+    };
+
+    applyLampColor(LAMP_PRESETS[0], false);
+    populateStoryDropdown();
+    loadSelectedStory();
+}
+
+// Jemné hvězdné a světluškové plátno na pozadí
+const canvas = document.getElementById('ambientCanvas');
+const ctx = canvas.getContext('2d');
+let cw, ch;
+function resizeCanvas() { cw = canvas.width = window.innerWidth; ch = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const fireflies = Array.from({ length: 55 }, () => ({
+    x: Math.random() * cw, y: Math.random() * ch,
+    r: Math.random() * 2.2 + 0.8, vy: Math.random() * 0.25 + 0.06,
+    phase: Math.random() * Math.PI * 2
+}));
+
+function animateSky() {
+    ctx.clearRect(0, 0, cw, ch);
+    fireflies.forEach(p => {
+        p.y -= p.vy;
+        p.phase += 0.025;
+        if (p.y < -10) { p.y = ch + 10; p.x = Math.random() * cw; }
+        const alpha = 0.25 + 0.45 * Math.sin(p.phase);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(253, 230, 138, ${alpha})`;
+        ctx.fill();
+    });
+    requestAnimationFrame(animateSky);
+}
+
+initUI();
+animateSky();
 </script>
 </body>
 </html>
