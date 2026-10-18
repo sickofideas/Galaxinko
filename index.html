@@ -1,3259 +1,363 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="cs">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Galaxinko Clash & Starlight Forge 8.7</title>
-<style>
-  html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-    background: #00ff00; font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    user-select: none;
-  }
-  #game-container {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-  }
-  canvas {
-    display: block;
-    width: 56.25vh;
-    max-width: 100vw;
-    height: 100vh;
-    max-height: 177.78vw;
-  }
-  #panel {
-    position: fixed; z-index: 9999; top: 10px; left: 10px;
-    max-width: 880px; width: 94vw; max-height: 92vh; overflow: auto;
-    padding: 18px 22px; background: #0f1423; color: #fff;
-    border: 2px solid #38bdf8; border-radius: 18px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.92);
-    display: none;
-  }
-  button, input {
-    padding: 8px 14px; margin: 3px; border-radius: 10px;
-    background: #1e293b; color: #f8fafc; border: 2px solid #38bdf8;
-    font: 700 13px "Segoe UI", system-ui, sans-serif;
-    cursor: pointer; transition: transform 0.12s, background 0.15s;
-  }
-  button:hover { background: #38bdf8; color: #090d16; transform: translateY(-1px); }
-  .btn-gold { border-color: #fbbf24; background: #3b2a08; color: #fde68a; }
-  .btn-gold:hover { background: #fbbf24; color: #1a1100; }
-  .btn-diamond { border-color: #c084fc; background: #2d1447; color: #f3e8ff; }
-  .btn-diamond:hover { background: #c084fc; color: #120421; }
-  input { width: 270px; max-width: 68vw; cursor: text; }
-  #volume { width: 150px; vertical-align: middle; padding: 0; border: 0; }
-  #audioStatus { max-width: 720px; font-size: 13px; color: #7dd3fc; margin: 5px 0; }
-  #errBox {
-    position: fixed; bottom: 8px; left: 8px; z-index: 9999;
-    background: #b00020; color: #fff; padding: 6px 12px; border-radius: 6px;
-    font: 700 13px monospace; display: none;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pohádkový vypravěč</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #070913; color: #e2e8f0; overflow-x: hidden;
+        }
+        canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+        }
+        .ui-container {
+            position: relative; z-index: 1; max-width: 540px; margin: 20px auto;
+            padding: 20px; background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(12px); border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        h2 { margin: 0 0 15px 0; text-align: center; font-weight: 600; font-size: 20px; color: #93c5fd; }
+        .row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+        button {
+            flex: 1; padding: 14px; font-size: 16px; font-weight: 600;
+            border: none; border-radius: 12px; cursor: pointer;
+            transition: all 0.2s; color: white;
+        }
+        .btn-mic { background: #16a34a; }
+        .btn-mic.active { background: #dc2626; animation: pulse 2s infinite; }
+        .btn-music { background: #2563eb; }
+        .btn-music.active { background: #7c3aed; }
+        .btn-stop { background: #475569; flex: 0.4; font-size: 14px; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+            50% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+        }
+        select, input[type="range"] {
+            width: 100%; padding: 10px; border-radius: 10px;
+            background: #1e293b; color: #fff; border: 1px solid #334155; font-size: 15px;
+        }
+        .slider-group { margin-bottom: 12px; font-size: 14px; color: #94a3b8; }
+        .slider-group label { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        #moodBox {
+            text-align: center; padding: 8px; border-radius: 8px; font-size: 14px;
+            background: rgba(255,255,255,0.05); margin-bottom: 12px; color: #cbd5e1;
+        }
+        #transcript {
+            min-height: 48px; padding: 12px; background: rgba(0,0,0,0.4);
+            border-radius: 10px; font-size: 16px; color: #60a5fa;
+            margin-bottom: 12px; text-align: center; font-style: italic;
+        }
+        #activeSounds { min-height: 32px; text-align: center; margin-bottom: 10px; }
+        .badge {
+            display: inline-block; background: #f59e0b; color: #000;
+            padding: 4px 10px; border-radius: 20px; font-size: 13px;
+            font-weight: 700; margin: 3px; animation: pop 0.2s ease-out;
+        }
+        @keyframes pop { from { transform: scale(0.7); } to { transform: scale(1); } }
+        .hint {
+            font-size: 12px; color: #64748b; line-height: 1.5;
+            background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px;
+        }
+        .hint b { color: #94a3b8; }
+    </style>
 </head>
 <body>
-<div id="game-container">
-  <canvas id="arena" width="1080" height="1920"></canvas>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="ui-container">
+    <h2>🌙 Pohádkový vypravěč</h2>
+
+    <!-- Hlavní tlačítka -->
+    <div class="row">
+        <button id="micBtn" class="btn-mic">🎤 Zapnout poslech</button>
+        <button id="musicBtn" class="btn-music">🎵 Zapnout podkres</button>
+        <button id="panicBtn" class="btn-stop" title="Ztišit aktuální efekty">🔇 Stop SFX</button>
+    </div>
+
+    <!-- Výběr podkresu na spaní -->
+    <div class="row">
+        <select id="bgPreset">
+            <option value="lullaby">✨ Jemná ukolébavka (Ambient Pad)</option>
+            <option value="night">🦉 Noční klid (Hluboký tón + šum)</option>
+            <option value="ocean">🌊 Šumění moře (Vlny na usnutí)</option>
+            <option value="rain">🌧️ Jemný noční déšť (Bílý šum)</option>
+            <option value="fire">🔥 Teplý krb (Hluboké praskání)</option>
+        </select>
+    </div>
+
+    <!-- Hlasitosti -->
+    <div class="slider-group">
+        <label><span>🔊 Hlasitost efektů (SFX)</span><span id="sfxVal">80 %</span></label>
+        <input type="range" id="sfxVol" min="0" max="1" step="0.05" value="0.8">
+    </div>
+    <div class="slider-group">
+        <label><span>🎶 Hlasitost podkresu</span><span id="bgVal">30 %</span></label>
+        <input type="range" id="bgVol" min="0" max="1" step="0.02" value="0.3">
+    </div>
+
+    <!-- Stav nálady a přepis řeči -->
+    <div id="moodBox">Nálada podkresu: <b>Klidný spánek (Výchozí)</b></div>
+    <div id="transcript">Klikni na „Zapnout poslech“ a začni číst nebo vyprávět...</div>
+    <div id="activeSounds"></div>
+
+    <!-- Nápověda klíčových slov -->
+    <div class="hint">
+        <b>Slova spouštějící zvuk (funguje skloňování):</b><br>
+        bouřka, hrom, déšť, prší, vítr, fouká, oheň, voda, žbluňk, pes, štěká, kočka, mňouká, vlk, vyje, kůň, řehtá, žába, lev, kráva, sova, ptáček, dveře, vrzání, zaklepal, zvon, kroky, utíkal, smích, kouzlo, čáry, drak, meč, auto, vlak.<br><br>
+        <b>Slova, která na 8 sekund změní náladu hudby a oblohy:</b><br>
+        • <i>Napětí/Bouře:</i> bouřka, hrom, tma, strašidelný, bál se, drak, vlk, nebezpečí<br>
+        • <i>Radost/Kouzlo:</i> kouzlo, radost, smích, šťastný, princezna, vyhrál, slunce
+    </div>
 </div>
 
-<div id="errBox"></div>
-
-<section id="panel">
-  <b>GALAXINKO: CLASH & STARLIGHT FORGE 8.7 — MAX GREEN SCREEN & 50-120s EDITION (Press H)</b>
-  <p>
-    <button id="toggle" type="button">Hide · H</button>
-    <button id="dark" type="button">BG: CHROMA / CYBER</button>
-    <button id="sfx" type="button">SOUND ON</button>
-    <button id="ttsBtn" type="button">VOICE TTS: ON</button>
-    <button id="botBtn" type="button">AUTO CROWD: ON</button>
-    <button id="audioTest" type="button">TEST AUDIO + VOICE</button>
-  </p>
-  <p>
-    <label for="volume">SOUND VOLUME</label>
-    <input id="volume" type="range" min="0" max="100" step="5" value="85">
-    <output id="volumeValue" for="volume">85%</output>
-  </p>
-  <p id="audioStatus" role="status">Audio & Natural Voice TTS enabled by default.</p>
-  <p>
-    <button id="test" type="button">START TEST MODE</button>
-    <button id="live" type="button">RETURN TO LIVE</button>
-    <button id="voteA" type="button">REAL VOTE A · [A]</button>
-    <button id="voteB" type="button">REAL VOTE B · [B]</button>
-    <button id="heart" type="button">LIKE BOOST · [SPACE]</button>
-    <button id="crowd" type="button">SPAWN 16 VOTERS</button>
-    <button id="skipPhase" type="button">NEXT PHASE · [N]</button>
-  </p>
-  <p>
-    <b>GIFT SCALING TEST:</b>
-    <button id="gift1" class="btn-gold" type="button">T1 ROSE (1c) · [1]</button>
-    <button id="gift2" class="btn-gold" type="button">T2 GOLD (25c) · [2]</button>
-    <button id="gift3" class="btn-diamond" type="button">T3 DIAMOND (150c) · [3]</button>
-    <button id="gift4" class="btn-diamond" type="button">T4 SUPERNOVA (600c) · [G]</button>
-  </p>
-  <p>
-    <input id="url" aria-label="TikFinity URL" value="ws://localhost:21213/">
-    <button id="connect" type="button">Connect</button>
-  </p>
-  <p id="status"></p>
-</section>
-
 <script>
-(() => {
-  'use strict';
+/* =========================================================
+   1. VIZUÁL NA POZADÍ (HTML5 Canvas - Hvězdy a nálada)
+   ========================================================= */
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
 
-  const $ = id => document.getElementById(id);
-  const errBox = $('errBox');
-  const panelEl = $('panel');
+// Barvy pozadí podle nálady příběhu
+let bgColors = { top: [7, 9, 19], bottom: [15, 23, 42] };
+let targetColors = { top: [7, 9, 19], bottom: [15, 23, 42] };
+let flashOpacity = 0;
 
-  window.addEventListener('error', e => {
-    if (errBox) {
-      errBox.style.display = 'block';
-      errBox.textContent = 'ERR: ' + (e.message || 'Unknown error');
-    }
-  });
+const stars = Array.from({ length: 90 }, () => ({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    r: Math.random() * 1.8 + 0.5,
+    speed: Math.random() * 0.25 + 0.05,
+    alpha: Math.random()
+}));
 
-  function togglePanel() {
-    const isHidden = panelEl.style.display === 'none' || panelEl.style.display === '';
-    panelEl.style.display = isHidden ? 'block' : 'none';
-  }
-
-  const MAX = 600;
-  const GREEN = '#00ff00';
-  const OUTLINE = '#090d16';
-  const DARK_SLATE = '#111827';
-  const WHITE = '#ffffff';
-  const GOLD = '#fbbf24';
-  const GOLD_HOT = '#fef08a';
-  const TEAM_A = '#ff2a5f';
-  const TEAM_A_DARK = '#9f1239';
-  const TEAM_A_GLOW = '#fda4af';
-  const TEAM_B = '#00d2ff';
-  const TEAM_B_DARK = '#0369a1';
-  const TEAM_B_GLOW = '#a5f3fc';
-
-  // Arena bounds leave bottom > 1465 free for Veadotube avatar & TikTok chat
-  const ARENA_LEFT = 42;
-  const ARENA_RIGHT = 1038;
-  const ARENA_TOP = 436;
-  const ARENA_BOTTOM = 1460;
-  const GAP_HALF = 16;
-  const KO_LEFT_X = 305;
-  const KO_RIGHT_X = 775;
-
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const lerp = (a, b, t) => a + (b - a) * t;
-  const num = (v, f = 0) => Number.isFinite(Number(v)) ? Number(v) : f;
-  const clean = s => Array.from(String(s == null ? 'Player' : s).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, '').trim()).slice(0, 16).join('') || 'Player';
-  const hash = s => {
-    let h = 2166136261;
-    const str = String(s);
-    for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
-    return h >>> 0;
-  };
-
-  const BOT_HANDLES = [
-    'alex.vibes', 'mia_99', 'lucas_gg', 'chloe.xo', 'noah_k', 'emma.tt',
-    'leo_king7', 'zoe.star', 'max_pro1', 'lily.lu', 'sam_live', 'ruby_x',
-    'david.cz', 'nikola_x', 'jakub_98', 'sofia.m', 'matej_77', 'eliska.v',
-    'tom_edits', 'sara.glam', 'filip_xd', 'klara.official', 'ondra_23', 'nelly.b',
-    'jayden_us', 'ava.rose', 'mason_yt', 'isabella.c', 'ethan_w', 'mila.cute',
-    'logan_tx', 'aria.sky', 'jackson_9', 'layla.xo', 'aidan_gg', 'riley.star',
-    'carter_01', 'zoey.vibe', 'luke_real', 'nora.tt', 'daniel.pro', 'hana_cz',
-    'kuba_live', 'tereza.x', 'adam_99', 'viki.official', 'petr_gg', 'monika.s'
-  ];
-
-  const GIFT_TIERS = [
-    {
-      tier: 0, minCoins: 0, name: 'STARLIGHT', badge: '✨ STARLIGHT',
-      border: '#38bdf8', glow: '#bae6fd', bgTop: '#1e293b', bgBot: '#0f172a',
-      coinOuter: '#475569', coinInner: '#1e293b', spark1: '#38bdf8', spark2: '#fbbf24',
-      ballBonusR: 0, clones: 0, scoreMult: 1, speedMult: 1.0
-    },
-    {
-      tier: 1, minCoins: 1, name: 'ROSE CRYSTAL', badge: '🌹 ROSE BOOST',
-      border: '#fb7185', glow: '#fecdd3', bgTop: '#4c1d24', bgBot: '#1f090d',
-      coinOuter: '#e11d48', coinInner: '#4c0519', spark1: '#fb7185', spark2: '#fbbf24',
-      ballBonusR: 16, clones: 1, scoreMult: 120, speedMult: 1.15
-    },
-    {
-      tier: 2, minCoins: 10, name: '24K ROYAL GOLD', badge: '👑 24K GOLD',
-      border: '#fbbf24', glow: '#fef08a', bgTop: '#452c04', bgBot: '#1c1101',
-      coinOuter: '#f59e0b', coinInner: '#78350f', spark1: '#fef08a', spark2: '#f59e0b',
-      ballBonusR: 26, clones: 2, scoreMult: 160, speedMult: 1.28
-    },
-    {
-      tier: 3, minCoins: 100, name: 'COSMIC DIAMOND', badge: '💎 DIAMOND',
-      border: '#c084fc', glow: '#a5f3fc', bgTop: '#3b0764', bgBot: '#140326',
-      coinOuter: '#a855f7', coinInner: '#2e1065', spark1: '#a5f3fc', spark2: '#e879f9',
-      ballBonusR: 34, clones: 4, scoreMult: 220, speedMult: 1.45
-    },
-    {
-      tier: 4, minCoins: 500, name: 'CELESTIAL SUPERNOVA', badge: '🌌 SUPERNOVA',
-      border: '#ff2a5f', glow: '#fde047', bgTop: '#500724', bgBot: '#170312',
-      coinOuter: '#ec4899', coinInner: '#3b0764', spark1: '#fde047', spark2: '#38bdf8',
-      ballBonusR: 42, clones: 6, scoreMult: 300, speedMult: 1.65
-    }
-  ];
-
-  function getGiftTierInfo(coins) {
-    if (coins >= 500) return GIFT_TIERS[4];
-    if (coins >= 100) return GIFT_TIERS[3];
-    if (coins >= 10)  return GIFT_TIERS[2];
-    if (coins >= 1)   return GIFT_TIERS[1];
-    return GIFT_TIERS[0];
-  }
-
-  const RAW_QUESTION_PAIRS = [
-    ['BOYS', '👦', 'GIRLS', '👧', 'male', 'female'],
-    ['GAMERS', '🎮', 'ATHLETES', '⚽', 'male', 'male_alt'],
-    ['DOGS', '🐶', 'CATS', '🐱', 'dog', 'cat'],
-    ['IPHONE', '🍎', 'ANDROID', '🤖', 'female', 'male'],
-    ['NIGHT OWL', '🌙', 'EARLY BIRD', '🌅', 'male', 'female'],
-    ['PIZZA', '🍕', 'BURGER', '🍔', 'male', 'female'],
-    ['MESSI', '🐐', 'RONALDO', '⚡', 'male', 'male_alt'],
-    ['MINECRAFT', '⛏️', 'GTA 6', '🚓', 'male', 'female'],
-    ['PC GAMING', '🖥️', 'PS5', '🎮', 'male', 'female'],
-    ['SUMMER', '☀️', 'WINTER', '❄️', 'female', 'male'],
-    ['ROBLOX', '🧱', 'FORTNITE', '🪂', 'female', 'male'],
-    ['COFFEE', '☕', 'ENERGY', '⚡', 'female', 'male'],
-    ['COCA-COLA', '🥤', 'PEPSI', '🧊', 'male', 'female'],
-    ['NETFLIX', '🎬', 'YOUTUBE', '▶️', 'female', 'male'],
-    ['STRENGTH', '💪', 'FLYING', '🦅', 'male', 'female'],
-    ['BEACH', '🏖️', 'MOUNTAINS', '🏔️', 'female', 'male'],
-    ['SWEET', '🍩', 'SALTY', '🥨', 'female', 'male'],
-    ['TACOS', '🌮', 'SUSHI', '🍣', 'male', 'female'],
-    ['BATMAN', '🦇', 'SPIDER-MAN', '🕷️', 'male', 'male_alt'],
-    ['LAMBO', '🏎️', 'FERRARI', '🐎', 'male', 'female'],
-    ['FOOTBALL', '⚽', 'BASKETBALL', '🏀', 'male', 'male_alt'],
-    ['KFC', '🍗', 'MCDONALDS', '🍟', 'male', 'female'],
-    ['ANIME', '⚔️', 'MOVIES', '🍿', 'female', 'male'],
-    ['FIRE', '🔥', 'ICE', '🧊', 'male', 'female'],
-    ['ZOMBIES', '🧟', 'ALIENS', '🛸', 'male', 'female'],
-    ['DRAGONS', '🐉', 'DINOSAURS', '🦖', 'male', 'male_alt'],
-    ['GOKU', '🟠', 'NARUTO', '🍥', 'male', 'male_alt'],
-    ['SHARK', '🦈', 'LION', '🦁', 'male', 'male_alt'],
-    ['SAMURAI', '🥷', 'VIKING', '🪓', 'male', 'male_alt'],
-    ['NUTELLA', '🍫', 'PEANUT', '🥜', 'female', 'male'],
-    ['TEA', '🍵', 'HOT CHOCO', '☕', 'female', 'male'],
-    ['KEBAB', '🌯', 'GYROS', '🥙', 'male', 'male_alt'],
-    ['RAMEN', '🍜', 'PHO', '🍲', 'female', 'male'],
-    ['ICE CREAM', '🍦', 'GELATO', '🍨', 'female', 'male'],
-    ['PANCAKES', '🥞', 'WAFFLES', '🧇', 'female', 'male'],
-    ['BACON', '🥓', 'SAUSAGE', '🌭', 'male', 'male_alt'],
-    ['APPLE', '🍎', 'BANANA', '🍌', 'female', 'male'],
-    ['STRAWBERRY', '🍓', 'MANGO', '🥭', 'female', 'male'],
-    ['WATERMELON', '🍉', 'PINEAPPLE', '🍍', 'female', 'male'],
-    ['CHEESE', '🧀', 'CHOCOLATE', '🍫', 'male', 'female'],
-    ['STEAK', '🥩', 'CHICKEN', '🍗', 'male', 'female'],
-    ['PASTA', '🍝', 'RICE', '🍚', 'female', 'male'],
-    ['HOT DOG', '🌭', 'SANDWICH', '🥪', 'male', 'female'],
-    ['CROISSANT', '🥐', 'BAGEL', '🥯', 'female', 'male'],
-    ['POPCORN', '🍿', 'NACHOS', '🧀', 'female', 'male'],
-    ['SPICY', '🌶️', 'MILD', '🍯', 'male', 'female'],
-    ['MILK', '🥛', 'JUICE', '🧃', 'male', 'female'],
-    ['RED BULL', '⚡', 'MONSTER', '🟢', 'male', 'male_alt'],
-    ['CAKE', '🍰', 'PIE', '🥧', 'female', 'male'],
-    ['COOKIES', '🍪', 'BROWNIE', '🍫', 'female', 'male'],
-    ['MILK CHOCO', '🍫', 'DARK CHOCO', '⬛', 'female', 'male'],
-    ['FRIES', '🍟', 'ONION RINGS', '🧅', 'male', 'female'],
-    ['KETCHUP', '🍅', 'MAYO', '🥚', 'male', 'female'],
-    ['DUMPLINGS', '🥟', 'SPRING ROLL', '🥢', 'female', 'male'],
-    ['SALAD', '🥗', 'SOUP', '🍲', 'female', 'male'],
-    ['SHRIMP', '🦐', 'SALMON', '🐟', 'female', 'male'],
-    ['GARLIC BREAD', '🥖', 'CHEESE BREAD', '🧀', 'male', 'female'],
-    ['LEMONADE', '🍋', 'BUBBLE TEA', '🧋', 'male', 'female'],
-    ['SNICKERS', '🍫', 'TWIX', '🍬', 'male', 'female'],
-    ['KITKAT', '🔴', 'OREO', '⚫', 'male', 'female'],
-    ['SKITTLES', '🌈', 'M&MS', '🍫', 'female', 'male'],
-    ['GUMMY BEARS', '🐻', 'LOLLIPOP', '🍭', 'male', 'female'],
-    ['AVOCADO', '🥑', 'TOMATO', '🍅', 'female', 'male'],
-    ['WINGS', '🍗', 'NUGGETS', '🍗', 'male', 'female'],
-    ['BURRITO', '🌯', 'QUESADILLA', '🌮', 'male', 'female'],
-    ['CEREAL', '🥣', 'TOAST', '🍞', 'male', 'female'],
-    ['HONEY', '🍯', 'MAPLE SYRUP', '🍁', 'female', 'male'],
-    ['ICED COFFEE', '🧊', 'HOT COFFEE', '☕', 'female', 'male'],
-    ['STILL WATER', '💧', 'SPARKLING', '🫧', 'male', 'female'],
-    ['GRAPES', '🍇', 'CHERRIES', '🍒', 'female', 'male'],
-    ['PEACH', '🍑', 'PEAR', '🍐', 'female', 'male'],
-    ['COCONUT', '🥥', 'KIWI', '🥝', 'male', 'female'],
-    ['BLUEBERRY', '🫐', 'RASPBERRY', '🍓', 'male', 'female'],
-    ['PRETZEL', '🥨', 'CHURROS', '🥐', 'male', 'female'],
-    ['BBQ RIBS', '🍖', 'BRISKET', '🥩', 'male', 'male_alt'],
-    ['SUBWAY', '🥪', 'BURGER KING', '🍔', 'male', 'female'],
-    ['TACO BELL', '🌮', 'CHIPOTLE', '🌯', 'male', 'female'],
-    ['STARBUCKS', '☕', 'DUNKIN', '🍩', 'female', 'male'],
-    ['LASAGNA', '🍝', 'RAVIOLI', '🥟', 'male', 'female'],
-    ['OMELETTE', '🍳', 'SCRAMBLED', '🥚', 'female', 'male'],
-    ['PLAYSTATION', '🎮', 'XBOX', '🟩', 'male', 'male_alt'],
-    ['CONSOLE', '🎮', 'MOBILE', '📱', 'male', 'female'],
-    ['NINTENDO', '🕹️', 'STEAM DECK', '💻', 'female', 'male'],
-    ['PUBG', '🪖', 'WARZONE', '🪂', 'male', 'male_alt'],
-    ['EA FC', '⚽', 'ROCKET LEAGUE', '🚗', 'male', 'male_alt'],
-    ['AMONG US', '🕵️', 'FALL GUYS', '👑', 'female', 'male'],
-    ['GTA 5', '🚓', 'RED DEAD 2', '🤠', 'male', 'male_alt'],
-    ['LOL', '⚔️', 'DOTA 2', '🛡️', 'male', 'male_alt'],
-    ['VALORANT', '🔫', 'CS2', '💣', 'female', 'male'],
-    ['CALL OF DUTY', '🪖', 'BATTLEFIELD', '🚜', 'male', 'male_alt'],
-    ['SKYRIM', '🐉', 'WITCHER 3', '🐺', 'male', 'male_alt'],
-    ['ELDEN RING', '💍', 'DARK SOULS', '🔥', 'male', 'male_alt'],
-    ['SUPER MARIO', '🍄', 'SONIC', '🦔', 'male', 'male_alt'],
-    ['POKEMON', '⚡', 'PALWORLD', '🦖', 'female', 'male'],
-    ['RESIDENT EVIL', '🧟', 'SILENT HILL', '🌫️', 'male', 'female'],
-    ['FORZA', '🏎️', 'GRAN TURISMO', '🏁', 'male', 'male_alt'],
-    ['TEKKEN', '🥊', 'MORTAL KOMBAT', '🐉', 'male', 'male_alt'],
-    ['THE SIMS', '🏠', 'STARDW VALLEY', '🌾', 'female', 'male'],
-    ['DAYZ', '🧟', 'RUST', '☢️', 'male', 'male_alt'],
-    ['STARFIELD', '🌌', 'CYBERPUNK', '🤖', 'male', 'female'],
-    ['GOD OF WAR', '🪓', 'GHOST TSUSHIMA', '🗡️', 'male', 'male_alt'],
-    ['ZELDA', '🗡️', 'FINAL FANTASY', '⚔️', 'female', 'male'],
-    ['CLASH ROYALE', '👑', 'BRAWL STARS', '⭐', 'male', 'female'],
-    ['CANDY CRUSH', '🍬', 'ANGRY BIRDS', '🐦', 'female', 'male'],
-    ['SUBWAY SURFER', '🏃', 'TEMPLE RUN', '🛕', 'female', 'male'],
-    ['PHASMOPHOBIA', '👻', 'LETHAL CO', '🚢', 'female', 'male'],
-    ['OVERWATCH', '🦸', 'MARVEL RIVALS', '🦸‍♂️', 'female', 'male'],
-    ['RAINBOW SIX', '🌈', 'APEX LEGENDS', '🎯', 'male', 'female'],
-    ['OPEN WORLD', '🌍', 'STORY GAMES', '📖', 'male', 'female'],
-    ['HORROR GAMES', '👻', 'CO-OP GAMES', '😂', 'male', 'female'],
-    ['SINGLEPLAYER', '🕹️', 'MULTIPLAYER', '🌐', 'male', 'female'],
-    ['MOUSE & KEY', '⌨️', 'CONTROLLER', '🎮', 'male', 'male_alt'],
-    ['HEADSET', '🎧', 'SPEAKERS', '🔊', 'male', 'female'],
-    ['GAMING CHAIR', '🪑', 'SOFA GAMING', '🛋️', 'male', 'female'],
-    ['240 FPS', '📈', '4K GRAPHICS', '✨', 'male', 'female'],
-    ['SWORDS', '🗡️', 'SNIPER', '🎯', 'male', 'male_alt'],
-    ['TANK CLASS', '🛡️', 'ASSASSIN', '🗡️', 'male', 'female'],
-    ['MAGE WIZARD', '🧙', 'ARCHER', '🏹', 'female', 'male'],
-    ['RACING GAMES', '🏎️', 'SPORTS GAMES', '⚽', 'male', 'male_alt'],
-    ['PUZZLE GAMES', '🧩', 'STRATEGY', '♟️', 'female', 'male'],
-    ['VR GAMING', '🕶️', 'FLAT SCREEN', '🖥️', 'male', 'female'],
-    ['DISC GAMES', '💿', 'DIGITAL', '☁️', 'male', 'female'],
-    ['DIAMOND SWORD', '💎', 'NETHERITE', '🔥', 'male', 'male_alt'],
-    ['CREATIVE MODE', '🏡', 'SURVIVAL MODE', '❤️', 'female', 'male'],
-    ['HARDCORE MODE', '😈', 'CHILL MODE', '😌', 'male', 'female'],
-    ['VOICE CHAT', '🎙️', 'MUTE ALL', '🔇', 'male', 'female'],
-    ['RANKED', '🏆', 'CASUAL', '😎', 'male', 'female'],
-    ['RETRO GAMES', '👾', 'MODERN GAMES', '🚀', 'male', 'female'],
-    ['STEALTH', '🕵️', 'ACTION', '💥', 'male', 'male_alt'],
-    ['TEAMWORK', '🤝', 'SOLO CARRY', '🐺', 'female', 'male'],
-    ['TWITCH', '🟣', 'YOUTUBE LIVE', '🔴', 'male', 'female'],
-    ['RGB PC', '🌈', 'ALL BLACK PC', '⬛', 'female', 'male'],
-    ['WINDOWS', '🪟', 'MACBOOK', '💻', 'male', 'female'],
-    ['TIKTOK', '📱', 'INSTAGRAM', '📸', 'female', 'male'],
-    ['SPOTIFY', '🎵', 'APPLE MUSIC', '🍏', 'male', 'female'],
-    ['LIGHT MODE', '☀️', 'DARK MODE', '🌙', 'female', 'male'],
-    ['LAPTOP', '💻', 'DESKTOP PC', '🖥️', 'female', 'male'],
-    ['SMARTWATCH', '⌚', 'CLASSIC WATCH', '⏱️', 'male', 'male_alt'],
-    ['AIRPODS', '🎧', 'HEADPHONES', '🎧', 'female', 'male'],
-    ['AI ROBOTS', '🤖', 'HUMAN BRAIN', '🧠', 'male', 'female'],
-    ['ELECTRIC CAR', '🔋', 'V8 ENGINE', '⛽', 'female', 'male'],
-    ['TEXTING', '💬', 'CALLING', '📞', 'female', 'male'],
-    ['VOICE MSG', '🎙️', 'TYPING', '⌨️', 'female', 'male'],
-    ['BIG TV', '📺', 'PROJECTOR', '📽️', 'male', 'female'],
-    ['FREE WIFI', '📶', '5G DATA', '📡', 'female', 'male'],
-    ['CARD PAY', '💳', 'CASH MONEY', '💵', 'female', 'male'],
-    ['ONLINE SHOP', '🛒', 'MALL TRIP', '🏬', 'female', 'male'],
-    ['PAPER BOOK', '📚', 'E-BOOK', '📱', 'female', 'male'],
-    ['CINEMA', '🎬', 'HOME MOVIE', '🛋️', 'male', 'female'],
-    ['SPACE', '🚀', 'DEEP OCEAN', '🌊', 'male', 'female'],
-    ['NVIDIA', '🟢', 'AMD RADEON', '🔴', 'male', 'male_alt'],
-    ['INTEL', '🔵', 'RYZEN', '🟠', 'male', 'male_alt'],
-    ['SAMSUNG', '📱', 'APPLE', '🍎', 'male', 'female'],
-    ['STEAM', '🕹️', 'EPIC GAMES', '🎁', 'male', 'male_alt'],
-    ['FACE ID', '🔒', 'FINGERPRINT', '👆', 'female', 'male'],
-    ['DUAL MONITOR', '🖥️', 'ULTRAWIDE', '🖥️', 'male', 'male_alt'],
-    ['SELFIE', '📸', 'LANDSCAPE', '🏞️', 'female', 'male'],
-    ['SHORT VIDEOS', '📱', 'LONG VIDEOS', '🎥', 'female', 'male'],
-    ['MEMES', '😂', 'NEWS', '📰', 'male', 'female'],
-    ['PODCASTS', '🎙️', 'MUSIC', '🎵', 'male', 'female'],
-    ['HEAVY BASS', '🔊', 'CLEAN VOCAL', '🎤', 'male', 'female'],
-    ['ROCK MUSIC', '🎸', 'HIP HOP', '🎤', 'male', 'male_alt'],
-    ['POP MUSIC', '🎹', 'EDM TECHNO', '🎧', 'female', 'male'],
-    ['CLASSICAL', '🎻', 'JAZZ', '🎷', 'female', 'male'],
-    ['90S HITS', '🕺', 'NEW HITS', '🔥', 'male', 'female'],
-    ['LIVE CONCERT', '🎤', 'STUDIO TRACK', '🎧', 'female', 'male'],
-    ['5 ALARMS', '⏰', '1ST ALARM', '⚡', 'female', 'male'],
-    ['HOT BATH', '🛁', 'COLD SHOWER', '🚿', 'female', 'male'],
-    ['SOFT PILLOW', '🛏️', 'FIRM PILLOW', '🧱', 'female', 'male'],
-    ['COLD ROOM', '❄️', 'WARM ROOM', '🔥', 'male', 'female'],
-    ['WINDOW SEAT', '🪟', 'AISLE SEAT', '🚶', 'female', 'male'],
-    ['AIRPLANE', '✈️', 'FAST TRAIN', '🚆', 'male', 'female'],
-    ['ROAD TRIP', '🚗', 'CRUISE SHIP', '🛳️', 'male', 'female'],
-    ['HOTEL', '🏨', 'CAMPING', '⛺', 'female', 'male'],
-    ['BIG CITY', '🏙️', 'VILLAGE', '🏡', 'female', 'male'],
-    ['HOUSE', '🏠', 'PENTHOUSE', '🏢', 'male', 'female'],
-    ['SPRING', '🌸', 'AUTUMN', '🍂', 'female', 'male'],
-    ['RAINY DAY', '🌧️', 'SUNNY DAY', '☀️', 'male', 'female'],
-    ['STORM', '⛈️', 'SNOWFALL', '🌨️', 'male', 'female'],
-    ['SUNRISE', '🌅', 'SUNSET', '🌇', 'female', 'male'],
-    ['LION', '🦁', 'TIGER', '🐯', 'male', 'male_alt'],
-    ['BEAR', '🐻', 'GORILLA', '🦍', 'male', 'male_alt'],
-    ['SHARK', '🦈', 'ORCA WHALE', '🐋', 'male', 'male_alt'],
-    ['WOLF', '🐺', 'FOX', '🦊', 'dog', 'cat'],
-    ['EAGLE', '🦅', 'FALCON', '🦅', 'male', 'male_alt'],
-    ['COBRA', '🐍', 'CROCODILE', '🐊', 'male', 'male_alt'],
-    ['T-REX', '🦖', 'SPINOSAURUS', '🦕', 'male', 'male_alt'],
-    ['PANDA', '🐼', 'KOALA', '🐨', 'female', 'male'],
-    ['DOLPHIN', '🐬', 'OCTOPUS', '🐙', 'female', 'male'],
-    ['HORSE', '🐎', 'UNICORN', '🦄', 'male', 'female'],
-    ['PENGUIN', '🐧', 'FLAMINGO', '🦩', 'male', 'female'],
-    ['PARROT', '🦜', 'RAVEN', '🐦‍⬛', 'female', 'male'],
-    ['HAMSTER', '🐹', 'BUNNY', '🐰', 'male', 'female'],
-    ['TURTLE', '🐢', 'GECKO', '🦎', 'male', 'female'],
-    ['HONEY BEE', '🐝', 'BUTTERFLY', '🦋', 'male', 'female'],
-    ['SPIDER', '🕷️', 'SCORPION', '🦂', 'male', 'male_alt'],
-    ['ELEPHANT', '🐘', 'RHINO', '🦏', 'male', 'male_alt'],
-    ['CHEETAH', '🐆', 'JAGUAR', '🐆', 'female', 'male'],
-    ['POLAR BEAR', '🐻‍❄️', 'GRIZZLY', '🐻', 'female', 'male'],
-    ['HUSKY', '🐺', 'BULLDOG', '🐶', 'dog', 'dog'],
-    ['BLACK CAT', '🐈‍⬛', 'ORANGE CAT', '🐈', 'cat', 'cat'],
-    ['PUPPY', '🐶', 'KITTEN', '🐱', 'dog', 'cat'],
-    ['FOREST', '🌲', 'DESERT', '🏜️', 'male', 'female'],
-    ['VOLCANO', '🌋', 'GLACIER', '🧊', 'male', 'female'],
-    ['TSUNAMI', '🌊', 'TORNADO', '🌪️', 'female', 'male'],
-    ['FULL MOON', '🌕', 'BRIGHT SUN', '☀️', 'male', 'female'],
-    ['MILKY WAY', '🌌', 'BLACK HOLE', '🕳️', 'female', 'male'],
-    ['SATURN', '🪐', 'MARS', '🔴', 'female', 'male'],
-    ['DIAMOND', '💎', 'GOLD', '🥇', 'female', 'male'],
-    ['SILVER', '🥈', 'TITANIUM', '🪨', 'female', 'male'],
-    ['LIGHTNING', '⚡', 'WIND', '🌪️', 'male', 'female'],
-    ['RED ROSE', '🌹', 'SUNFLOWER', '🌻', 'female', 'male'],
-    ['CACTUS', '🌵', 'PALM TREE', '🌴', 'male', 'female'],
-    ['MONKEY', '🐒', 'SLOTH', '🦥', 'male', 'female'],
-    ['CRAB', '🦀', 'LOBSTER', '🦞', 'male', 'male_alt'],
-    ['ICE HOCKEY', '🏒', 'NFL', '🏈', 'male', 'male_alt'],
-    ['TENNIS', '🎾', 'PING PONG', '🏓', 'female', 'male'],
-    ['BOXING', '🥊', 'MMA UFC', '🥋', 'male', 'male_alt'],
-    ['FORMULA 1', '🏎️', 'MOTOGP', '🏍️', 'male', 'male_alt'],
-    ['LEBRON', '🏀', 'JORDAN', '🐐', 'male', 'male_alt'],
-    ['GYM WEIGHTS', '🏋️', 'CARDIO RUN', '🏃', 'male', 'female'],
-    ['BICEPS', '💪', 'LEG DAY', '🦵', 'male', 'male_alt'],
-    ['SWIMMING', '🏊', 'CYCLING', '🚴', 'female', 'male'],
-    ['SKIING', '🎿', 'SNOWBOARD', '🏂', 'male', 'female'],
-    ['SKATEBOARD', '🛹', 'BMX BIKE', '🚲', 'male', 'male_alt'],
-    ['PORSCHE', '🏎️', 'MCLAREN', '🏎️', 'male', 'male_alt'],
-    ['BMW', '🚘', 'MERCEDES', '🚘', 'male', 'male_alt'],
-    ['AUDI', '🚘', 'TESLA', '⚡', 'male', 'female'],
-    ['SUPRA', '🇯🇵', 'NISSAN GTR', '🇯🇵', 'male', 'male_alt'],
-    ['MUSTANG', '🐎', 'CAMARO', '🐝', 'male', 'male_alt'],
-    ['OFF-ROAD', '🚙', 'SUPERCAR', '🏎️', 'male', 'female'],
-    ['SPORTBIKE', '🏍️', 'CHOPPER', '🏍️', 'male', 'male_alt'],
-    ['HELICOPTER', '🚁', 'PRIVATE JET', '🛩️', 'male', 'female'],
-    ['SUPER YACHT', '🛥️', 'MANSION', '🏰', 'male', 'female'],
-    ['MANUAL', '⚙️', 'AUTOMATIC', '🤖', 'male', 'female'],
-    ['TURBO', '💨', 'V10 SOUND', '🔊', 'male', 'male_alt'],
-    ['DRIFTING', '🏁', 'DRAG RACE', '🚀', 'male', 'male_alt'],
-    ['KARATE', '🥋', 'MUAY THAI', '🥊', 'male', 'male_alt'],
-    ['ARCHERY', '🏹', 'FENCING', '🤺', 'female', 'male'],
-    ['GOLF', '⛳', 'BOWLING', '🎳', 'male', 'female'],
-    ['BILLIARDS', '🎱', 'DARTS', '🎯', 'male', 'male_alt'],
-    ['CHESS', '♟️', 'POKER', '🃏', 'male', 'male_alt'],
-    ['CLIMBING', '🧗', 'SKYDIVING', '🪂', 'female', 'male'],
-    ['SURFING', '🏄', 'DIVING', '🤿', 'male', 'female'],
-    ['CAMPING', '🏕️', 'FISHING', '🎣', 'female', 'male'],
-    ['PUSH-UPS', '🏋️', 'PULL-UPS', '🏋️', 'male', 'male_alt'],
-    ['NIKE', '👟', 'ADIDAS', '👟', 'male', 'female'],
-    ['PUMA', '👟', 'NEW BALANCE', '👟', 'male', 'female'],
-    ['SNEAKERS', '👟', 'BOOTS', '🥾', 'male', 'female'],
-    ['HOODIE', '🧥', 'JACKET', '🧥', 'female', 'male'],
-    ['JEANS', '👖', 'SWEATPANTS', '🩳', 'female', 'male'],
-    ['SUNGLASSES', '🕶️', 'HAT CAP', '🧢', 'female', 'male'],
-    ['BEARD', '🧔', 'SHAVEN', '🪒', 'male', 'male_alt'],
-    ['LONG HAIR', '💇', 'SHORT HAIR', '💈', 'female', 'male'],
-    ['TATTOOS', '🎨', 'CLEAN SKIN', '✨', 'male', 'female'],
-    ['MARVEL', '🦸', 'DC COMICS', '🦇', 'male', 'male_alt'],
-    ['IRON MAN', '🦾', 'CAP AMERICA', '🛡️', 'male', 'male_alt'],
-    ['THOR', '⚡', 'HULK', '🟢', 'male', 'male_alt'],
-    ['JOKER', '🃏', 'DEADPOOL', '💀', 'male', 'male_alt'],
-    ['SUPERMAN', '🦸', 'THE FLASH', '⚡', 'male', 'male_alt'],
-    ['STAR WARS', '⚔️', 'STAR TREK', '🖖', 'male', 'male_alt'],
-    ['YODA', '🟢', 'DARTH VADER', '⚫', 'male', 'male_alt'],
-    ['HARRY POTTER', '⚡', 'LOTR', '💍', 'female', 'male'],
-    ['STRANGER TH', '👾', 'SQUID GAME', '🦑', 'female', 'male'],
-    ['ONE PIECE', '🏴‍☠️', 'BLEACH', '⚔️', 'male', 'male_alt'],
-    ['SPONGEBOB', '🧽', 'SIMPSONS', '🍩', 'female', 'male'],
-    ['MATRIX', '🕶️', 'AVATAR', '🔵', 'male', 'female'],
-    ['INVISIBLE', '👻', 'TIME TRAVEL', '⏳', 'male', 'female'],
-    ['SUPER SPEED', '⚡', 'TELEPATHY', '🧠', 'male', 'female'],
-    ['TELEPORT', '🌀', 'SEE FUTURE', '🔮', 'male', 'female'],
-    ['GO TO PAST', '🔙', 'GO TO 3026', '🔜', 'male', 'female'],
-    ['200 IQ', '🧠', '100% LUCK', '🍀', 'male', 'female'],
-    ['HERO', '🦸', 'VILLAIN', '😈', 'male', 'male_alt'],
-    ['KNIGHT', '🏰', 'GLADIATOR', '🗡️', 'male', 'male_alt'],
-    ['PIRATE', '🏴‍☠️', 'NINJA', '🥷', 'male', 'male_alt'],
-    ['COWBOY', '🤠', 'SPARTAN', '🛡️', 'male', 'male_alt'],
-    ['VAMPIRE', '🧛', 'WEREWOLF', '🐺', 'female', 'male'],
-    ['CYBORG', '🤖', 'WIZARD', '🧙', 'male', 'female'],
-    ['MARS COLONY', '🚀', 'ATLANTIS', '🌊', 'male', 'female'],
-    ['ISLAND', '🏝️', 'CASTLE', '🏰', 'female', 'male'],
-    ['COMEDY', '😂', 'THRILLER', '🔪', 'female', 'male'],
-    ['ARTIST', '🎨', 'SCIENTIST', '🔬', 'female', 'male'],
-    ['ASTRONAUT', '👨‍🚀', 'DETECTIVE', '🕵️', 'male', 'female'],
-    ['FAME', '👑', 'MYSTERY', '🎭', 'female', 'male'],
-    ['RED PILL', '🔴', 'BLUE PILL', '🔵', 'male', 'female'],
-    ['TEAM ALPHA', '🅰️', 'TEAM OMEGA', '🅱️', 'male', 'female']
-  ];
-
-  const QUESTIONS = RAW_QUESTION_PAIRS.map(q => ({
-    a: q[0], ea: q[1], b: q[2], eb: q[3], fa: q[4], fb: q[5]
-  }));
-
-  let questionBag = [];
-  function pullNextQuestion() {
-    if (questionBag.length === 0) {
-      questionBag = QUESTIONS.slice();
-      for (let i = questionBag.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const tmp = questionBag[i];
-        questionBag[i] = questionBag[j];
-        questionBag[j] = tmp;
-      }
-    }
-    return questionBag.pop();
-  }
-
-  function createRichAvatar(seedStr) {
-    const cnv = document.createElement('canvas');
-    cnv.width = cnv.height = 160;
-    const g = cnv.getContext('2d');
-    const h = hash(seedStr);
-
-    const bgPalettes = [
-      ['#f43f5e', '#881337'], ['#06b6d4', '#0c4a6e'], ['#8b5cf6', '#3b0764'],
-      ['#f59e0b', '#78350f'], ['#10b981', '#064e3b'], ['#ec4899', '#500724'],
-      ['#3b82f6', '#1e3a8a'], ['#eab308', '#713f12']
-    ];
-    const pal = bgPalettes[h % bgPalettes.length];
-    const bgGrad = g.createLinearGradient(0, 0, 160, 160);
-    bgGrad.addColorStop(0, pal[0]);
-    bgGrad.addColorStop(1, pal[1]);
-    g.fillStyle = bgGrad;
-    g.fillRect(0, 0, 160, 160);
-
-    const skinTones = ['#ffedd5', '#fed7aa', '#fdba74', '#e0ac69', '#c68642', '#8d5524'];
-    const hairColors = ['#18181b', '#3f2305', '#78350f', '#b45309', '#facc15', '#dc2626', '#cbd5e1'];
-    const shirtColors = ['#1e293b', '#be123c', '#0369a1', '#4338ca', '#15803d', '#b45309'];
-
-    const skin = skinTones[(h >>> 3) % skinTones.length];
-    const hair = hairColors[(h >>> 6) % hairColors.length];
-    const shirt = shirtColors[(h >>> 9) % shirtColors.length];
-
-    g.fillStyle = shirt;
-    g.beginPath();
-    g.arc(80, 172, 62, Math.PI, Math.PI * 2);
-    g.fill();
-
-    g.fillStyle = skin;
-    g.fillRect(66, 92, 28, 28);
-
-    const hairStyle = (h >>> 12) % 4;
-    if (hairStyle === 1 || hairStyle === 3) {
-      g.fillStyle = hair;
-      g.beginPath();
-      g.arc(80, 68, 44, 0, Math.PI * 2);
-      g.fill();
+function drawVisuals() {
+    // Plynulý přechod barev oblohy
+    for (let i = 0; i < 3; i++) {
+        bgColors.top[i] += (targetColors.top[i] - bgColors.top[i]) * 0.03;
+        bgColors.bottom[i] += (targetColors.bottom[i] - bgColors.bottom[i]) * 0.03;
     }
 
-    g.fillStyle = skin;
-    g.beginPath();
-    g.arc(80, 68, 36, 0, Math.PI * 2);
-    g.fill();
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, `rgb(${bgColors.top.map(Math.round).join(',')})`);
+    grad.addColorStop(1, `rgb(${bgColors.bottom.map(Math.round).join(',')})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
 
-    g.fillStyle = hair;
-    g.beginPath();
-    if (hairStyle === 0) {
-      g.arc(80, 58, 37, Math.PI * 0.95, Math.PI * 2.05);
-    } else if (hairStyle === 1) {
-      g.arc(80, 54, 38, Math.PI * 0.85, Math.PI * 2.15);
-    } else if (hairStyle === 2) {
-      g.arc(72, 52, 36, Math.PI * 0.9, Math.PI * 2.0);
-    } else {
-      g.arc(80, 55, 38, Math.PI, Math.PI * 2);
-    }
-    g.fill();
-
-    const hasShades = (h % 7) === 0;
-    if (hasShades) {
-      g.fillStyle = '#090d16';
-      g.fillRect(54, 58, 22, 13);
-      g.fillRect(84, 58, 22, 13);
-      g.lineWidth = 4;
-      g.strokeStyle = '#090d16';
-      g.beginPath();
-      g.moveTo(46, 62); g.lineTo(114, 62);
-      g.stroke();
-    } else {
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(66, 65, 6.5, 0, Math.PI * 2);
-      g.arc(94, 65, 6.5, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = '#0f172a';
-      g.beginPath();
-      g.arc(67, 65, 3.8, 0, Math.PI * 2);
-      g.arc(95, 65, 3.8, 0, Math.PI * 2);
-      g.fill();
+    // Záblesk při spuštění efektu (např. hrom nebo kouzlo)
+    if (flashOpacity > 0.01) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
+        ctx.fillRect(0, 0, width, height);
+        flashOpacity *= 0.9;
     }
 
-    g.strokeStyle = '#7c2d12';
-    g.lineWidth = 3.5;
-    g.lineCap = 'round';
-    g.beginPath();
-    g.arc(80, 76, 11, 0.15 * Math.PI, 0.85 * Math.PI);
-    g.stroke();
-
-    return cnv;
-  }
-
-  function avatarUrl(d) {
-    const u = d.user || d;
-    const owners = [u, d, u && u.userDetails, d && d.userDetails];
-    const keys = ['profilePictureUrl', 'profilePictureUrls', 'avatarThumb', 'avatarMedium', 'avatarLarger', 'avatarUrl', 'avatar'];
-    for (let o = 0; o < owners.length; o++) {
-      const owner = owners[o];
-      if (!owner) continue;
-      for (let k = 0; k < keys.length; k++) {
-        const raw = owner[keys[k]];
-        const values = typeof raw === 'string' ? [raw] : Array.isArray(raw) ? raw : (raw && (raw.urlList || raw.url_list || [raw.url]));
-        if (!values) continue;
-        for (let i = 0; i < values.length; i++) {
-          const val = values[i];
-          if (typeof val === 'string' && val.length < 4096) {
-            try {
-              const parsed = new URL(val);
-              if (parsed.protocol === 'https:' && !parsed.username && !parsed.password) return parsed.href;
-            } catch (e) {}
-          }
-        }
-      }
-    }
-    return '';
-  }
-
-  function packet(raw) {
-    if (!raw || typeof raw !== 'object') return null;
-    const type = String(raw.event || raw.type || '').toLowerCase();
-    if (type === 'streamend') return { type: 'streamend' };
-    const d = raw.data;
-    if (!d || typeof d !== 'object' || ['member', 'roomuser', 'chat', 'like', 'gift', 'share', 'follow', 'subscribe'].indexOf(type) === -1) return null;
-    const u = d.user || d;
-    const g = d.giftDetails || d.extendedGiftInfo || d.gift || {};
-    let id = u.uniqueId !== undefined ? u.uniqueId : (u.unique_id !== undefined ? u.unique_id : (d.uniqueId !== undefined ? d.uniqueId : (d.unique_id !== undefined ? d.unique_id : (u.userId !== undefined ? u.userId : (u.id !== undefined ? u.id : d.userId)))));
-    if (id == null || !String(id).length || String(id).length > 180) return null;
-    const repeat = Math.floor(clamp(num(d.repeatCount, 1), 1, 1000000));
-    const gType = num(d.giftType !== undefined ? d.giftType : (g.giftType !== undefined ? g.giftType : g.type));
-    if (type === 'gift' && gType === 1 && d.repeatEnd !== true && d.repeatEnd !== 1 && d.repeatEnd !== 'true') return null;
-    const msgId = d.msgId !== undefined ? d.msgId : (d.common && d.common.msgId);
-    const unitCoins = d.diamondCount !== undefined ? d.diamondCount : (g.diamondCount !== undefined ? g.diamondCount : g.diamond_count);
-    const coins = unitCoins == null ? num(d.coins !== undefined ? d.coins : g.coins) : num(unitCoins) * repeat;
-    const giftName = clean(d.giftName || g.giftName || g.name || 'Gift');
-    return {
-      type: type === 'roomuser' ? 'member' : type,
-      id: String(id),
-      userId: String(u.userId || u.id || d.userId || ''),
-      name: clean(u.nickname || d.nickname || id),
-      avatar: avatarUrl(d),
-      text: String(d.comment !== undefined ? d.comment : (d.text || '')).slice(0, 160),
-      count: Math.floor(clamp(num(d.likeCount, 1), 1, 10000)),
-      repeat: repeat,
-      coins: clamp(coins, 0, 1e9),
-      giftName: giftName,
-      eventId: msgId == null ? '' : type + ':' + msgId + (type === 'gift' ? ':' + repeat : '')
-    };
-  }
-
-  const SFX_CHORD = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
-  let sound = true, ttsEnabled = true, autoCrowdEnabled = true, audioCtx = null, soundEvents = 0, soundLevel = 0.95;
-  try {
-    const saved = localStorage.getItem('galaxinko-sfx-volume');
-    if (saved !== null && Number.isFinite(Number(saved))) soundLevel = clamp(Number(saved), 0.2, 1);
-  } catch (e) {}
-
-  let lastSpokenAt = 0;
-  let cachedVoice = null;
-
-  function pickHumanVoice() {
-    if (!('speechSynthesis' in window)) return null;
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || !voices.length) return null;
-    const preferred = [
-      /Natural/i, /Online/i, /Aria/i, /Guy/i, /Jenny/i, /Google US English/i, /Samantha/i, /Siri/i
-    ];
-    const enVoices = voices.filter(v => /^en[-_](US|GB|CA|AU)/i.test(v.lang) || /^en/i.test(v.lang));
-    for (let i = 0; i < preferred.length; i++) {
-      const match = enVoices.find(v => preferred[i].test(v.name));
-      if (match) return match;
-    }
-    return enVoices[0] || voices[0];
-  }
-
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = () => { cachedVoice = pickHumanVoice(); };
-    // Keep Chrome speechSynthesis awake even when window is behind OBS
-    setInterval(() => {
-      try {
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-      } catch (e) {}
-    }, 2500);
-  }
-
-  function formatSpokenWord(w) {
-    return String(w || '').toLowerCase()
-      .replace('gta 6', 'G T A six')
-      .replace('ps5', 'P S five')
-      .replace('100k', 'one hundred K')
-      .replace('1m', 'one million');
-  }
-
-  function playVocalFormantPulse(wordCount) {
-    if (!sound || soundLevel === 0 || !audioCtx || audioCtx.state !== 'running') return;
-    const count = clamp(wordCount || 4, 2, 10);
-    for (let i = 0; i < count; i++) {
-      sfxTone(155 + (i % 3) * 32, 0.09, 0.045, 0, 'sawtooth', i * 0.13, 1.15);
-    }
-  }
-
-  function speakTTS(text, priority) {
-    if (!ttsEnabled || !sound || soundLevel === 0) return;
-    const now = performance.now();
-    if (!priority && now - lastSpokenAt < 3200) return;
-    lastSpokenAt = now;
-
-    const words = String(text || '').trim().split(/\s+/).length;
-    playVocalFormantPulse(words);
-
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.resume();
-      if (priority) window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(String(text));
-      if (!cachedVoice) cachedVoice = pickHumanVoice();
-      if (cachedVoice) utter.voice = cachedVoice;
-      utter.lang = 'en-US';
-      utter.rate = 1.01 + (Math.random() - 0.5) * 0.04;
-      utter.pitch = 1.0 + (Math.random() - 0.5) * 0.04;
-      utter.volume = clamp(soundLevel, 0, 1);
-      window.speechSynthesis.speak(utter);
-    } catch (e) {}
-  }
-
-  setInterval(() => {
-    if ('speechSynthesis' in window && window.speechSynthesis.paused) {
-      try { window.speechSynthesis.resume(); } catch (e) {}
-    }
-  }, 2500);
-
-  const sfxMix = {
-    input: null, master: null, keepAlive: null, voices: new Set(), limit: 14,
-    resumeAt: -Infinity, error: '', uiKey: '', last: new Map()
-  };
-
-  function updateSoundUI() {
-    const available = !!(window.AudioContext || window.webkitAudioContext);
-    const running = audioCtx && audioCtx.state === 'running';
-    const muted = soundLevel === 0;
-    const key = [available, sound, ttsEnabled, autoCrowdEnabled, audioCtx && audioCtx.state, soundLevel, sfxMix.error].join('|');
-    if (key === sfxMix.uiKey) return;
-    sfxMix.uiKey = key;
-    const button = $('sfx');
-    if (button) button.textContent = !available ? 'AUDIO UNAVAILABLE' : !sound ? 'SOUND OFF' : muted ? 'SOUND MUTED' : 'SOUND ON';
-    const ttsBtn = $('ttsBtn');
-    if (ttsBtn) ttsBtn.textContent = ttsEnabled ? 'VOICE TTS: ON' : 'VOICE TTS: OFF';
-    const botBtn = $('botBtn');
-    if (botBtn) botBtn.textContent = autoCrowdEnabled ? 'AUTO CROWD: ON' : 'AUTO CROWD: OFF';
-    const volume = $('volume');
-    if (volume) volume.value = String(Math.round(soundLevel * 100));
-    const value = $('volumeValue');
-    if (value) value.textContent = Math.round(soundLevel * 100) + '%';
-    const info = $('audioStatus');
-    if (info) info.textContent = !available ? 'Web Audio unavailable.' : !sound ? 'Sound is off.' : running ? 'Audio & Natural Voice active.' : 'Sound & TTS ready (click once in Chrome to unlock).';
-  }
-
-  function applySoundLevel() {
-    if (sfxMix.master && audioCtx) {
-      const at = audioCtx.currentTime;
-      sfxMix.master.gain.cancelScheduledValues(at);
-      sfxMix.master.gain.setTargetAtTime(sound && soundLevel > 0 ? soundLevel : 0.0001, at, 0.02);
-    }
-    updateSoundUI();
-  }
-
-  function setSoundLevel(val) {
-    soundLevel = clamp(num(val, 0.85), 0, 1);
-    try { localStorage.setItem('galaxinko-sfx-volume', String(soundLevel)); } catch (e) {}
-    applySoundLevel();
-  }
-
-  function unlockAudio(gesture) {
-    if (!sound) { updateSoundUI(); return Promise.resolve(false); }
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    if (!Audio) { updateSoundUI(); return Promise.resolve(false); }
-    try {
-      if (!audioCtx) {
-        audioCtx = new Audio();
-        const filter = audioCtx.createBiquadFilter();
-        const compressor = audioCtx.createDynamicsCompressor();
-        const master = audioCtx.createGain();
-        filter.type = 'lowpass'; filter.frequency.value = 3800; filter.Q.value = 0.7;
-        compressor.threshold.value = -16; compressor.knee.value = 10; compressor.ratio.value = 3.5;
-        compressor.attack.value = 0.004; compressor.release.value = 0.15;
-        master.gain.value = soundLevel;
-        filter.connect(compressor); compressor.connect(master); master.connect(audioCtx.destination);
-        sfxMix.input = filter; sfxMix.master = master;
-        audioCtx.onstatechange = updateSoundUI;
-
-        try {
-          const keepOsc = audioCtx.createOscillator();
-          const keepGain = audioCtx.createGain();
-          keepOsc.frequency.value = 22;
-          keepGain.gain.value = 0.0003;
-          keepOsc.connect(keepGain);
-          keepGain.connect(audioCtx.destination);
-          keepOsc.start();
-        } catch (e) {}
-      }
-      if (audioCtx.state === 'running') { sfxMix.error = ''; updateSoundUI(); return Promise.resolve(true); }
-      const t = performance.now();
-      if (audioCtx.state === 'closed' || (!gesture && t - sfxMix.resumeAt < 350)) { updateSoundUI(); return Promise.resolve(false); }
-      sfxMix.resumeAt = t;
-      updateSoundUI();
-      return Promise.resolve(audioCtx.resume()).then(() => {
-        sfxMix.error = ''; updateSoundUI();
-        if (gesture && audioCtx.state === 'running') {
-          sfxTone(523.25, 0.14, 0.16, 0, 'triangle', 0, 1.25);
-        }
-        return audioCtx.state === 'running';
-      }, () => { updateSoundUI(); return false; });
-    } catch (e) {
-      updateSoundUI(); return Promise.resolve(false);
-    }
-  }
-
-  function sfxTone(freq, duration, volume, panVal, wave, delay, endRatio) {
-    if (!sound) return false;
-    if (!audioCtx || audioCtx.state !== 'running') unlockAudio(false);
-    if (!audioCtx || audioCtx.state !== 'running' || !sfxMix.input || sfxMix.voices.size >= sfxMix.limit) return false;
-    try {
-      const at = audioCtx.currentTime + (delay || 0);
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      const pan = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
-      const voice = { osc: osc, gain: gain };
-      osc.type = wave || 'sine';
-      osc.frequency.setValueAtTime(freq, at);
-      osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * (endRatio || 1)), at + duration);
-      gain.gain.setValueAtTime(0.0001, at);
-      gain.gain.exponentialRampToValueAtTime(volume, at + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-      osc.connect(gain);
-      if (pan) { pan.pan.value = clamp(panVal || 0, -1, 1); gain.connect(pan); pan.connect(sfxMix.input); }
-      else gain.connect(sfxMix.input);
-      sfxMix.voices.add(voice);
-      osc.onended = () => { sfxMix.voices.delete(voice); osc.disconnect(); gain.disconnect(); if (pan) pan.disconnect(); };
-      osc.start(at); osc.stop(at + duration + 0.02);
-      soundEvents++;
-      return true;
-    } catch (e) { return false; }
-  }
-
-  function playSfx(kind, side, tier) {
-    const t = performance.now();
-    const cd = { vote: 55, bounce: 65, bumper: 55, kick: 70, like: 75, crown: 450, shred: 500, forge: 95, gift: 280, win: 600 }[kind] || 65;
-    const prev = sfxMix.last.has(kind) ? sfxMix.last.get(kind) : -Infinity;
-    if (t - prev < cd) return;
-    sfxMix.last.set(kind, t);
-    const pan = side === 'A' ? -0.25 : side === 'B' ? 0.25 : 0;
-
-    if (kind === 'vote') {
-      const base = side === 'A' ? 320 : 390;
-      sfxTone(base, 0.12, 0.15, pan, 'triangle', 0, 1.55);
-    } else if (kind === 'bumper') {
-      const note = SFX_CHORD[Math.floor(Math.random() * SFX_CHORD.length)] * 1.5;
-      sfxTone(note, 0.11, 0.14, pan, 'triangle', 0, 1.04);
-    } else if (kind === 'kick') {
-      sfxTone(220, 0.11, 0.18, pan, 'triangle', 0, 1.65);
-    } else if (kind === 'bounce') {
-      sfxTone(170 + Math.random() * 60, 0.07, 0.08, pan, 'triangle', 0, 0.82);
-    } else if (kind === 'like') {
-      sfxTone(420 + Math.random() * 110, 0.10, 0.13, pan, 'triangle', 0, 1.35);
-    } else if (kind === 'crown') {
-      [0, 2, 4].forEach((n, i) => sfxTone(SFX_CHORD[n] * 1.5, 0.20, 0.14, pan, 'triangle', i * 0.06, 1.02));
-    } else if (kind === 'shred') {
-      sfxTone(125, 0.55, 0.22, pan, 'sawtooth', 0, 0.42);
-      sfxTone(75, 0.65, 0.20, 0, 'triangle', 0.04, 0.5);
-    } else if (kind === 'forge') {
-      const note = SFX_CHORD[Math.floor(Math.random() * SFX_CHORD.length)] * (1.5 + Math.random() * 0.5);
-      sfxTone(note, 0.14, 0.09, (Math.random() - 0.5) * 0.4, 'sine', 0, 1.25);
-    } else if (kind === 'gift') {
-      const gt = tier || 1;
-      const notes = gt >= 3 ? [0, 2, 3, 5] : [0, 2, 4];
-      notes.forEach((n, i) => sfxTone(SFX_CHORD[n] * 2, 0.34, 0.18, 0, 'triangle', i * 0.07, 1.02));
-    } else if (kind === 'win') {
-      [0, 2, 3, 5].forEach((n, i) => sfxTone(SFX_CHORD[n] * 2, 0.38, 0.17, 0, 'triangle', i * 0.085, 1.0));
-    }
-  }
-
-  function testSound() {
-    sound = true;
-    if (soundLevel === 0) setSoundLevel(0.85);
-    applySoundLevel();
-    return unlockAudio(true).then(ready => {
-      if (!ready) return false;
-      playSfx('win');
-      speakTTS('Audio and voice commentary are working!', true);
-      return true;
+    // Hvězdy / světlušky
+    stars.forEach(s => {
+        s.y -= s.speed;
+        if (s.y < 0) { s.y = height; s.x = Math.random() * width; }
+        s.alpha += (Math.random() - 0.5) * 0.04;
+        s.alpha = Math.max(0.2, Math.min(1, s.alpha));
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 248, 220, ${s.alpha})`;
+        ctx.fill();
     });
-  }
 
-  function toggleSound() {
-    if (!sound || soundLevel === 0) {
-      sound = true; applySoundLevel(); return testSound();
+    requestAnimationFrame(drawVisuals);
+}
+drawVisuals();
+
+
+/* =========================================================
+   2. GENERÁTOR PODKRESOVÉ HUDBY (Web Audio API - Smyčka)
+   ========================================================= */
+let audioCtx = null;
+let isMusicPlaying = false;
+let masterBgGain = null;
+let oscNodes = [];
+let noiseNode = null;
+let noiseFilter = null;
+let lfoNode = null;
+let moodTimeout = null;
+
+// Frekvence akordů pro různé nálady
+const CHORDS = {
+    calm: [130.81, 164.81, 196.00, 246.94],     // Cmaj7 - klidný, uspávací
+    tension: [110.00, 130.81, 164.81, 207.65],  // Am(maj7) / napětí, bouře, tajemno
+    happy: [146.83, 185.00, 220.00, 277.18]     // Dmaj7 - světlý, kouzelný, radostný
+};
+
+function initAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    sound = false; applySoundLevel(); return Promise.resolve(false);
-  }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
 
-  const pics = new Map();
-  let portraitJobs = 0;
+function startBackgroundMusic() {
+    initAudioContext();
+    stopBackgroundMusic();
 
-  function requestPic(url) {
-    if (!url || pics.has(url) || pics.size >= MAX) return;
-    pics.set(url, { state: 'waiting' });
-    pumpPics();
-  }
+    masterBgGain = audioCtx.createGain();
+    masterBgGain.gain.value = parseFloat(document.getElementById('bgVol').value);
+    masterBgGain.connect(audioCtx.destination);
 
-  function pumpPics() {
-    pics.forEach((entry, u) => {
-      if (portraitJobs >= 4 || entry.state !== 'waiting') return;
-      entry.state = 'loading';
-      portraitJobs++;
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.referrerPolicy = 'no-referrer';
-      let done = false;
-      const finish = ok => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        img.onload = img.onerror = null;
-        if (ok && img.naturalWidth) {
-          const thumb = document.createElement('canvas');
-          thumb.width = thumb.height = 180;
-          const g = thumb.getContext('2d');
-          const side = Math.min(img.naturalWidth, img.naturalHeight);
-          g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 180, 180);
-          entry.img = thumb;
-          entry.state = 'ready';
-        } else {
-          entry.state = 'failed';
-        }
-        portraitJobs--;
-        pumpPics();
-      };
-      const timer = setTimeout(() => finish(false), 7500);
-      img.onload = () => finish(true);
-      img.onerror = () => finish(false);
-      img.src = u;
-    });
-  }
+    const preset = document.getElementById('bgPreset').value;
 
-  function getPlayerImage(p) {
-    const picEntry = p.avatar ? pics.get(p.avatar) : null;
-    if (picEntry && picEntry.state === 'ready') return picEntry.img;
-    if (!p.fallbackCanvas) {
-      p.fallbackCanvas = createRichAvatar(p.name || p.id);
-    }
-    return p.fallbackCanvas;
-  }
+    // 1. Harmonické tóny (Ukolébavka / Noční klid)
+    if (preset === 'lullaby' || preset === 'night') {
+        const freqs = CHORDS.calm;
+        freqs.forEach((f, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = preset === 'lullaby' ? 'sine' : 'triangle';
+            osc.frequency.value = preset === 'night' ? f * 0.5 : f;
 
-  const SHRED_DURATION = 3.8;
-  const FORGE_DURATION = 6.2;
-  const SHOW_DURATION = 4.6;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 350;
 
-  class ClashForgeGame {
-    constructor() {
-      this.players = new Map();
-      this.aliases = new Map();
-      this.seen = new Map();
-      this.balls = [];
-      this.chips = [];
-      this.shockwaves = [];
-      this.popups = [];
-      this.laserBeams = [];
-      this.giftMeteors = [];
-      this.forgeOrbs = [];
-      this.nextRoundQueue = [];
-      this.hallOfFame = [
-        { id: 'hof_1', name: 'alex.vibes', avatar: '', side: 'A', tier: 2, streak: 3, topicEmoji: '🍕' },
-        { id: 'hof_2', name: 'mia_99', avatar: '', side: 'B', tier: 1, streak: 2, topicEmoji: '🐱' },
-        { id: 'hof_3', name: 'lucas_gg', avatar: '', side: 'A', tier: 3, streak: 4, topicEmoji: '🎮' },
-        { id: 'hof_4', name: 'emma.tt', avatar: '', side: 'B', tier: 0, streak: 1, topicEmoji: '☀️' },
-        { id: 'hof_5', name: 'matej_77', avatar: '', side: 'A', tier: 1, streak: 2, topicEmoji: '🏎️' },
-        { id: 'hof_6', name: 'hana_cz', avatar: '', side: 'B', tier: 2, streak: 1, topicEmoji: '🌙' }
-      ];
-      this.bumpers = [];
-      this.titanPoses = { A: null, B: null };
-      this.question = QUESTIONS[0];
-      this.phase = 'VOTE';
-      this.roundDuration = 75;
-      this.timer = 75;
-      this.isKnockout = false;
-      this.forgeProgress = 0;
-      this.colorReveal = 0;
-      this.forgeSlide = 0;
-      this.trapdoorAngle = 0;
-      this.crusherY = 0;
-      this.splitX = 540;
-      this.targetSplitX = 540;
-      this.shovePulseA = 0;
-      this.shovePulseB = 0;
-      this.loseTitanY = 0;
-      this.loseTitanVy = 0;
-      this.loseTitanRot = 0;
-      this.loseTitanShredded = false;
-      this.forgeTier = 0;
-      this.mvp = null;
-      this.leaderA = null;
-      this.leaderB = null;
-      this.winningSide = 'A';
-      this.sawAngle = 0;
-      this.shake = 0;
-      this.banner = null;
-      this.round = 0;
-      this.lastSpokenCountdown = 6;
-      this.lastWelcomeTtsAt = 0;
-      this.nextBotAt = 0.8;
-      this.nextBotLikeAt = 2.5;
-      this.usedBotHandles = new Set();
-      this.nextRound();
-    }
-
-    getChamberBox(side) {
-      if (side === 'A') {
-        return { left: ARENA_LEFT, right: Math.round(this.splitX - GAP_HALF), top: ARENA_TOP, bottom: ARENA_BOTTOM };
-      }
-      return { left: Math.round(this.splitX + GAP_HALF), right: ARENA_RIGHT, top: ARENA_TOP, bottom: ARENA_BOTTOM };
-    }
-
-    getRealPlayerCount() {
-      let real = 0;
-      for (let i = 0; i < this.balls.length; i++) {
-        if (!this.balls[i].isBot && !this.balls[i].isClone) real++;
-      }
-      return real;
-    }
-
-    getTargetBotCrowd() {
-      if (!autoCrowdEnabled) return 0;
-      const real = this.getRealPlayerCount();
-      if (real >= 5) return 0;
-      if (real >= 3) return 2;
-      if (real >= 1) return 4;
-      return 6;
-    }
-
-    getCrowdScale(side) {
-      let count = 0;
-      for (let i = 0; i < this.balls.length; i++) {
-        if (this.balls[i].side === side && !this.balls[i].isBot) count++;
-      }
-      if (count <= 7) return 1.0;
-      return clamp(Math.pow(7 / count, 0.25), 0.58, 1.0);
-    }
-
-    updateBumpers() {
-      const boxA = this.getChamberBox('A');
-      const boxB = this.getChamberBox('B');
-      const cxA = (boxA.left + boxA.right) / 2;
-      const cxB = (boxB.left + boxB.right) / 2;
-      const spreadA = Math.min(95, (boxA.right - boxA.left) * 0.24);
-      const spreadB = Math.min(95, (boxB.right - boxB.left) * 0.24);
-
-      if (this.bumpers.length !== 4) {
-        this.bumpers = [
-          { side: 'A', x: cxA - spreadA, y: 665, r: 19, hitAt: -999, color: TEAM_A },
-          { side: 'A', x: cxA + spreadA, y: 665, r: 19, hitAt: -999, color: GOLD },
-          { side: 'B', x: cxB - spreadB, y: 665, r: 19, hitAt: -999, color: GOLD },
-          { side: 'B', x: cxB + spreadB, y: 665, r: 19, hitAt: -999, color: TEAM_B }
-        ];
-      } else {
-        this.bumpers[0].x = cxA - spreadA;
-        this.bumpers[1].x = cxA + spreadA;
-        this.bumpers[2].x = cxB - spreadB;
-        this.bumpers[3].x = cxB + spreadB;
-      }
-    }
-
-    computeTitanPose(side, now, pct) {
-      const isLeft = side === 'A';
-      const dir = isLeft ? 1 : -1;
-      const box = this.getChamberBox(side);
-      const shove = isLeft ? this.shovePulseA : this.shovePulseB;
-      const isWinning = pct >= 50;
-      const isShredLoser = this.phase === 'SHRED' && this.winningSide !== side;
-      const isShredWinner = this.phase === 'SHRED' && this.winningSide === side;
-
-      const stepPhase = now * 0.0105 + (isLeft ? 0 : Math.PI);
-      const bobY = isShredLoser ? 0 : Math.sin(stepPhase * 2) * (6 + shove * 8);
-      const pushLean = (isWinning ? 26 : 8) + shove * 22;
-
-      const fallOffsetY = isShredLoser ? this.loseTitanY : 0;
-      const rot = isShredLoser ? this.loseTitanRot : 0;
-
-      const baseHandX = this.splitX - dir * 24;
-      const baseHandY = 985 + Math.sin(now * 0.016) * 10;
-
-      let shoulderX = this.splitX - dir * (155 + (isWinning ? 12 : -12) - shove * 22);
-      if (isLeft) shoulderX = clamp(shoulderX, box.left + 95, box.right - 70);
-      else shoulderX = clamp(shoulderX, box.left + 70, box.right - 95);
-
-      let baseShoulderY = 945 + fallOffsetY;
-      if (isShredLoser) {
-        const pressBottomY = lerp(box.top + 80, box.bottom - 35, this.crusherY);
-        if (baseShoulderY - 125 < pressBottomY) {
-          const pushDown = pressBottomY - (baseShoulderY - 125);
-          baseShoulderY += pushDown;
-          this.loseTitanY = Math.max(this.loseTitanY, fallOffsetY + pushDown);
-        }
-      }
-
-      const shoulderY = baseShoulderY + bobY;
-      const hipX = shoulderX - dir * (44 + pushLean * 0.6);
-      const hipY = shoulderY + 230;
-      const baseHipY = baseShoulderY + 230;
-
-      const handX = isShredWinner ? (shoulderX + dir * 45) : (isShredLoser ? (shoulderX + dir * 70) : baseHandX);
-      const handY = isShredWinner ? (shoulderY - 145 + Math.sin(now * 0.025) * 14) : (isShredLoser ? (shoulderY - 95) : baseHandY);
-
-      const frontKick = Math.sin(stepPhase);
-      const backKick = Math.cos(stepPhase);
-      const frontFootX = clamp(hipX + dir * (65 + frontKick * 58), box.left + 36, box.right - 36);
-      const frontFootY = (isShredLoser ? (hipY + 235) : (1424 - Math.max(0, frontKick) * 42));
-      const backFootX = clamp(hipX - dir * (78 + backKick * 54), box.left + 36, box.right - 36);
-      const backFootY = (isShredLoser ? (hipY + 245) : (1430 - Math.max(0, -frontKick) * 36));
-
-      const frontKneeX = (hipX + frontFootX) / 2 + dir * 28;
-      const frontKneeY = (hipY + frontFootY) / 2 - 24;
-      const backKneeX = (hipX + backFootX) / 2 + dir * 14;
-      const backKneeY = (hipY + backFootY) / 2 - 16;
-
-      const headX = shoulderX + dir * 18;
-      const headY = shoulderY - 86;
-      const baseHeadY = baseShoulderY - 86;
-      const chestX = (shoulderX + hipX) / 2;
-      const chestY = (shoulderY + hipY) / 2 - 12;
-      const baseChestY = (baseShoulderY + baseHipY) / 2 - 12;
-
-      const footVx = Math.cos(stepPhase) * dir * 560;
-      const backFootVx = -Math.sin(stepPhase) * dir * 520;
-
-      const colliders = isShredLoser && this.loseTitanY > 420 ? [] : [
-        { x: headX, y: baseHeadY, r: 52, vx: -dir * 240, vy: -220, isFoot: false, isUpper: true },
-        { x: chestX, y: baseChestY, r: 58, vx: -dir * 200, vy: -120, isFoot: false, isUpper: true },
-        { x: hipX, y: baseHipY, r: 48, vx: -dir * 180, vy: -100, isFoot: false, isUpper: false },
-        { x: frontKneeX, y: frontKneeY, r: 32, vx: footVx * 0.6, vy: -240, isFoot: true, isUpper: false },
-        { x: frontFootX, y: frontFootY, r: 38, vx: footVx, vy: -520, isFoot: true, isUpper: false },
-        { x: backKneeX, y: backKneeY, r: 30, vx: backFootVx * 0.6, vy: -220, isFoot: true, isUpper: false },
-        { x: backFootX, y: backFootY, r: 36, vx: backFootVx, vy: -480, isFoot: true, isUpper: false }
-      ];
-
-      return {
-        side, isLeft, dir, pct, shove, isWinning, isShredLoser, isShredWinner,
-        shoulderX, shoulderY, hipX, hipY, handX, handY,
-        frontFootX, frontFootY, backFootX, backFootY,
-        frontKneeX, frontKneeY, backKneeX, backKneeY,
-        headX, headY, chestX, chestY, rot, stepPhase,
-        colliders
-      };
-    }
-
-    nextRound() {
-      this.round++;
-      this.question = pullNextQuestion();
-      this.phase = 'VOTE';
-      // Randomized 50 to 120 seconds every round so TikTok never detects a fixed loop!
-      this.roundDuration = 50 + Math.floor(Math.random() * 71);
-      this.timer = this.roundDuration;
-      this.isKnockout = false;
-      this.lastSpokenCountdown = 6;
-      this.forgeProgress = 0;
-      this.colorReveal = 0;
-      this.forgeSlide = 0;
-      this.trapdoorAngle = 0;
-      this.crusherY = 0;
-      this.splitX = 540;
-      this.targetSplitX = 540;
-      this.shovePulseA = 0;
-      this.shovePulseB = 0;
-      this.loseTitanY = 0;
-      this.loseTitanVy = 0;
-      this.loseTitanRot = 0;
-      this.loseTitanShredded = false;
-      this.forgeTier = 0;
-      this.mvp = null;
-      this.leaderA = null;
-      this.leaderB = null;
-      this.balls = [];
-      this.chips = [];
-      this.shockwaves = [];
-      this.popups = [];
-      this.laserBeams = [];
-      this.giftMeteors = [];
-      this.forgeOrbs = [];
-      this.usedBotHandles.clear();
-      this.nextBotAt = 0.8 + Math.random() * 1.2;
-      this.nextBotLikeAt = 2.5 + Math.random() * 2.0;
-      this.updateBumpers();
-
-      this.players.forEach(p => {
-        p.side = null;
-        p.roundLikes = 0;
-        p.roundGifts = 0;
-        p.roundScore = 0;
-        p.giftTier = 0;
-        p.comboCount = 0;
-        p.needsChatUnlock = false;
-      });
-
-      const aWord = formatSpokenWord(this.question.a);
-      const bWord = formatSpokenWord(this.question.b);
-      const prompts = [
-        'Round ' + this.round + '! ' + aWord + ' versus ' + bWord + '! Who is stronger?',
-        'New clash! Team ' + aWord + ' against Team ' + bWord + '!',
-        aWord + ' or ' + bWord + '? Let the arena battle begin!'
-      ];
-      speakTTS(prompts[this.round % prompts.length], false);
-
-      if (this.nextRoundQueue.length > 0) {
-        const queued = this.nextRoundQueue.slice(0, 40);
-        this.nextRoundQueue = [];
-        queued.forEach(item => {
-          const p = this.players.get(item.playerId);
-          if (p) {
-            p.roundScore += 50;
-            this.castVote(p, item.side, true);
-          }
+            gain.gain.value = 0.08 / freqs.length;
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterBgGain);
+            osc.start();
+            oscNodes.push({ osc, gain, baseIdx: idx, mult: preset === 'night' ? 0.5 : 1 });
         });
-      }
     }
 
-    addPopup(x, y, text, color, size) {
-      if (this.popups.length > 35) this.popups.shift();
-      this.popups.push({ x: x, y: y, text: text, color: color || WHITE, size: size || 24, life: 1.0 });
+    // 2. Šumové generátory (Moře, Déšť, Krb, Noční šum)
+    if (preset !== 'lullaby') {
+        const bufferSize = audioCtx.sampleRate * 3;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        noiseNode = audioCtx.createBufferSource();
+        noiseNode.buffer = buffer;
+        noiseNode.loop = true;
+
+        noiseFilter = audioCtx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.value = preset === 'rain' ? 950 : (preset === 'fire' ? 280 : 400);
+
+        const nGain = audioCtx.createGain();
+        nGain.gain.value = preset === 'night' ? 0.03 : 0.18;
+
+        // Pro moře přidáme pomalé vlnění hlasitosti (LFO)
+        if (preset === 'ocean') {
+            lfoNode = audioCtx.createOscillator();
+            lfoNode.frequency.value = 0.14; // Vlna každých ~7 sekund
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.value = 250;
+            lfoNode.connect(noiseFilter.frequency);
+            lfoNode.start();
+        }
+
+        noiseNode.connect(noiseFilter);
+        noiseFilter.connect(nGain);
+        nGain.connect(masterBgGain);
+        noiseNode.start();
     }
 
-    addShockwave(x, y, maxR, color) {
-      if (this.shockwaves.length > 28) this.shockwaves.shift();
-      this.shockwaves.push({ x: x, y: y, r: 12, maxR: maxR || 95, color: color || WHITE, life: 1.0 });
+    isMusicPlaying = true;
+    const btn = document.getElementById('musicBtn');
+    btn.innerText = "🎵 Vypnout podkres";
+    btn.classList.add('active');
+}
+
+function stopBackgroundMusic() {
+    oscNodes.forEach(o => { try { o.osc.stop(); } catch(e){} });
+    oscNodes = [];
+    if (noiseNode) { try { noiseNode.stop(); } catch(e){} noiseNode = null; }
+    if (lfoNode) { try { lfoNode.stop(); } catch(e){} lfoNode = null; }
+    isMusicPlaying = false;
+    const btn = document.getElementById('musicBtn');
+    btn.innerText = "🎵 Zapnout podkres";
+    btn.classList.remove('active');
+}
+
+// Dynamická změna nálady podkresu a oblohy na 8 sekund podle děje
+function triggerTemporaryMood(moodType, label) {
+    const moodBox = document.getElementById('moodBox');
+    moodBox.innerHTML = `Nálada podkresu: <b>${label} (dočasně)</b>`;
+
+    if (moodType === 'tension') {
+        targetColors = { top: [25, 10, 35], bottom: [45, 15, 25] }; // Temně fialovo-červená
+    } else if (moodType === 'happy') {
+        targetColors = { top: [12, 30, 45], bottom: [25, 55, 70] }; // Kouzelná tyrkysová
     }
 
-    addLaserBeam(fromX, fromY, toX, toY, color, label) {
-      if (this.laserBeams.length > 14) this.laserBeams.shift();
-      this.laserBeams.push({ fromX: fromX, fromY: fromY, toX: toX, toY: toY, color: color, label: label, life: 1.0 });
-    }
-
-    updateChamberLeaders() {
-      let bestA = null, maxA = -1;
-      let bestB = null, maxB = -1;
-
-      let hasRealA = false, hasRealB = false;
-      for (let i = 0; i < this.balls.length; i++) {
-        const b = this.balls[i];
-        if (!b.isBot && !b.isClone) {
-          if (b.side === 'A') hasRealA = true;
-          if (b.side === 'B') hasRealB = true;
-        }
-      }
-
-      for (let i = 0; i < this.balls.length; i++) {
-        const b = this.balls[i];
-        if (b.isClone) continue;
-        if (b.side === 'A' && hasRealA && b.isBot) continue;
-        if (b.side === 'B' && hasRealB && b.isBot) continue;
-        const p = this.players.get(b.playerId);
-        const score = p ? p.roundScore : (b.botScore || 10);
-        if (b.side === 'A' && score > maxA) {
-          maxA = score;
-          bestA = b.playerId;
-        } else if (b.side === 'B' && score > maxB) {
-          maxB = score;
-          bestB = b.playerId;
-        }
-      }
-
-      this.leaderA = bestA;
-      this.leaderB = bestB;
-    }
-
-    getPlayer(id, userId) {
-      const sId = String(id);
-      const sUid = userId ? String(userId) : '';
-      const key = this.aliases.get(sId) || (sUid && this.aliases.get(sUid)) || sId;
-      return this.players.get(key);
-    }
-
-    ensurePlayer(e) {
-      let p = this.getPlayer(e.id, e.userId);
-      if (!p) {
-        if (this.players.size >= MAX) {
-          const firstKey = this.players.keys().next().value;
-          this.players.delete(firstKey);
-        }
-        p = {
-          id: String(e.id),
-          name: clean(e.name || e.id),
-          avatar: e.avatar || '',
-          side: null,
-          roundLikes: 0,
-          roundGifts: 0,
-          roundScore: 0,
-          giftTier: 0,
-          comboCount: 0,
-          needsChatUnlock: false,
-          winStreak: 0,
-          isBot: !!e.isBot,
-          lastShareAt: -Infinity
-        };
-        this.players.set(p.id, p);
-      }
-      if (e.name) p.name = clean(e.name);
-      if (e.avatar) { p.avatar = e.avatar; requestPic(e.avatar); }
-      [e.id, e.userId].forEach(alias => {
-        if (alias && String(alias) !== p.id && this.aliases.size < MAX * 3) {
-          this.aliases.set(String(alias), p.id);
-        }
-      });
-      return p;
-    }
-
-    spawnRandomBotVoter() {
-      if (this.phase !== 'VOTE') return;
-      const available = BOT_HANDLES.filter(h => !this.usedBotHandles.has(h));
-      if (!available.length) return;
-      const handle = available[Math.floor(Math.random() * available.length)];
-      this.usedBotHandles.add(handle);
-
-      const countA = this.balls.filter(b => b.side === 'A').length;
-      const countB = this.balls.filter(b => b.side === 'B').length;
-      let side = Math.random() < 0.5 ? 'A' : 'B';
-      if (Math.abs(countA - countB) >= 2) {
-        side = countA < countB ? 'A' : 'B';
-      }
-
-      const botPlayer = this.ensurePlayer({
-        id: 'bot_' + handle,
-        name: handle,
-        avatar: '',
-        isBot: true
-      });
-      botPlayer.side = side;
-      botPlayer.roundScore = 5 + Math.floor(Math.random() * 8);
-      this.spawnBall(botPlayer, side, 0, false, true, false);
-    }
-
-    spawnBall(p, side, bonusRadius, isClone, isBot, isCombo) {
-      if (this.balls.length >= 160) return;
-      const box = this.getChamberBox(side);
-      const defaultBase = isBot ? 30 : (isCombo ? 54 : (isClone ? 44 : 78));
-      const baseR = clamp(defaultBase + (bonusRadius || 0), 26, 118);
-      const rScaled = isBot ? baseR : (baseR * this.getCrowdScale(side));
-      const usableW = Math.max(40, (box.right - box.left) - (rScaled + 20) * 2);
-      const randFrac = side === 'A' ? (Math.random() * 0.76) : (0.24 + Math.random() * 0.76);
-      const x = box.left + rScaled + 20 + randFrac * usableW;
-      const y = box.top + 48 + (isClone || isCombo ? Math.random() * 30 : 0);
-      const now = performance.now();
-      const b = {
-        playerId: p.id,
-        name: p.name,
-        side: side,
-        x: x, y: y,
-        vx: isCombo ? ((side === 'A' ? 1 : -1) * (240 + Math.random() * 180)) : ((Math.random() - 0.5) * 300),
-        vy: isCombo ? (440 + Math.random() * 180) : (220 + Math.random() * 150),
-        r: rScaled,
-        baseR: baseR,
-        angle: (Math.random() - 0.5) * 0.5,
-        omega: (Math.random() - 0.5) * 4,
-        squashX: 1.0,
-        squashY: 1.0,
-        likeGlowUntil: isBot ? 0 : (now + 2400),
-        youBeaconUntil: (!isBot && !isClone && !isCombo) ? (now + 4200) : 0,
-        lastKickAt: 0,
-        trail: [],
-        giftTier: p.giftTier || 0,
-        isBot: !!isBot,
-        botScore: p.roundScore || 5,
-        isClone: !!(isClone || isCombo),
-        isCombo: !!isCombo,
-        shredded: false
-      };
-      this.balls.push(b);
-
-      if (side === 'A') this.shovePulseA = isBot ? 0.35 : 1.15;
-      else this.shovePulseB = isBot ? 0.35 : 1.15;
-
-      if (!isBot) {
-        this.addShockwave(x, y, isCombo ? 75 : 110, side === 'A' ? TEAM_A : TEAM_B);
-        this.addShockwave(this.splitX, 980, 125, side === 'A' ? TEAM_A : TEAM_B);
-        if (!isClone && !isCombo) {
-          this.addPopup(x, y - 36, '⬇️ YOU! ' + p.name, GOLD_HOT, 30);
-        }
-        playSfx('vote', side);
-      }
-      this.updateChamberLeaders();
-    }
-
-    queueForNextRound(p, side) {
-      let existing = null;
-      for (let i = 0; i < this.nextRoundQueue.length; i++) {
-        if (this.nextRoundQueue[i].playerId === p.id) { existing = this.nextRoundQueue[i]; break; }
-      }
-      if (existing) {
-        existing.side = side;
-      } else if (this.nextRoundQueue.length < 40) {
-        this.nextRoundQueue.push({ playerId: p.id, name: p.name, side: side });
-      }
-      const fromX = side === 'A' ? 200 : 880;
-      this.addLaserBeam(fromX, 1360, 540, 710, side === 'A' ? TEAM_A : TEAM_B, p.name + ' [' + side + ']');
-      if (this.phase === 'FORGE') {
-        this.forgeProgress = clamp(this.forgeProgress + 0.03, 0, 1);
-      }
-      playSfx('vote', side);
-    }
-
-    castVote(p, side, fromQueue) {
-      if (this.phase !== 'VOTE') {
-        this.queueForNextRound(p, side);
-        return;
-      }
-      let existingBall = null;
-      for (let i = 0; i < this.balls.length; i++) {
-        if (this.balls[i].playerId === p.id && !this.balls[i].isClone) {
-          existingBall = this.balls[i];
-          break;
-        }
-      }
-      p.side = side;
-      p.isBot = false;
-      p.comboCount = (p.comboCount || 0) + 1;
-      p.roundScore += fromQueue ? 150 : (120 + p.comboCount * 35);
-      if (side === 'A') this.shovePulseA = 1.25;
-      else this.shovePulseB = 1.25;
-
-      if (existingBall) {
-        existingBall.isBot = false;
-        existingBall.youBeaconUntil = performance.now() + 3500;
-        if (p.needsChatUnlock) {
-          p.needsChatUnlock = false;
-          existingBall.side = side;
-          existingBall.baseR = Math.min(114, Math.max(94, existingBall.baseR + 22));
-          existingBall.vy = -660;
-          this.addShockwave(existingBall.x, existingBall.y, 145, GOLD_HOT);
-          this.addPopup(existingBall.x, existingBall.y - 50, '🔥 2X MEGA BALL!', GOLD_HOT, 30);
-          playSfx('crown', side);
-        } else if (existingBall.side !== side) {
-          const box = this.getChamberBox(side);
-          existingBall.side = side;
-          existingBall.x = (box.left + box.right) / 2 + (Math.random() - 0.5) * 90;
-          existingBall.y = box.top + 48;
-          existingBall.vx = (Math.random() - 0.5) * 300;
-          existingBall.vy = 180;
-          this.addPopup(existingBall.x, existingBall.y - 35, '🔄 TEAM ' + side + '!', GOLD_HOT, 26);
-        } else {
-          existingBall.baseR = Math.min(114, existingBall.baseR + 5);
-          existingBall.vy = -560 - Math.random() * 140;
-          existingBall.vx += (Math.random() - 0.5) * 300;
-          this.spawnBall(p, side, 0, true, false, true);
-          this.addPopup(existingBall.x, existingBall.y - 45, '🔥 COMBO x' + p.comboCount + '!', GOLD_HOT, 28);
-        }
-        playSfx('vote', side);
-        this.updateChamberLeaders();
-      } else {
-        p.needsChatUnlock = false;
-        const tierInfo = GIFT_TIERS[p.giftTier || 0];
-        this.spawnBall(p, side, tierInfo.ballBonusR, false, false, false);
-      }
-    }
-
-    accept(e) {
-      if (!e) return false;
-      const now = performance.now();
-      if (e.eventId) {
-        if (this.seen.has(e.eventId)) return false;
-        this.seen.set(e.eventId, now);
-        if (this.seen.size > 8000) this.seen.delete(this.seen.keys().next().value);
-      }
-
-      const p = this.ensurePlayer(e);
-
-      if (e.type === 'member') {
-        return true;
-      }
-
-      if (e.type === 'chat') {
-        const msg = String(e.text || '').trim().toUpperCase();
-        const countA = this.balls.filter(b => b.side === 'A').length;
-        const countB = this.balls.filter(b => b.side === 'B').length;
-        const defaultSide = p.side || (countA <= countB ? 'A' : 'B');
-        const wordA = this.question.a.toUpperCase();
-        const wordB = this.question.b.toUpperCase();
-        const rootA = wordA.slice(0, 3);
-        const rootB = wordB.slice(0, 3);
-
-        if (msg === 'A' || msg === '1' || msg.indexOf('A ') === 0 || msg.indexOf(wordA) !== -1 || (rootA.length >= 3 && msg.indexOf(rootA) !== -1)) {
-          this.castVote(p, 'A', false);
-        } else if (msg === 'B' || msg === '2' || msg.indexOf('B ') === 0 || msg.indexOf(wordB) !== -1 || (rootB.length >= 3 && msg.indexOf(rootB) !== -1)) {
-          this.castVote(p, 'B', false);
-        } else {
-          this.castVote(p, defaultSide, false);
-        }
-        return true;
-      }
-
-      if (e.type === 'like') {
-        const count = clamp(e.count || 1, 1, 200);
-        p.roundLikes += count;
-        p.roundScore += count * 14;
-        if (this.phase === 'VOTE') {
-          const isFirstJoin = !p.side;
-          if (isFirstJoin) {
-            const countA = this.balls.filter(b => b.side === 'A').length;
-            const countB = this.balls.filter(b => b.side === 'B').length;
-            const autoSide = countA <= countB ? 'A' : 'B';
-            p.side = autoSide;
-            p.isBot = false;
-            p.needsChatUnlock = true;
-            this.spawnBall(p, autoSide, 0, false, false, false);
-            if (now - this.lastWelcomeTtsAt > 7500) {
-              this.lastWelcomeTtsAt = now;
-              speakTTS('Welcome ' + p.name + ' to the arena!', false);
-            }
-          }
-          if (p.side === 'A') this.shovePulseA = 1.05;
-          else this.shovePulseB = 1.05;
-
-          for (let i = 0; i < this.balls.length; i++) {
-            const b = this.balls[i];
-            if (b.playerId === p.id && !b.isClone) {
-              const tierBonus = GIFT_TIERS[p.giftTier || 0].ballBonusR;
-              b.baseR = clamp(78 + tierBonus + Math.pow(p.roundLikes, 0.58) * 5.5, 78, 114);
-              b.likeGlowUntil = now + 2600;
-              b.youBeaconUntil = Math.max(b.youBeaconUntil || 0, now + 3200);
-              b.vy = -520 - Math.random() * 180;
-              b.vx += (Math.random() - 0.5) * 320;
-              b.omega = (Math.random() - 0.5) * 8;
-              this.addShockwave(b.x, b.y, b.r + 55, GOLD);
-              this.addPopup(b.x, b.y - b.r, isFirstJoin ? ('👋 HI ' + p.name + '!') : ('⚡ +' + count + ' POWER!'), GOLD_HOT, 26);
-            }
-          }
-          this.addShockwave(this.splitX, 980, 130, GOLD);
-          this.updateChamberLeaders();
-          playSfx('like', p.side || 'A');
-        } else if (this.phase === 'FORGE') {
-          this.forgeProgress = clamp(this.forgeProgress + count * 0.010, 0, 1);
-          this.addLaserBeam(540 + (Math.random() - 0.5) * 500, 1360, 540, 710, GOLD, '⚡ ' + p.name);
-          playSfx('like', 'A');
-        }
-        return true;
-      }
-
-      if (e.type === 'share' || e.type === 'follow') {
-        if (now - p.lastShareAt > 5000) {
-          p.lastShareAt = now;
-          const countA = this.balls.filter(b => b.side === 'A').length;
-          const countB = this.balls.filter(b => b.side === 'B').length;
-          const side = p.side || (countA <= countB ? 'A' : 'B');
-          p.side = side;
-          p.roundScore += 140;
-          if (this.phase === 'VOTE') {
-            this.spawnBall(p, side, 16, false, false, false);
-          } else {
-            this.queueForNextRound(p, side);
-          }
-        }
-        return true;
-      }
-
-      if (e.type === 'gift' || e.type === 'subscribe') {
-        const coins = Math.max(1, e.coins || 1);
-        const tierInfo = getGiftTierInfo(coins);
-        p.roundGifts += coins;
-        p.roundScore += 200 + coins * tierInfo.scoreMult;
-        p.giftTier = Math.max(p.giftTier || 0, tierInfo.tier);
-        this.forgeTier = Math.max(this.forgeTier, tierInfo.tier);
-        this.shake = 8 + tierInfo.tier * 4;
-        playSfx('gift', p.side || 'A', tierInfo.tier);
-
-        const countA = this.balls.filter(b => b.side === 'A').length;
-        const countB = this.balls.filter(b => b.side === 'B').length;
-        const side = p.side || (countA <= countB ? 'A' : 'B');
-        p.side = side;
-
-        if (side === 'A') this.shovePulseA = 1.5;
-        else this.shovePulseB = 1.5;
-
-        const targetBox = this.getChamberBox(side);
-        const targetX = (targetBox.left + targetBox.right) / 2;
-        if (this.giftMeteors.length < 8) {
-          this.giftMeteors.push({
-            playerId: p.id,
-            name: p.name,
-            tier: tierInfo.tier,
-            badge: tierInfo.badge,
-            coins: coins,
-            fromX: 540, fromY: 110,
-            toX: this.phase === 'VOTE' ? targetX : 540,
-            toY: this.phase === 'VOTE' ? 660 : 710,
-            progress: 0
-          });
-        }
-
-        if (this.phase === 'VOTE') {
-          let mainBall = null;
-          for (let i = 0; i < this.balls.length; i++) {
-            if (this.balls[i].playerId === p.id && !this.balls[i].isClone) { mainBall = this.balls[i]; break; }
-          }
-          if (!mainBall) {
-            this.spawnBall(p, side, tierInfo.ballBonusR, false, false, false);
-          } else {
-            mainBall.isBot = false;
-            mainBall.giftTier = p.giftTier;
-            mainBall.baseR = clamp(78 + tierInfo.ballBonusR + Math.sqrt(p.roundLikes) * 3, 78, 114);
-            mainBall.vy = -660;
-            this.addShockwave(mainBall.x, mainBall.y, 165, tierInfo.border);
-            this.addPopup(mainBall.x, mainBall.y - 45, tierInfo.badge, tierInfo.glow, 28);
-          }
-          for (let c = 0; c < tierInfo.clones; c++) {
-            this.spawnBall(p, side, Math.max(0, tierInfo.ballBonusR - 14), true, false, false);
-          }
-          if (tierInfo.tier >= 2) {
-            for (let i = 0; i < this.balls.length; i++) {
-              const b = this.balls[i];
-              if (b.side === side) {
-                b.vy = -420 - Math.random() * 260;
-                b.vx += (Math.random() - 0.5) * 360;
-              }
-            }
-          }
-          this.updateChamberLeaders();
-        } else {
-          this.queueForNextRound(p, side);
-          this.spawnSparks(540, 710, 22);
-        }
-
-        this.banner = {
-          text: tierInfo.badge + ' · ' + p.name,
-          color: tierInfo.glow,
-          until: now + 3400
-        };
-        if (tierInfo.tier >= 2) {
-          speakTTS('Awesome power from ' + p.name + '!', false);
-        }
-        return true;
-      }
-
-      return false;
-    }
-
-    getCounts() {
-      // Base center resistance so 1 vote doesn't end a 90s round instantly, but 4-5 real actions trigger KO!
-      let a = 18, b = 18;
-      for (let i = 0; i < this.balls.length; i++) {
-        const ball = this.balls[i];
-        let weight = 2;
-        if (!ball.isBot) {
-          if (ball.isClone) {
-            weight = 7;
-          } else {
-            const tierWeight = (ball.giftTier || 0) * 12;
-            const likeWeight = ball.baseR > 78 ? Math.floor((ball.baseR - 74) / 4) : 0;
-            weight = 14 + likeWeight + tierWeight;
-          }
-        }
-        if (ball.side === 'A') a += weight;
-        else b += weight;
-      }
-      return { a: a, b: b, total: a + b };
-    }
-
-    startShredPhase(knockoutTriggered) {
-      this.phase = 'SHRED';
-      this.timer = SHRED_DURATION + Math.random() * 0.8;
-      this.isKnockout = !!knockoutTriggered;
-      this.trapdoorAngle = 0;
-      this.crusherY = 0;
-      this.loseTitanY = 0;
-      this.loseTitanVy = 80;
-      this.loseTitanRot = 0;
-      this.loseTitanShredded = false;
-      const counts = this.getCounts();
-      this.winningSide = counts.a >= counts.b ? 'A' : 'B';
-      this.shake = this.isKnockout ? 24 : 14;
-      playSfx('shred');
-
-      if (this.isKnockout) {
-        const winWord = formatSpokenWord(this.winningSide === 'A' ? this.question.a : this.question.b);
-        this.addPopup(540, 720, '💥 INSTANT KNOCKOUT! 💥', GOLD_HOT, 44);
-        speakTTS('Knockout! ' + winWord + ' wins the battle!', true);
-      }
-
-      this.players.forEach(p => {
-        if (p.side === this.winningSide) p.winStreak = (p.winStreak || 0) + 1;
-        else if (p.side) p.winStreak = 0;
-      });
-
-      const realWinners = this.balls
-        .filter(b => b.side === this.winningSide && !b.isBot && !b.isClone)
-        .map(b => this.players.get(b.playerId))
-        .filter(Boolean);
-
-      const botWinners = this.balls
-        .filter(b => b.side === this.winningSide && b.isBot && !b.isClone)
-        .map(b => this.players.get(b.playerId))
-        .filter(Boolean);
-
-      const pool = realWinners.length > 0 ? realWinners : botWinners;
-
-      if (pool.length > 0) {
-        pool.sort((x, y) => y.roundScore - x.roundScore);
-        this.mvp = pool[0];
-        this.forgeTier = Math.max(this.forgeTier, this.mvp.giftTier || 0);
-      } else {
-        this.mvp = {
-          id: 'mvp_default',
-          name: this.winningSide === 'A' ? this.question.a : this.question.b,
-          avatar: '',
-          side: this.winningSide,
-          roundScore: 100,
-          winStreak: 1,
-          giftTier: this.forgeTier
-        };
-      }
-
-      for (let i = 0; i < this.balls.length; i++) {
-        const b = this.balls[i];
-        if (b.side === this.winningSide) {
-          b.vy = -450 - Math.random() * 220;
-          b.vx = (Math.random() - 0.5) * 300;
-        }
-      }
-    }
-
-    startForgePhase() {
-      this.phase = 'FORGE';
-      this.timer = FORGE_DURATION + Math.random() * 1.4;
-      this.forgeProgress = 0;
-      this.colorReveal = 0;
-      this.forgeSlide = 0;
-      this.shake = 8;
-      playSfx('vote', this.winningSide);
-
-      this.forgeOrbs = [];
-      const tierInfo = GIFT_TIERS[this.forgeTier || 0];
-      const colors = [GOLD, GOLD_HOT, WHITE, tierInfo.border, tierInfo.glow, this.winningSide === 'A' ? TEAM_A : TEAM_B];
-      for (let i = 0; i < 110; i++) {
-        const angle = (i / 110) * Math.PI * 2 + Math.random() * 0.5;
-        const dist = 250 + Math.random() * 230;
-        this.forgeOrbs.push({
-          angle: angle,
-          dist: dist,
-          speed: 2.2 + Math.random() * 2.5,
-          size: 5 + Math.random() * 8,
-          color: colors[i % colors.length],
-          targetR: Math.random() * 200
+    // Plynulé přeladění hrajícího podkresu
+    if (isMusicPlaying && audioCtx) {
+        const now = audioCtx.currentTime;
+        const targetChord = CHORDS[moodType] || CHORDS.calm;
+        oscNodes.forEach(o => {
+            o.osc.frequency.setTargetAtTime(targetChord[o.baseIdx] * o.mult, now, 0.8);
         });
-      }
-
-      if (this.mvp) {
-        const winWord = formatSpokenWord(this.winningSide === 'A' ? this.question.a : this.question.b);
-        speakTTS(winWord + ' wins! Forging the starlight trophy for ' + this.mvp.name + '!', false);
-      }
+        if (noiseFilter) {
+            noiseFilter.frequency.setTargetAtTime(moodType === 'tension' ? 1200 : 600, now, 0.8);
+        }
     }
 
-    startShowcasePhase() {
-      this.phase = 'SHOWCASE';
-      this.timer = SHOW_DURATION + Math.random() * 1.2;
-      this.forgeProgress = 1;
-      this.colorReveal = 1;
-      this.shake = 12;
-      playSfx('win');
-      this.addShockwave(540, 740, 380, GOLD_HOT);
-      this.spawnSparks(540, 740, 55, GOLD_HOT);
-
-      if (this.mvp) {
-        const winEmoji = this.winningSide === 'A' ? this.question.ea : this.question.eb;
-        this.hallOfFame = this.hallOfFame.filter(h => h.name !== this.mvp.name);
-        this.hallOfFame.unshift({
-          id: this.mvp.id,
-          name: this.mvp.name,
-          avatar: this.mvp.avatar,
-          side: this.winningSide,
-          tier: this.forgeTier,
-          streak: this.mvp.winStreak || 1,
-          topicEmoji: winEmoji
-        });
-        if (this.hallOfFame.length > 7) this.hallOfFame.pop();
-      }
-    }
-
-    spawnSparks(x, y, count, customCol) {
-      if (this.chips.length > 260) return;
-      const tierInfo = GIFT_TIERS[this.forgeTier || 0];
-      const n = count || 4;
-      for (let i = 0; i < n; i++) {
-        const isSpark = Math.random() < 0.72;
-        this.chips.push({
-          x: x + (Math.random() - 0.5) * 24,
-          y: y + (Math.random() - 0.5) * 16,
-          vx: (Math.random() - 0.5) * 760,
-          vy: -220 - Math.random() * 560,
-          rot: Math.random() * Math.PI * 2,
-          vrot: (Math.random() - 0.5) * 20,
-          life: 1.0,
-          isSpark: isSpark,
-          color: customCol || (isSpark ? tierInfo.spark1 : tierInfo.spark2)
-        });
-      }
-    }
-
-    tick(dt) {
-      const now = performance.now();
-      this.sawAngle += dt * 16;
-      this.shake = Math.max(0, this.shake - dt * 26);
-      this.shovePulseA = Math.max(0, this.shovePulseA - dt * 2.8);
-      this.shovePulseB = Math.max(0, this.shovePulseB - dt * 2.8);
-
-      const counts = this.getCounts();
-      const ratioA = counts.total > 0 ? clamp(counts.a / counts.total, 0.14, 0.86) : 0.5;
-      const pctA = counts.total ? Math.round((counts.a / counts.total) * 100) : 50;
-      const pctB = counts.total ? 100 - pctA : 50;
-
-      if (this.phase === 'VOTE') {
-        this.targetSplitX = lerp(265, 815, ratioA);
-      } else if (this.phase === 'SHRED') {
-        this.targetSplitX = this.winningSide === 'A' ? 740 : 340;
-      } else {
-        this.targetSplitX = 540;
-      }
-      this.splitX += (this.targetSplitX - this.splitX) * Math.min(1, dt * 4.2);
-      this.updateBumpers();
-
-      const loseSide = this.winningSide === 'A' ? 'B' : 'A';
-
-      if (this.phase === 'VOTE') {
-        this.timer -= dt;
-
-        // Instant KO check if wall reaches the left or right plasma saws!
-        if (this.splitX >= KO_RIGHT_X || this.splitX <= KO_LEFT_X) {
-          this.startShredPhase(true);
-          return;
-        }
-
-        const elapsed = this.roundDuration - this.timer;
-        const currentBots = this.balls.filter(b => b.isBot).length;
-        const targetBots = this.getTargetBotCrowd();
-        if (elapsed >= this.nextBotAt && this.timer > 3.0 && currentBots < targetBots) {
-          this.spawnRandomBotVoter();
-          this.nextBotAt = elapsed + 2.2 + Math.random() * 3.5;
-        }
-
-        if (elapsed >= this.nextBotLikeAt && this.timer > 3.0 && currentBots > 0 && this.getRealPlayerCount() === 0) {
-          const botBalls = this.balls.filter(b => b.isBot);
-          if (botBalls.length > 0) {
-            const pick = botBalls[Math.floor(Math.random() * botBalls.length)];
-            pick.vy = -380 - Math.random() * 120;
-            pick.vx += (Math.random() - 0.5) * 220;
-            if (pick.side === 'A') this.shovePulseA = 0.55;
-            else this.shovePulseB = 0.55;
-          }
-          this.nextBotLikeAt = elapsed + 2.8 + Math.random() * 2.8;
-        }
-
-        const secLeft = Math.ceil(this.timer);
-        if (secLeft <= 5 && secLeft >= 1 && secLeft < this.lastSpokenCountdown) {
-          this.lastSpokenCountdown = secLeft;
-          speakTTS(String(secLeft), true);
-        }
-
-        if (this.timer <= 0) this.startShredPhase(false);
-      } else if (this.phase === 'SHRED') {
-        this.timer -= dt;
-        this.trapdoorAngle = clamp(this.trapdoorAngle + dt * 3.2, 0, 1);
-        this.crusherY = clamp(this.crusherY + dt * 0.72, 0, 1);
-
-        this.loseTitanVy += 1550 * dt;
-        this.loseTitanY += this.loseTitanVy * dt;
-        this.loseTitanRot += (loseSide === 'A' ? -1.85 : 1.85) * dt;
-
-        if (!this.loseTitanShredded && this.loseTitanY >= 250) {
-          this.loseTitanShredded = true;
-          const loseBox = this.getChamberBox(loseSide);
-          const loseCx = (loseBox.left + loseBox.right) / 2;
-          const burstCol = loseSide === 'A' ? TEAM_A : TEAM_B;
-          this.shake = 22;
-          this.spawnSparks(loseCx, ARENA_BOTTOM, 48, burstCol);
-          this.addShockwave(loseCx, ARENA_BOTTOM, 210, GOLD_HOT);
-          this.addPopup(loseCx, ARENA_BOTTOM - 90, '💥 TITAN SHREDDED! 💥', GOLD_HOT, 32);
-          playSfx('shred', loseSide);
-        }
-
-        if (this.timer <= 0) this.startForgePhase();
-      } else if (this.phase === 'FORGE') {
-        this.forgeSlide = clamp(this.forgeSlide + dt * 3.5, 0, 1);
-        if (this.forgeSlide >= 0.75) {
-          const speedMult = GIFT_TIERS[this.forgeTier || 0].speedMult;
-          this.forgeProgress += (dt / FORGE_DURATION) * speedMult;
-          if (Math.random() < dt * 14) playSfx('forge');
-          if (this.forgeProgress >= 1) this.startShowcasePhase();
-        }
-        for (let i = 0; i < this.forgeOrbs.length; i++) {
-          const orb = this.forgeOrbs[i];
-          orb.angle += orb.speed * dt * (1 + this.forgeProgress * 2.2);
-        }
-      } else if (this.phase === 'SHOWCASE') {
-        this.forgeSlide = 1;
-        this.timer -= dt;
-        if (this.timer <= 0) this.nextRound();
-      }
-
-      this.titanPoses.A = this.computeTitanPose('A', now, pctA);
-      this.titanPoses.B = this.computeTitanPose('B', now, pctB);
-
-      const scaleA = this.getCrowdScale('A');
-      const scaleB = this.getCrowdScale('B');
-
-      for (let i = this.balls.length - 1; i >= 0; i--) {
-        const b = this.balls[i];
-        const cScale = b.side === 'A' ? scaleA : scaleB;
-        const desiredR = b.isBot ? b.baseR : clamp(b.baseR * cScale, 32, 114);
-        b.r += (desiredR - b.r) * Math.min(1, dt * 10);
-        // Locked to 1.0 so balls never look rubbery or squishy
-        b.squashX = 1.0;
-        b.squashY = 1.0;
-
-        if (Math.hypot(b.vx, b.vy) > 280) {
-          b.trail.push({ x: b.x, y: b.y, r: b.r * 0.85 });
-          if (b.trail.length > 3) b.trail.shift();
-        } else if (b.trail.length > 0) {
-          b.trail.shift();
-        }
-
-        // Crisp heavy gravity
-        b.vy += 2250 * dt;
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        b.angle += b.omega * dt;
-        b.vx *= Math.pow(0.985, dt * 60);
-        b.vy *= Math.pow(0.99, dt * 60);
-        b.omega *= Math.pow(0.96, dt * 60);
-
-        const box = this.getChamberBox(b.side);
-
-        // Collide with Pinball Bumpers
-        for (let k = 0; k < this.bumpers.length; k++) {
-          const bmp = this.bumpers[k];
-          if (bmp.side !== b.side) continue;
-          const dx = b.x - bmp.x;
-          const dy = b.y - bmp.y;
-          const dist = Math.hypot(dx, dy);
-          const minD = b.r + bmp.r;
-          if (dist < minD && dist > 0.001) {
-            const nx = dx / dist;
-            const ny = dy / dist;
-            b.x = bmp.x + nx * (minD + 1);
-            b.y = bmp.y + ny * (minD + 1);
-            const speed = Math.max(360, Math.hypot(b.vx, b.vy) * 0.78);
-            b.vx = nx * speed + (Math.random() - 0.5) * 60;
-            b.vy = ny * speed;
-            b.omega = (Math.random() - 0.5) * 8;
-            bmp.hitAt = now;
-            this.addShockwave(bmp.x, bmp.y, bmp.r + 40, bmp.color);
-            playSfx('bumper', b.side);
-          }
-        }
-
-        // Collide with the Giant Pushing Titan's body and kicking legs
-        if (this.phase === 'VOTE' || this.phase === 'SHRED') {
-          const pose = this.titanPoses[b.side];
-          if (pose && pose.colliders) {
-            const openDir = -pose.dir;
-            for (let c = 0; c < pose.colliders.length; c++) {
-              const col = pose.colliders[c];
-              const dx = b.x - col.x;
-              const dy = b.y - col.y;
-              const dist = Math.hypot(dx, dy);
-              const minD = b.r + col.r;
-              if (dist < minD && dist > 0.001) {
-                let nx = dx / dist;
-                let ny = dy / dist;
-
-                if (col.isUpper) {
-                  if ((pose.isLeft && nx > -0.25) || (!pose.isLeft && nx < 0.25)) {
-                    nx = openDir * 0.82;
-                    ny = -0.58;
-                  }
-                }
-
-                b.x = col.x + nx * (minD + 2);
-                b.y = col.y + ny * (minD + 2);
-
-                if (col.isFoot && this.phase === 'VOTE') {
-                  b.vx = col.vx * 0.8 + nx * 440 + openDir * 140 + (Math.random() - 0.5) * 90;
-                  b.vy = Math.min(-500, ny * 480 - 340);
-                  b.omega = (Math.random() - 0.5) * 10;
-                  if (now - (b.lastKickAt || 0) > 280) {
-                    b.lastKickAt = now;
-                    this.addShockwave(col.x, col.y, 68, GOLD_HOT);
-                    playSfx('kick', b.side);
-                  }
-                } else {
-                  const rvx = b.vx - col.vx;
-                  const rvy = b.vy - col.vy;
-                  const vn = rvx * nx + rvy * ny;
-                  if (vn < 0) {
-                    b.vx -= (1 + 0.45) * vn * nx;
-                    b.vy -= (1 + 0.45) * vn * ny;
-                  }
-                  if (col.isUpper) {
-                    if (pose.isLeft) b.vx = Math.min(b.vx, -260 - Math.random() * 100);
-                    else b.vx = Math.max(b.vx, 260 + Math.random() * 100);
-                    b.vy = Math.min(b.vy, -200);
-                  }
-                  if (now - (b.lastKickAt || 0) > 180) {
-                    b.lastKickAt = now;
-                  }
-                }
-              }
+    // Návrat do klidného uspávacího režimu po 8 sekundách
+    clearTimeout(moodTimeout);
+    moodTimeout = setTimeout(() => {
+        moodBox.innerHTML = `Nálada podkresu: <b>Klidný spánek (Výchozí)</b>`;
+        targetColors = { top: [7, 9, 19], bottom: [15, 23, 42] };
+        if (isMusicPlaying && audioCtx) {
+            const now = audioCtx.currentTime;
+            oscNodes.forEach(o => {
+                o.osc.frequency.setTargetAtTime(CHORDS.calm[o.baseIdx] * o.mult, now, 1.5);
+            });
+            if (noiseFilter) {
+                const preset = document.getElementById('bgPreset').value;
+                const defFreq = preset === 'rain' ? 950 : (preset === 'fire' ? 280 : 400);
+                noiseFilter.frequency.setTargetAtTime(defFreq, now, 1.5);
             }
-          }
         }
-
-        // Wall clamping with low metallic restitution (no rubber bounce)
-        if (b.x < box.left + b.r + 10) {
-          b.x = box.left + b.r + 10;
-          if (b.vx < -140) playSfx('bounce', b.side);
-          b.vx = Math.abs(b.vx) * 0.48;
-          b.omega = b.vy * 0.008;
-        }
-        if (b.x > box.right - b.r - 10) {
-          b.x = box.right - b.r - 10;
-          if (b.vx > 140) playSfx('bounce', b.side);
-          b.vx = -Math.abs(b.vx) * 0.48;
-          b.omega = -b.vy * 0.008;
-        }
-
-        const floorClosed = this.phase === 'VOTE' || b.side === this.winningSide;
-        if (floorClosed) {
-          if (b.y > box.bottom - b.r - 10) {
-            b.y = box.bottom - b.r - 10;
-            if (b.vy > 320) playSfx('bounce', b.side);
-            b.vy = -Math.abs(b.vy) * 0.36;
-            if (Math.abs(b.vy) < 85) b.vy = 0;
-            b.omega = b.vx * 0.01;
-          }
-        } else {
-          const pressBottomY = lerp(box.top + 80, box.bottom - 35, this.crusherY);
-          if (b.y - b.r < pressBottomY) {
-            b.y = pressBottomY + b.r;
-            b.vy = Math.max(b.vy, 560);
-          }
-          if (!b.shredded && b.y >= box.bottom - 12) {
-            b.shredded = true;
-            this.shake = Math.max(this.shake, 9);
-            const burstCol = loseSide === 'A' ? TEAM_A : TEAM_B;
-            this.spawnSparks(b.x, box.bottom + 8, 18, burstCol);
-            this.addShockwave(b.x, box.bottom + 8, 110, burstCol);
-            playSfx('shred', loseSide);
-            this.balls.splice(i, 1);
-            continue;
-          }
-        }
-      }
-
-      // Ball-to-ball collisions with crisp metallic restitution
-      const boxA = this.getChamberBox('A');
-      const boxB = this.getChamberBox('B');
-      for (let pass = 0; pass < 4; pass++) {
-        for (let i = 0; i < this.balls.length; i++) {
-          const b1 = this.balls[i];
-          for (let j = i + 1; j < this.balls.length; j++) {
-            const b2 = this.balls[j];
-            if (b1.side !== b2.side) continue;
-            const dx = b2.x - b1.x;
-            const dy = b2.y - b1.y;
-            const d2 = dx * dx + dy * dy;
-            const minD = b1.r + b2.r + 2;
-            if (d2 >= minD * minD) continue;
-            const d = Math.sqrt(d2) || 0.01;
-            const nx = dx / d;
-            const ny = dy / d;
-            const overlap = (minD - d) * 0.52;
-            b1.x -= nx * overlap; b1.y -= ny * overlap;
-            b2.x += nx * overlap; b2.y += ny * overlap;
-
-            const rvx = b2.vx - b1.vx;
-            const rvy = b2.vy - b1.vy;
-            const velAlongNormal = rvx * nx + rvy * ny;
-            if (velAlongNormal < 0) {
-              const restitution = pass === 0 ? 0.36 : 0.18;
-              const imp = -(1 + restitution) * velAlongNormal * 0.5;
-              b1.vx -= nx * imp; b1.vy -= ny * imp;
-              b2.vx += nx * imp; b2.vy += ny * imp;
-            }
-          }
-
-          const box = b1.side === 'A' ? boxA : boxB;
-          b1.x = clamp(b1.x, box.left + b1.r + 10, box.right - b1.r - 10);
-          const floorClosed = this.phase === 'VOTE' || b1.side === this.winningSide;
-          if (floorClosed && b1.y > box.bottom - b1.r - 10) {
-            b1.y = box.bottom - b1.r - 10;
-          }
-        }
-      }
-
-      for (let i = this.chips.length - 1; i >= 0; i--) {
-        const ch = this.chips[i];
-        ch.vy += 1720 * dt;
-        ch.x += ch.vx * dt;
-        ch.y += ch.vy * dt;
-        ch.rot += ch.vrot * dt;
-        ch.life -= dt * 1.55;
-        if (ch.life <= 0) this.chips.splice(i, 1);
-      }
-
-      for (let i = this.shockwaves.length - 1; i >= 0; i--) {
-        const sw = this.shockwaves[i];
-        sw.r = lerp(sw.r, sw.maxR, dt * 10);
-        sw.life -= dt * 2.6;
-        if (sw.life <= 0) this.shockwaves.splice(i, 1);
-      }
-
-      for (let i = this.popups.length - 1; i >= 0; i--) {
-        const pp = this.popups[i];
-        pp.y -= 65 * dt;
-        pp.life -= dt * 1.4;
-        if (pp.life <= 0) this.popups.splice(i, 1);
-      }
-
-      for (let i = this.laserBeams.length - 1; i >= 0; i--) {
-        const lb = this.laserBeams[i];
-        lb.life -= dt * 2.4;
-        if (lb.life <= 0) this.laserBeams.splice(i, 1);
-      }
-
-      for (let i = this.giftMeteors.length - 1; i >= 0; i--) {
-        const gm = this.giftMeteors[i];
-        gm.progress += dt * 2.2;
-        if (gm.progress >= 1) {
-          this.addShockwave(gm.toX, gm.toY, 155, GIFT_TIERS[gm.tier].glow);
-          this.spawnSparks(gm.toX, gm.toY, 18);
-          this.giftMeteors.splice(i, 1);
-        }
-      }
-    }
-  }
-
-  const canvas = $('arena');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  let darkPreview = false;
-  const game = new ClashForgeGame();
-
-  function roundPath(x, y, w, h, r) {
-    const rad = Math.max(0, Math.min(r, w / 2, h / 2));
-    ctx.beginPath();
-    ctx.moveTo(x + rad, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rad);
-    ctx.arcTo(x + w, y + h, x, y + h, rad);
-    ctx.arcTo(x, y + h, x, y, rad);
-    ctx.arcTo(x, y, x + w, y, rad);
-    ctx.closePath();
-  }
-
-  function gradPanel(x, y, w, h, r, cTop, cBot, borderCol, lineW) {
-    roundPath(x, y, w, h, r);
-    const g = ctx.createLinearGradient(x, y, x, y + h);
-    g.addColorStop(0, cTop);
-    g.addColorStop(1, cBot);
-    ctx.fillStyle = g;
-    ctx.fill();
-    if (lineW > 0 && borderCol) {
-      ctx.lineWidth = lineW;
-      ctx.strokeStyle = borderCol;
-      ctx.stroke();
-    }
-  }
-
-  function drawText(str, x, y, size, color, align, maxW, outlineCol) {
-    const col = color || WHITE;
-    const al = align || 'center';
-    const mw = maxW || 950;
-    const text = String(str);
-    let fontSize = size;
-    ctx.textAlign = al;
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    while (fontSize > 12) {
-      ctx.font = '900 ' + fontSize + 'px "Segoe UI", system-ui, sans-serif';
-      if (ctx.measureText(text).width <= mw) break;
-      fontSize -= 2;
-    }
-    ctx.lineWidth = Math.max(4, Math.round(fontSize * 0.20));
-    ctx.strokeStyle = outlineCol || OUTLINE;
-    ctx.strokeText(text, x, y);
-    ctx.fillStyle = col;
-    ctx.fillText(text, x, y);
-  }
-
-  function drawPlasmaSaw(cx, cy, r, angle, accentCol) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    const teeth = 14;
-    for (let i = 0; i < teeth * 2; i++) {
-      const a = (i * Math.PI) / teeth;
-      const rad = i % 2 === 0 ? r : r * 0.68;
-      if (i === 0) ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
-      else ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
-    }
-    ctx.closePath();
-    const g = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r);
-    g.addColorStop(0, WHITE);
-    g.addColorStop(0.5, accentCol);
-    g.addColorStop(1, DARK_SLATE);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawBumperPeg(bmp, now) {
-    const age = now - bmp.hitAt;
-    const pulse = age < 220 ? (1 + (1 - age / 220) * 0.35) : 1;
-    const r = bmp.r * pulse;
-
-    ctx.save();
-    ctx.translate(bmp.x, bmp.y);
-    ctx.beginPath();
-    ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
-    ctx.fillStyle = OUTLINE;
-    ctx.fill();
-
-    const g = ctx.createRadialGradient(-r * 0.25, -r * 0.25, 2, 0, 0, r);
-    g.addColorStop(0, WHITE);
-    g.addColorStop(0.55, age < 220 ? GOLD_HOT : bmp.color);
-    g.addColorStop(1, DARK_SLATE);
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawPushingTitan(side, now) {
-    const pose = game.titanPoses[side];
-    if (!pose) return;
-    if (pose.isShredLoser && game.loseTitanY > 470) return;
-
-    const isLeft = pose.isLeft;
-    const dir = pose.dir;
-    const col = isLeft ? TEAM_A : TEAM_B;
-    const darkCol = isLeft ? TEAM_A_DARK : TEAM_B_DARK;
-    const glowCol = isLeft ? TEAM_A_GLOW : TEAM_B_GLOW;
-    const emoji = isLeft ? game.question.ea : game.question.eb;
-    const style = isLeft ? (game.question.fa || 'male') : (game.question.fb || 'female');
-
-    const {
-      shoulderX, shoulderY, hipX, hipY, handX, handY,
-      frontFootX, frontFootY, backFootX, backFootY,
-      frontKneeX, frontKneeY, backKneeX, backKneeY,
-      headX, headY, chestX, chestY, rot, stepPhase,
-      shove, isWinning, isShredLoser, isShredWinner
-    } = pose;
-
-    const box = game.getChamberBox(side);
-
-    ctx.save();
-    if (isShredLoser) {
-      ctx.beginPath();
-      ctx.rect(box.left - 20, box.top - 40, (box.right - box.left) + 40, (box.bottom - box.top) + 65);
-      ctx.clip();
-    }
-
-    if (rot !== 0) {
-      ctx.translate(chestX, chestY);
-      ctx.rotate(rot);
-      ctx.translate(-chestX, -chestY);
-    }
-
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    const drawLimb = (x1, y1, x2, y2, w, fillCol) => {
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.lineWidth = w + 14;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-      ctx.lineWidth = w;
-      ctx.strokeStyle = fillCol;
-      ctx.stroke();
-    };
-
-    drawLimb(hipX, hipY, backKneeX, backKneeY, 38, darkCol);
-    drawLimb(backKneeX, backKneeY, backFootX, backFootY, 32, darkCol);
-
-    drawLimb(hipX, hipY, frontKneeX, frontKneeY, 42, col);
-    drawLimb(frontKneeX, frontKneeY, frontFootX, frontFootY, 36, col);
-
-    drawLimb(backFootX - dir * 10, backFootY, backFootX + dir * 28, backFootY, 26, WHITE);
-    drawLimb(frontFootX - dir * 10, frontFootY, frontFootX + dir * 32, frontFootY, 28, GOLD_HOT);
-
-    const elbowUpX = (shoulderX + handX) / 2 - dir * 10;
-    const elbowUpY = shoulderY - 38 + Math.sin(now * 0.02) * 8;
-    drawLimb(shoulderX, shoulderY - 14, elbowUpX, elbowUpY, 32, darkCol);
-    drawLimb(elbowUpX, elbowUpY, handX, handY - 22, 28, darkCol);
-
-    ctx.beginPath();
-    ctx.moveTo(shoulderX - dir * 48, shoulderY - 32);
-    ctx.lineTo(shoulderX + dir * 46, shoulderY - 22);
-    ctx.lineTo(hipX + dir * 38, hipY + 18);
-    ctx.lineTo(hipX - dir * 42, hipY + 18);
-    ctx.closePath();
-    const torsoGrad = ctx.createLinearGradient(shoulderX, shoulderY, hipX, hipY);
-    torsoGrad.addColorStop(0, col);
-    torsoGrad.addColorStop(1, darkCol);
-    ctx.fillStyle = torsoGrad;
-    ctx.fill();
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = glowCol;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(chestX, chestY, 46, 0, Math.PI * 2);
-    ctx.fillStyle = OUTLINE;
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = GOLD;
-    ctx.stroke();
-    drawText(emoji, chestX, chestY + 2, 46, WHITE);
-
-    const headR = 54;
-    if (style === 'female') {
-      ctx.beginPath();
-      ctx.arc(headX - dir * 56, headY - 12 + Math.sin(stepPhase * 2) * 8, 28, 0, Math.PI * 2);
-      ctx.fillStyle = isLeft ? '#facc15' : '#f43f5e';
-      ctx.fill();
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.arc(headX, headY, headR, 0, Math.PI * 2);
-    ctx.fillStyle = '#fed7aa';
-    ctx.fill();
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-
-    ctx.fillStyle = style === 'female' ? (isLeft ? '#facc15' : '#f43f5e') : (style === 'male_alt' ? '#f59e0b' : '#1e293b');
-    ctx.beginPath();
-    ctx.arc(headX, headY - 12, headR + 2, Math.PI * 0.9, Math.PI * 2.1);
-    ctx.fill();
-    ctx.lineWidth = 7;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-
-    if (style === 'cat' || style === 'dog') {
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.moveTo(headX - 36, headY - 38);
-      ctx.lineTo(headX - 18, headY - 76);
-      ctx.lineTo(headX - 4, headY - 46);
-      ctx.moveTo(headX + 4, headY - 46);
-      ctx.lineTo(headX + 22, headY - 76);
-      ctx.lineTo(headX + 38, headY - 38);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(headX - headR + 4, headY - 18);
-    ctx.lineTo(headX + headR - 4, headY - 18);
-    ctx.lineWidth = 14;
-    ctx.strokeStyle = col;
-    ctx.stroke();
-
-    const eyeX = headX + dir * 20;
-    const eyeY = headY - 2;
-    if (isShredLoser) {
-      drawText('✖', eyeX, eyeY, 26, OUTLINE);
-      ctx.beginPath();
-      ctx.arc(headX + dir * 18, headY + 22, 13, 0, Math.PI * 2);
-      ctx.fillStyle = OUTLINE;
-      ctx.fill();
-    } else {
-      ctx.fillStyle = WHITE;
-      ctx.beginPath();
-      ctx.arc(eyeX, eyeY, 11, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = OUTLINE;
-      ctx.beginPath();
-      ctx.arc(eyeX + dir * 3, eyeY, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(eyeX - 14, eyeY - 14 - dir * 4);
-      ctx.lineTo(eyeX + 14, eyeY - 14 + dir * 5);
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-
-      ctx.fillStyle = WHITE;
-      roundPath(headX + dir * 8, headY + 16, 26, 14, 5);
-      ctx.fill();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-    }
-
-    const elbowDownX = (shoulderX + handX) / 2 - dir * 6;
-    const elbowDownY = shoulderY + 34 - Math.sin(now * 0.02) * 8;
-    drawLimb(shoulderX, shoulderY + 10, elbowDownX, elbowDownY, 36, col);
-    drawLimb(elbowDownX, elbowDownY, handX, handY + 12, 32, col);
-
-    ctx.beginPath();
-    ctx.arc(handX, handY, 26 + shove * 8, 0, Math.PI * 2);
-    ctx.fillStyle = GOLD_HOT;
-    ctx.fill();
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-
-    if (isShredWinner) {
-      drawText('🏆 WINNER!', headX, headY - 76, 30, GOLD_HOT);
-    } else if (!isWinning || shove > 0.2) {
-      for (let s = 0; s < 3; s++) {
-        const ang = (now * 0.01 + s * 2.1);
-        const sx = headX - dir * (55 + (s * 14));
-        const sy = headY - 25 + Math.sin(ang) * 20;
-        ctx.beginPath();
-        ctx.arc(sx, sy, 6, 0, Math.PI * 2);
-        ctx.fillStyle = shove > 0.2 ? GOLD_HOT : '#38bdf8';
-        ctx.fill();
-      }
-    }
-
-    ctx.restore();
-  }
-
-  function drawCenterClashFighters(pctA, pctB, now) {
-    if (game.phase !== 'VOTE' && game.phase !== 'SHRED') return;
-
-    const splitX = game.splitX;
-
-    drawPushingTitan('A', now);
-    drawPushingTitan('B', now);
-
-    if (game.phase === 'VOTE') {
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      // Solid black outer outline + crisp white/gold electric bolt so 100% of surrounding green screen stays pure #00ff00!
-      ctx.beginPath();
-      for (let y = ARENA_TOP + 12; y <= ARENA_BOTTOM - 12; y += 36) {
-        const jitter = Math.sin(now * 0.025 + y * 0.05) * 6;
-        if (y === ARENA_TOP + 12) ctx.moveTo(splitX + jitter, y);
-        else ctx.lineTo(splitX + jitter, y);
-      }
-      ctx.lineWidth = 14;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = GOLD_HOT;
-      ctx.stroke();
-
-      const clashR = 26 + Math.sin(now * 0.025) * 5 + (game.shovePulseA + game.shovePulseB) * 10;
-      ctx.beginPath();
-      ctx.arc(splitX, 985, clashR + 5, 0, Math.PI * 2);
-      ctx.fillStyle = OUTLINE;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(splitX, 985, clashR, 0, Math.PI * 2);
-      ctx.fillStyle = GOLD_HOT;
-      ctx.fill();
-      drawText('⚡', splitX, 986, 26, OUTLINE, 'center', 40, WHITE);
-      ctx.restore();
-    }
-  }
-
-  function drawVoterBall(b, now) {
-    const p = game.players.get(b.playerId) || { id: b.playerId, name: b.name, side: b.side, winStreak: 0, giftTier: 0, roundLikes: 0, comboCount: 0, needsChatUnlock: false };
-    const img = getPlayerImage(p);
-    const gTier = b.giftTier || p.giftTier || 0;
-    const tierInfo = GIFT_TIERS[gTier];
-    const isLeader = !b.isClone && !b.isBot && ((b.side === 'A' && game.leaderA === b.playerId) || (b.side === 'B' && game.leaderB === b.playerId));
-    const isLiked = !b.isBot && (now < (b.likeGlowUntil || 0) || (p.roundLikes >= 5));
-    const showYouBeacon = !b.isBot && !b.isClone && now < (b.youBeaconUntil || 0);
-
-    const col = b.isBot ? (b.side === 'A' ? '#9f1239' : '#0369a1') : (gTier > 0 ? tierInfo.border : (b.side === 'A' ? TEAM_A : TEAM_B));
-    const glowCol = gTier > 0 ? tierInfo.glow : (b.side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW);
-
-    if (!b.isBot) {
-      for (let i = 0; i < b.trail.length; i++) {
-        const tr = b.trail[i];
-        ctx.beginPath();
-        ctx.arc(tr.x, tr.y, tr.r * ((i + 1) / (b.trail.length + 1)) * 0.45, 0, Math.PI * 2);
-        ctx.fillStyle = col;
-        ctx.fill();
-      }
-    }
-
-    ctx.save();
-    ctx.translate(b.x, b.y);
-
-    if (!b.isBot && (isLeader || gTier >= 1 || isLiked || showYouBeacon)) {
-      const auraR = b.r + 9 + Math.sin(now * 0.018) * 4;
-      ctx.beginPath();
-      ctx.arc(0, 0, auraR, 0, Math.PI * 2);
-      ctx.lineWidth = showYouBeacon ? 7 : (isLeader ? 6 : 4.5);
-      ctx.strokeStyle = showYouBeacon ? GOLD_HOT : (isLeader ? GOLD : (gTier >= 2 ? tierInfo.glow : GOLD_HOT));
-      ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.arc(0, 0, b.r + (b.isBot ? 3 : 6), 0, Math.PI * 2);
-    ctx.fillStyle = OUTLINE;
-    ctx.fill();
-
-    ctx.save();
-    ctx.rotate(clamp(b.vx * 0.0005, -0.2, 0.2));
-    ctx.beginPath();
-    ctx.arc(0, 0, b.r - 2.5, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(img, -b.r + 2.5, -b.r + 2.5, (b.r - 2.5) * 2, (b.r - 2.5) * 2);
-    ctx.restore();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, b.r - 1, 0, Math.PI * 2);
-    ctx.lineWidth = b.isBot ? 4 : 7.5;
-    ctx.strokeStyle = isLiked && gTier === 0 ? GOLD : col;
-    ctx.stroke();
-
-    if (!b.isBot) {
-      ctx.beginPath();
-      ctx.arc(0, 0, b.r - 4, -Math.PI * 0.75, -Math.PI * 0.15);
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = glowCol;
-      ctx.stroke();
-    }
-
-    ctx.restore();
-
-    if (b.isBot) return;
-
-    if (showYouBeacon && game.phase === 'VOTE') {
-      const bounce = Math.sin(now * 0.018) * 8;
-      const tagY = b.y - b.r - 36 + bounce;
-      gradPanel(b.x - 105, tagY - 22, 210, 40, 14, GOLD, '#b45309', OUTLINE, 4);
-      drawText('⬇️ YOU! (' + b.name + ')', b.x, tagY - 2, 20, OUTLINE, 'center', 196, WHITE);
-    } else if (p.needsChatUnlock && !b.isClone && game.phase === 'VOTE') {
-      const bob = Math.sin(now * 0.015) * 5;
-      const tagY = b.y - b.r - 26 + bob;
-      gradPanel(b.x - 115, tagY - 18, 230, 34, 12, '#090d16', '#1e293b', GOLD_HOT, 3);
-      drawText('⚡ 2X READY · [A / B]', b.x, tagY - 1, 18, GOLD_HOT, 'center', 216);
-    } else if (isLeader && game.phase === 'VOTE') {
-      const bob = Math.sin(now * 0.012) * 4;
-      drawText('👑 #1 MVP', b.x, b.y - b.r - 20 + bob, 23, GOLD, 'center', 170);
-    }
-
-    if (!b.isClone) {
-      const comboStr = (p.comboCount && p.comboCount >= 2) ? (' x' + p.comboCount) : '';
-      const streakStr = (p.winStreak && p.winStreak >= 2) ? (' 🔥' + p.winStreak) : '';
-      drawText(b.name + comboStr + streakStr, b.x, b.y + b.r + 18, 22, GOLD_HOT, 'center', Math.max(150, b.r * 3.0));
-    } else if (b.isCombo) {
-      drawText('x' + (p.comboCount || 2), b.x, b.y, 24, GOLD_HOT, 'center', 80);
-    }
-  }
-
-  function drawTopBarAndHeaders(pctA, pctB, counts, now) {
-    // 1. Open-Air Hall of Champions (NO giant solid rectangle behind portraits — pure #00ff00 shows between them!)
-    gradPanel(42, 22, 166, 86, 18, '#3b2a08', '#1c1101', GOLD, 4);
-    drawText('🏆 WINNERS', 125, 50, 21, GOLD_HOT, 'center', 150);
-    drawText('HALL OF FAME', 125, 78, 16, WHITE, 'center', 150);
-
-    const maxShow = Math.min(7, game.hallOfFame.length);
-    for (let idx = 0; idx < maxShow; idx++) {
-      const h = game.hallOfFame[idx];
-      const hx = 268 + idx * 116;
-      const hy = 58;
-      const img = getPlayerImage(h);
-      const teamCol = h.side === 'B' ? TEAM_B : TEAM_A;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(hx, hy, 29, 0, Math.PI * 2);
-      ctx.fillStyle = OUTLINE;
-      ctx.fill();
-      ctx.clip();
-      ctx.drawImage(img, hx - 29, hy - 29, 58, 58);
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.arc(hx, hy, 29, 0, Math.PI * 2);
-      ctx.lineWidth = 4.5;
-      ctx.strokeStyle = idx === 0 ? GOLD_HOT : teamCol;
-      ctx.stroke();
-
-      // Topic History Emoji Badge on bottom-right of each winner portrait
-      const bx = hx + 20, by = hy + 19;
-      ctx.beginPath();
-      ctx.arc(bx, by, 13, 0, Math.PI * 2);
-      ctx.fillStyle = OUTLINE;
-      ctx.fill();
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = teamCol;
-      ctx.stroke();
-      drawText(h.topicEmoji || '🏆', bx, by + 1, 14, WHITE, 'center', 24);
-
-      drawText('👑', hx, hy - 31, 16, GOLD);
-      drawText(h.name, hx, hy + 44, 16, idx === 0 ? GOLD_HOT : WHITE, 'center', 106);
-    }
-
-    // 2. Sleek Tug-of-War Power Bar with Timer
-    const barX = 42, barY = 132, barW = 996, barH = 54;
-    gradPanel(barX, barY, barW, barH, 20, '#090d16', '#090d16', OUTLINE, 5);
-
-    const fillWA = Math.round(clamp(pctA / 100, 0.12, 0.88) * (barW - 10));
-    const fillWB = (barW - 10) - fillWA;
-
-    gradPanel(barX + 5, barY + 5, fillWA, barH - 10, 14, TEAM_A, TEAM_A_DARK, TEAM_A_GLOW, 2);
-    gradPanel(barX + 5 + fillWA, barY + 5, fillWB, barH - 10, 14, TEAM_B, TEAM_B_DARK, TEAM_B_GLOW, 2);
-
-    drawText('⚙️ KO ZONE', barX + 100, barY + barH / 2, 19, GOLD_HOT, 'center', 170);
-    drawText('KO ZONE ⚙️', barX + barW - 100, barY + barH / 2, 19, GOLD_HOT, 'center', 170);
-
-    const isUrgent = game.phase === 'VOTE' && game.timer <= 10;
-    const timerCol = isUrgent ? '#ef4444' : GOLD;
-    const timerPulse = isUrgent ? (1 + Math.sin(now * 0.025) * 0.08) : 1;
-    ctx.save();
-    ctx.translate(540, barY + barH / 2);
-    ctx.scale(timerPulse, timerPulse);
-    gradPanel(-96, -barH / 2 - 4, 192, barH + 8, 22, isUrgent ? '#7f1d1d' : '#0f172a', '#090d16', timerCol, 4.5);
-    const timeStr = game.phase === 'VOTE' ? ('⏱ ' + Math.ceil(game.timer) + 's') : (game.isKnockout && game.phase === 'SHRED' ? '💥 K.O.!' : game.phase);
-    drawText(timeStr, 0, 0, 31, isUrgent ? WHITE : GOLD_HOT, 'center', 175);
-    ctx.restore();
-
-    // 3. Compact Floating Team Cards (More open green screen above the arena!)
-    const hdrY = 204, hdrH = 176;
-    const cardW = 482;
-    const cardAX = 42;
-    const cardBX = 556;
-    const cxA = cardAX + cardW / 2;
-    const cxB = cardBX + cardW / 2;
-
-    const aLeads = pctA > pctB;
-    const bLeads = pctB > pctA;
-    const leadPulse = 1 + Math.sin(now * 0.016) * 0.085;
-    const ctaPulse = 1 + Math.sin(now * 0.014) * 0.035;
-
-    const borderA = aLeads ? GOLD_HOT : '#fda4af';
-    gradPanel(cardAX, hdrY, cardW, hdrH, 26, TEAM_A, TEAM_A_DARK, borderA, aLeads ? 7 : 4.5);
-    drawText(game.question.ea + ' ' + game.question.a, cxA - 76, hdrY + 56, 44, WHITE, 'center', 290);
-
-    ctx.save();
-    ctx.translate(cardAX + cardW - 96, hdrY + 56);
-    if (aLeads) ctx.scale(leadPulse, leadPulse);
-    drawText(pctA + '%', 0, 0, aLeads ? 60 : 50, aLeads ? GOLD_HOT : WHITE, 'center', 165);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(cxA, hdrY + 132);
-    ctx.scale(ctaPulse, ctaPulse);
-    gradPanel(-cardW / 2 + 22, -26, cardW - 44, 52, 16, '#090d16', '#1e293b', GOLD_HOT, 3.5);
-    drawText('🅰️ TEAM [A] · ' + game.question.a, 0, 0, 28, GOLD_HOT, 'center', cardW - 64);
-    ctx.restore();
-
-    const borderB = bLeads ? GOLD_HOT : '#a5f3fc';
-    gradPanel(cardBX, hdrY, cardW, hdrH, 26, TEAM_B, TEAM_B_DARK, borderB, bLeads ? 7 : 4.5);
-    drawText(game.question.eb + ' ' + game.question.b, cxB - 76, hdrY + 56, 44, WHITE, 'center', 290);
-
-    ctx.save();
-    ctx.translate(cardBX + cardW - 96, hdrY + 56);
-    if (bLeads) ctx.scale(leadPulse, leadPulse);
-    drawText(pctB + '%', 0, 0, bLeads ? 60 : 50, bLeads ? GOLD_HOT : WHITE, 'center', 165);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(cxB, hdrY + 132);
-    ctx.scale(ctaPulse, ctaPulse);
-    gradPanel(-cardW / 2 + 22, -26, cardW - 44, 52, 16, '#090d16', '#1e293b', GOLD_HOT, 3.5);
-    drawText('🅱️ TEAM [B] · ' + game.question.b, 0, 0, 28, GOLD_HOT, 'center', cardW - 64);
-    ctx.restore();
-
-    const vsPulse = Math.sin(now * 0.015) * 3;
-    ctx.beginPath();
-    ctx.arc(540, hdrY + hdrH / 2, 32 + vsPulse, 0, Math.PI * 2);
-    ctx.fillStyle = OUTLINE;
-    ctx.fill();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = GOLD;
-    ctx.stroke();
-    drawText('VS', 540, hdrY + hdrH / 2 + 1, 24, GOLD_HOT);
-  }
-
-  function drawChamber(side) {
-    const box = game.getChamberBox(side);
-    const col = side === 'A' ? TEAM_A : TEAM_B;
-    const glow = side === 'A' ? TEAM_A_GLOW : TEAM_B_GLOW;
-    const w = box.right - box.left;
-    const cx = box.left + w / 2;
-
-    const isLosingShred = game.phase === 'SHRED' && game.winningSide !== side;
-
-    if (isLosingShred) {
-      const pressBottomY = lerp(box.top + 80, box.bottom - 35, game.crusherY);
-      const pressH = Math.max(55, pressBottomY - box.top);
-      gradPanel(cx - 85, box.top, 34, pressH, 6, '#64748b', '#1e293b', OUTLINE, 4);
-      gradPanel(cx + 51, box.top, 34, pressH, 6, '#64748b', '#1e293b', OUTLINE, 4);
-      gradPanel(box.left + 12, pressBottomY - 68, w - 24, 68, 14, '#ef4444', '#7f1d1d', GOLD, 5);
-      drawText('CRUSHING LOSERS', cx, pressBottomY - 34, 26, GOLD, 'center', w - 40);
-    }
-
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    ctx.beginPath();
-    ctx.moveTo(box.left, box.bottom);
-    ctx.lineTo(box.left, box.top + 22);
-    ctx.arcTo(box.left, box.top, box.left + 22, box.top, 22);
-    ctx.lineTo(box.right - 22, box.top);
-    ctx.arcTo(box.right, box.top, box.right, box.top + 22, 22);
-    ctx.lineTo(box.right, box.bottom);
-    ctx.lineWidth = 15;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    ctx.lineWidth = 6.5;
-    ctx.strokeStyle = col;
-    ctx.stroke();
-
-    const halfW = w / 2;
-    const openAngle = isLosingShred ? game.trapdoorAngle * 1.15 : 0;
-
-    ctx.save();
-    ctx.translate(box.left, box.bottom);
-    ctx.rotate(openAngle);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(halfW - 4, 0);
-    ctx.lineWidth = 15; ctx.strokeStyle = OUTLINE; ctx.stroke();
-    ctx.lineWidth = 7; ctx.strokeStyle = isLosingShred ? GOLD : glow; ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(box.right, box.bottom);
-    ctx.rotate(-openAngle);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-halfW + 4, 0);
-    ctx.lineWidth = 15; ctx.strokeStyle = OUTLINE; ctx.stroke();
-    ctx.lineWidth = 7; ctx.strokeStyle = isLosingShred ? GOLD : glow; ctx.stroke();
-    ctx.restore();
-
-    ctx.restore();
-
-    // Always-visible Edge Plasma Saws so viewers immediately see the knockout danger!
-    if (game.phase === 'VOTE' || isLosingShred) {
-      const edgeX = side === 'A' ? box.left + 6 : box.right - 6;
-      const spinDir = side === 'A' ? 1 : -1;
-      for (let sy = box.top + 135; sy <= box.bottom - 95; sy += 195) {
-        drawPlasmaSaw(edgeX, sy, 28, game.sawAngle * spinDir, side === 'A' ? TEAM_A : TEAM_B);
-      }
-    }
-
-    if (isLosingShred) {
-      const step = Math.max(70, w / 4);
-      for (let sx = box.left + 48; sx <= box.right - 48; sx += step) {
-        drawPlasmaSaw(sx, box.bottom + 24, 36, game.sawAngle * (Math.round(sx) % 2 === 0 ? 1 : -1), TEAM_A);
-      }
-    } else if (game.phase === 'SHRED' && game.winningSide === side) {
-      drawText(game.isKnockout ? '💥 KNOCKOUT WIN! 💥' : '🏆 WINNING SIDE 🏆', cx, box.top + 65, 36, GOLD, 'center', w - 30);
-    }
-  }
-
-  function drawStarlightForgeModal(now) {
-    if (game.phase !== 'FORGE' && game.phase !== 'SHOWCASE') return;
-    const mvp = game.mvp;
-    if (!mvp) return;
-
-    const tierInfo = GIFT_TIERS[game.forgeTier || 0];
-    const s = clamp(game.forgeSlide, 0, 1);
-    const ease = 1 - Math.pow(1 - s, 3);
-    const scale = 0.86 + 0.14 * ease;
-
-    ctx.save();
-    ctx.translate(540, 880);
-    ctx.scale(scale, scale);
-    ctx.translate(-540, -880);
-
-    // Floating top title pill (leaves all surrounding #00ff00 Green Screen completely open!)
-    gradPanel(150, 445, 780, 68, 22, tierInfo.bgTop, '#090d16', tierInfo.border, 5);
-    drawText(
-      game.phase === 'FORGE' ? ('✨ STARLIGHT FORGE: ' + mvp.name) : ('🏆 CHAMPION OF ROUND #' + game.round + ' 🏆'),
-      540, 479, 32, GOLD_HOT, 'center', 740
-    );
-
-    const centerX = 540, centerY = 770, trophyR = 215;
-    const prog = clamp(game.forgeProgress, 0, 1);
-
-    // Crisp opaque outer ring (no semi-transparent rays that muddy the green screen)
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(-now * 0.0018);
-    ctx.beginPath();
-    ctx.arc(0, 0, trophyR + 20, 0, Math.PI * 2);
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = tierInfo.glow;
-    ctx.setLineDash([28, 20]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    const baseGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, trophyR);
-    baseGrad.addColorStop(0, tierInfo.coinOuter);
-    baseGrad.addColorStop(1, '#090d16');
-    ctx.beginPath();
-    ctx.arc(0, 0, trophyR, 0, Math.PI * 2);
-    ctx.fillStyle = baseGrad;
-    ctx.fill();
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = OUTLINE;
-    ctx.stroke();
-    ctx.lineWidth = 4.5;
-    ctx.strokeStyle = GOLD;
-    ctx.stroke();
-    ctx.restore();
-
-    const portraitImg = getPlayerImage(mvp);
-    const currentRadius = (trophyR - 14) * Math.pow(prog, 0.75);
-
-    if (currentRadius > 4) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
-      ctx.clip();
-
-      const drawSize = (trophyR - 14) * 2;
-      ctx.drawImage(portraitImg, centerX - (trophyR - 14), centerY - (trophyR - 14), drawSize, drawSize);
-
-      if (game.phase === 'SHOWCASE') {
-        const sweepX = ((now * 0.55) % (drawSize * 2.2)) - drawSize * 0.6;
-        const shineGrad = ctx.createLinearGradient(
-          centerX - trophyR + sweepX, centerY - trophyR,
-          centerX - trophyR + sweepX + 150, centerY - trophyR + 150
-        );
-        shineGrad.addColorStop(0, 'rgba(255,255,255,0)');
-        shineGrad.addColorStop(0.5, 'rgba(255,255,255,0.55)');
-        shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = shineGrad;
-        ctx.fillRect(centerX - trophyR, centerY - trophyR, drawSize, drawSize);
-      }
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
-      ctx.lineWidth = game.phase === 'SHOWCASE' ? 8 : 6;
-      ctx.strokeStyle = game.phase === 'SHOWCASE' ? GOLD : WHITE;
-      ctx.stroke();
-    }
-
-    // Solid outlined orbiting stars so they key cleanly over #00ff00
-    if (game.phase === 'FORGE') {
-      for (let i = 0; i < game.forgeOrbs.length; i++) {
-        const orb = game.forgeOrbs[i];
-        const curDist = lerp(orb.dist, currentRadius * 0.9, Math.pow(prog, 0.85));
-        const ox = centerX + Math.cos(orb.angle) * curDist;
-        const oy = centerY + Math.sin(orb.angle) * curDist;
-
-        ctx.beginPath();
-        ctx.arc(ox, oy, orb.size * 0.75 + 2, 0, Math.PI * 2);
-        ctx.fillStyle = OUTLINE;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(ox, oy, orb.size * 0.75, 0, Math.PI * 2);
-        ctx.fillStyle = orb.color;
-        ctx.fill();
-      }
-    }
-
-    const crownBob = Math.sin(now * 0.008) * 5;
-    drawText('👑', centerX, centerY - trophyR - 12 + crownBob, 56, GOLD);
-
-    // Compact Floating MVP Nameplate below the circular medallion
-    gradPanel(180, 1025, 720, 185, 24, '#0f172a', '#090d16', tierInfo.border, 5);
-    const streakBadge = (mvp.winStreak && mvp.winStreak >= 2) ? ('  ·  🔥 ' + mvp.winStreak + 'x STREAK') : '';
-    drawText('👑 #1 MVP CHAMPION' + streakBadge, 540, 1062, 24, GOLD, 'center', 680);
-    drawText(mvp.name, 540, 1114, 50, WHITE, 'center', 680);
-
-    const pct = Math.round(prog * 100);
-    gradPanel(220, 1156, 640, 32, 16, '#090d16', '#1e293b', tierInfo.border, 3);
-    const fillW = Math.max(18, 630 * prog);
-    gradPanel(225, 1161, fillW, 22, 11, tierInfo.glow, tierInfo.border, null, 0);
-    drawText(
-      game.phase === 'FORGE' ? ('STARLIGHT ENERGY: ' + pct + '%') : '✨ CHAMPION IMMORTALIZED! ✨',
-      540, 1172, 18, OUTLINE, 'center', 600, WHITE
-    );
-
-    if (game.nextRoundQueue.length > 0) {
-      gradPanel(210, 1230, 660, 118, 20, '#0f172a', '#090d16', GOLD, 4);
-      const visibleQueue = game.nextRoundQueue.slice(-6);
-      const startX = 540 - ((visibleQueue.length - 1) * 96) / 2;
-      for (let i = 0; i < visibleQueue.length; i++) {
-        const q = visibleQueue[i];
-        const qp = game.players.get(q.playerId) || { id: q.playerId, name: q.name, side: q.side };
-        const qx = startX + i * 96;
-        const qy = 1276;
-        const qImg = getPlayerImage(qp);
-        ctx.save();
-        ctx.beginPath(); ctx.arc(qx, qy, 24, 0, Math.PI * 2);
-        ctx.fillStyle = OUTLINE; ctx.fill();
-        ctx.clip();
-        ctx.drawImage(qImg, qx - 24, qy - 24, 48, 48);
-        ctx.restore();
-        ctx.beginPath(); ctx.arc(qx, qy, 24, 0, Math.PI * 2);
-        ctx.lineWidth = 3.5; ctx.strokeStyle = q.side === 'A' ? TEAM_A : TEAM_B; ctx.stroke();
-        drawText(q.name, qx, qy + 38, 15, WHITE, 'center', 88);
-      }
-    }
-
-    ctx.restore();
-  }
-
-  function render(now) {
-    if (darkPreview) {
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
-      bgGrad.addColorStop(0, '#060919');
-      bgGrad.addColorStop(0.5, '#0b132b');
-      bgGrad.addColorStop(1, '#050711');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, 1080, 1920);
-
-      // Subtle animated cyber-grid inside the arena so OBS needs no external Minecraft video
-      ctx.save();
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
-      ctx.lineWidth = 2;
-      const gShift = (now * 0.04) % 72;
-      for (let gx = ARENA_LEFT; gx <= ARENA_RIGHT; gx += 72) {
-        ctx.beginPath();
-        ctx.moveTo(gx, ARENA_TOP);
-        ctx.lineTo(gx, ARENA_BOTTOM);
-        ctx.stroke();
-      }
-      for (let gy = ARENA_TOP + gShift; gy <= ARENA_BOTTOM; gy += 72) {
-        ctx.beginPath();
-        ctx.moveTo(ARENA_LEFT, gy);
-        ctx.lineTo(ARENA_RIGHT, gy);
-        ctx.stroke();
-      }
-      ctx.restore();
-    } else {
-      ctx.fillStyle = GREEN;
-      ctx.fillRect(0, 0, 1080, 1920);
-    }
-
-    ctx.save();
-    if (game.shake > 0.2) {
-      ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
-    }
-
-    const counts = game.getCounts();
-    const pctA = counts.total ? Math.round((counts.a / counts.total) * 100) : 50;
-    const pctB = counts.total ? 100 - pctA : 50;
-
-    drawTopBarAndHeaders(pctA, pctB, counts, now);
-    drawChamber('A');
-    drawChamber('B');
-
-    drawCenterClashFighters(pctA, pctB, now);
-
-    for (let i = 0; i < game.bumpers.length; i++) {
-      drawBumperPeg(game.bumpers[i], now);
-    }
-
-    for (let i = 0; i < game.shockwaves.length; i++) {
-      const sw = game.shockwaves[i];
-      ctx.beginPath();
-      ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
-      ctx.lineWidth = Math.max(2, 6 * sw.life);
-      ctx.strokeStyle = sw.color;
-      ctx.stroke();
-    }
-
-    for (let i = 0; i < game.balls.length; i++) {
-      drawVoterBall(game.balls[i], now);
-    }
-
-    drawStarlightForgeModal(now);
-
-    for (let i = 0; i < game.laserBeams.length; i++) {
-      const lb = game.laserBeams[i];
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(lb.fromX, lb.fromY);
-      ctx.lineTo(lb.toX, lb.toY);
-      ctx.lineWidth = 9 * lb.life;
-      ctx.strokeStyle = lb.color;
-      ctx.stroke();
-      ctx.lineWidth = 3.5 * lb.life;
-      ctx.strokeStyle = WHITE;
-      ctx.stroke();
-      drawText(lb.label, lb.fromX, lb.fromY - 24, 21, lb.color, 'center', 280);
-      ctx.restore();
-    }
-
-    for (let i = 0; i < game.giftMeteors.length; i++) {
-      const gm = game.giftMeteors[i];
-      const gt = GIFT_TIERS[gm.tier || 1];
-      const u = clamp(gm.progress, 0, 1);
-      const mx = lerp(gm.fromX, gm.toX, u);
-      const my = lerp(gm.fromY, gm.toY, u * u);
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(lerp(gm.fromX, mx, 0.45), lerp(gm.fromY, my, 0.45));
-      ctx.lineTo(mx, my);
-      ctx.lineWidth = 14;
-      ctx.strokeStyle = gt.border;
-      ctx.stroke();
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = WHITE;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(mx, my, 28, 0, Math.PI * 2);
-      ctx.fillStyle = gt.glow;
-      ctx.fill();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = OUTLINE;
-      ctx.stroke();
-      drawText(gm.badge + ' · ' + gm.name, mx, my - 42, 23, gt.glow, 'center', 320);
-      ctx.restore();
-    }
-
-    for (let i = 0; i < game.chips.length; i++) {
-      const ch = game.chips[i];
-      ctx.save();
-      ctx.translate(ch.x, ch.y);
-      ctx.rotate(ch.rot);
-      if (ch.isSpark) {
-        roundPath(-5, -5, 10, 10, 5);
-        ctx.fillStyle = ch.color;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = OUTLINE;
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI * 1.4);
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = OUTLINE;
-        ctx.stroke();
-        ctx.lineWidth = 3.5;
-        ctx.strokeStyle = ch.color;
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    for (let i = 0; i < game.popups.length; i++) {
-      const pp = game.popups[i];
-      drawText(pp.text, pp.x, pp.y, pp.size, pp.color, 'center', 340);
-    }
-
-    if (game.banner && now < game.banner.until) {
-      gradPanel(160, 1475, 760, 58, 18, '#1e293b', '#090d16', game.banner.color, 4);
-      drawText(game.banner.text, 540, 1504, 26, game.banner.color, 'center', 720);
-    }
-
-    if (sound && (!audioCtx || audioCtx.state !== 'running')) {
-      gradPanel(90, 38, 900, 74, 20, '#b91c1c', '#7f1d1d', GOLD, 5);
-      drawText('🔇 CLICK ANYWHERE IN CHROME TO ACTIVATE SOUND', 540, 75, 30, WHITE, 'center', 860);
-    }
-
-    ctx.restore();
-  }
-
-  const urlInput = $('url');
-  const statusEl = $('status');
-  let mode = 'live', ws = null, connected = false, retry = 0, attempt = 0, closed = false;
-  let packets = 0, accepted = 0, invalid = 0;
-
-  function connect() {
-    clearTimeout(retry);
-    try {
-      if (ws) { ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null; ws.close(); }
-    } catch (e) {}
-    connected = false;
-    let target;
-    try {
-      target = new URL(urlInput.value);
-      if (target.protocol !== 'ws:' && target.protocol !== 'wss:') return;
-    } catch (e) { return; }
-
-    try {
-      ws = new WebSocket(target.href);
-      const current = ws;
-      const handshake = setTimeout(() => {
-        try { if (current.readyState === WebSocket.CONNECTING) current.close(); } catch (e) {}
-      }, 12000);
-      ws.onopen = () => { clearTimeout(handshake); connected = true; attempt = 0; };
-      ws.onmessage = e => {
-        if (typeof e.data !== 'string' || e.data.length > 200000) { invalid++; return; }
-        try {
-          packets++;
-          const evt = packet(JSON.parse(e.data));
-          if (!evt) return;
-          if (evt.type === 'streamend') { game.nextRound(); return; }
-          if (mode === 'live' && game.accept(evt)) accepted++;
-        } catch (err) { invalid++; }
-      };
-      ws.onerror = () => {};
-      ws.onclose = () => {
-        clearTimeout(handshake);
-        connected = false;
-        if (!closed) retry = setTimeout(connect, Math.min(30000, 1500 * Math.pow(2, Math.min(attempt++, 5))));
-      };
-    } catch (e) {
-      if (!closed) retry = setTimeout(connect, 30000);
-    }
-  }
-
-  let lastTime = performance.now(), acc = 0, fpsCount = 0, fps = 60, fpsAt = lastTime;
-  const STEP = 1 / 60;
-
-  function loop(t) {
-    try {
-      const dt = clamp((t - lastTime) / 1000, 0, 0.1);
-      lastTime = t;
-      acc += dt;
-      let steps = 0;
-      while (acc >= STEP && steps++ < 4) {
-        game.tick(STEP);
-        acc -= STEP;
-      }
-      if (steps >= 4) acc = 0;
-      render(t);
-      fpsCount++;
-      if (t - fpsAt >= 1000) {
-        fps = Math.round((fpsCount * 1000) / (t - fpsAt));
-        fpsAt = t;
-        fpsCount = 0;
-        if (panelEl.style.display === 'block') {
-          statusEl.textContent = (connected ? 'SOCKET OPEN' : 'SOCKET OFF') + ' · Mode: ' + mode.toUpperCase() + ' · Phase: ' + game.phase + ' · Real: ' + game.getRealPlayerCount() + ' · Total Balls: ' + game.balls.length + ' · ' + fps + ' FPS';
-        }
-      }
-    } catch (err) {
-      if (errBox) {
-        errBox.style.display = 'block';
-        errBox.textContent = 'LOOP ERR: ' + (err.message || err);
-      }
-    }
-    requestAnimationFrame(loop);
-  }
-
-  let testSeq = 1;
-  const TEST_NAMES = ['alex_99', 'mia.vibes', 'lucas_gg', 'emma.xo', 'noah_7', 'chloe.tt', 'leo_king', 'zoe.star', 'max_pro', 'lily.lu', 'sam_live', 'ruby_x'];
-
-  function spawnTestVoter(side) {
-    const id = 'tester_' + (testSeq++);
-    const name = TEST_NAMES[testSeq % TEST_NAMES.length];
-    game.accept({ type: 'chat', id: id, name: name, text: side, eventId: 'test:' + performance.now() + ':' + Math.random() });
-  }
-
-  function triggerTestGift(coins) {
-    const humanList = Array.from(game.players.values()).filter(p => !p.isBot);
-    const p = humanList[humanList.length - 1] || { id: 'vip_you', name: 'max_pro' };
-    game.accept({ type: 'gift', id: p.id, name: p.name, coins: coins, eventId: 'tgift:' + performance.now() + ':' + Math.random() });
-  }
-
-  $('toggle').onclick = () => { panelEl.style.display = 'none'; };
-  $('dark').onclick = () => { darkPreview = !darkPreview; };
-  $('sfx').onclick = toggleSound;
-  $('ttsBtn').onclick = () => {
-    ttsEnabled = !ttsEnabled;
-    updateSoundUI();
-    if (ttsEnabled) speakTTS('Voice commentary is on.', true);
-  };
-  $('botBtn').onclick = () => {
-    autoCrowdEnabled = !autoCrowdEnabled;
-    updateSoundUI();
-  };
-  $('audioTest').onclick = testSound;
-  $('volume').oninput = e => setSoundLevel(Number(e.target.value) / 100);
-  $('connect').onclick = connect;
-
-  $('test').onclick = () => { mode = 'test'; spawnTestVoter('A'); spawnTestVoter('B'); };
-  $('live').onclick = () => { mode = 'live'; game.nextRound(); };
-  $('voteA').onclick = () => spawnTestVoter('A');
-  $('voteB').onclick = () => spawnTestVoter('B');
-  $('heart').onclick = () => {
-    const list = Array.from(game.players.values()).filter(p => !p.isBot);
-    const p = list[list.length - 1] || { id: 'you', name: 'alex_99' };
-    game.accept({ type: 'like', id: p.id, name: p.name, count: 15 });
-  };
-  $('gift1').onclick = () => triggerTestGift(1);
-  $('gift2').onclick = () => triggerTestGift(25);
-  $('gift3').onclick = () => triggerTestGift(150);
-  $('gift4').onclick = () => triggerTestGift(600);
-
-  $('crowd').onclick = () => {
-    for (let i = 0; i < 16; i++) spawnTestVoter(i % 3 === 0 ? 'A' : 'B');
-  };
-  $('skipPhase').onclick = () => {
-    if (game.phase === 'VOTE') game.startShredPhase(false);
-    else if (game.phase === 'SHRED') game.startForgePhase();
-    else if (game.phase === 'FORGE') game.startShowcasePhase();
-    else game.nextRound();
-  };
-
-  ['click', 'pointerdown', 'keydown', 'mousemove', 'touchstart'].forEach(evtName => {
-    window.addEventListener(evtName, () => {
-      if (sound && (!audioCtx || audioCtx.state !== 'running')) unlockAudio(true);
-    }, { passive: true });
-  });
-
-  window.addEventListener('dblclick', () => togglePanel());
-
-  window.addEventListener('keydown', e => {
-    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-    const k = String(e.key || '').toLowerCase();
-    if (k === 'h') togglePanel();
-    else if (k === 'a') $('voteA').click();
-    else if (k === 'b') $('voteB').click();
-    else if (k === ' ') { e.preventDefault(); $('heart').click(); }
-    else if (k === '1') $('gift1').click();
-    else if (k === '2') $('gift2').click();
-    else if (k === '3') $('gift3').click();
-    else if (k === 'g') $('gift4').click();
-    else if (k === 'n') $('skipPhase').click();
-  });
-
-  window.addEventListener('beforeunload', () => { closed = true; clearTimeout(retry); try { if (ws) ws.close(); } catch (e) {} });
-
-  render(performance.now());
-  unlockAudio(false);
-  updateSoundUI();
-  connect();
-  requestAnimationFrame(loop);
-})();
-</script>
-</body>
-</html>
+    }, 8000);
+}
+
+
+/* =========================================================
+   3. ZVUKOVÉ EFEKTY (Přímé odkazy + Překrývání)
+   ========================================================= */
+const SOUND_MAP = {
+    // Počasí
+    "bouř": "https://actions.google.com/sounds/v1/weather/thunder_crack.ogg",
+    "hrom": "https://actions.google.com/sounds/v1/weather/rolling_thunder.ogg",
+    "zahřm": "https://actions.google.com/sounds/v1/weather/thunder_crack.ogg",
+    "déš": "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg",
+    "prš": "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg",
+    "vítr": "https://actions.google.com/sounds/v1/weather/wind_blowing.ogg",
+    "fouk": "https://actions.google.com/sounds/v1/weather/wind_blowing.ogg",
+    "oheň": "https://actions.google.com/sounds/v1/ambiences/fire.ogg",
+    "vod": "https://actions.google.com/sounds/v1/water/water_splash.ogg",
+    "žbluň": "https://actions.google.com/sounds/v1/water/water_splash.ogg",
+
+    // Zvířata
+    "pes": "https://actions.google.com/sounds/v1/animals/dog_barking.ogg",
+    "pejs": "https://actions.google.com/sounds/v1/animals/dog_barking.ogg",
+    "štěk": "https://actions.google.com/sounds/v1/animals/dog_barking.ogg",
+    "kočk": "https://actions.google.com/sounds/v1/animals/cat_purr_twit.ogg",
+    "mňouk": "https://actions.google.com/sounds/v1/animals/cat_purr_twit.ogg",
+    "vlk": "https://actions.google.com/sounds/v1/animals/wolf_howl.ogg",
+    "vyje": "https://actions.google.com/sounds/v1/animals/wolf_howl.ogg",
+    "kůň": "https://actions.google.com/sounds/v1/animals/horse_whinny.ogg",
+    "kon": "https://actions.google.com/sounds/v1/animals/horse_whinny.ogg",
+    "řeht": "https://actions.google.com/sounds/v1/animals/horse_whinny.ogg",
+    "žáb": "https://actions.google.com/sounds/v1/animals/frog_croaking.ogg",
+    "lev": "https://actions.google.com/sounds/v1/animals/animal_roar.ogg",
+    "drak": "
