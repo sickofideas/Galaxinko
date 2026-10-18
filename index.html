@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AtmoRead v4.0.0 — Books with Living Atmosphere</title>
+    <title>AtmoRead v5.0.0 — Books with Living Atmosphere</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
@@ -11,11 +11,11 @@
             --aura-r: 245;
             --aura-g: 145;
             --aura-b: 20;
-            --aura-opacity: 0.30;
+            --aura-opacity: 0.32;
             --lamp-brightness: 0.80;
             --tile-bg: rgba(24, 18, 13, 0.86);
-            --tile-border: rgba(251, 191, 36, 0.24);
-            --tile-hover: rgba(251, 191, 36, 0.45);
+            --tile-border: rgba(251, 191, 36, 0.25);
+            --tile-hover: rgba(251, 191, 36, 0.48);
             --gold: #fbbf24;
             --gold-soft: #fde68a;
             --text-main: #fef3c7;
@@ -41,9 +41,9 @@
             position: fixed; inset: 0; z-index: 1; pointer-events: none;
             background: radial-gradient(circle at 50% 35%,
                 rgba(var(--aura-r), var(--aura-g), var(--aura-b), var(--aura-opacity)) 0%,
-                rgba(var(--aura-r), var(--aura-g), var(--aura-b), calc(var(--aura-opacity) * 0.45)) 55%,
+                rgba(var(--aura-r), var(--aura-g), var(--aura-b), calc(var(--aura-opacity) * 0.48)) 55%,
                 rgba(0, 0, 0, 0) 92%);
-            transition: background 1.2s ease;
+            transition: background 1.4s ease;
         }
 
         /* CELOOBRAZOVKOVÁ NOČNÍ LAMPIČKA */
@@ -81,8 +81,8 @@
         }
         .ver-badge {
             font-size: 11px; font-weight: 700;
-            background: rgba(251, 191, 36, 0.2); color: var(--gold-soft);
-            padding: 3px 9px; border-radius: 99px; border: 1px solid rgba(251, 191, 36, 0.4);
+            background: rgba(251, 191, 36, 0.22); color: var(--gold-soft);
+            padding: 3px 9px; border-radius: 99px; border: 1px solid rgba(251, 191, 36, 0.45);
         }
         .header-meta { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
@@ -113,7 +113,6 @@
             letter-spacing: 0.6px;
         }
 
-        /* Rozložení dlaždic na desktopu a mobilu */
         .tile-hero   { grid-column: span 7; }
         .tile-modes  { grid-column: span 5; }
         .tile-story  { grid-column: span 12; display: none; }
@@ -161,7 +160,7 @@
             background: linear-gradient(135deg, #fbbf24, #d97706);
             color: #1a1106; padding: 6px 14px; border-radius: 99px;
             box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
-            animation: popBadge 0.22s ease-out;
+            animation: popBadge 0.3s ease-out;
         }
         @keyframes popBadge { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
@@ -205,7 +204,7 @@
             max-height: 48vh; overflow-y: auto;
         }
         .w-tok { padding: 2px 4px; border-radius: 6px; cursor: pointer; }
-        .w-tok.trig-sfx { border-bottom: 2px dotted rgba(251, 191, 36, 0.6); }
+        .w-tok.trig-sfx { border-bottom: 2px dotted rgba(251, 191, 36, 0.65); }
         .w-tok.active-word {
             background: var(--gold); color: #1a1105 !important;
             font-weight: bold; box-shadow: 0 0 12px rgba(251, 191, 36, 0.7);
@@ -218,13 +217,14 @@
         .mini-tile-btn {
             background: rgba(255, 255, 255, 0.06);
             border: 1.5px solid rgba(251, 191, 36, 0.22);
-            border-radius: 12px; padding: 10px 8px;
+            border-radius: 12px; padding: 11px 8px;
             color: var(--text-main); font-size: 13px; font-weight: 700;
             cursor: pointer; text-align: center; transition: all 0.15s;
         }
         .mini-tile-btn.active {
-            background: rgba(251, 191, 36, 0.28);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.38), rgba(217, 119, 6, 0.3));
             border-color: var(--gold); color: #fff;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
         }
 
         .slider-row {
@@ -302,7 +302,7 @@
 <div id="pureLampScreen">
     <div style="text-align:center;">
         <div style="font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.75);">
-            🕯️ Noční lampička na čtení a usínání • AtmoRead v4.0.0
+            🕯️ Noční lampička na čtení a usínání • AtmoRead v5.0.0
         </div>
         <h2 id="lampScreenTitle" style="margin:8px 0 4px; font-size:26px; color:#fff;">Svíčka (1800K)</h2>
         <div style="font-size:14px; color:rgba(255,255,255,0.8);">
@@ -339,9 +339,9 @@
             <div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <h1 class="brand-name">AtmoRead</h1>
-                    <span class="ver-badge">v4.0.0 BENTO</span>
+                    <span class="ver-badge">v5.0.0 AUDIO MASTER</span>
                 </div>
-                <div class="header-meta" id="dictCounter">Automatický odposlech aktivní • 640+ pohádkových spouštěčů (36 zvukových světů)</div>
+                <div class="header-meta" id="dictCounter">Automatický odposlech • Dlouhé efekty s Fade-In/Out + Hrací skříňka a Zvonkohra</div>
             </div>
         </div>
         <div style="display:flex; gap:8px;">
@@ -357,7 +357,7 @@
         <section class="tile tile-hero">
             <div class="tile-header">
                 <div class="tile-title">🎙️ Živá atmosféra (100% Automaticky)</div>
-                <span style="font-size:12px; color:var(--text-muted);">Polyfonie + Echo</span>
+                <span style="font-size:12px; color:var(--text-muted);">Jemný Fade-In & Dlouhý Fade-Out</span>
             </div>
             <div class="hero-center">
                 <svg class="book-svg" viewBox="0 0 220 145" fill="none">
@@ -371,7 +371,7 @@
                     <path d="M108 82 L190 12" stroke="#78350f" stroke-width="2.2" stroke-linecap="round"/>
                 </svg>
                 <div class="status-bubble" id="liveStatusText">
-                    ✨ Klepni dole na zelené tlačítko a prostě čti nebo vyprávěj. Zvuky a světlo se spouštějí samy.
+                    ✨ Klepni dole na zelené tlačítko nebo si rovnou zapni Hrací skříňku či Zvonkohru napravo!
                 </div>
                 <div id="autoBadgesBox"></div>
             </div>
@@ -406,7 +406,7 @@
             </div>
         </section>
 
-        <!-- DLAŽDICE 3: ČTEČKA POHÁDEK (ZOBRAZÍ SE PŘI VÝBĚRU KNIŽNÍHO REŽIMU) -->
+        <!-- DLAŽDICE 3: ČTEČKA POHÁDEK -->
         <section class="tile tile-story" id="storyTile">
             <div class="tile-header">
                 <div class="tile-title">📚 Knihovna pohádek a vlastní text</div>
@@ -429,8 +429,8 @@
                 </div>
                 <div class="color-swatches" id="lampSwatchesMain"></div>
                 <div class="slider-row">
-                    <label><span>🔆 Intenzita záře v pokoji</span><span id="auraIntLabel">40 %</span></label>
-                    <input type="range" id="auraIntSlider" min="0.1" max="0.95" step="0.05" value="0.40" oninput="updateAuraIntensity(this.value)">
+                    <label><span>🔆 Intenzita záře v pokoji</span><span id="auraIntLabel">45 %</span></label>
+                    <input type="range" id="auraIntSlider" min="0.1" max="0.95" step="0.05" value="0.45" oninput="updateAuraIntensity(this.value)">
                 </div>
             </div>
             <button class="action-pill" style="margin-top:14px;" onclick="togglePureLamp(true)">
@@ -438,46 +438,46 @@
             </button>
         </section>
 
-        <!-- DLAŽDICE 5: USPÁVACÍ PODKRESOVÁ SMYČKA -->
+        <!-- DLAŽDICE 5: MELODICKÁ USPÁVACÍ HUDBA (HRACÍ SKŘÍŇKA, ZVONKOHRA, HARFA, KALIMBA) -->
         <section class="tile tile-amb">
             <div>
                 <div class="tile-header">
-                    <div class="tile-title">🌲 Uspávací smyčka</div>
-                    <span id="bgStateLabel" style="font-size:12px; color:var(--text-muted);">Vypnuto</span>
+                    <div class="tile-title">🎠 Uspávací hudba & Zvonkohra</div>
+                    <span id="bgStateLabel" style="font-size:12px; color:var(--gold);">Vypnuto</span>
                 </div>
                 <div class="sub-tile-grid">
                     <button class="mini-tile-btn active" data-bg="off" onclick="selectAmbience('off')">🔇 Vypnuto</button>
-                    <button class="mini-tile-btn" data-bg="lullaby" onclick="selectAmbience('lullaby')">✨ Ukolébavka</button>
-                    <button class="mini-tile-btn" data-bg="brown" onclick="selectAmbience('brown')">🌙 Hluboký šum</button>
-                    <button class="mini-tile-btn" data-bg="rain" onclick="selectAmbience('rain')">🌧️ Noční déšť</button>
-                    <button class="mini-tile-btn" data-bg="fire" onclick="selectAmbience('fire')">🔥 Teplý krb</button>
-                    <button class="mini-tile-btn" data-bg="forest" onclick="selectAmbience('forest')">🦉 Noční les</button>
+                    <button class="mini-tile-btn" data-bg="musicbox" onclick="selectAmbience('musicbox')">🎠 Hrací skříňka</button>
+                    <button class="mini-tile-btn" data-bg="chimes" onclick="selectAmbience('chimes')">🎐 Zvonkohra</button>
+                    <button class="mini-tile-btn" data-bg="harp" onclick="selectAmbience('harp')">🎹 Ukolébavka</button>
+                    <button class="mini-tile-btn" data-bg="kalimba" onclick="selectAmbience('kalimba')">🧚 Noční kalimba</button>
+                    <button class="mini-tile-btn" data-bg="rainfire" onclick="selectAmbience('rainfire')">🌧️ Déšť a krb</button>
                 </div>
             </div>
             <div class="slider-row">
-                <label><span>🎶 Hlasitost podkresu</span><span id="bgVolLabel">30 %</span></label>
-                <input type="range" id="bgVolSlider" min="0" max="1" step="0.02" value="0.30" oninput="updateVolumes()">
+                <label><span>🎶 Hlasitost uspávací hudby</span><span id="bgVolLabel">85 %</span></label>
+                <input type="range" id="bgVolSlider" min="0.05" max="1.8" step="0.05" value="0.85" oninput="updateVolumes()">
             </div>
         </section>
 
-        <!-- DLAŽDICE 6: NASTAVENÍ EFEKTŮ, ZMĚKČENÍ ZVUKU A ČASOVAČ USNUTÍ -->
+        <!-- DLAŽDICE 6: HLASITOST EFEKTŮ, DÉLKA DOZNĚNÍ A ČASOVAČ USNUTÍ -->
         <section class="tile tile-audio">
             <div>
                 <div class="tile-header">
-                    <div class="tile-title">🔊 Zvuk a ochrana spánku</div>
+                    <div class="tile-title">🔊 Zesílení a jemnost efektů</div>
                 </div>
                 <div class="slider-row">
-                    <label><span>🔊 Hlasitost pohádkových zvuků</span><span id="sfxVolLabel">180 %</span></label>
-                    <input type="range" id="sfxVolSlider" min="0.2" max="2.5" step="0.05" value="1.80" oninput="updateVolumes()">
+                    <label><span>🔊 Hlasitost pohádkových zvuků (Boost)</span><span id="sfxVolLabel">220 %</span></label>
+                    <input type="range" id="sfxVolSlider" min="0.4" max="3.0" step="0.1" value="2.20" oninput="updateVolumes()">
                 </div>
                 <div class="slider-row" style="margin-top:10px;">
-                    <label><span>🐢 Tempo čtení / AI vypravěče</span><span id="speedLabel">0.88×</span></label>
-                    <input type="range" id="speedSlider" min="0.65" max="1.25" step="0.03" value="0.88" oninput="updateSpeedLabel()">
+                    <label><span>🌊 Délka efektů a Fade-Out</span><span id="tailLabel">Dlouhé (5.5 s)</span></label>
+                    <input type="range" id="tailSlider" min="0.8" max="1.8" step="0.1" value="1.35" oninput="updateTailLabel()">
                 </div>
             </div>
             <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
                 <button class="action-pill active" id="softNightBtn" onclick="toggleNightFilter()">
-                    🌙 Sametový noční filtr (proti leknutí): ZAP
+                    🌙 Jemný sametový náběh (Fade-In/Out): ZAP
                 </button>
                 <button class="action-pill" id="sleepTimerBtn" onclick="cycleSleepTimer()">
                     ⏲️ Časovač usínání: VYP
@@ -537,9 +537,8 @@ const LAMP_PRESETS = [
 
 /* ============================================================================
    SEKCE 2: 36 ZVUKOVÝCH SVĚTŮ Z 20 NEJZNÁMĚJŠÍCH POHÁDEK (640+ KOŘENŮ SLOV)
-   - Každý zvuk se spouští 100% automaticky při vyslovení nebo čtení.
-   - Zvuky z různých kategorií se mohou přirozeně překrývat (polyfonie).
-   - Parametr `echoes` určuje automatické opakování (např. 2× štěknutí, 3× zaklepání).
+   - Prodloužené trvání (`dur: 4.2 až 6.5 s`) s plynulým Fade-In a dlouhým Fade-Out
+   - Vícevrstvé sekvence opakování (`echoes`), aby zvířata i živly zněly přirozeně a plně
    ============================================================================ */
 const SOUND_LIBRARY = [
     // --- ZVÍŘATA A BYTOSTI ---
@@ -547,115 +546,131 @@ const SOUND_LIBRARY = [
         id: 'dog', emoji: '🐶', label: 'Pes',
         stems: ['pes','pejs','pejsek','psa','psovi','psem','psí','štěň','štěk','zaštěk','haf','ohař','voříš','hlídač','smečk','dog','bark','puppy','hound'],
         urls: ['https://actions.google.com/sounds/v1/ambiences/outdoor_ambience_dog_barking.ogg'],
-        dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 460, gain: 0.82 }], synth: 'dog'
+        dur: 4.5, echoes: [{ delay: 0, gain: 0.9 }, { delay: 520, gain: 1.0 }, { delay: 1450, gain: 0.72 }], synth: 'dog'
     },
     {
         id: 'wolf', emoji: '🐺', label: 'Vlk',
         stems: ['vlk','vlč','vlka','vlku','vlkem','vlci','vyje','zavyl','vytí','tesák','šelm','wolf','wolves','howl'],
-        urls: [], dur: 2.6, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wolf'
+        urls: [], dur: 5.2, echoes: [{ delay: 0, gain: 1.0 }, { delay: 2300, gain: 0.65 }], synth: 'wolf'
     },
     {
         id: 'cat', emoji: '🐱', label: 'Kočka / Kocour',
         stems: ['kočk','kočič','kotě','koťát','kocour','mňouk','zamňouk','vrní','přede','tichošláp','cat','kitten','meow'],
-        urls: [], dur: 1.6, echoes: [{ delay: 0, gain: 1.0 }, { delay: 720, gain: 0.72 }], synth: 'cat'
+        urls: [], dur: 4.0, echoes: [{ delay: 0, gain: 0.95 }, { delay: 1100, gain: 0.8 }, { delay: 2300, gain: 0.55 }], synth: 'cat'
     },
     {
         id: 'horse', emoji: '🐴', label: 'Kůň / Kočár',
         stems: ['kůň','koně','koni','koník','koníč','hřebec','klisn','hříb','oř','řeht','zařeht','kopyt','cvál','klus','kočár','spřežen','sedl','uzd','juráš','horse','pony','gallop','carriage'],
-        urls: [], dur: 2.0, echoes: [{ delay: 0, gain: 1.0 }, { delay: 300, gain: 0.8 }, { delay: 600, gain: 0.65 }], synth: 'horse'
+        urls: [], dur: 4.2,
+        echoes: [
+            { delay: 0, gain: 0.75 }, { delay: 280, gain: 0.95 }, { delay: 620, gain: 1.0 },
+            { delay: 920, gain: 0.85 }, { delay: 1280, gain: 0.7 }, { delay: 1600, gain: 0.5 }
+        ],
+        synth: 'horse'
     },
     {
         id: 'deer_fox', emoji: '🦌', label: 'Jelen / Liška / Lesní zvěř',
         stems: ['jelen','paroh','laň','srn','srnk','kolouch','lišk','lišák','ryšk','vever','zajíc','zajíč','ježek','ježeč','smolíč','deer','stag','fox','hare','squirrel'],
-        urls: [], dur: 1.6, echoes: [{ delay: 0, gain: 0.9 }, { delay: 350, gain: 0.7 }], synth: 'steps'
+        urls: ['https://actions.google.com/sounds/v1/weather/leaves_russle_on_tree.ogg'],
+        dur: 4.5, echoes: [{ delay: 0, gain: 0.9 }, { delay: 550, gain: 0.8 }, { delay: 1100, gain: 0.65 }], synth: 'steps'
     },
     {
         id: 'bird', emoji: '🐦', label: 'Ptáček / Holoubek',
         stems: ['pták','ptáč','ptač','zpěv','zazpív','cvrlik','píp','vlaštov','slavík','skřiván','holub','holoub','hrdlič','čáp','labuť','křídl','peří','péro','ohnivák','vrabč','sýkor','bird','chirp','dove','pigeon','swan'],
         urls: ['https://actions.google.com/sounds/v1/ambiences/spring_day_forest.ogg'],
-        dur: 2.3, echoes: [{ delay: 0, gain: 0.9 }, { delay: 340, gain: 1.0 }, { delay: 720, gain: 0.75 }], synth: 'bird'
+        dur: 5.2,
+        echoes: [
+            { delay: 0, gain: 0.85 }, { delay: 380, gain: 1.0 }, { delay: 820, gain: 0.9 },
+            { delay: 1450, gain: 0.8 }, { delay: 1900, gain: 0.65 }
+        ],
+        synth: 'bird'
     },
     {
         id: 'crow', emoji: '🐦‍⬛', label: 'Krkavec / Vrána',
         stems: ['krkav','vrán','vran','havran','krák','zakrák','krahuj','jestřáb','orel','orl','sokol','crow','raven','hawk','eagle'],
-        urls: [], dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 480, gain: 0.8 }], synth: 'crow'
+        urls: [], dur: 3.8, echoes: [{ delay: 0, gain: 0.95 }, { delay: 650, gain: 0.85 }, { delay: 1400, gain: 0.6 }], synth: 'crow'
     },
     {
         id: 'owl', emoji: '🦉', label: 'Noční sova',
         stems: ['sov','sovi','výr','sýč','houk','zahouk','huů','rozárk','owl','hoot'],
-        urls: [], dur: 2.2, echoes: [{ delay: 0, gain: 1.0 }, { delay: 660, gain: 0.78 }], synth: 'owl'
+        urls: [], dur: 4.6,
+        echoes: [{ delay: 0, gain: 0.9 }, { delay: 620, gain: 1.0 }, { delay: 1850, gain: 0.72 }, { delay: 2450, gain: 0.55 }],
+        synth: 'owl'
     },
     {
         id: 'frog', emoji: '🐸', label: 'Žabka',
         stems: ['žáb','žab','žabič','kvák','zakvák','kuňk','ropuch','pulec','frog','toad','croak'],
-        urls: [], dur: 1.7, echoes: [{ delay: 0, gain: 1.0 }, { delay: 450, gain: 0.85 }], synth: 'frog'
+        urls: [], dur: 4.0,
+        echoes: [{ delay: 0, gain: 0.9 }, { delay: 480, gain: 1.0 }, { delay: 1200, gain: 0.8 }, { delay: 1700, gain: 0.6 }],
+        synth: 'frog'
     },
     {
         id: 'pig', emoji: '🐷', label: 'Prasátko',
         stems: ['pras','prase','prasátk','čuník','pašík','kanec','kňour','chrocht','zachrocht','rypáč','pig','piglet','oink','boar'],
         urls: ['https://actions.google.com/sounds/v1/ambiences/barnyard_with_animals.ogg'],
-        dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 420, gain: 0.85 }], synth: 'pig'
+        dur: 4.5, echoes: [{ delay: 0, gain: 0.95 }, { delay: 460, gain: 1.0 }, { delay: 1100, gain: 0.75 }], synth: 'pig'
     },
     {
         id: 'cow_sheep', emoji: '🐮', label: 'Kráva / Ovečka / Koza',
         stems: ['kráv','krav','tele','telát','vůl','býk','buč','zabuč','ovc','oveč','beran','berán','jehň','beč','zabeč','koz','kozič','kůzl','meč','osel','oslík','cow','cattle','moo','sheep','lamb','goat'],
         urls: ['https://actions.google.com/sounds/v1/ambiences/farm_morning_with_sheep.ogg'],
-        dur: 2.2, echoes: [{ delay: 0, gain: 1.0 }], synth: 'cow'
+        dur: 5.0, echoes: [{ delay: 0, gain: 1.0 }, { delay: 1600, gain: 0.75 }], synth: 'cow'
     },
     {
         id: 'rooster', emoji: '🐓', label: 'Kohout / Slepice',
         stems: ['kohout','kokrh','zakokrh','kykyr','slepic','slepič','kuř','kuřát','kdák','kachn','hus','houser','rooster','hen','chicken','duck','goose'],
-        urls: [], dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 320, gain: 0.9 }], synth: 'rooster'
+        urls: ['https://actions.google.com/sounds/v1/ambiences/inside_barn_with_chickens.ogg'],
+        dur: 4.5, echoes: [{ delay: 0, gain: 0.95 }, { delay: 380, gain: 1.0 }, { delay: 850, gain: 0.8 }], synth: 'rooster'
     },
     {
         id: 'insect', emoji: '🐝', label: 'Včelka / Mravenci / Brouk',
         stems: ['včel','včelič','čmelák','vos','mouch','mušk','komár','mraven','mraveneč','brouk','brouč','zlatohláv','cvrč','motýl','bzuč','zabzuč','úl','plást','bee','ant','beetle','cricket','buzz'],
-        urls: [], dur: 1.6, echoes: [{ delay: 0, gain: 1.0 }], synth: 'insect'
+        urls: [], dur: 4.0, echoes: [{ delay: 0, gain: 0.9 }, { delay: 1100, gain: 0.75 }], synth: 'insect'
     },
     {
         id: 'snake', emoji: '🐍', label: 'Had / Myška',
         stems: ['had','hada','zmij','užov','syč','zasyč','plaz','myš','myšk','myší','kožíš','pišt','zapišt','snake','serpent','hiss','mouse','mice'],
-        urls: [], dur: 1.5, echoes: [{ delay: 0, gain: 1.0 }], synth: 'snake'
+        urls: [], dur: 3.6, echoes: [{ delay: 0, gain: 0.95 }, { delay: 900, gain: 0.7 }], synth: 'snake'
     },
 
-    // --- POHÁDKOVÉ BYTOSTI (DRACI, ČERTI, JEŽIBABY) ---
+    // --- POHÁDKOVÉ BYTOSTI ---
     {
         id: 'dragon', emoji: '🐉', label: 'Drak / Obr / Medvěd / Lev',
         stems: ['drak','drač','saň','saně','hlavý','obr','obř','otesán','lidožrout','netvor','oblud','medvěd','medvíd','lev','lva','lví','tygr','zařv','řval','vrč','zavrč','funě','dragon','giant','ogre','bear','lion','roar'],
-        urls: [], dur: 2.4, echoes: [{ delay: 0, gain: 1.0 }, { delay: 680, gain: 0.68 }], synth: 'dragon'
+        urls: [], dur: 4.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 1300, gain: 0.8 }], synth: 'dragon'
     },
     {
         id: 'devil', emoji: '👹', label: 'Čert / Peklo',
-        stems: ['čert','čertí','pekl','pekel','lucifer','rarach','belzebub','blekot','řetěz','chrast','pytel','kopyt','roh','ocásek','devil','hell','demon','chain'],
-        urls: [], dur: 2.1, echoes: [{ delay: 0, gain: 1.0 }, { delay: 350, gain: 0.8 }], synth: 'devil'
+        stems: ['čert','čertí','pekl','pekel','lucifer','rarach','belzebub','blekot','řetěz','chrast','pytel','roh','ocásek','devil','hell','demon','chain'],
+        urls: ['https://actions.google.com/sounds/v1/doors/metal_scrap_rattling.ogg'],
+        dur: 4.2, echoes: [{ delay: 0, gain: 1.0 }, { delay: 500, gain: 0.85 }], synth: 'devil'
     },
     {
         id: 'witch', emoji: '🧙‍♀️', label: 'Ježibaba / Černokněžník',
         stems: ['ježibab','babizn','čaroděj','černokněž','baba','košť','koště','lopat','zaklín','kletb','prokl','duch','strašidl','kostliv','stín','jeskyn','witch','wizard','sorcerer','ghost','cave'],
-        urls: [], dur: 2.2, echoes: [{ delay: 0, gain: 1.0 }], synth: 'witch'
+        urls: [], dur: 4.5, echoes: [{ delay: 0, gain: 0.95 }, { delay: 950, gain: 0.8 }], synth: 'witch'
     },
 
-    // --- POČASÍ A PŘÍRODNÍ ŽIVLY ---
+    // --- POČASÍ A PŘÍRODNÍ ŽIVLY (DLOUHÉ PLYNULÉ DOZNĚNÍ) ---
     {
         id: 'thunder', emoji: '⛈️', label: 'Bouřka a hrom',
         stems: ['bouř','bouřk','bouři','hrom','zahřm','hřmí','hromobit','blesk','zablesk','mračn','mrak','thunder','storm','lightning'],
         urls: [
             'https://actions.google.com/sounds/v1/weather/rolling_thunder.ogg',
             'https://actions.google.com/sounds/v1/weather/distant_thunder.ogg',
-            'https://actions.google.com/sounds/v1/weather/low_thunder_rolls.ogg',
-            'https://actions.google.com/sounds/v1/weather/thunder_crack.ogg'
+            'https://actions.google.com/sounds/v1/weather/low_thunder_rolls.ogg'
         ],
-        dur: 3.4, echoes: [{ delay: 0, gain: 1.0 }], synth: 'thunder'
+        dur: 6.2, echoes: [{ delay: 0, gain: 1.0 }], synth: 'thunder'
     },
     {
         id: 'rain', emoji: '🌧️', label: 'Déšť a kapky',
-        stems: ['déš','dešt','prš','zaprš','liják','lije','kapk','kape','krůpěj','mží','plískanic','louž',' kaluž','rain','shower','drizzle','drop'],
+        stems: ['déš','dešt','prš','zaprš','liják','lije','kapk','kape','krůpěj','mží','plískanic','louž','kaluž','rain','shower','drizzle','drop'],
         urls: [
             'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
             'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg',
             'https://actions.google.com/sounds/v1/weather/rain_water_dripping_softly.ogg'
         ],
-        dur: 3.2, echoes: [{ delay: 0, gain: 1.0 }], synth: 'rain'
+        dur: 6.0, echoes: [{ delay: 0, gain: 1.0 }], synth: 'rain'
     },
     {
         id: 'wind', emoji: '💨', label: 'Vítr / Vánice / Mráz',
@@ -665,7 +680,7 @@ const SOUND_LIBRARY = [
             'https://actions.google.com/sounds/v1/weather/forest_wind_summer.ogg',
             'https://actions.google.com/sounds/v1/weather/wind_through_window.ogg'
         ],
-        dur: 3.1, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wind'
+        dur: 5.8, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wind'
     },
     {
         id: 'fire', emoji: '🔥', label: 'Oheň / Krb / Pec',
@@ -674,7 +689,7 @@ const SOUND_LIBRARY = [
             'https://actions.google.com/sounds/v1/ambiences/fire.ogg',
             'https://actions.google.com/sounds/v1/ambiences/daytime_forrest_bonfire.ogg'
         ],
-        dur: 3.0, echoes: [{ delay: 0, gain: 1.0 }], synth: 'fire'
+        dur: 5.8, echoes: [{ delay: 0, gain: 1.0 }], synth: 'fire'
     },
     {
         id: 'water', emoji: '💧', label: 'Voda / Studánka / Vodník',
@@ -684,19 +699,22 @@ const SOUND_LIBRARY = [
             'https://actions.google.com/sounds/v1/water/rocks_into_water.ogg',
             'https://actions.google.com/sounds/v1/water/fountain_water_bubbling.ogg'
         ],
-        dur: 2.7, echoes: [{ delay: 0, gain: 1.0 }], synth: 'water'
+        dur: 5.4, echoes: [{ delay: 0, gain: 1.0 }], synth: 'water'
     },
     {
         id: 'sea', emoji: '🌊', label: 'Moře a vlny',
         stems: ['moř','moři','oceán','vln','příboj','břeh','pláž','ostrov','koráb','loď','lodič','placht','námoř','kotv','sea','ocean','wave','ship','boat','island'],
         urls: ['https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg'],
-        dur: 3.2, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wind'
+        dur: 6.0, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wind'
     },
     {
         id: 'forest', emoji: '🌲', label: 'Šumění lesa a stromů',
         stems: ['les','lese','lesík','hvozd','strom','dub','smrk','jedl','borovic','bříz','líp','větev','větvič','list','listí','šust','zašust','křov','houštin','mech','šípk','trn','trní','pařez','forest','woods','tree','branch','leaf','leaves'],
-        urls: ['https://actions.google.com/sounds/v1/weather/leaves_russle_on_tree.ogg'],
-        dur: 2.6, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wind'
+        urls: [
+            'https://actions.google.com/sounds/v1/weather/leaves_russle_on_tree.ogg',
+            'https://actions.google.com/sounds/v1/ambiences/summer_forest.ogg'
+        ],
+        dur: 5.5, echoes: [{ delay: 0, gain: 1.0 }], synth: 'wind'
     },
 
     // --- HRADY, CHALOUPKY, PŘEDMĚTY A ČINNOSTI ---
@@ -708,7 +726,7 @@ const SOUND_LIBRARY = [
             'https://actions.google.com/sounds/v1/doors/creaking_wooden_door.ogg',
             'https://actions.google.com/sounds/v1/doors/wood_door_open_close_soft.ogg'
         ],
-        dur: 2.1, echoes: [{ delay: 0, gain: 1.0 }, { delay: 260, gain: 0.9 }, { delay: 520, gain: 0.8 }], synth: 'door'
+        dur: 4.0, echoes: [{ delay: 0, gain: 0.9 }, { delay: 340, gain: 1.0 }, { delay: 680, gain: 0.85 }], synth: 'door'
     },
     {
         id: 'lock', emoji: '🔑', label: 'Klíč / Zámek / Truhla',
@@ -717,63 +735,79 @@ const SOUND_LIBRARY = [
             'https://actions.google.com/sounds/v1/doors/key_in_lock.ogg',
             'https://actions.google.com/sounds/v1/doors/deadbolt_lock.ogg'
         ],
-        dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 280, gain: 0.85 }], synth: 'lock'
+        dur: 3.6, echoes: [{ delay: 0, gain: 1.0 }, { delay: 380, gain: 0.85 }], synth: 'lock'
     },
     {
         id: 'steps', emoji: '👣', label: 'Kroky / Cesta / Schody',
         stems: ['krok','kráč','šel','šla','šli','vyraz','cest','cestič','pěšin','stezk','schod','věž','nádvoř','sál','komnat','putov','poutník','tulák','střevíč','bot','škorn','footstep','walk','path','stairs','tower','shoe','slipper'],
-        urls: [], dur: 1.6, echoes: [{ delay: 0, gain: 1.0 }, { delay: 330, gain: 0.85 }, { delay: 660, gain: 0.72 }, { delay: 990, gain: 0.6 }], synth: 'steps'
+        urls: [], dur: 3.8,
+        echoes: [
+            { delay: 0, gain: 0.7 }, { delay: 420, gain: 0.95 }, { delay: 840, gain: 1.0 },
+            { delay: 1260, gain: 0.85 }, { delay: 1680, gain: 0.65 }, { delay: 2100, gain: 0.45 }
+        ],
+        synth: 'steps'
     },
     {
         id: 'run', emoji: '🏃', label: 'Běh / Útěk / Skok',
         stems: ['běž','utík','utek','uprch','honič','pospích','spěch','skoč','přeskoč','vyskoč','spadl','run','escape','hurry','jump','leap'],
-        urls: [], dur: 1.5, echoes: [{ delay: 0, gain: 1.0 }, { delay: 190, gain: 0.9 }, { delay: 380, gain: 0.8 }, { delay: 570, gain: 0.7 }], synth: 'steps'
+        urls: [], dur: 3.5,
+        echoes: [
+            { delay: 0, gain: 0.8 }, { delay: 230, gain: 1.0 }, { delay: 460, gain: 0.95 },
+            { delay: 690, gain: 0.85 }, { delay: 920, gain: 0.7 }, { delay: 1150, gain: 0.5 }
+        ],
+        synth: 'steps'
     },
     {
         id: 'sword', emoji: '⚔️', label: 'Meč / Rytíř / Souboj',
         stems: ['meč','šavl','dýk','nůž','štít','brněn','zbroj','přilb','rytíř','princ','bajaj','souboj','bitv','boj','sek','ťal','usek','kopí','šíp','luk','kuš','stráž','voják','sword','knight','shield','armor','battle','blade','arrow'],
-        urls: [], dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 280, gain: 0.85 }], synth: 'sword'
+        urls: [], dur: 3.8, echoes: [{ delay: 0, gain: 0.95 }, { delay: 420, gain: 1.0 }, { delay: 950, gain: 0.75 }], synth: 'sword'
     },
     {
         id: 'tools', emoji: '🔨', label: 'Kladivo / Sekera / Trpaslíci / Mlýn',
-        stems: ['seker','sekýr','kladiv','kladív','krumpáč','kovadlin','kovář','dřevorub','trpasl','důl','jeskyn','skála','skál','kámen','kamen','motyk','lopat','mlýn','mlynář','kolo','kolovrát','vřeten','stavě','cihl','dřev','axe','hammer','pickaxe','dwarf','dwarves','mill','stone','spinning'],
-        urls: [], dur: 1.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 420, gain: 0.85 }], synth: 'tools'
+        stems: ['seker','sekýr','kladiv','kladív','krumpáč','kovadlin','kovář','dřevorub','trpasl','důl','skála','skál','kámen','kamen','motyk','mlýn','mlynář','kolo','kolovrát','vřeten','stavě','cihl','dřev','axe','hammer','pickaxe','dwarf','dwarves','mill','stone','spinning'],
+        urls: [], dur: 3.8, echoes: [{ delay: 0, gain: 0.9 }, { delay: 550, gain: 1.0 }, { delay: 1100, gain: 0.8 }], synth: 'tools'
     },
     {
         id: 'treasure', emoji: '🪙', label: 'Zlato / Dukáty / Poklad',
         stems: ['poklad','zlato','zlatý','zlaťák','dukát','minc','stříbr','drahokam','diamant','perla','perl','rubín','smaragd','prsten','prstýn','korun','žezl','trůn','bohatstv','měšec','oříš','gold','coin','treasure','diamond','jewel','ring','crown'],
-        urls: [], dur: 2.0, echoes: [{ delay: 0, gain: 1.0 }, { delay: 160, gain: 0.9 }, { delay: 340, gain: 0.75 }], synth: 'treasure'
+        urls: [], dur: 4.2,
+        echoes: [{ delay: 0, gain: 0.9 }, { delay: 180, gain: 1.0 }, { delay: 380, gain: 0.95 }, { delay: 620, gain: 0.8 }, { delay: 900, gain: 0.65 }],
+        synth: 'treasure'
     },
     {
         id: 'magic', emoji: '✨', label: 'Kouzlo / Víla / Zrcadlo',
         stems: ['kouzl','kouzeln','čár','čar','zázrak','víl','sudič','hůlk','hůl','zrcadl','závoj','přeměn','proměn','přán','přej','tajemn','třpyt','zář','hvězd','živá','mrtvá','magic','spell','wand','fairy','mirror','wish','sparkle'],
-        urls: [], dur: 2.4, echoes: [{ delay: 0, gain: 1.0 }, { delay: 200, gain: 0.85 }, { delay: 420, gain: 0.7 }], synth: 'magic'
+        urls: [], dur: 4.8,
+        echoes: [{ delay: 0, gain: 0.9 }, { delay: 260, gain: 1.0 }, { delay: 540, gain: 0.85 }, { delay: 860, gain: 0.7 }],
+        synth: 'magic'
     },
     {
         id: 'bell', emoji: '🔔', label: 'Zvon / Hodiny / Půlnoc',
         stems: ['zvon','zvonek','zvonk','zazvon','cink','zacink','hodin','odbil','odbíj','půlnoc','věžn','bell','chime','clock','midnight'],
-        urls: [], dur: 2.5, echoes: [{ delay: 0, gain: 1.0 }, { delay: 850, gain: 0.75 }], synth: 'bell'
+        urls: [], dur: 5.2,
+        echoes: [{ delay: 0, gain: 1.0 }, { delay: 1100, gain: 0.88 }, { delay: 2200, gain: 0.72 }],
+        synth: 'bell'
     },
     {
-        id: 'music', emoji: '🎺', label: 'Královské fanfáry / Hudba / Ples',
-        stems: ['král','královn','zámek','zámeck','hrad','ples','bál','tanec','tanč','tancov','hudb','píseň','písnič','zpív','harf','housl','píšťal','trubk','fanfár','slavnost','svátek','king','queen','castle','palace','ball','dance','music','harp','trumpet'],
-        urls: [], dur: 2.4, echoes: [{ delay: 0, gain: 1.0 }], synth: 'music'
+        id: 'music', emoji: '🎺', label: 'Královská hudba / Harfa / Ples',
+        stems: ['král','královn','zámek','zámeck','hrad','ples','bál','tanec','tanč','tancov','hudb','píseň','písnič','harf','housl','píšťal','trubk','fanfár','slavnost','svátek','king','queen','castle','palace','ball','dance','music','harp','trumpet'],
+        urls: [], dur: 4.8, echoes: [{ delay: 0, gain: 1.0 }, { delay: 650, gain: 0.85 }], synth: 'music'
     },
     {
         id: 'cooking', emoji: '🍲', label: 'Hrníček / Vaření / Kuchyně',
         stems: ['hrnec','hrníč','kotel','kotlík','vař','uvař','bubl','kaš','polévk','kuchyn','kuchař','kucht','peč','perník','koláč','buch','chléb','jablk','jahod','sůl','slánk','jíst','jedl','hlad','mls','pot','cook','boil','porridge','soup','kitchen','bread','salt'],
         urls: ['https://actions.google.com/sounds/v1/water/humidifier_bubble.ogg'],
-        dur: 2.3, echoes: [{ delay: 0, gain: 1.0 }, { delay: 320, gain: 0.85 }], synth: 'cooking'
+        dur: 4.8, echoes: [{ delay: 0, gain: 1.0 }], synth: 'cooking'
     },
     {
         id: 'laugh', emoji: '😊', label: 'Smích / Radost / Svatba',
         stems: ['smích','smál','zasmál','usmál','úsměv','radost','radov','vesel','šťast','štěst','svatb','hostin','oslav','polib','políb','vyhrál','zachrán','laugh','smile','joy','happy','wedding','feast','kiss'],
-        urls: [], dur: 2.0, echoes: [{ delay: 0, gain: 1.0 }, { delay: 240, gain: 0.85 }], synth: 'laugh'
+        urls: [], dur: 4.2, echoes: [{ delay: 0, gain: 0.95 }, { delay: 320, gain: 1.0 }, { delay: 700, gain: 0.8 }], synth: 'laugh'
     },
     {
-        id: 'sleep', emoji: '😴', label: 'Spánek / Postýlka / Slzy',
+        id: 'sleep', emoji: '😴', label: 'Spánek / Postýlka / Sladké sny',
         stems: ['spí','spink','spánek','usn','usín','postýl','postel','peřin','polštář','dobrou','noc','sen','sny','zív','zazív','unav','pláč','plak','slz','vzlyk','smutn','sleep','asleep','bed','pillow','dream','goodnight','cry','tear'],
-        urls: [], dur: 2.8, echoes: [{ delay: 0, gain: 1.0 }], synth: 'sleep'
+        urls: [], dur: 5.5, echoes: [{ delay: 0, gain: 1.0 }, { delay: 900, gain: 0.8 }], synth: 'sleep'
     }
 ];
 
@@ -788,7 +822,7 @@ const STORIES = {
     cs: [
         {
             title: "👑 Princezna se zlatou hvězdou (Lada)",
-            text: "Princezna Lada nastoupila do služby. Uzlík a kouzelný závoj položila pod kámen u studánky. Z vody na ni vystrčila hlavu malá rybička. „Nikomu to neříkej, rybičko, a dobře mi můj zlatý poklad opatruj,“ usmála se princezna a kráčela lesní cestou k zámku. Cestou si umazala obličej popelem a plachetkou zakryla zlatou hvězdu na čele. Starý kuchař v královské kuchyni, kde v krbu praskal teplý oheň a v hrnci bublala polévka, ji vzal do služby. Když se večer slavil králův ples a hrála hudba, Lada běžela ke studánce, oblékla si šaty třpytivé jako slunce a hvězdy, sedla na bílého koně a vstoupila do sálu. Princ si jí dal zlatý prsten, na věži zazvonil zvon a celá zem se uložila ke klidnému spánku."
+            text: "Princezna Lada nastoupila do služby. Uzlík a kouzelný závoj položila pod kámen u studánky. Z vody na ni vystrčila hlavu malá rybička. „Nikomu to neříkej, rybičko, a dobře mi můj zlatý poklad opatruj,“ usmála se princezna a kráčela lesní cestou k zámku. Cestou si umazala obličej popelem a plachetkou zakryla zlatou hvězdu na čele. Starý kuchař v královské kuchyni, kde v krbu praskal teplý oheň a v hrnci bublala polévka, ji vzal do služby. Když se večer slavil králův ples a hrála hudba, Lada běžela ke studánce, oblékla si šaty třpytivé jako slunce a hvězdy, sedla na bílého koně a vstoupila do sálu. Princ jí dal zlatý prsten, na věži zazvonil zvon a celá zem se uložila ke klidnému spánku."
         },
         {
             title: "🌰 O Popelce a třech oříšcích",
@@ -832,13 +866,19 @@ const STORIES = {
 };
 
 /* ============================================================================
-   SEKCE 4: POLYFONNÍ ZVUKOVÝ ENGINE (AUTOMATICKÉ PŘEKRÝVÁNÍ A VARIACE)
+   SEKCE 4: AUDIO ENGINE v5.0.0
+   - Studiový kompresor/zesilovač (DynamicsCompressorNode) + Pohádkový Stereo Reverb
+   - Plynulý Fade-In a dlouhý sametový Fade-Out u každého zvuku
+   - Melodický sekvencer: Natahovací hrací skříňka, Zvonkohra, Ukolébavková harfa, Kalimba
    ============================================================================ */
 const SoundEngine = {
     ctx: null,
+    compressor: null,
+    reverbNode: null,
     masterSfxGain: null,
     nightFilterNode: null,
     nightFilterEnabled: true,
+
     activeAudioEls: new Set(),
     activeTimers: new Set(),
     cooldownMap: {},
@@ -846,31 +886,73 @@ const SoundEngine = {
 
     bgMode: 'off',
     bgGain: null,
-    bgNodes: [],
+    bgSeqInterval: null,
+    bgLoopAudios: [],
+    melodyStep: 0,
 
     init() {
         if (!this.ctx) {
             const AC = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AC();
+
+            // 1. Hlavní kompresor / maximizer (zaručuje vysokou hlasitost bez praskání)
+            this.compressor = this.ctx.createDynamicsCompressor();
+            this.compressor.threshold.value = -16;
+            this.compressor.knee.value = 18;
+            this.compressor.ratio.value = 4;
+            this.compressor.attack.value = 0.01;
+            this.compressor.release.value = 0.25;
+            this.compressor.connect(this.ctx.destination);
+
+            // 2. Pohádkový Stereo Reverb pro měkké, dlouhé doznění (Fade-Out)
+            this.reverbNode = this.ctx.createConvolver();
+            this.reverbNode.buffer = this.createDreamReverbBuffer(2.6, 2.4);
+            const revGain = this.ctx.createGain();
+            revGain.gain.value = 0.42;
+            this.reverbNode.connect(revGain);
+            revGain.connect(this.compressor);
+
+            // 3. Noční sametový filtr (2800 Hz zachová plnou hlasitost, ale ořízne ostré špičky)
             this.nightFilterNode = this.ctx.createBiquadFilter();
             this.nightFilterNode.type = 'lowpass';
-            this.nightFilterNode.frequency.value = this.nightFilterEnabled ? 1150 : 18000;
+            this.nightFilterNode.frequency.value = this.nightFilterEnabled ? 2800 : 18000;
 
+            // 4. Master SFX Gain (výchozí 220 % Boost)
             this.masterSfxGain = this.ctx.createGain();
             this.masterSfxGain.gain.value = parseFloat(document.getElementById('sfxVolSlider').value);
 
             this.nightFilterNode.connect(this.masterSfxGain);
-            this.masterSfxGain.connect(this.ctx.destination);
+            this.masterSfxGain.connect(this.compressor);
+            this.masterSfxGain.connect(this.reverbNode);
+
+            // 5. Master Background Music Gain
+            this.bgGain = this.ctx.createGain();
+            this.bgGain.gain.value = parseFloat(document.getElementById('bgVolSlider').value);
+            this.bgGain.connect(this.compressor);
+            this.bgGain.connect(this.reverbNode);
         }
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
     },
 
+    createDreamReverbBuffer(duration, decay) {
+        const rate = this.ctx.sampleRate;
+        const length = rate * duration;
+        const impulse = this.ctx.createBuffer(2, length, rate);
+        for (let ch = 0; ch < 2; ch++) {
+            const data = impulse.getChannelData(ch);
+            for (let i = 0; i < length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+            }
+        }
+        return impulse;
+    },
+
+    // Spuštění pohádkového efektu s jemným Fade-In a dlouhým Fade-Out
     triggerCluster(cluster, spokenWord = '') {
         this.init();
         const now = Date.now();
-        // Ochrana proti dvojitému spuštění téhož slova v jedné sekundě (jiné zvuky se mohou plně překrývat!)
         if (this.cooldownMap[cluster.id] && (now - this.cooldownMap[cluster.id] < 2400)) {
             return;
         }
@@ -878,228 +960,280 @@ const SoundEngine = {
 
         showAutoBadge(`${cluster.emoji} ${spokenWord || cluster.label}`);
 
-        // Audio Ducking podkresu
-        if (this.bgMode !== 'off' && this.bgGain && this.ctx) {
-            const baseBg = parseFloat(document.getElementById('bgVolSlider').value);
-            this.bgGain.gain.setTargetAtTime(baseBg * 0.45, this.ctx.currentTime, 0.15);
-            const duckT = setTimeout(() => {
-                if (this.bgMode !== 'off' && this.bgGain && this.ctx) {
-                    this.bgGain.gain.setTargetAtTime(baseBg, this.ctx.currentTime, 0.6);
-                }
-            }, (cluster.dur || 2.0) * 1000);
-            this.activeTimers.add(duckT);
-        }
+        const tailMult = parseFloat(document.getElementById('tailSlider').value || '1.35');
+        const totalDur = (cluster.dur || 4.5) * tailMult;
 
         const varIdx = (this.variationMap[cluster.id] || 0);
         this.variationMap[cluster.id] = varIdx + 1;
-        const pitchShift = [1.0, 0.92, 1.08, 0.96][varIdx % 4];
+        const pitchShift = [1.0, 0.93, 1.07, 0.97][varIdx % 4];
 
+        // 1. Přehrajeme bohatou akustickou vrstvu s opakováním a reverbem (vždy hlasitě a s plynulým náběhem)
+        this.playEchoSequence(cluster, pitchShift, tailMult);
+
+        // 2. Pokud má kategorie i reálnou nahrávku (.ogg), přimícháme ji s plynulým Fade-In (0.6 s) a dlouhým Fade-Out (2.0 s)
         if (cluster.urls && cluster.urls.length > 0) {
             const url = cluster.urls[varIdx % cluster.urls.length];
             const audio = new Audio(url);
             audio.crossOrigin = "anonymous";
-            const volSlider = parseFloat(document.getElementById('sfxVolSlider').value);
-            audio.volume = Math.min(1.0, volSlider * 0.65);
             audio.playbackRate = pitchShift;
 
-            this.activeAudioEls.add(audio);
-            audio.play().catch(() => {
-                this.playEchoSequence(cluster, pitchShift);
-            });
+            const boostVal = parseFloat(document.getElementById('sfxVolSlider').value);
+            const targetVol = Math.min(1.0, 0.55 * boostVal);
 
-            const maxMs = (cluster.dur || 2.4) * 1000;
-            const fadeTimer = setTimeout(() => {
-                const fadeInt = setInterval(() => {
-                    if (audio.volume > 0.08) {
-                        audio.volume = Math.max(0, audio.volume - 0.08);
+            // Začneme od nuly (jemný Fade-In)
+            audio.volume = 0.01;
+            this.activeAudioEls.add(audio);
+
+            audio.play().then(() => {
+                // Plynulý Fade-In během 600 ms
+                let v = 0.02;
+                const fadeInInt = setInterval(() => {
+                    v += targetVol / 10;
+                    if (v >= targetVol) {
+                        audio.volume = targetVol;
+                        clearInterval(fadeInInt);
                     } else {
-                        clearInterval(fadeInt);
-                        audio.pause();
-                        this.activeAudioEls.delete(audio);
+                        audio.volume = v;
                     }
-                }, 60);
-                this.activeTimers.add(fadeInt);
-            }, maxMs);
-            this.activeTimers.add(fadeTimer);
-        } else {
-            this.playEchoSequence(cluster, pitchShift);
+                }, 55);
+                this.activeTimers.add(fadeInInt);
+
+                // Dlouhý plynulý Fade-Out v poslední třetině zvuku
+                const fadeOutStartMs = Math.max(1200, (totalDur - 2.0) * 1000);
+                const fadeOutTimer = setTimeout(() => {
+                    const fadeOutInt = setInterval(() => {
+                        if (audio.volume > 0.04) {
+                            audio.volume = Math.max(0, audio.volume - (targetVol / 24));
+                        } else {
+                            clearInterval(fadeOutInt);
+                            audio.pause();
+                            this.activeAudioEls.delete(audio);
+                        }
+                    }, 80);
+                    this.activeTimers.add(fadeOutInt);
+                }, fadeOutStartMs);
+                this.activeTimers.add(fadeOutTimer);
+            }).catch(() => {});
         }
     },
 
-    playEchoSequence(cluster, pitchShift) {
+    playEchoSequence(cluster, pitchShift, tailMult) {
         const echoes = cluster.echoes || [{ delay: 0, gain: 1.0 }];
         echoes.forEach(ec => {
             const t = setTimeout(() => {
-                this.synthesizeSound(cluster.synth, pitchShift, ec.gain);
+                this.synthesizeRichSound(cluster.synth, pitchShift, ec.gain, tailMult);
             }, ec.delay);
             this.activeTimers.add(t);
         });
     },
 
-    synthesizeSound(type, pitch = 1.0, echoGain = 1.0) {
+    // Bohaté, hlasité syntetické modely s plynulým Fade-In a dlouhým Fade-Out
+    synthesizeRichSound(type, pitch = 1.0, echoGain = 1.0, tailMult = 1.35) {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
         const out = this.nightFilterNode;
+        const soft = this.nightFilterEnabled;
 
-        const makeEnv = (peak, attack, decay) => {
+        // Obálka s měkkým náběhem (Fade-In) a dlouhým sametovým dozněním (Fade-Out)
+        const makeSmoothEnv = (peak, fadeIn, sustain, fadeOut) => {
             const g = this.ctx.createGain();
+            const att = soft ? Math.max(fadeIn, 0.04) : fadeIn;
+            const rel = fadeOut * tailMult;
             g.gain.setValueAtTime(0.0001, now);
-            g.gain.linearRampToValueAtTime(peak * echoGain, now + attack);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + attack + decay);
+            g.gain.linearRampToValueAtTime(peak * echoGain, now + att);
+            g.gain.setValueAtTime(peak * echoGain * 0.85, now + att + sustain);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + att + sustain + rel);
             g.connect(out);
-            return g;
+            return { gainNode: g, totalTime: att + sustain + rel + 0.05 };
         };
 
         if (type === 'dog') {
+            // Plné dvojité zaštěkání s teplou rezonancí hrudníku
+            const env = makeSmoothEnv(0.85, 0.03, 0.08, 0.38);
             const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.46, 0.02, 0.24);
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(290 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(460 * pitch, now + 0.06);
-            osc.frequency.exponentialRampToValueAtTime(175 * pitch, now + 0.25);
+            osc.frequency.setValueAtTime(260 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(440 * pitch, now + 0.08);
+            osc.frequency.exponentialRampToValueAtTime(165 * pitch, now + env.totalTime);
             const f = this.ctx.createBiquadFilter();
-            f.type = 'bandpass'; f.frequency.value = 650 * pitch; f.Q.value = 2.5;
-            osc.connect(f); f.connect(g);
-            osc.start(now); osc.stop(now + 0.27);
+            f.type = 'bandpass'; f.frequency.value = 620 * pitch; f.Q.value = 2.0;
+            osc.connect(f); f.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
         else if (type === 'wolf') {
-            const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.36, 0.35, 2.0);
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(240 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(430 * pitch, now + 0.65);
-            osc.frequency.exponentialRampToValueAtTime(280 * pitch, now + 2.3);
-            osc.connect(g);
-            osc.start(now); osc.stop(now + 2.4);
+            // Dlouhé, mystické zavytí vlka s plynulým Fade-In (0.6 s) a dlouhým Fade-Out (2.6 s)
+            const env = makeSmoothEnv(0.72, 0.55, 0.9, 2.2);
+            ['triangle', 'sine'].forEach((wave, idx) => {
+                const osc = this.ctx.createOscillator();
+                osc.type = wave;
+                const detune = idx === 0 ? 1 : 1.006;
+                osc.frequency.setValueAtTime(235 * pitch * detune, now);
+                osc.frequency.exponentialRampToValueAtTime(420 * pitch * detune, now + 0.85);
+                osc.frequency.setValueAtTime(410 * pitch * detune, now + 1.8);
+                osc.frequency.exponentialRampToValueAtTime(260 * pitch * detune, now + env.totalTime);
+                osc.connect(env.gainNode);
+                osc.start(now); osc.stop(now + env.totalTime);
+            });
         }
         else if (type === 'cat') {
+            // Jemné táhlé zamňoukání
+            const env = makeSmoothEnv(0.70, 0.12, 0.25, 0.85);
             const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.33, 0.06, 0.55);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(520 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(790 * pitch, now + 0.18);
-            osc.frequency.exponentialRampToValueAtTime(440 * pitch, now + 0.6);
-            osc.connect(g);
-            osc.start(now); osc.stop(now + 0.62);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(480 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(760 * pitch, now + 0.28);
+            osc.frequency.exponentialRampToValueAtTime(410 * pitch, now + env.totalTime);
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'lowpass'; f.frequency.value = 1400;
+            osc.connect(f); f.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
         else if (type === 'owl') {
+            // Hluboké lesní zahoukání sovy s ozvěnou
+            const env = makeSmoothEnv(0.80, 0.12, 0.25, 0.95);
             const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.38, 0.05, 0.45);
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(370 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(295 * pitch, now + 0.48);
-            osc.connect(g);
-            osc.start(now); osc.stop(now + 0.52);
-        }
-        else if (type === 'crow' || type === 'rooster') {
-            const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.34, 0.02, 0.32);
-            osc.type = 'sawtooth';
-            const f0 = type === 'rooster' ? 580 : 390;
-            osc.frequency.setValueAtTime(f0 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(f0 * 1.25 * pitch, now + 0.12);
-            osc.frequency.exponentialRampToValueAtTime(f0 * 0.82 * pitch, now + 0.32);
-            const f = this.ctx.createBiquadFilter();
-            f.type = 'bandpass'; f.frequency.value = 950;
-            osc.connect(f); f.connect(g);
-            osc.start(now); osc.stop(now + 0.35);
-        }
-        else if (type === 'frog') {
-            const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.35, 0.02, 0.22);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(145 * pitch, now);
-            osc.frequency.linearRampToValueAtTime(260 * pitch, now + 0.18);
-            const f = this.ctx.createBiquadFilter();
-            f.type = 'bandpass'; f.frequency.value = 520; f.Q.value = 4;
-            osc.connect(f); f.connect(g);
-            osc.start(now); osc.stop(now + 0.25);
+            osc.frequency.setValueAtTime(385 * pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(290 * pitch, now + env.totalTime);
+            osc.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
         else if (type === 'bird' || type === 'laugh') {
+            // Melodický trylek flétnového ptáčka
+            const env = makeSmoothEnv(0.62, 0.04, 0.12, 0.55);
             const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.26, 0.01, 0.20);
             osc.type = 'sine';
-            const base = type === 'laugh' ? 680 : 1750;
+            const base = type === 'laugh' ? 580 : 1380;
             osc.frequency.setValueAtTime(base * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(base * 1.4 * pitch, now + 0.09);
-            osc.frequency.exponentialRampToValueAtTime(base * 1.1 * pitch, now + 0.20);
-            osc.connect(g);
-            osc.start(now); osc.stop(now + 0.22);
+            osc.frequency.exponentialRampToValueAtTime(base * 1.32 * pitch, now + 0.14);
+            osc.frequency.exponentialRampToValueAtTime(base * 1.08 * pitch, now + env.totalTime);
+            osc.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
-        else if (type === 'insect' || type === 'snake') {
+        else if (type === 'crow' || type === 'rooster' || type === 'frog') {
+            const env = makeSmoothEnv(0.72, 0.04, 0.12, 0.48);
             const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.24, 0.05, 0.7);
-            osc.type = type === 'insect' ? 'sawtooth' : 'triangle';
-            osc.frequency.setValueAtTime((type === 'insect' ? 190 : 3200) * pitch, now);
+            osc.type = 'sawtooth';
+            const f0 = type === 'frog' ? 165 : (type === 'rooster' ? 520 : 360);
+            osc.frequency.setValueAtTime(f0 * pitch, now);
+            osc.frequency.linearRampToValueAtTime(f0 * 1.35 * pitch, now + 0.18);
+            osc.frequency.exponentialRampToValueAtTime(f0 * 0.85 * pitch, now + env.totalTime);
             const f = this.ctx.createBiquadFilter();
-            f.type = 'bandpass'; f.frequency.value = type === 'insect' ? 380 : 4200;
-            osc.connect(f); f.connect(g);
-            osc.start(now); osc.stop(now + 0.78);
+            f.type = 'bandpass'; f.frequency.value = f0 * 2.2; f.Q.value = 2.5;
+            osc.connect(f); f.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
         else if (type === 'horse' || type === 'steps' || type === 'door' || type === 'tools') {
+            // Dřevěné zaklepání / klus kopyt / kroky s teplou rezonancí
+            const env = makeSmoothEnv(0.88, 0.01, 0.04, 0.28);
             const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.45, 0.005, 0.13);
             osc.type = 'triangle';
-            const baseF = type === 'tools' ? 280 : (type === 'door' ? 190 : 150);
+            const baseF = type === 'tools' ? 260 : (type === 'door' ? 185 : 145);
             osc.frequency.setValueAtTime(baseF * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(55, now + 0.12);
-            osc.connect(g);
-            osc.start(now); osc.stop(now + 0.14);
-        }
-        else if (type === 'sword' || type === 'lock' || type === 'treasure') {
-            const osc = this.ctx.createOscillator();
-            const g = makeEnv(0.32, 0.004, 0.38);
-            osc.type = 'sine';
-            const f0 = type === 'treasure' ? 1850 : (type === 'lock' ? 1150 : 1480);
-            osc.frequency.setValueAtTime(f0 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(f0 * 1.35 * pitch, now + 0.35);
-            osc.connect(g);
-            osc.start(now); osc.stop(now + 0.4);
+            osc.frequency.exponentialRampToValueAtTime(52, now + env.totalTime);
+            osc.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
         else if (type === 'pig' || type === 'cow' || type === 'dragon' || type === 'devil' || type === 'witch') {
+            // Dlouhé zabučení / dračí zadunění s plynulým Fade-In a Fade-Out
+            const env = makeSmoothEnv(0.78, 0.18, 0.45, 1.35);
             const osc = this.ctx.createOscillator();
-            const dur = (type === 'dragon' || type === 'witch') ? 1.05 : 0.65;
-            const g = makeEnv(0.38, 0.04, dur);
             osc.type = 'sawtooth';
-            const f0 = type === 'dragon' ? 85 : (type === 'cow' ? 140 : (type === 'witch' ? 320 : 185));
+            const f0 = type === 'dragon' ? 92 : (type === 'cow' ? 148 : (type === 'witch' ? 310 : 185));
             osc.frequency.setValueAtTime(f0 * pitch, now);
-            osc.frequency.exponentialRampToValueAtTime(f0 * 0.78 * pitch, now + dur);
+            osc.frequency.exponentialRampToValueAtTime(f0 * 0.78 * pitch, now + env.totalTime);
             const f = this.ctx.createBiquadFilter();
-            f.type = 'lowpass'; f.frequency.value = 450;
-            osc.connect(f); f.connect(g);
-            osc.start(now); osc.stop(now + dur + 0.05);
+            f.type = 'lowpass'; f.frequency.value = 520;
+            osc.connect(f); f.connect(env.gainNode);
+            osc.start(now); osc.stop(now + env.totalTime);
         }
-        else if (type === 'magic' || type === 'bell' || type === 'sleep' || type === 'music') {
-            const notes = type === 'sleep' ? [261.6, 329.6, 392.0]
-                        : (type === 'music' ? [293.66, 369.99, 440.0, 587.33]
-                        : [523.25, 659.25, 783.99, 1046.5]);
+        else if (type === 'magic' || type === 'bell' || type === 'sleep' || type === 'music' || type === 'treasure' || type === 'sword' || type === 'lock') {
+            // Bohaté souzvuky harfy, zvonů, pokladu a kouzel s dlouhým 3.5s dozněním
+            const chords = {
+                sleep:    [261.63, 329.63, 392.00, 493.88],
+                music:    [293.66, 369.99, 440.00, 587.33],
+                bell:     [523.25, 659.25, 783.99],
+                treasure: [1046.5, 1318.5, 1567.98],
+                sword:    [880.0, 1108.7],
+                lock:     [783.99, 987.77],
+                magic:    [523.25, 659.25, 783.99, 987.77, 1174.66]
+            };
+            const notes = chords[type] || chords.magic;
             notes.forEach((n, idx) => {
-                const osc = this.ctx.createOscillator();
+                const t0 = now + idx * 0.14;
                 const g = this.ctx.createGain();
-                const t0 = now + idx * 0.09;
+                const dur = 2.6 * tailMult;
                 g.gain.setValueAtTime(0.0001, t0);
-                g.gain.linearRampToValueAtTime(0.22 * echoGain, t0 + 0.03);
-                g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
-                osc.type = type === 'music' ? 'triangle' : 'sine';
+                g.gain.linearRampToValueAtTime(0.52 * echoGain, t0 + 0.06);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+                g.connect(out);
+
+                const osc = this.ctx.createOscillator();
+                osc.type = (type === 'music' || type === 'sleep') ? 'triangle' : 'sine';
                 osc.frequency.value = n * pitch;
-                osc.connect(g); g.connect(out);
-                osc.start(t0); osc.stop(t0 + 1.45);
+                osc.connect(g);
+                osc.start(t0); osc.stop(t0 + dur + 0.05);
             });
         }
         else {
-            const len = this.ctx.sampleRate * 1.7;
+            // Dlouhé atmosférické živly (bouřka, déšť, vítr, les, moře, oheň) s 0.7s Fade-In a 2.5s Fade-Out
+            const totalSec = 3.8 * tailMult;
+            const len = Math.floor(this.ctx.sampleRate * totalSec);
             const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
             const data = buf.getChannelData(0);
-            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+            let last = 0;
+            for (let i = 0; i < len; i++) {
+                const w = Math.random() * 2 - 1;
+                last = (last + 0.04 * w) / 1.04;
+                data[i] = last * 2.8;
+            }
             const src = this.ctx.createBufferSource();
             src.buffer = buf;
+
             const f = this.ctx.createBiquadFilter();
             f.type = 'lowpass';
-            f.frequency.value = type === 'thunder' ? 220 : (type === 'wind' ? 480 : 880);
-            const g = makeEnv(0.40, 0.1, 1.4);
-            src.connect(f); f.connect(g);
-            src.start(now); src.stop(now + 1.6);
+            f.frequency.value = type === 'thunder' ? 240 : (type === 'wind' ? 540 : 1100);
+
+            const env = makeSmoothEnv(0.85, 0.65, 1.1, 2.2);
+            src.connect(f); f.connect(env.gainNode);
+            src.start(now); src.stop(now + totalSec);
         }
+    },
+
+    /* ========================================================================
+       MELODICKÝ USPÁVACÍ SEKVENCER (HRACÍ SKŘÍŇKA, ZVONKOHRA, HARFA, KALIMBA)
+       ======================================================================== */
+    playMusicBoxNote(freq, duration = 2.4, timbre = 'musicbox', vol = 0.42) {
+        if (!this.ctx || !this.bgGain) return;
+        const now = this.ctx.currentTime;
+
+        // Hlavní tón + jemný cinkavý alikvotní tón (jako kovový jazýček natahovací hračky nebo zvonečku)
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+
+        osc1.type = timbre === 'harp' ? 'triangle' : 'sine';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(freq, now);
+        osc2.frequency.setValueAtTime(freq * (timbre === 'chimes' ? 2.756 : (timbre === 'kalimba' ? 3.0 : 2.0)), now);
+
+        const g1 = this.ctx.createGain();
+        const g2 = this.ctx.createGain();
+
+        // Jemný náběh a dlouhé zvonivé doznění
+        g1.gain.setValueAtTime(0.0001, now);
+        g1.gain.linearRampToValueAtTime(vol, now + 0.03);
+        g1.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        g2.gain.setValueAtTime(0.0001, now);
+        g2.gain.linearRampToValueAtTime(vol * 0.28, now + 0.015);
+        g2.gain.exponentialRampToValueAtTime(0.0001, now + duration * 0.45);
+
+        osc1.connect(g1); g1.connect(this.bgGain);
+        osc2.connect(g2); g2.connect(this.bgGain);
+
+        osc1.start(now); osc1.stop(now + duration + 0.05);
+        osc2.start(now); osc2.stop(now + duration * 0.5);
     },
 
     startAmbience(preset) {
@@ -1108,56 +1242,138 @@ const SoundEngine = {
         if (preset === 'off') return;
 
         this.bgMode = preset;
-        this.bgGain = this.ctx.createGain();
-        this.bgGain.gain.value = parseFloat(document.getElementById('bgVolSlider').value);
-        this.bgGain.connect(this.ctx.destination);
+        this.melodyStep = 0;
 
-        if (preset === 'lullaby' || preset === 'forest') {
-            const chord = preset === 'lullaby' ? [130.81, 164.81, 196.00, 246.94] : [110.0, 164.81, 220.0];
-            chord.forEach(freq => {
-                const osc = this.ctx.createOscillator();
-                const g = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                g.gain.value = 0.12 / chord.length;
-                osc.connect(g); g.connect(this.bgGain);
-                osc.start();
-                this.bgNodes.push(osc);
-            });
+        // 1. 🎠 NATAHOVACÍ HRACÍ SKŘÍŇKA (Brahmsova ukolébavka & Hvězdička ve zvonkové tónině)
+        if (preset === 'musicbox') {
+            const melody = [
+                { m: 659.25, b: 261.63 }, // E5 + C4
+                { m: 659.25, b: 0 },      // E5
+                { m: 783.99, b: 392.00 }, // G5 + G4
+                { m: 0,      b: 0 },
+                { m: 659.25, b: 261.63 }, // E5 + C4
+                { m: 659.25, b: 0 },      // E5
+                { m: 783.99, b: 392.00 }, // G5 + G4
+                { m: 0,      b: 0 },
+                { m: 659.25, b: 329.63 }, // E5 + E4
+                { m: 783.99, b: 0 },      // G5
+                { m: 1046.5, b: 349.23 }, // C6 + F4
+                { m: 987.77, b: 0 },      // B5
+                { m: 880.00, b: 349.23 }, // A5 + F4
+                { m: 880.00, b: 0 },      // A5
+                { m: 783.99, b: 261.63 }, // G5 + C4
+                { m: 0,      b: 0 },
+                { m: 587.33, b: 293.66 }, // D5 + D4
+                { m: 659.25, b: 0 },      // E5
+                { m: 698.46, b: 392.00 }, // F5 + G4
+                { m: 587.33, b: 0 },      // D5
+                { m: 587.33, b: 293.66 }, // D5 + D4
+                { m: 659.25, b: 0 },      // E5
+                { m: 698.46, b: 392.00 }, // F5 + G4
+                { m: 0,      b: 0 },
+                { m: 587.33, b: 392.00 }, // D5 + G4
+                { m: 698.46, b: 0 },      // F5
+                { m: 987.77, b: 392.00 }, // B5 + G4
+                { m: 880.00, b: 0 },      // A5
+                { m: 783.99, b: 329.63 }, // G5 + E4
+                { m: 659.25, b: 0 },      // E5
+                { m: 523.25, b: 261.63 }, // C5 + C4
+                { m: 0,      b: 0 }
+            ];
+            const playTick = () => {
+                if (this.bgMode !== 'musicbox') return;
+                const step = melody[this.melodyStep % melody.length];
+                if (step.m > 0) this.playMusicBoxNote(step.m, 2.6, 'musicbox', 0.48);
+                if (step.b > 0) this.playMusicBoxNote(step.b, 3.2, 'harp', 0.28);
+                this.melodyStep++;
+            };
+            playTick();
+            this.bgSeqInterval = setInterval(playTick, 720);
         }
 
-        if (preset !== 'lullaby') {
-            const len = this.ctx.sampleRate * 3;
-            const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-            const ch = buf.getChannelData(0);
-            let lastOut = 0.0;
-            for (let i = 0; i < len; i++) {
-                const white = Math.random() * 2 - 1;
-                ch[i] = (lastOut + (0.02 * white)) / 1.02;
-                lastOut = ch[i];
-                ch[i] *= 3.2;
-            }
-            const src = this.ctx.createBufferSource();
-            src.buffer = buf;
-            src.loop = true;
+        // 2. 🎐 KŘIŠŤÁLOVÁ ZVONKOHRA (Jemné zvonečky ve větru)
+        else if (preset === 'chimes') {
+            const chimeNotes = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
+            const playChime = () => {
+                if (this.bgMode !== 'chimes') return;
+                const f1 = chimeNotes[Math.floor(Math.random() * chimeNotes.length)];
+                this.playMusicBoxNote(f1, 3.4, 'chimes', 0.42);
+                if (Math.random() > 0.45) {
+                    const f2 = chimeNotes[Math.floor(Math.random() * chimeNotes.length)];
+                    setTimeout(() => {
+                        if (this.bgMode === 'chimes') this.playMusicBoxNote(f2, 3.0, 'chimes', 0.32);
+                    }, 340);
+                }
+            };
+            playChime();
+            this.bgSeqInterval = setInterval(playChime, 1150);
+        }
 
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = preset === 'brown' ? 240 : (preset === 'fire' ? 340 : 780);
+        // 3. 🎹 UKOLÉBAVKOVÁ HARFA (Hřejivé rozklady akordů)
+        else if (preset === 'harp') {
+            const progression = [
+                [261.63, 329.63, 392.00, 493.88, 523.25, 392.00], // Cmaj7
+                [220.00, 261.63, 329.63, 392.00, 440.00, 329.63], // Am7
+                [174.61, 220.00, 261.63, 349.23, 440.00, 261.63], // Fmaj7
+                [196.00, 246.94, 293.66, 392.00, 493.88, 293.66]  // G6
+            ];
+            const playHarp = () => {
+                if (this.bgMode !== 'harp') return;
+                const chordIdx = Math.floor(this.melodyStep / 6) % progression.length;
+                const noteIdx = this.melodyStep % 6;
+                const freq = progression[chordIdx][noteIdx];
+                this.playMusicBoxNote(freq, 3.2, 'harp', 0.46);
+                this.melodyStep++;
+            };
+            playHarp();
+            this.bgSeqInterval = setInterval(playHarp, 680);
+        }
 
-            const nGain = this.ctx.createGain();
-            nGain.gain.value = 0.35;
-            src.connect(filter); filter.connect(nGain); nGain.connect(this.bgGain);
-            src.start();
-            this.bgNodes.push(src);
+        // 4. 🧚 NOČNÍ KALIMBA (Dřevěné tóny dětské uspávací hračky)
+        else if (preset === 'kalimba') {
+            const pattern = [392.00, 440.00, 523.25, 659.25, 587.33, 523.25, 440.00, 392.00, 329.63, 392.00, 523.25, 440.00];
+            const playKalimba = () => {
+                if (this.bgMode !== 'kalimba') return;
+                const freq = pattern[this.melodyStep % pattern.length];
+                this.playMusicBoxNote(freq, 2.2, 'kalimba', 0.48);
+                if (this.melodyStep % 4 === 0) {
+                    this.playMusicBoxNote(freq * 0.5, 3.0, 'harp', 0.30);
+                }
+                this.melodyStep++;
+            };
+            playKalimba();
+            this.bgSeqInterval = setInterval(playKalimba, 640);
+        }
+
+        // 5. 🌧️ REÁLNÝ NOČNÍ DÉŠŤ A PRASKAJÍCÍ KRB (Skutečné nahrávky ve smyčce)
+        else if (preset === 'rainfire') {
+            const urls = [
+                'https://actions.google.com/sounds/v1/weather/light_rain.ogg',
+                'https://actions.google.com/sounds/v1/ambiences/fire.ogg'
+            ];
+            const bgVol = Math.min(1.0, parseFloat(document.getElementById('bgVolSlider').value) * 0.65);
+            urls.forEach(u => {
+                const a = new Audio(u);
+                a.crossOrigin = "anonymous";
+                a.loop = true;
+                a.volume = bgVol;
+                a.play().catch(() => {});
+                this.bgLoopAudios.push(a);
+            });
         }
 
         document.getElementById('bgStateLabel').innerText = 'Hraje ve smyčce';
     },
 
     stopAmbience() {
-        this.bgNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch (e) {} });
-        this.bgNodes = [];
+        if (this.bgSeqInterval) {
+            clearInterval(this.bgSeqInterval);
+            this.bgSeqInterval = null;
+        }
+        this.bgLoopAudios.forEach(a => {
+            try { a.pause(); a.currentTime = 0; } catch (e) {}
+        });
+        this.bgLoopAudios = [];
         this.bgMode = 'off';
         document.getElementById('bgStateLabel').innerText = 'Vypnuto';
     },
@@ -1174,7 +1390,7 @@ const SoundEngine = {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
         document.getElementById('autoBadgesBox').innerHTML = '';
-        setStatus('🛑 Všechny zvuky, čtení i podkres byly okamžitě zastaveny.');
+        setStatus('🛑 Všechny zvuky, čtení i uspávací hudba byly okamžitě zastaveny.');
     }
 };
 
@@ -1188,7 +1404,7 @@ let recognition = null;
 let silentInterval = null;
 let currentWordIndex = 0;
 let storyWordsData = [];
-let processedSpeechCounts = {}; // Sledování indexů slov v proudu řeči, aby každé vyřčené slovo hrálo jen 1×
+let processedSpeechCounts = {};
 
 function checkWordTriggers(rawWord) {
     const clean = normWord(rawWord);
@@ -1204,7 +1420,7 @@ function checkWordTriggers(rawWord) {
         }
     }
 
-    // 2. Automatické spuštění zvukového efektu (36 kategorií, 640+ kořenů)
+    // 2. Automatické spuštění zvukového efektu
     for (const cluster of SOUND_LIBRARY) {
         for (const st of cluster.stems) {
             const nSt = normWord(st);
@@ -1256,15 +1472,15 @@ function toggleNightFilter() {
     SoundEngine.nightFilterEnabled = !SoundEngine.nightFilterEnabled;
     if (SoundEngine.nightFilterNode && SoundEngine.ctx) {
         SoundEngine.nightFilterNode.frequency.setTargetAtTime(
-            SoundEngine.nightFilterEnabled ? 1150 : 18000,
+            SoundEngine.nightFilterEnabled ? 2800 : 18000,
             SoundEngine.ctx.currentTime, 0.15
         );
     }
     const btn = document.getElementById('softNightBtn');
     btn.classList.toggle('active', SoundEngine.nightFilterEnabled);
     btn.innerText = SoundEngine.nightFilterEnabled
-        ? '🌙 Sametový noční filtr (proti leknutí): ZAP'
-        : '🌙 Sametový noční filtr (proti leknutí): VYP';
+        ? '🌙 Jemný sametový náběh (Fade-In/Out): ZAP'
+        : '🌙 Jemný sametový náběh (Fade-In/Out): VYP';
 }
 
 let sleepMinutes = 0;
@@ -1359,7 +1575,6 @@ function stopActiveSession() {
     updateMainButtonLabel();
 }
 
-// 1. Živý automatický odposlech s přesným sledováním indexů nových slov
 function startVoiceRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
@@ -1375,7 +1590,7 @@ function startVoiceRecognition() {
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    setStatus('🎙️ Poslouchám... Vyprávěj pohádku, zvuky a barvy se spouštějí automaticky!');
+    setStatus('🎙️ Poslouchám... Vyprávěj pohádku, zvuky s jemným náběhem a barvy se spouštějí samy!');
 
     recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -1384,7 +1599,6 @@ function startVoiceRecognition() {
             const words = phrase.split(/\s+/);
             const prevCount = processedSpeechCounts[i] || 0;
 
-            // Zpracujeme pouze nově vyřčená slova od posledního mezivýsledku
             const startIdx = Math.max(0, prevCount - 1);
             for (let wIdx = startIdx; wIdx < words.length; wIdx++) {
                 const word = words[wIdx];
@@ -1406,7 +1620,6 @@ function startVoiceRecognition() {
     try { recognition.start(); } catch (e) {}
 }
 
-// 2. AI Vypravěč
 function startAiStoryReading() {
     if (!('speechSynthesis' in window)) {
         setStatus('⚠️ Prohlížeč nepodporuje syntézu řeči.');
@@ -1417,7 +1630,7 @@ function startAiStoryReading() {
     const story = STORIES[currentLang][document.getElementById('storySelect').value || 0];
     const utterance = new SpeechSynthesisUtterance(story.text);
     utterance.lang = currentLang === 'cs' ? 'cs-CZ' : 'en-US';
-    utterance.rate = parseFloat(document.getElementById('speedSlider').value);
+    utterance.rate = 0.88;
     utterance.pitch = 0.94;
 
     currentWordIndex = 0;
@@ -1439,9 +1652,8 @@ function startAiStoryReading() {
     window.speechSynthesis.speak(utterance);
 }
 
-// 3. Tiché čtení očima
 function startSilentPacer() {
-    setStatus('🤫 Tiché čtení běží – čti očima, zvuky a barvy se spouštějí automaticky podle pozice...');
+    setStatus('🤫 Tiché čtení běží – čti očima, zvuky a barvy se spouštějí automaticky...');
     const stepNextWord = () => {
         if (!isSessionRunning || currentMode !== 'silent') return;
         if (currentWordIndex >= storyWordsData.length) {
@@ -1453,10 +1665,9 @@ function startSilentPacer() {
         highlightWordAt(currentWordIndex);
         checkWordTriggers(raw);
 
-        const speedFactor = parseFloat(document.getElementById('speedSlider').value);
-        let delay = Math.round(410 / speedFactor);
-        if (/[,;]/.test(raw)) delay += 210;
-        if (/[.!?…]/.test(raw)) delay += 460;
+        let delay = 440;
+        if (/[,;]/.test(raw)) delay += 220;
+        if (/[.!?…]/.test(raw)) delay += 480;
 
         currentWordIndex++;
         silentInterval = setTimeout(stepNextWord, delay);
@@ -1562,7 +1773,7 @@ function showAutoBadge(text) {
     b.className = 'auto-badge';
     b.innerText = text;
     box.prepend(b);
-    setTimeout(() => b.remove(), 3200);
+    setTimeout(() => b.remove(), 4200);
 }
 
 function setStatus(msg) {
@@ -1576,16 +1787,20 @@ function updateVolumes() {
     document.getElementById('bgVolLabel').innerText = Math.round(bgV * 100) + ' %';
 
     if (SoundEngine.masterSfxGain && SoundEngine.ctx) {
-        SoundEngine.masterSfxGain.gain.setTargetAtTime(sfxV, SoundEngine.ctx.currentTime, 0.1);
+        SoundEngine.masterSfxGain.gain.setTargetAtTime(sfxV, SoundEngine.ctx.currentTime, 0.08);
     }
     if (SoundEngine.bgGain && SoundEngine.ctx) {
-        SoundEngine.bgGain.gain.setTargetAtTime(bgV, SoundEngine.ctx.currentTime, 0.1);
+        SoundEngine.bgGain.gain.setTargetAtTime(bgV, SoundEngine.ctx.currentTime, 0.08);
     }
+    SoundEngine.bgLoopAudios.forEach(a => {
+        a.volume = Math.min(1.0, bgV * 0.65);
+    });
 }
 
-function updateSpeedLabel() {
-    const v = parseFloat(document.getElementById('speedSlider').value);
-    document.getElementById('speedLabel').innerText = `${v.toFixed(2)}×`;
+function updateTailLabel() {
+    const mult = parseFloat(document.getElementById('tailSlider').value);
+    const approxSec = (4.2 * mult).toFixed(1);
+    document.getElementById('tailLabel').innerText = `Dlouhé (${approxSec} s)`;
 }
 
 function toggleLanguage() {
@@ -1607,11 +1822,10 @@ function populateStoryDropdown() {
 }
 
 function initUI() {
-    // Spočítáme celkový počet aktivních kořenů ve slovníku
     const totalStems = SOUND_LIBRARY.reduce((acc, c) => acc + c.stems.length, 0)
                      + LAMP_PRESETS.reduce((acc, p) => acc + p.stems.length, 0);
     document.getElementById('dictCounter').innerText =
-        `Automatický odposlech • ${totalStems} pohádkových kořenů (~5 500 českých tvarů v ${SOUND_LIBRARY.length} zvukových světech)`;
+        `Automatický odposlech • ${totalStems} kořenů • Hrací skříňka, Zvonkohra a dlouhé efekty s Fade-In/Out`;
 
     ['lampSwatchesMain', 'lampSwatchesModal'].forEach(containerId => {
         const wrap = document.getElementById(containerId);
@@ -1631,7 +1845,6 @@ function initUI() {
     loadSelectedStory();
 }
 
-// Hvězdné plátno na pozadí
 const canvas = document.getElementById('ambientCanvas');
 const ctx = canvas.getContext('2d');
 let cw, ch;
