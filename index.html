@@ -11,10 +11,10 @@
     <style>
         :root {
             --bg-dark: #05070f;
-            --panel-bg: rgba(12, 16, 28, 0.78);
-            --panel-border: rgba(245, 158, 11, 0.22);
+            --panel-bg: rgba(10, 14, 26, 0.72);
+            --panel-border: rgba(245, 158, 11, 0.28);
             --text-main: #f8fafc;
-            --text-soft: #94a3b8;
+            --text-soft: #cbd5e1;
             --accent-warm: #f59e0b;
             --accent-green: #10b981;
             --accent-red: #ef4444;
@@ -42,7 +42,7 @@
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* Vylepšený vizuální Canvas na pozadí (100% obrazovky) */
+        /* Vizuální Canvas na pozadí (100% obrazovky) */
         #ambientCanvas {
             position: fixed;
             inset: 0;
@@ -76,18 +76,18 @@
             display: flex;
             flex-direction: column;
             background: var(--panel-bg);
-            padding: 12px 16px 14px 16px;
+            padding: 16px 18px 18px 18px;
             backdrop-filter: blur(12px);
             overflow: hidden;
         }
 
-        /* Horní lišta */
+        /* Horní lišta s velkými tlačítky a ikonami */
         .top-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
+            gap: 10px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
             flex-shrink: 0;
         }
@@ -95,12 +95,12 @@
         .brand-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .crest-mini {
-            width: 38px;
-            height: 38px;
+            width: 48px;
+            height: 48px;
             position: relative;
             display: flex;
             align-items: center;
@@ -111,242 +111,501 @@
             position: absolute;
             inset: -6px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.65) 0%, rgba(239, 68, 68, 0) 70%);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.7) 0%, rgba(239, 68, 68, 0) 70%);
             animation: breatheAura 4s infinite ease-in-out;
         }
 
         @keyframes breatheAura {
             0%, 100% { transform: scale(0.88); opacity: 0.45; }
-            50% { transform: scale(1.2); opacity: 0.95; }
+            50% { transform: scale(1.22); opacity: 0.95; }
         }
 
         .brand-titles h1 {
-            font-size: 18px;
+            font-size: 22px;
             margin: 0;
-            font-weight: 700;
+            font-weight: 800;
             letter-spacing: -0.3px;
             line-height: 1.1;
         }
 
         .brand-tagline {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-soft);
             font-style: italic;
         }
 
         .top-actions {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
         .pill-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.11);
+            border: 1px solid rgba(255, 255, 255, 0.22);
             color: var(--text-main);
-            padding: 6px 11px;
-            border-radius: 18px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 10px 15px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: 700;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 7px;
             transition: all 0.2s;
         }
         .pill-btn:active { transform: scale(0.95); }
 
-        /* Výběr pohádek a režimů */
-        .selector-row {
-            display: grid;
-            grid-template-columns: 1.4fr 1fr;
-            gap: 8px;
-            margin-bottom: 8px;
-            flex-shrink: 0;
-        }
-
-        select {
-            width: 100%;
-            padding: 8px 10px;
-            border-radius: 12px;
-            background: rgba(20, 27, 45, 0.95);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.18);
-            font-size: 13px;
-            font-weight: 600;
-        }
-
+        /* Přepínač 4 režimů s velkými ikonami */
         .mode-tabs {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 4px;
-            background: rgba(0, 0, 0, 0.38);
-            padding: 4px;
-            border-radius: 14px;
-            margin-bottom: 8px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 6px;
+            border-radius: 18px;
+            margin-bottom: 12px;
             flex-shrink: 0;
         }
 
         .mode-tab {
-            border: none;
-            background: transparent;
+            border: 1px solid transparent;
+            background: rgba(255,255,255,0.04);
             color: var(--text-soft);
-            padding: 7px 4px;
-            border-radius: 10px;
-            font-size: 12px;
+            padding: 11px 6px;
+            border-radius: 14px;
+            font-size: 14px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
             text-align: center;
         }
+        .mode-tab .tab-icon {
+            font-size: 22px;
+            line-height: 1;
+        }
         .mode-tab.active {
-            background: rgba(245, 158, 11, 0.24);
+            background: rgba(245, 158, 11, 0.28);
             color: #fde68a;
-            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-color: rgba(245, 158, 11, 0.55);
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
         }
 
-        /* Importní lišta (OCR + Soubory + Klíč) */
+        /* Lišta pro volitelný výběr pohádek a focení (skrytá ve volném vyprávění, aby nerušila) */
+        .book-tools-panel {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .book-tools-panel.visible {
+            display: flex;
+        }
+
+        .selector-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(20, 27, 45, 0.95);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.24);
+            font-size: 15px;
+            font-weight: 700;
+        }
+
         .import-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 6px;
-            background: rgba(0, 0, 0, 0.28);
-            border: 1px dashed rgba(255, 255, 255, 0.18);
-            border-radius: 12px;
-            padding: 6px 10px;
-            margin-bottom: 8px;
-            flex-shrink: 0;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px dashed rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
+            padding: 8px 12px;
             flex-wrap: wrap;
         }
 
         .import-btns {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             flex-wrap: wrap;
             flex: 1;
         }
 
         .import-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--text-main);
-            padding: 6px 10px;
-            border-radius: 9px;
-            font-size: 11.5px;
-            font-weight: 600;
+            padding: 9px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 7px;
         }
 
         #ocrStatusBadge {
-            font-size: 11.5px;
+            font-size: 14px;
             color: #fbbf24;
             font-weight: 700;
         }
 
-        /* Hlavní čtečka textu - roztažená na maximum volné výšky */
+        /* ==========================================================
+           STŘEDOVÝ PANEL: 1) VOLNÉ VYPRÁVĚNÍ (BEZ KNIHY)
+           ========================================================== */
+        .free-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+            position: relative;
+        }
+
+        .free-lantern-orb {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.38) 0%, rgba(245, 158, 11, 0.08) 65%, transparent 100%);
+            border: 2px solid rgba(245, 158, 11, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            box-shadow: 0 0 50px rgba(245, 158, 11, 0.25);
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+        .free-lantern-orb.listening {
+            border-color: #10b981;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.42) 0%, rgba(245, 158, 11, 0.15) 65%, transparent 100%);
+            box-shadow: 0 0 70px rgba(16, 185, 129, 0.55);
+            animation: orbPulse 2.4s infinite ease-in-out;
+        }
+
+        @keyframes orbPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .free-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            color: #fde68a;
+        }
+
+        .free-subtitle {
+            font-size: 16px;
+            color: var(--text-soft);
+            max-width: 520px;
+            line-height: 1.5;
+            margin: 0 0 16px 0;
+        }
+
+        .spoken-live-pill {
+            min-height: 44px;
+            padding: 10px 20px;
+            border-radius: 24px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-size: 17px;
+            color: #93c5fd;
+            font-style: italic;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 90%;
+        }
+
+        /* ==========================================================
+           STŘEDOVÝ PANEL: 2) ČTEČKA POHÁDEK (KDYŽ CHCEŠ ČÍST Z TEXTU)
+           ========================================================== */
         .reader-box {
             flex: 1;
-            background: rgba(7, 10, 20, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            padding: 18px 20px;
-            margin-bottom: 8px;
+            display: none;
+            background: rgba(7, 10, 20, 0.68);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 20px 22px;
+            margin-bottom: 10px;
             overflow-y: auto;
-            font-size: 19px;
+            font-size: 21px;
             line-height: 1.85;
             text-align: left;
             letter-spacing: 0.1px;
             box-shadow: inset 0 4px 20px rgba(0,0,0,0.5);
         }
+        .reader-box.visible {
+            display: block;
+        }
 
-        /* Přirozené sázení slov a interpunkce */
         .reader-word {
             display: inline;
             padding: 2px 1px;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background-color 0.18s ease, color 0.18s ease;
         }
         .reader-word.has-fx {
-            border-bottom: 1.5px dotted rgba(245, 158, 11, 0.55);
+            border-bottom: 2px dotted rgba(245, 158, 11, 0.65);
         }
         .reader-word.current-cursor {
             background: #f59e0b;
             color: #05070f;
             font-weight: 700;
-            padding: 2px 5px;
-            box-shadow: 0 0 14px rgba(245, 158, 11, 0.75);
+            padding: 2px 6px;
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.8);
         }
 
-        /* Spodní ovládací sekce */
+        /* Spodní ovládací sekce s velkými tlačítky */
         .bottom-controls {
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
         .action-row {
             display: flex;
-            gap: 8px;
+            gap: 10px;
         }
 
         .main-action-btn {
             flex: 1;
-            padding: 13px 16px;
-            border-radius: 16px;
+            padding: 18px 22px;
+            border-radius: 20px;
             border: none;
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #fff;
-            font-size: 15.5px;
-            font-weight: 700;
+            font-size: 19px;
+            font-weight: 800;
             cursor: pointer;
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+            box-shadow: 0 6px 22px rgba(16, 185, 129, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 12px;
         }
         .main-action-btn.active {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.55);
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+        }
+
+        .music-quick-btn {
+            padding: 18px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.22);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .music-quick-btn.playing {
+            background: rgba(245, 158, 11, 0.28);
+            border-color: #f59e0b;
+            color: #fde68a;
         }
 
         .controls-drawer {
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            padding: 10px 12px;
-            font-size: 12px;
+            background: rgba(0, 0, 0, 0.42);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 18px;
+            padding: 12px 16px;
         }
 
         .sliders-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 6px;
+            gap: 16px;
+            margin-top: 10px;
         }
 
         .slider-label {
             display: flex;
             justify-content: space-between;
-            font-size: 11px;
+            font-size: 14px;
+            font-weight: 600;
             color: var(--text-soft);
-            margin-bottom: 3px;
+            margin-bottom: 6px;
         }
 
         input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
-            height: 5px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.18);
+            height: 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.22);
             outline: none;
         }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--accent-warm);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+        }
+
+        /* Štítek posledního spuštěného efektu */
+        #fxToast {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            background: rgba(245, 158, 11, 0.95);
+            color: #05070f;
+            padding: 8px 20px;
+            border-radius: 26px;
+            font-size: 16px;
+            font-weight: 800;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .night-touch-hint {
+            position: fixed;
+            bottom: 26px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.38);
+            font-size: 15px;
+            font-weight: 600;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .night-touch-hint.visible { opacity: 1; }
+
+        /* Modální okno pro API klíč na GitHubu */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+        .modal-card {
+            background: #111827;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            max-width: 440px;
+            width: 100%;
+            padding: 22px;
+        }
+
+        @media (max-width: 600px) {
+            .mode-tab { font-size: 12px; padding: 9px 4px; }
+            .mode-tab .tab-icon { font-size: 20px; }
+            .free-lantern-orb { width: 135px; height: 135px; }
+            .main-action-btn { font-size: 17px; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="ambientCanvas"></canvas>
+<div id="fxToast" class="sans-ui"></div>
+<div id="nightHint" class="night-touch-hint sans-ui">✨ Noční lampa aktivní — Ťukni kamkoliv pro návrat do menu</div>
+
+<!-- Modál pro nastavení Gemini API klíče na GitHub Pages -->
+<div id="apiKeyModal" class="modal-backdrop sans-ui">
+    <div class="modal-card">
+        <h3 style="margin:0 0 10px 0; font-size:18px;">🔑 Nastavení AI Klíče (pro GitHub Pages)</h3>
+        <p style="font-size:14px; color:#cbd5e1; line-height:1.5; margin:0 0 14px 0;">
+            Pokud aplikaci spouštíš na <b>GitHub Pages</b> a chceš fotit knížky přes AI, vlož sem klíč z <i>Google AI Studia</i>. Bez klíče použije aplikace vestavěné offline OCR (Tesseract).
+        </p>
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width:100%; padding:12px; border-radius:12px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:15px; margin-bottom:14px;">
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button id="closeModalBtn" class="pill-btn">Zavřít</button>
+            <button id="saveKeyBtn" class="pill-btn" style="background:#f59e0b; color:#000;">Uložit klíč</button>
+        </div>
+    </div>
+</div>
+
+<div id="appWrapper" class="app-wrapper">
+    <div class="storybook-container">
+        
+        <!-- Horní lišta s velkými tlačítky -->
+        <div class="top-bar sans-ui">
+            <div class="brand-header">
+                <div class="crest-mini">
+                    <div class="crest-aura"></div>
+                    <svg viewBox="0 0 100 100" width="44" height="44">
+                        <path d="M12,75 Q30,62 50,73 Q70,62 88,75 L85,82 Q70,70 50,82 Q30,70 15,82 Z" fill="#b91c1c"/>
+                        <path d="M16,72 C24,52 40,52 50,68 C60,52 76,52 84,72 C70,64 60,66 50,74 C40,66 30,64 16,72 Z" fill="#f8fafc"/>
+                        <circle cx="50" cy="34" r="12" fill="#fbbf24"/>
+                    </svg>
+                </div>
+                <div class="brand-titles">
+                    <h1>AtmoRead</h1>
+                    <div class="brand-tagline" data-i18n="tagline">Živá zvuková a světelná atmosféra k vyprávění</div>
+                </div>
+            </div>
+
+            <div class="top-actions">
+                <button id="testSoundBtn" class="pill-btn">🔔 <span data-i18n="testSound">Test zvuku</span></button>
+                <button id="hideScreenBtn" class="pill-btn">🌙 <span data-i18n="dimScreen">Noční lampa</span></button>
+                <button id="apiKeyBtn" class="pill-btn" title="Nastavit AI klíč">🔑 AI</button>
+                <button id="langToggleBtn" class="pill-btn" style="background: rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.5);">🌐 <span id="langLabel">CZ</span></button>
+            </div>
+        </div>
+
+        <!-- Přepínač 4 režimů: 1. Volné vyprávění bez knihy (výchozí!) + 3 knižní režimy -->
+        <div class="mode-tabs sans-ui">
+            <button class="mode-tab active" data-mode="free">
+                <span class="tab-icon">✨</span>
+                <span data-i18n="modeFree">Jen poslouchat (Bez knihy)</span>
+            </button>
+            <button class="mode-tab" data-mode="live">
+                <span class="tab-icon">📖</span>
+                <span data-i18n="modeLive">Číst z pohádky</span>
+            </button>
+            <button class="mode-tab" data-mode="silent">
+                <span class="tab-icon">🤫</span>
+                <span data-i18n="modeSilent">Tiché čtení</span>
+            </button>
+            <button class="mode-tab" data-mode="podcast">
+                <span class="tab-icon">🎧</span>
+                <span data-i18n="modePodcast">AI Předčítání</span>
+            </button>
+        </div>
+
+        <!-- Nástroje pro knihu (Zobrazí se jen tehdy, když si uživatel přepne na čtení z pohádky) -->
+        <div id="bookToolsPanel" class="book-tools-panel sans-ui">
+            <div class="selector-row">
+                <select id="storySelect"></select>
+                <select id="voiceSelect">
+                    <option value="Kore">🗣️ Kore (Klidný hlas)</opti  }
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 15px;
